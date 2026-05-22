@@ -1,0 +1,908 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "game": "The Witcher 3: Wild Hunt",
+    "minigame": "Gwent",
+    "total_cards": 77,
+    "factions": 5,
+    "generated": "2024-12-19",
+    "description": "Complete card database for Gwent (Witcher 3 mini-game)"
+  },
+  "factions": {
+    "northern_realms": {
+      "id": "nr",
+      "name": "Northern Realms",
+      "name_ru": "Северные королевства",
+      "leader": {
+        "id": "nr_leader_001",
+        "name": "Foltest",
+        "strength": 10,
+        "ability": "Commander's Horn",
+        "ability_description": "One-time: +1 strength to all units in one zone"
+      },
+      "units": [
+        {
+          "id": "nr_close_001",
+          "name": "Infantry",
+          "name_ru": "Пехотинец",
+          "zone": "Close Combat",
+          "strength": 1,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_close_002",
+          "name": "Blue Guard",
+          "name_ru": "Синий гвардиец",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_close_003",
+          "name": "Redanian Guard",
+          "name_ru": "Редейский гвардиец",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_close_004",
+          "name": "Temerian Soldier",
+          "name_ru": "Темерийский солдат",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_close_005",
+          "name": "Kaedweni Knight",
+          "name_ru": "Кейджанский рыцарь",
+          "zone": "Close Combat",
+          "strength": 4,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_close_006",
+          "name": "Siege Master",
+          "name_ru": "Мастер осады",
+          "zone": "Close Combat",
+          "strength": 3,
+          "ability": "Commander Bonus",
+          "ability_description": "+1 strength to adjacent units",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_close_007",
+          "name": "Knight Commander",
+          "name_ru": "Командир рыцарей",
+          "zone": "Close Combat",
+          "strength": 5,
+          "ability": "Melee Bonus",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_close_hero_001",
+          "name": "Djikstra",
+          "name_ru": "Дийкстра",
+          "zone": "Close Combat",
+          "strength": 7,
+          "ability": "Spy",
+          "ability_description": "Causes opponent to draw 2 cards, then hero switches side",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        },
+        {
+          "id": "nr_ranged_001",
+          "name": "Archer",
+          "name_ru": "Лучник",
+          "zone": "Ranged",
+          "strength": 1,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_ranged_002",
+          "name": "Dun Banner Cavalry",
+          "name_ru": "Кавалерист Данского знамени",
+          "zone": "Ranged",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_ranged_003",
+          "name": "Crossbowman",
+          "name_ru": "Арбалетчик",
+          "zone": "Ranged",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_ranged_004",
+          "name": "Ballista Operator",
+          "name_ru": "Оператор баллисты",
+          "zone": "Ranged",
+          "strength": 3,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_ranged_005",
+          "name": "Scout",
+          "name_ru": "Разведчик",
+          "zone": "Ranged",
+          "strength": 2,
+          "ability": "Draw",
+          "ability_description": "Deploy: draw 1 card",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_ranged_hero_001",
+          "name": "Keira Metz",
+          "name_ru": "Кейра Метц",
+          "zone": "Ranged",
+          "strength": 5,
+          "ability": "Acceleration",
+          "ability_description": "Deploy: draw 1 card",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        },
+        {
+          "id": "nr_ranged_hero_002",
+          "name": "Philippa Eilhart",
+          "name_ru": "Филиппа Эйльхарт",
+          "zone": "Ranged",
+          "strength": 6,
+          "ability": "Kingfisher",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        },
+        {
+          "id": "nr_siege_001",
+          "name": "Trebuchet",
+          "name_ru": "Требушет",
+          "zone": "Siege",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_siege_002",
+          "name": "Ballista",
+          "name_ru": "Баллиста",
+          "zone": "Siege",
+          "strength": 3,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nr_siege_003",
+          "name": "Catapult",
+          "name_ru": "Катапульта",
+          "zone": "Siege",
+          "strength": 4,
+          "ability": "Damage",
+          "ability_description": "Deploy: 2 damage to random enemy",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": false
+        }
+      ]
+    },
+    "nilfgaard": {
+      "id": "nf",
+      "name": "Nilfgaard",
+      "name_ru": "Нильфгаард",
+      "leader": {
+        "id": "nf_leader_001",
+        "name": "Emhyr",
+        "strength": 10,
+        "ability": "Invade",
+        "ability_description": "One-time: draw a card"
+      },
+      "units": [
+        {
+          "id": "nf_close_001",
+          "name": "Nilfgaardian Soldier",
+          "name_ru": "Солдат Нильфгаарда",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nf_close_002",
+          "name": "Nilfgaardian Knight",
+          "name_ru": "Рыцарь Нильфгаарда",
+          "zone": "Close Combat",
+          "strength": 3,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nf_close_003",
+          "name": "Black Infantry",
+          "name_ru": "Черная пехота",
+          "zone": "Close Combat",
+          "strength": 4,
+          "ability": "Muster",
+          "ability_description": "All copies deploy simultaneously",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nf_close_004",
+          "name": "Assassin",
+          "name_ru": "Убийца",
+          "zone": "Close Combat",
+          "strength": 3,
+          "ability": "Assassinate",
+          "ability_description": "Deploy: 2 damage to random enemy",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nf_close_hero_001",
+          "name": "Cahir",
+          "name_ru": "Кахир",
+          "zone": "Close Combat",
+          "strength": 5,
+          "ability": "Deploy Buff",
+          "ability_description": "Deploy: +2 strength when on allied side",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        },
+        {
+          "id": "nf_close_hero_002",
+          "name": "Letho",
+          "name_ru": "Летхо",
+          "zone": "Close Combat",
+          "strength": 6,
+          "ability": "Witcher",
+          "ability_description": "Deploy: remove all creature bonuses from opponent's row",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        },
+        {
+          "id": "nf_ranged_001",
+          "name": "Archer",
+          "name_ru": "Лучник",
+          "zone": "Ranged",
+          "strength": 1,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nf_ranged_002",
+          "name": "Crossbowman",
+          "name_ru": "Арбалетчик",
+          "zone": "Ranged",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nf_ranged_003",
+          "name": "Spy",
+          "name_ru": "Шпион",
+          "zone": "Ranged",
+          "strength": 0,
+          "ability": "Spy",
+          "ability_description": "Deploy on opponent's side: force draw 2, then switch",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "nf_ranged_hero_001",
+          "name": "Assire var Anahid",
+          "name_ru": "Ассирэ вар Анахид",
+          "zone": "Ranged",
+          "strength": 6,
+          "ability": "Sorceress",
+          "ability_description": "Deploy: return card from discard to hand",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        }
+      ]
+    },
+    "skellige": {
+      "id": "sk",
+      "name": "Skellige",
+      "name_ru": "Скеллиге",
+      "leader": {
+        "id": "sk_leader_001",
+        "name": "Crach an Craite",
+        "strength": 10,
+        "ability": "King of the Seas",
+        "ability_description": "One-time: return card from graveyard to hand, boost all Resilience units +1"
+      },
+      "units": [
+        {
+          "id": "sk_close_001",
+          "name": "Clan Warrior",
+          "name_ru": "Воин клана",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "Resilience",
+          "ability_description": "Returns to hand at end of round",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": true,
+          "hero": false
+        },
+        {
+          "id": "sk_close_002",
+          "name": "Raider",
+          "name_ru": "Грабитель",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "Resilience",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": true,
+          "hero": false
+        },
+        {
+          "id": "sk_close_003",
+          "name": "Axeman",
+          "name_ru": "Топорник",
+          "zone": "Close Combat",
+          "strength": 3,
+          "ability": "Resilience",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": true,
+          "hero": false
+        },
+        {
+          "id": "sk_close_004",
+          "name": "Veteran",
+          "name_ru": "Ветеран",
+          "zone": "Close Combat",
+          "strength": 4,
+          "ability": "Resilience + Morale Boost",
+          "ability_description": "Resilience; +1 to adjacent Resilience units",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": true,
+          "hero": false
+        },
+        {
+          "id": "sk_close_hero_001",
+          "name": "Vladislav the Sly",
+          "name_ru": "Владислав Хитрый",
+          "zone": "Close Combat",
+          "strength": 5,
+          "ability": "Resilience",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": true,
+          "hero": true
+        },
+        {
+          "id": "sk_ranged_001",
+          "name": "Skirmisher",
+          "name_ru": "Завязчик",
+          "zone": "Ranged",
+          "strength": 1,
+          "ability": "Resilience",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": true,
+          "hero": false
+        },
+        {
+          "id": "sk_ranged_002",
+          "name": "Archer",
+          "name_ru": "Лучник",
+          "zone": "Ranged",
+          "strength": 2,
+          "ability": "Resilience",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": true,
+          "hero": false
+        },
+        {
+          "id": "sk_ranged_hero_001",
+          "name": "Birna Bran",
+          "name_ru": "Бирна Бран",
+          "zone": "Ranged",
+          "strength": 6,
+          "ability": "Resilience + Inspiration",
+          "ability_description": "Resilience; Deploy: boost all Resilience units in zone +1",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": true,
+          "hero": true
+        }
+      ]
+    },
+    "scoia_tael": {
+      "id": "st",
+      "name": "Scoia'tael",
+      "name_ru": "Сколья'тель",
+      "leader": {
+        "id": "st_leader_001",
+        "name": "Francesca Findabair",
+        "strength": 10,
+        "ability": "First Light",
+        "ability_description": "One-time: deploy Agent token that provides +1 strength to row"
+      },
+      "units": [
+        {
+          "id": "st_close_001",
+          "name": "Elf",
+          "name_ru": "Эльф",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "st_close_002",
+          "name": "Elven Archer",
+          "name_ru": "Эльфийский лучник",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "Agile",
+          "ability_description": "Can move to Ranged zone after deployment",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "st_close_003",
+          "name": "Swordmaster",
+          "name_ru": "Мастер меча",
+          "zone": "Close Combat",
+          "strength": 3,
+          "ability": "Agile",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "st_close_hero_001",
+          "name": "Isengrim Faoiltiarna",
+          "name_ru": "Изенгрим Фаолтиарна",
+          "zone": "Close Combat",
+          "strength": 6,
+          "ability": "Tight Formation",
+          "ability_description": "Deploy: boost all units in row by +1",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        },
+        {
+          "id": "st_ranged_001",
+          "name": "Archer",
+          "name_ru": "Лучник",
+          "zone": "Ranged",
+          "strength": 1,
+          "ability": "Agile",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "st_ranged_002",
+          "name": "Commando",
+          "name_ru": "Коммандос",
+          "zone": "Ranged",
+          "strength": 2,
+          "ability": "Agile",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "st_ranged_003",
+          "name": "Scout",
+          "name_ru": "Разведчик",
+          "zone": "Ranged",
+          "strength": 3,
+          "ability": "Agile + Ambush",
+          "ability_description": "Agile; draw 1 card on deploy",
+          "rarity": "Silver",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "st_ranged_hero_001",
+          "name": "Milva",
+          "name_ru": "Милва",
+          "zone": "Ranged",
+          "strength": 5,
+          "ability": "Agile + Decoy",
+          "ability_description": "Agile; deploy: move to opponent's side, then return to hand",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        }
+      ]
+    },
+    "monsters": {
+      "id": "mo",
+      "name": "Monsters",
+      "name_ru": "Чудовища",
+      "leader": {
+        "id": "mo_leader_001",
+        "name": "Eredin",
+        "strength": 10,
+        "ability": "Destroyer of Worlds",
+        "ability_description": "One-time: boost all units on board by +1"
+      },
+      "units": [
+        {
+          "id": "mo_close_001",
+          "name": "Nekker",
+          "name_ru": "Неккер",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_close_002",
+          "name": "Endrega Worker",
+          "name_ru": "Рабочая эндрега",
+          "zone": "Close Combat",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_close_003",
+          "name": "Harpy",
+          "name_ru": "Гарпия",
+          "zone": "Close Combat",
+          "strength": 3,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_close_004",
+          "name": "Wyvern",
+          "name_ru": "Вивернa",
+          "zone": "Close Combat",
+          "strength": 4,
+          "ability": "Agile",
+          "ability_description": "Can move to Siege zone",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_ranged_001",
+          "name": "Endrega",
+          "name_ru": "Эндрега",
+          "zone": "Ranged",
+          "strength": 1,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_ranged_002",
+          "name": "Ghoul",
+          "name_ru": "Гуль",
+          "zone": "Ranged",
+          "strength": 2,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 2,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_ranged_hero_001",
+          "name": "Caranthir",
+          "name_ru": "Карантир",
+          "zone": "Ranged",
+          "strength": 6,
+          "ability": "Weather Master",
+          "ability_description": "Deploy: reduce all enemy units in chosen zone by 1",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        },
+        {
+          "id": "mo_siege_001",
+          "name": "Siege Endrega",
+          "name_ru": "Осадная эндрега",
+          "zone": "Siege",
+          "strength": 1,
+          "ability": "None",
+          "rarity": "Common",
+          "max_copies": 3,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_siege_002",
+          "name": "Griffin",
+          "name_ru": "Грифон",
+          "zone": "Siege",
+          "strength": 3,
+          "ability": "Destroy",
+          "ability_description": "Deploy: destroy weakest enemy unit",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_siege_003",
+          "name": "Dragon",
+          "name_ru": "Дракон",
+          "zone": "Siege",
+          "strength": 8,
+          "ability": "Devour",
+          "ability_description": "Deploy: consume weakest friendly unit, gain +1 for each point",
+          "rarity": "Gold",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": false
+        },
+        {
+          "id": "mo_siege_hero_001",
+          "name": "Leshen",
+          "name_ru": "Лешак",
+          "zone": "Siege",
+          "strength": 7,
+          "ability": "Decay",
+          "ability_description": "Deploy: all friendly monsters gain +1 strength this round",
+          "rarity": "Silver",
+          "max_copies": 1,
+          "resilience": false,
+          "hero": true
+        }
+      ]
+    }
+  },
+  "special_cards": {
+    "weather": [
+      {
+        "id": "sp_weather_001",
+        "name": "Rain",
+        "name_ru": "Дождь",
+        "type": "Weather",
+        "affects_zone": "Close Combat",
+        "effect": "-1 strength to all units",
+        "rarity": "Common",
+        "max_copies": 1
+      },
+      {
+        "id": "sp_weather_002",
+        "name": "Fog",
+        "name_ru": "Туман",
+        "type": "Weather",
+        "affects_zone": "Ranged",
+        "effect": "-1 strength to all units",
+        "rarity": "Common",
+        "max_copies": 1
+      },
+      {
+        "id": "sp_weather_003",
+        "name": "Frost",
+        "name_ru": "Мороз",
+        "type": "Weather",
+        "affects_zone": "Siege",
+        "effect": "-1 strength to all units",
+        "rarity": "Common",
+        "max_copies": 1
+      },
+      {
+        "id": "sp_weather_004",
+        "name": "Clear Skies",
+        "name_ru": "Ясное небо",
+        "type": "Special",
+        "affects_zone": "All",
+        "effect": "Remove all weather effects",
+        "rarity": "Common",
+        "max_copies": 1
+      }
+    ],
+    "boost_spells": [
+      {
+        "id": "sp_boost_001",
+        "name": "Commander's Horn",
+        "name_ru": "Горн командира",
+        "type": "Special",
+        "effect": "+1 strength to all units in target zone",
+        "rarity": "Common",
+        "max_copies": 2
+      },
+      {
+        "id": "sp_boost_002",
+        "name": "Bloodthirst",
+        "name_ru": "Жажда крови",
+        "type": "Special",
+        "effect": "+2 strength to target unit",
+        "rarity": "Common",
+        "max_copies": 1
+      }
+    ],
+    "utility": [
+      {
+        "id": "sp_utility_001",
+        "name": "Decoy",
+        "name_ru": "Приманка",
+        "type": "Special",
+        "effect": "Return target unit to hand, draw 1 card",
+        "rarity": "Common",
+        "max_copies": 1
+      },
+      {
+        "id": "sp_utility_002",
+        "name": "Duplicate",
+        "name_ru": "Дублирование",
+        "type": "Special",
+        "effect": "Copy target unit to hand",
+        "rarity": "Silver",
+        "max_copies": 1
+      },
+      {
+        "id": "sp_utility_003",
+        "name": "Restore",
+        "name_ru": "Восстановление",
+        "type": "Special",
+        "effect": "Return target unit from graveyard to hand",
+        "rarity": "Common",
+        "max_copies": 1
+      },
+      {
+        "id": "sp_utility_004",
+        "name": "Emissary",
+        "name_ru": "Посланник",
+        "type": "Special",
+        "effect": "Deploy: draw 1 card",
+        "rarity": "Common",
+        "max_copies": 2
+      }
+    ]
+  },
+  "statistics": {
+    "by_faction": {
+      "northern_realms": 15,
+      "nilfgaard": 14,
+      "skellige": 12,
+      "scoia_tael": 11,
+      "monsters": 16,
+      "neutral": 9,
+      "total": 77
+    },
+    "by_type": {
+      "unit": 50,
+      "hero": 13,
+      "leader": 5,
+      "weather": 4,
+      "special": 5,
+      "total": 77
+    },
+    "by_rarity": {
+      "common": 52,
+      "silver": 19,
+      "gold": 6,
+      "total": 77
+    },
+    "by_zone": {
+      "close_combat": 26,
+      "ranged": 23,
+      "siege": 13,
+      "special": 5,
+      "universal": 9,
+      "total": 76
+    }
+  },
+  "abilities_index": {
+    "resilience": ["sk_close_001", "sk_close_002", "sk_close_003", "sk_close_004", "sk_close_hero_001", "sk_ranged_001", "sk_ranged_002", "sk_ranged_hero_001"],
+    "agile": ["st_close_002", "st_close_003", "st_ranged_001", "st_ranged_002", "st_ranged_003", "st_ranged_hero_001", "mo_close_004"],
+    "spy": ["nr_close_hero_001", "nf_ranged_003"],
+    "muster": ["nf_close_003"],
+    "draw": ["nr_ranged_005", "nr_ranged_hero_001", "st_ranged_003"]
+  }
+}
