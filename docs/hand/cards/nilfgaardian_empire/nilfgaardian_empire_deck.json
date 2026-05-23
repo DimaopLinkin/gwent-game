@@ -240,7 +240,7 @@
       "strength": 7,
       "hero": "Да",
       "abilities": "Нет",
-      "fraction": "Нильфгаард",
+      "fraction": "Общий",
       "count": 1
     },
     {
@@ -294,7 +294,7 @@
       "zone": "Ближний бой / Дальний бой",
       "strength": 6,
       "hero": "Нет",
-      "abilities": "Прилив сил",
+      "abilities": "Прилив Сил",
       "fraction": "Общий",
       "count": 1
     },

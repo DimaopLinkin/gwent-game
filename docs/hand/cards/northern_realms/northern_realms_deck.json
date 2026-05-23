@@ -218,7 +218,7 @@
       "strength": 7,
       "hero": "Да",
       "abilities": "Нет",
-      "fraction": "Королевства Севера",
+      "fraction": "Общий",
       "count": 1
     },
     {
@@ -261,7 +261,7 @@
       "zone": "Ближний бой / Дальний бой",
       "strength": 6,
       "hero": "Нет",
-      "abilities": "Прилив сил",
+      "abilities": "Прилив Сил",
       "fraction": "Общий",
       "count": 1
     },
@@ -492,7 +492,7 @@
       "zone": "Осадные",
       "strength": 1,
       "hero": "Нет",
-      "abilities": "Прилив сил",
+      "abilities": "Прилив Сил",
       "fraction": "Королевства Севера",
       "count": 3
     },
