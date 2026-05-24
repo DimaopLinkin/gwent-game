@@ -1,8 +1,8 @@
 {
   "leader_count": 2,
   "special_count": 27,
-  "squad_count": 49,
-  "total_count": 78,
+  "squad_count": 57,
+  "total_count": 86,
   "leader": [
     {
       "name": "Король Бран",
@@ -273,7 +273,7 @@
       "count": 3
     },
     {
-      "name": "Лугос Безунмый",
+      "name": "Лугос Безумный",
       "description": "ВА-А-А-А-А!",
       "type": "Карта отрядов",
       "zone": "Ближний бой",
@@ -508,7 +508,7 @@
       "description": "- Он всегда дает именно то, чего ты хочешь. И в этом проблема",
       "type": "Карта отрядов",
       "zone": "Осадные",
-      "strength": 1,
+      "strength": 2,
       "hero": "Нет",
       "abilities": "Двойник",
       "fraction": "Общий",

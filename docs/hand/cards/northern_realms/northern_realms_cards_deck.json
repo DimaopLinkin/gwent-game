@@ -1,8 +1,8 @@
 {
   "leader_count": 5,
   "special_count": 21,
-  "squad_count": 53,
-  "total_count": 79,
+  "squad_count": 55,
+  "total_count": 81,
   "leader": [
     {
       "name": "Фольтест Железный Владыка",
@@ -483,7 +483,7 @@
       "description": "- Он всегда дает именно то, чего ты хочешь. И в этом проблема",
       "type": "Карта отрядов",
       "zone": "Осадные",
-      "strength": 1,
+      "strength": 2,
       "hero": "Нет",
       "abilities": "Двойник",
       "fraction": "Общий",

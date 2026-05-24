@@ -1,8 +1,8 @@
 {
   "leader_count": 5,
   "special_count": 21,
-  "squad_count": 50,
-  "total_count": 76,
+  "squad_count": 54,
+  "total_count": 80,
   "leader": [
     {
       "name": "Эмгыр вар Эмрейс",
@@ -538,7 +538,7 @@
       "description": "- Он всегда дает именно то, чего ты хочешь. И в этом проблема",
       "type": "Карта отрядов",
       "zone": "Осадные",
-      "strength": 1,
+      "strength": 2,
       "hero": "Нет",
       "abilities": "Двойник",
       "fraction": "Общий",
