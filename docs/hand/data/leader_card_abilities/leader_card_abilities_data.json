@@ -1,0 +1,112 @@
+[
+  {
+    "id": "499f0289-e6f7-4d2a-bbed-b7c542ee5369",
+    "description": "Пассивная способность: удваивает силу всех карту шпионов (у обоих игроков).",
+    "tag": "eredin_breacc_glas_verolomny_ability"
+  },
+  {
+    "id": "3d9c8820-6fcc-4ca9-8b72-3a4d82fdf54a",
+    "description": "Позволяет вернуть карту из отбоя в руку",
+    "tag": "eredin_breacc_glas_vladyka_tir_na_lia_ability"
+  },
+  {
+    "id": "9ca76b86-ec82-4feb-be6f-da9ec6bf43bd",
+    "description": "Позволяет взять из колоды любую карту погоды и сразу сыграть ее",
+    "tag": "eredin_breacc_glas_komandir_dikoy_ohoti_ability"
+  },
+  {
+    "id": "74e62900-6ec1-41f2-b499-f37dd8e48432",
+    "description": "Позволяет удвоить силу всех рукопашных отрядов",
+    "tag": "eredin_breacc_glas_korol_aen_elle_ability"
+  },
+  {
+    "id": "cb19d36f-2e0f-496d-a513-435caf5d47e2",
+    "description": "Позволяет сбросить 2 карты и взять одну из колоды по выбору",
+    "tag": "eredin_breacc_glas_ubiytsa_oberona_ability"
+  },
+  {
+    "id": "faee014a-824d-4770-8be6-1a64c72f6687",
+    "description": "Отменяет эффект умения вражеского лидера",
+    "tag": "emgyr_var_emreys_ability"
+  },
+  {
+    "id": "16828291-95fc-4965-8acc-76de5228357a",
+    "description": "Посмотрите три случайные карты из руки противника",
+    "tag": "emgyr_var_emreys_imperator_nilfgaarda_ability"
+  },
+  {
+    "id": "63f83025-95f5-4365-8aea-4338e3a5eb7f",
+    "description": "Возьмите из вашей колоды Ливень и сыграйте эту карту немедленно",
+    "tag": "emgyr_var_emreys_yozh_iz_erlenvalda_ability"
+  },
+  {
+    "id": "4cee7e91-7add-4dbe-8810-983dc8cd2ced",
+    "description": "Умения, воскрешающие отряд, восстанавливают случайно выбранный отряд. Карта действует на обоих игроков",
+    "tag": "emgyr_var_emreys_zavoevatel_severa_ability"
+  },
+  {
+    "id": "8aca8d60-aad1-4138-b897-147cdc277b88",
+    "description": "Возьмите карту из отбоя вашего соперника",
+    "tag": "emgyr_var_emreys_zavoevatel_yuga_ability"
+  },
+  {
+    "id": "17670476-23b5-41e8-af3b-7efd00fe6f5c",
+    "description": "Уничтожает самый сильный осадный отряд или отряды противника, если общая сила его осадных отрядов равно или превышает 10",
+    "tag": "foltest_zhelezny_vladyka_ability"
+  },
+  {
+    "id": "6bb7caa6-6669-4a37-9785-f95dbc8dce2a",
+    "description": "Удваивает силу всех ваших осадных отрядов (если в этом ряду нет Коммандирского рогу)",
+    "tag": "foltest_zavoevatel_ability"
+  },
+  {
+    "id": "0074d973-7f7c-4bfd-8b88-5585d5d47052",
+    "description": "Возьмите из вашей колоды Мглу и сыграйте эту карту немедленно",
+    "tag": "foltest_korol_temerii_ability"
+  },
+  {
+    "id": "f21bd917-e023-4309-a633-bbdb2c48439b",
+    "description": "Отменяет все эффекты погодных карт",
+    "tag": "foltest_predvoditel_severa_ability"
+  },
+  {
+    "id": "abd20f9f-723b-4d26-a160-a82efb983e5c",
+    "description": "Уничтожает самый сильный дальнобойный отряд или отряды противника, если общая сила его дальнобойных отрядов больше или равна 10",
+    "tag": "foltest_syn_medella_ability"
+  },
+  {
+    "id": "6d9ed9c6-6bf6-405e-a5db-c0aa8096af4c",
+    "description": "Позволяет взять из колоды Мороз и немедленно сыграть его",
+    "tag": "francesca_findabair_istinnaya_elfka_ability"
+  },
+  {
+    "id": "075d6fd8-c387-459a-8c53-17a0fa721113",
+    "description": "Уничтожает самый сильный осадный отряд или отряды противника, если общая сила его осадных отрядов равно или превышает 10",
+    "tag": "francesca_findabair_koroleva_dol_blatanny_ability"
+  },
+  {
+    "id": "c82b1713-6bf6-420b-bb8b-ec0adb58de60",
+    "description": "Позволяет взять дополнительную карту в начале боя",
+    "tag": "francesca_findabair_margaritka_iz_dolin_ability"
+  },
+  {
+    "id": "6dbdda8e-f266-4229-bc90-2385fbd35999",
+    "description": "Перемещает проворные отряды в ряд, где их сила максимальна (не влияет на отряды, уже находящиеся в таком ряду).",
+    "tag": "francesca_findabair_nadezhda_aen_seidhe_ability"
+  },
+  {
+    "id": "322eec0e-32f8-46f6-99ba-5a5a154a6d3d",
+    "description": "Позволяет удвоить силу всех дальнобойных отрядов",
+    "tag": "francesca_findabair_prekrasneyshaya_ability"
+  },
+  {
+    "id": "499648a9-13fc-4869-a004-23a54634f205",
+    "description": "В плохую погоду отряды утрачивают половину боевой сины",
+    "tag": "korol_bran_ability"
+  },
+  {
+    "id": "9225d499-55a8-436d-af9f-6dc9477fd12b",
+    "description": "Отбой обоих игроков тасуется и возвращается в колоды.",
+    "tag": "krah_an_krait_ability"
+  }
+]

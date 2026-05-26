@@ -1,0 +1,22 @@
+[
+    {
+        "id": "40be9141-290a-488e-b5f8-e1aab18209d2", 
+        "name": "Ближний бой", 
+        "tag": "blizhniy_boy"
+    },
+    {
+        "id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2", 
+        "name": "Дальний бой", 
+        "tag": "dalniy_boy"
+    },
+    {
+        "id": "ae1d392f-c06b-4d7a-871e-bb5601355c47", 
+        "name": "Осадные", 
+        "tag": "osadnye"
+    },
+    {
+        "id": "03012129-82e3-412e-9e62-c149aec2deed", 
+        "name": "Ближний бой / Дальний бой", 
+        "tag": "blizhniy_boy_dalniy_boy"
+    }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "57845d37-a89d-4340-a670-5f52be61c0c7",
+    "name": "Королевства Севера",
+    "tag": "northern_realms",
+    "ability_id": "5f6a7108-f5ea-49a3-8149-4e9fddd49605",
+    "is_deck": true
+  },
+  {
+    "id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
+    "name": "Нильфгаард",
+    "tag": "nilfgaardian_empire",
+    "ability_id": "f9bd4750-6715-47b2-9568-c330290e1486",
+    "is_deck": true
+  },
+  {
+    "id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
+    "name": "Чудовища",
+    "tag": "monsters",
+    "ability_id": "e85a4eda-8b04-4af0-bbbd-69f7a79c6160",
+    "is_deck": true
+  },
+  {
+    "id": "24831810-f488-4940-98cb-6b8367e87e85",
+    "name": "Скоя'таэли",
+    "tag": "scoia_tael",
+    "ability_id": "586d7535-e7fd-4def-b8f8-7479f10ae74c",
+    "is_deck": true
+  },
+  {
+    "id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
+    "name": "Скеллиге",
+    "tag": "skellige",
+    "ability_id": "90368834-de03-4058-8585-2e1f0b361e51",
+    "is_deck": true
+  },
+  {
+    "id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "name": "Общий",
+    "tag": "common",
+    "ability_id": null,
+    "is_deck": false
+  }
+]

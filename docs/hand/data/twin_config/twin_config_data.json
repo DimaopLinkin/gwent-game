@@ -1,0 +1,167 @@
+[
+  {
+    "id": "3e46865e-34bb-405a-8e7e-c17642b1fab0",
+    "squad_card_trigger_id": "6bedf75e-3f30-495a-9d48-ab23eef0331e",
+    "squad_card_slave_id": "6bedf75e-3f30-495a-9d48-ab23eef0331e"
+  },
+  {
+    "id": "fa968614-3f74-413c-82b7-718e3498cb2b",
+    "squad_card_trigger_id": "2609cf4a-7c5e-40ec-92bd-e44f09335394",
+    "squad_card_slave_id": "6bedf75e-3f30-495a-9d48-ab23eef0331e"
+  },
+  {
+    "id": "038b038d-aedc-42b3-9e90-9a02c7fe7139",
+    "squad_card_trigger_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7",
+    "squad_card_slave_id": "5992544c-511d-47dd-8878-17fc13d6681e"
+  },
+  {
+    "id": "e2b6697a-766e-4a17-a05e-b2efaff92558",
+    "squad_card_trigger_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7",
+    "squad_card_slave_id": "002d03d1-ad7f-4ee4-abd0-d401c65f0283"
+  },
+  {
+    "id": "61e1093a-2308-4f3f-a4c1-1b5504a8c2d0",
+    "squad_card_trigger_id": "5992544c-511d-47dd-8878-17fc13d6681e",
+    "squad_card_slave_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7a"
+  },
+  {
+    "id": "b70717ec-32f9-44d8-a16b-77eb7cbf6033",
+    "squad_card_trigger_id": "5992544c-511d-47dd-8878-17fc13d6681e",
+    "squad_card_slave_id": "002d03d1-ad7f-4ee4-abd0-d401c65f0283"
+  },
+  {
+    "id": "f1ee8818-df4b-43c3-9ca8-519251c104a4",
+    "squad_card_trigger_id": "002d03d1-ad7f-4ee4-abd0-d401c65f0283",
+    "squad_card_slave_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7a"
+  },
+  {
+    "id": "7c629b10-1f3c-4535-8bd1-75cea2c60267",
+    "squad_card_trigger_id": "002d03d1-ad7f-4ee4-abd0-d401c65f0283",
+    "squad_card_slave_id": "5992544c-511d-47dd-8878-17fc13d6681e"
+  },
+  {
+    "id": "9ba96c30-e0ab-498d-b5f8-99c370d2ce01",
+    "squad_card_trigger_id": "28e2d247-6b7f-447c-a449-a1d62c40cae4",
+    "squad_card_slave_id": "8af3aeb2-d755-4960-8cab-dbe02332e404"
+  },
+  {
+    "id": "c49fe3b5-ca1b-4a9f-8795-6be69fe4dcee",
+    "squad_card_trigger_id": "8af3aeb2-d755-4960-8cab-dbe02332e404",
+    "squad_card_slave_id": "8af3aeb2-d755-4960-8cab-dbe02332e404"
+  },
+  {
+    "id": "39e71838-f8a9-4d4d-96a9-c3c3d22f03d5",
+    "squad_card_trigger_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd",
+    "squad_card_slave_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82"
+  },
+  {
+    "id": "e657b29e-e9ec-4262-b016-49a4614181d1",
+    "squad_card_trigger_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd",
+    "squad_card_slave_id": "08e936e7-a0e1-445e-97b8-838b4db10db6"
+  },
+  {
+    "id": "abe37094-3c16-45ed-9943-a13236295226",
+    "squad_card_trigger_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd",
+    "squad_card_slave_id": "df03eaf5-4580-472b-ab81-3556ef03ee64"
+  },
+  {
+    "id": "ebaf824c-bc77-4be4-95bc-c94b37b7c29c",
+    "squad_card_trigger_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd",
+    "squad_card_slave_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168"
+  },
+  {
+    "id": "4fb4e651-b3bf-498f-9a4d-09d02472fec9",
+    "squad_card_trigger_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82",
+    "squad_card_slave_id": "08e936e7-a0e1-445e-97b8-838b4db10db6"
+  },
+  {
+    "id": "7ffdb512-98d3-4011-96ce-78f1c70ec714",
+    "squad_card_trigger_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82",
+    "squad_card_slave_id": "df03eaf5-4580-472b-ab81-3556ef03ee64"
+  },
+  {
+    "id": "12f0a83c-26fb-4e47-8c44-8c7d7892883c",
+    "squad_card_trigger_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82",
+    "squad_card_slave_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168"
+  },
+  {
+    "id": "fac1efa1-a1b2-4d75-9a7c-ab7b1506831f",
+    "squad_card_trigger_id": "08e936e7-a0e1-445e-97b8-838b4db10db6",
+    "squad_card_slave_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82"
+  },
+  {
+    "id": "5ccf8b03-21fb-44ca-8940-94ededcd7728",
+    "squad_card_trigger_id": "08e936e7-a0e1-445e-97b8-838b4db10db6",
+    "squad_card_slave_id": "df03eaf5-4580-472b-ab81-3556ef03ee64"
+  },
+  {
+    "id": "f5da4e6c-0e8b-494c-9cc0-db53e863aec9",
+    "squad_card_trigger_id": "08e936e7-a0e1-445e-97b8-838b4db10db6",
+    "squad_card_slave_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168"
+  },
+  {
+    "id": "0b0c9752-edc2-4064-9732-d90f92942c5d",
+    "squad_card_trigger_id": "df03eaf5-4580-472b-ab81-3556ef03ee64",
+    "squad_card_slave_id": "08e936e7-a0e1-445e-97b8-838b4db10db6"
+  },
+  {
+    "id": "4a0df102-8026-4200-b13e-6c547ede9113",
+    "squad_card_trigger_id": "df03eaf5-4580-472b-ab81-3556ef03ee64",
+    "squad_card_slave_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82"
+  },
+  {
+    "id": "9681e5c9-0eb1-470e-b698-923f499ca5c7",
+    "squad_card_trigger_id": "df03eaf5-4580-472b-ab81-3556ef03ee64",
+    "squad_card_slave_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168"
+  },
+  {
+    "id": "ed79ef16-d4c7-4677-81ab-c83d26b89ed4",
+    "squad_card_trigger_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168",
+    "squad_card_slave_id": "08e936e7-a0e1-445e-97b8-838b4db10db6"
+  },
+  {
+    "id": "1967cf64-21f8-4b60-9aee-c3e48510bd5f",
+    "squad_card_trigger_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168",
+    "squad_card_slave_id": "df03eaf5-4580-472b-ab81-3556ef03ee64"
+  },
+  {
+    "id": "dbf252d8-16ce-47cd-9490-e9bb2c0e394e",
+    "squad_card_trigger_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168",
+    "squad_card_slave_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82"
+  },
+  {
+    "id": "3c85c32a-8673-49ee-b381-db32f56f3b5c",
+    "squad_card_trigger_id": "9ad6ba90-9f43-47fd-be8c-b959f7471185",
+    "squad_card_slave_id": "9ad6ba90-9f43-47fd-be8c-b959f7471185"
+  },
+  {
+    "id": "27ec4db0-fa96-4b94-86fa-eda7cb7c35b7",
+    "squad_card_trigger_id": "20307c2d-c2bf-4f2b-a304-2267bc56b3d6",
+    "squad_card_slave_id": "20307c2d-c2bf-4f2b-a304-2267bc56b3d6"
+  },
+  {
+    "id": "5255bce5-88e3-4787-9361-8142398f4f46",
+    "squad_card_trigger_id": "160ad1b4-fb5c-48da-a70e-9f17c6afeac3",
+    "squad_card_slave_id": "160ad1b4-fb5c-48da-a70e-9f17c6afeac3"
+  },
+  {
+    "id": "2176e75d-1356-4ddd-8dfd-291788b86ad9",
+    "squad_card_trigger_id": "17e996fd-0941-4206-a246-ab4ae96087db",
+    "squad_card_slave_id": "17e996fd-0941-4206-a246-ab4ae96087db"
+  },
+  {
+    "id": "f7388737-5912-4603-a6a6-da8a8ba2bb15",
+    "squad_card_trigger_id": "e7a4dca4-2be6-4b2a-aaac-289129a7cef1",
+    "squad_card_slave_id": "e7a4dca4-2be6-4b2a-aaac-289129a7cef1"
+  },
+  {
+    "id": "dfb3d669-4d7a-4295-84dd-726f64e6fed4",
+    "squad_card_trigger_id": "205dd7c3-171c-4185-9a40-46a2e7f7e542",
+    "squad_card_slave_id": "e60e46fa-ffca-469e-8167-10d9c463ad41"
+  },
+  {
+    "id": "480e8e7f-60f8-4731-aea3-60e96836a916",
+    "squad_card_trigger_id": "be42c06f-c8b2-4ee8-a035-e7c3a0b887a5",
+    "squad_card_slave_id": "be42c06f-c8b2-4ee8-a035-e7c3a0b887a5"
+  }
+]

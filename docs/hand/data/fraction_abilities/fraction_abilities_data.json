@@ -1,0 +1,27 @@
+[
+  {
+    "id": "5f6a7108-f5ea-49a3-8149-4e9fddd49605",
+    "description": "Вы берёте карту из своей колоды после каждого выигранного рануда.",
+    "tag": "northern_realms_fraction_ability"
+  },
+  {
+    "id": "f9bd4750-6715-47b2-9568-c330290e1486",
+    "description": "Вы побеждаете в случае ничьей.",
+    "tag": "nilfgaardian_empire_fraction_ability"
+  },
+  {
+    "id": "e85a4eda-8b04-4af0-bbbd-69f7a79c6160",
+    "description": "Одна карта отряда остаётся на столе в конце каждого раунда.",
+    "tag": "monsters_fraction_ability"
+  },
+  {
+    "id": "586d7535-e7fd-4def-b8f8-7479f10ae74c",
+    "description": "Вы решаете, кто ходит первым в начале игры.",
+    "tag": "scoia_tael_fraction_ability"
+  },
+  {
+    "id": "90368834-de03-4058-8585-2e1f0b361e51",
+    "description": "В последнем раунде из вашего отбоя вернутся на поле две случайные карты (кроме специальных и героев) с сохранением своих свойств.",
+    "tag": "skellige_fraction_ability"
+  }
+]

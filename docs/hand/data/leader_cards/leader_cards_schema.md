@@ -1,0 +1,8 @@
+# Leader cards table schema
+## leader_cards_table
+- primary key id text
+- name text
+- description text
+- tag text
+- ability_id text references to leader_card_abilities.id
+- fraction_id text references to fractions.id
