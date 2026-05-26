@@ -31,7 +31,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 8,
     "is_hero": false,
-    "abilities": null,
+    "ability_id": null,
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 0
   },
@@ -43,7 +43,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 7,
     "is_hero": false,
-    "abilities": "Казнь",
+    "ability_id": "975e50de-0329-41f5-9848-9a79bd12aec1",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 1
   },
@@ -55,7 +55,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 7,
     "is_hero": true,
-    "abilities": "Медик",
+    "ability_id": "a11f277c-5e47-407c-970c-e46c082db02b",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 1
   },
@@ -91,7 +91,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Прилив Сил",
+    "ability_id": "a834c6b2-55c8-47ea-9f94-c363e5a139af",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 1
   },
@@ -127,7 +127,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 3
   },
@@ -139,7 +139,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Командирский рог",
+    "ability_id": "77a5f066-f69c-4d00-93c1-a906fc3844b6",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 1
   },
@@ -151,7 +151,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 1
   },
@@ -163,7 +163,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 0,
     "is_hero": true,
-    "abilities": "Шпион",
+    "ability_id": "c53f84ae-3efb-4dfe-83cf-024d07257d2c",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 1
   },
@@ -175,7 +175,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 0,
     "is_hero": false,
-    "abilities": "Приманка",
+    "ability_id": "4900d7a1-cddb-435b-b905-2702fc97ffd2",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 1
   },
@@ -223,7 +223,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 8,
     "is_hero": true,
-    "abilities": "Прилив Сил",
+    "ability_id": "a834c6b2-55c8-47ea-9f94-c363e5a139af",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -235,7 +235,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 7,
     "is_hero": false,
-    "abilities": "Казнь",
+    "ability_id": "975e50de-0329-41f5-9848-9a79bd12aec1",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -260,7 +260,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -272,7 +272,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -284,7 +284,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -296,7 +296,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -332,7 +332,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 5,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -428,7 +428,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -440,7 +440,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -452,7 +452,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -464,7 +464,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -476,7 +476,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 3
   },
@@ -536,7 +536,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -548,7 +548,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 1
   },
@@ -560,7 +560,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 3
   },
@@ -596,7 +596,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 1,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9",
     "count": 3
   },
@@ -644,7 +644,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 10,
     "is_hero": true,
-    "abilities": "Медик",
+    "ability_id": "a11f277c-5e47-407c-970c-e46c082db02b",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 1
   },
@@ -680,7 +680,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 9,
     "is_hero": false,
-    "abilities": "Шпион",
+    "ability_id": "c53f84ae-3efb-4dfe-83cf-024d07257d2c",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 1
   },
@@ -692,7 +692,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 7,
     "is_hero": false,
-    "abilities": "Шпион",
+    "ability_id": "c53f84ae-3efb-4dfe-83cf-024d07257d2c",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 1
   },
@@ -752,7 +752,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 5,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 2
   },
@@ -800,7 +800,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Шпион",
+    "ability_id": "c53f84ae-3efb-4dfe-83cf-024d07257d2c",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 1
   },
@@ -836,7 +836,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 3,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 4
   },
@@ -908,7 +908,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 3
   },
@@ -932,7 +932,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 1,
     "is_hero": false,
-    "abilities": "Медик",
+    "ability_id": "a11f277c-5e47-407c-970c-e46c082db02b",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 2
   },
@@ -944,7 +944,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 0,
     "is_hero": false,
-    "abilities": "Медик",
+    "ability_id": "a11f277c-5e47-407c-970c-e46c082db02b",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4",
     "count": 1
   },
@@ -1004,7 +1004,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 8,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 2
   },
@@ -1100,7 +1100,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 5,
     "is_hero": false,
-    "abilities": "Медик",
+    "ability_id": "a11f277c-5e47-407c-970c-e46c082db02b",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 1
   },
@@ -1112,7 +1112,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 5,
     "is_hero": false,
-    "abilities": "Шпион",
+    "ability_id": "c53f84ae-3efb-4dfe-83cf-024d07257d2c",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 1
   },
@@ -1124,7 +1124,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 5,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 3
   },
@@ -1148,7 +1148,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 3
   },
@@ -1172,7 +1172,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Шпион",
+    "ability_id": "c53f84ae-3efb-4dfe-83cf-024d07257d2c",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 1
   },
@@ -1208,7 +1208,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 1,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 3
   },
@@ -1220,7 +1220,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 1,
     "is_hero": false,
-    "abilities": "Прилив Сил",
+    "ability_id": "a834c6b2-55c8-47ea-9f94-c363e5a139af",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 3
   },
@@ -1244,7 +1244,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 1,
     "is_hero": false,
-    "abilities": "Шпион",
+    "ability_id": "c53f84ae-3efb-4dfe-83cf-024d07257d2c",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7",
     "count": 1
   },
@@ -1256,7 +1256,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 10,
     "is_hero": true,
-    "abilities": "Прилив Сил",
+    "ability_id": "a834c6b2-55c8-47ea-9f94-c363e5a139af",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 1
   },
@@ -1280,7 +1280,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 10,
     "is_hero": true,
-    "abilities": "Прилив Сил",
+    "ability_id": "a834c6b2-55c8-47ea-9f94-c363e5a139af",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 1
   },
@@ -1316,7 +1316,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 8,
     "is_hero": false,
-    "abilities": "Казнь",
+    "ability_id": "975e50de-0329-41f5-9848-9a79bd12aec1",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 1
   },
@@ -1328,7 +1328,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 1
   },
@@ -1364,7 +1364,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 3
   },
@@ -1376,7 +1376,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 1
   },
@@ -1388,7 +1388,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 1
   },
@@ -1400,7 +1400,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 5,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 2
   },
@@ -1424,7 +1424,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 5,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 3
   },
@@ -1460,7 +1460,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 3,
     "is_hero": false,
-    "abilities": "Проворство",
+    "ability_id": "3b3b8a8e-2f07-4a65-9935-417e8cb28bbb",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 1
   },
@@ -1472,7 +1472,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 3,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 3
   },
@@ -1496,7 +1496,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 3
   },
@@ -1520,7 +1520,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 0,
     "is_hero": false,
-    "abilities": "Медик",
+    "ability_id": "a11f277c-5e47-407c-970c-e46c082db02b",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85",
     "count": 3
   },
@@ -1532,7 +1532,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 14,
     "is_hero": false,
-    "abilities": "Прилив Сил",
+    "ability_id": "a834c6b2-55c8-47ea-9f94-c363e5a139af",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 0
   },
@@ -1544,7 +1544,7 @@
     "zone_id": "03012129-82e3-412e-9e62-c149aec2deed",
     "strength": 12,
     "is_hero": false,
-    "abilities": "Прилив Сил",
+    "ability_id": "a834c6b2-55c8-47ea-9f94-c363e5a139af",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   },
@@ -1556,7 +1556,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 11,
     "is_hero": true,
-    "abilities": null,
+    "ability_id": null,
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 0
   },
@@ -1568,7 +1568,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 10,
     "is_hero": true,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   },
@@ -1592,7 +1592,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 8,
     "is_hero": true,
-    "abilities": "Мардрём",
+    "ability_id": "Мардрём",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   },
@@ -1604,7 +1604,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 8,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 0
   },
@@ -1616,7 +1616,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 3
   },
@@ -1628,7 +1628,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 3
   },
@@ -1676,7 +1676,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 6,
     "is_hero": false,
-    "abilities": "Казнь",
+    "ability_id": "975e50de-0329-41f5-9848-9a79bd12aec1",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   },
@@ -1688,7 +1688,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Берсерк",
+    "ability_id": "98d752c7-eaae-4b74-a256-71007fbb5393",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   },
@@ -1700,7 +1700,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Прочная связь",
+    "ability_id": "6bf8a325-4b11-4d0e-8e69-90e0d4e0c141",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 3
   },
@@ -1737,7 +1737,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 4,
     "is_hero": false,
-    "abilities": "Двойник",
+    "ability_id": "e068ebf9-353b-4a9d-a34a-a24b7a97d747",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 3
   },
@@ -1797,7 +1797,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Медик",
+    "ability_id": "a11f277c-5e47-407c-970c-e46c082db02b",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   },
@@ -1809,7 +1809,7 @@
     "zone_id": "ae1d392f-c06b-4d7a-871e-bb5601355c47",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Командирский рог",
+    "ability_id": "77a5f066-f69c-4d00-93c1-a906fc3844b6",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   },
@@ -1821,7 +1821,7 @@
     "zone_id": "0aeb6d20-f1e1-45b0-b204-13c82dfb41c2",
     "strength": 2,
     "is_hero": false,
-    "abilities": "Берсерк",
+    "ability_id": "98d752c7-eaae-4b74-a256-71007fbb5393",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 3
   },
@@ -1833,7 +1833,7 @@
     "zone_id": "40be9141-290a-488e-b5f8-e1aab18209d2",
     "strength": 0,
     "is_hero": false,
-    "abilities": "Приманка",
+    "ability_id": "4900d7a1-cddb-435b-b905-2702fc97ffd2",
     "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
     "count": 1
   }
