@@ -1,0 +1,83 @@
+[
+  {
+    "id": "57b2a086-6cab-4406-a0e2-c28b0cb8b534",
+    "name": "Казнь",
+    "description": "Огненные столпы обращают величайших в пепел. Остальные благоговейно трепещут.",
+    "tag": "kazn",
+    "ability_id": "8e860bfe-81fe-4038-82e0-a9f6914b3d54",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "count": 3
+  },
+  {
+    "id": "47d44246-c663-4218-b537-b81929c5caf0",
+    "name": "Командирский рог",
+    "description": "Плюс один к морали, минус три к слуху",
+    "tag": "komandirskiy_rog",
+    "ability_id": "0828e69c-512a-4828-a015-fc3a84e15993",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "count": 3
+  },
+  {
+    "id": "b60d66ee-d0be-45c1-9b64-890eea79ec85",
+    "name": "Ливень",
+    "description": "В этом краю даже дождь смердит мочой",
+    "tag": "livеn",
+    "ability_id": "efe1c2fd-693f-4057-9a85-ab493716d5ee",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "count": 3
+  },
+  {
+    "id": "7da6c359-b0a6-45ff-a8de-f713f398b2b8",
+    "name": "Мгла",
+    "description": "Вот туман-то... хоть глаз выколи",
+    "tag": "mgla",
+    "ability_id": "1019e114-2737-45e2-a185-268b0825666d",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "count": 3
+  },
+  {
+    "id": "c858b281-84d5-410a-9e63-45f9e61d6825",
+    "name": "Мороз",
+    "description": "Мечта хорошего коммандира... кошмар плохого.",
+    "tag": "moroz",
+    "ability_id": "8c9a7b25-5b65-4408-8735-1bf7b48b5b6a",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "count": 3
+  },
+  {
+    "id": "61ad290e-1f7b-4d02-bb71-c2b645b37ea6",
+    "name": "Чучело",
+    "description": "Пусть стреляют по крестьянам. А нет крестьян - поставьте чучела.",
+    "tag": "chuchelo",
+    "ability_id": "aea12578-038c-464e-98ff-bdb894e1a52c",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "count": 3
+  },
+  {
+    "id": "9454833b-22f2-4989-b039-2d0eee81ff1a",
+    "name": "Ясное небо",
+    "description": "Дромил, солнце-то светит! Значит и надежда есть...",
+    "tag": "yasnoe_nebo",
+    "ability_id": "260c7145-61bd-4931-8cef-15fc4c3bb29c",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
+    "count": 3
+  },
+  {
+    "id": "dafeabf0-b94f-4b4e-86d8-21822a8fee06",
+    "name": "Мардрём",
+    "description": "Съешь их побольше, и мир уже не станет прежним...",
+    "tag": "mardrem",
+    "ability_id": "459ee9d3-8065-4de7-93a9-794159ff2112",
+    "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
+    "count": 3
+  },
+  {
+    "id": "8da9ddd9-b5d9-40d0-96f9-4f6e6440740b",
+    "name": "Шторм со Скеллиге",
+    "description": "Это не просто буря. Это гнев богов.",
+    "tag": "shtorm_so_skellige",
+    "ability_id": "dc0f2f84-0d0b-4143-b1ef-1b8b5de3c980",
+    "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
+    "count": 3
+  }
+]
