@@ -11,8 +11,8 @@ const int engineVersion = 1;
 /// Машинные ключи эффектов способностей, которые реализует движок.
 ///
 /// Пакет контента с эффектом не из этого списка несовместим с движком. Ключ — поле `key` у способностей
-/// отряда, специальных карт и лидеров; словарь согласован с пакетом контента (поле `effect`). Одинаковое действие
-/// у разных видов карт — один ключ: `commander_horn`, `scorch`, `mardroeme`, `clear_weather`, `scorch_row`.
+/// отряда, специальных карт и лидеров; словарь согласован с пакетом контента (поле `effect`). Пять ключей общие
+/// для разных видов карт: `commander_horn`, `scorch`, `mardroeme`, `clear_weather`, `scorch_row`.
 const Set<String> knownEffects = {
   SpyAbility.effectKey,
   MedicAbility.effectKey,

@@ -2,9 +2,11 @@ import 'package:gwent_engine/src/cards/card_definition.dart';
 import 'package:gwent_engine/src/cards/leader_ability.dart';
 import 'package:gwent_engine/src/cards/special_ability.dart';
 import 'package:gwent_engine/src/cards/unit_ability.dart';
+import 'package:gwent_engine/src/engine/internal/enter_abilities.dart';
 import 'package:gwent_engine/src/engine/internal/field_rules.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
 import 'package:gwent_engine/src/engine/internal/turn_flow.dart';
+import 'package:gwent_engine/src/engine/internal/weather_rules.dart';
 import 'package:gwent_engine/src/engine/reject.dart';
 import 'package:gwent_engine/src/event/game_event.dart';
 import 'package:gwent_engine/src/state/card_instance.dart';
@@ -16,10 +18,12 @@ import 'package:gwent_engine/src/state/seat.dart';
 
 /// Выполняет стек эффектов, пока он не опустеет или не понадобится выбор игрока.
 final class EffectResolver {
-  const EffectResolver(this._ctx, this._field, this._turns, this._onFirstPlayerChosen);
+  const EffectResolver(this._ctx, this._field, this._enter, this._weather, this._turns, this._onFirstPlayerChosen);
 
   final MatchContext _ctx;
   final FieldRules _field;
+  final EnterAbilities _enter;
+  final WeatherRules _weather;
   final TurnFlow _turns;
 
   /// Продолжение подготовки партии после выбора Скоя'таэлей.
@@ -56,7 +60,7 @@ final class EffectResolver {
   PendingChoice? _request(Effect effect) {
     PendingChoice? cards(Seat seat, ChoiceKind kind, Iterable<CardInstance> options) => options.isEmpty
         ? null
-        : PendingChoice(seat: seat, kind: kind, options: List.unmodifiable(options.map((c) => CardOption(c.id))));
+        : PendingChoice(seat: seat, kind: kind, options: List.unmodifiable(options.map(CardOption.new)));
 
     return switch (effect) {
       ChooseFirstPlayerEffect(:final chooser) => PendingChoice(
@@ -99,12 +103,12 @@ final class EffectResolver {
         final row = effect.row ?? (option! as RowOption).row;
         final spy = _ctx.unit(card)!.ability is SpyAbility && source != EntrySource.perk;
         _field.placeUnit(spy ? player.opponent : player, row, card, source);
-        if (source != EntrySource.perk) _field.triggerOnEnter(player, card, source);
+        if (source != EntrySource.perk) _enter.trigger(player, card, source);
 
       case MedicEffect(:final player):
         final targets = _medicTargets(player);
         final CardInstance? chosen = switch (option) {
-          CardOption(:final card) => targets.firstWhere((target) => target.id == card),
+          CardOption(:final card) => targets.firstWhere((target) => target == card),
           RowOption() || SeatOption() || null => targets.isEmpty ? null : targets[_ctx.random(targets.length)],
         };
         if (chosen == null) return;
@@ -134,7 +138,7 @@ final class EffectResolver {
 
       case PickWeatherFromDeckEffect(:final player):
         final card = _take(_ctx.player(player).deck, option);
-        if (card != null) _field.playWeather(player, card);
+        if (card != null) _weather.play(player, card);
 
       case EndTurnEffect(:final player):
         _turns.advanceTurn(player);
@@ -147,7 +151,7 @@ final class EffectResolver {
   /// Убирает из зоны карту, выбранную игроком; `null`, если выбирать было не из чего.
   static CardInstance? _take(List<CardInstance> zone, ChoiceOption? option) {
     if (option is! CardOption) return null;
-    return zone.removeAt(zone.indexWhere((card) => card.id == option.card));
+    return zone.removeAt(zone.indexWhere((card) => card == option.card));
   }
 
   /// Медик выбирает случайно, если действует «Завоеватель Севера» (раздел 10).

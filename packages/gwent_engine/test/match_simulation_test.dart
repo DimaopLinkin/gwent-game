@@ -182,7 +182,7 @@ void main() {
 
   ({MatchState state, List<GameEvent> events}) simulate(int seed) {
     final (one, two) = pairings[seed % pairings.length];
-    final started = engine.start(MatchSetup(decks: {Seat.one: one, Seat.two: two}, rng: SeededRng(seed)));
+    final started = engine.start(MatchSetup(one: one, two: two, rng: SeededRng(seed)));
     var result = started as Accepted;
     final events = [...result.events];
     final initial = cardsInPlay(result.state);

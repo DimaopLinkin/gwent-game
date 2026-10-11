@@ -79,10 +79,10 @@ void main() {
       final asked = lead(state);
       expect(asked.state.choice?.kind, ChoiceKind.deckWeather);
       expect(asked.state.choice?.options, [
-        CardOption(find(state, Seat.one, 'rain')),
-        CardOption(find(state, Seat.one, 'clear')),
+        CardOption(instance(state, Seat.one, 'rain')),
+        CardOption(instance(state, Seat.one, 'clear')),
       ]);
-      final result = choose(asked, CardOption(find(state, Seat.one, 'clear')));
+      final result = choose(asked, CardOption(instance(state, Seat.one, 'clear')));
       expect(result.state.weather, isEmpty);
       expect(names(result.state.player(Seat.one).discard), ['clear']);
       expect(result.state.turn, Seat.two);
@@ -163,8 +163,8 @@ void main() {
       );
       final asked = lead(state);
       expect(asked.state.choice?.kind, ChoiceKind.opponentDiscardCard);
-      expect(asked.state.choice?.options, [CardOption(find(state, Seat.two, 'catapult'))]);
-      final result = choose(asked, CardOption(find(state, Seat.two, 'catapult')));
+      expect(asked.state.choice?.options, [CardOption(instance(state, Seat.two, 'catapult'))]);
+      final result = choose(asked, CardOption(instance(state, Seat.two, 'catapult')));
       expect(names(result.state.player(Seat.one).hand), ['catapult']);
       expect(names(result.state.player(Seat.two).discard), ['geralt', 'decoy']);
     });
@@ -174,7 +174,7 @@ void main() {
         one: const Side(leader: 'eredin_return', faction: Faction.monsters, discard: ['ghoul', 'geralt']),
         two: opponent,
       );
-      final result = choose(lead(state), CardOption(find(state, Seat.one, 'ghoul')));
+      final result = choose(lead(state), CardOption(instance(state, Seat.one, 'ghoul')));
       expect(names(result.state.player(Seat.one).hand), ['ghoul']);
     });
 
@@ -201,10 +201,10 @@ void main() {
     );
     var result = lead(state);
     expect(result.state.choice?.kind, ChoiceKind.handCardToDiscard);
-    result = choose(result, CardOption(find(state, Seat.one, 'footman')));
-    result = choose(result, CardOption(find(state, Seat.one, 'ghoul')));
+    result = choose(result, CardOption(instance(state, Seat.one, 'footman')));
+    result = choose(result, CardOption(instance(state, Seat.one, 'ghoul')));
     expect(result.state.choice?.kind, ChoiceKind.deckCard);
-    result = choose(result, CardOption(find(state, Seat.one, 'geralt')));
+    result = choose(result, CardOption(instance(state, Seat.one, 'geralt')));
     expect(names(result.state.player(Seat.one).hand), ['archer', 'geralt']);
     expect(names(result.state.player(Seat.one).discard), ['footman', 'ghoul']);
     expect(result.state.turn, Seat.two);
@@ -264,6 +264,18 @@ void main() {
     });
   });
 
+  test('Надежда Aen Seidhe: из равных раскладок с равным числом перемещений первая по порядку карта остаётся', () {
+    // Два Олафа вместе дают 13 + 13 в любом ряду; вместе их собирает одно перемещение в любую сторону.
+    final state = playing(
+      one: const Side(leader: 'francesca_agile', faction: Faction.scoiatael, melee: ['olaf'], ranged: ['olaf']),
+      two: opponent,
+    );
+    final result = lead(state);
+    expect(rowCards(result.state, Seat.one, Row.melee), ['olaf', 'olaf']);
+    expect(rowCards(result.state, Seat.one, Row.ranged), isEmpty);
+    expect(result.events.whereType<UnitMoved>(), hasLength(1));
+  });
+
   test('Убийца Оберона с пустой рукой и колодой ничего не делает', () {
     final state = playing(
       one: const Side(leader: 'eredin_oberon', faction: Faction.monsters),
@@ -288,5 +300,17 @@ void main() {
       DiscardShuffledIntoDeck(Seat.one),
       DiscardShuffledIntoDeck(Seat.two),
     ]);
+  });
+
+  test('Крах ан Крайт: генератор сначала перемешивает колоду применившего, затем соперника', () {
+    final state = playing(
+      one: const Side(leader: 'crach', faction: Faction.skellige, deck: ['footman'], discard: ['archer']),
+      two: const Side(hand: ['archer'], deck: ['ghoul'], discard: ['catapult']),
+      // Колода из двух карт перемешивается одним числом: 0 меняет карты местами, 1 оставляет.
+      rng: const ScriptedRng([0, 1]),
+    );
+    final result = lead(state);
+    expect(names(result.state.player(Seat.one).deck), ['archer', 'footman']);
+    expect(names(result.state.player(Seat.two).deck), ['ghoul', 'catapult']);
   });
 }

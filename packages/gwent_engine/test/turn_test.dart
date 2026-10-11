@@ -151,6 +151,19 @@ void main() {
     expect(rejected(engine, result.state, Seat.one, const Pass()), RejectReason.matchFinished);
   });
 
+  test('сдача во время чужого выбора заканчивает партию и снимает выбор', () {
+    final state = playing(
+      one: const Side(hand: ['banner_medic'], discard: ['footman']),
+      two: const Side(hand: ['archer']),
+    );
+    final asked = act(engine, state, Seat.one, PlayCard(find(state, Seat.one, 'banner_medic')));
+    expect(asked.state.choice, isNotNull);
+    final result = act(engine, asked.state, Seat.two, const Resign());
+    expect(result.state.outcome, const MatchOutcome(winner: Seat.one, reason: MatchEndReason.resignation));
+    expect(result.state.choice, isNull);
+    expect(result.state.effects, isEmpty);
+  });
+
   test('проекция показывает, какие карты можно сыграть в свой ход', () {
     final state = playing(
       one: const Side(hand: ['footman', 'decoy']),

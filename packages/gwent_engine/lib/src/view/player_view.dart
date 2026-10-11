@@ -90,7 +90,7 @@ final class SideView extends Value {
   final LeaderId leader;
   final Faction faction;
 
-  /// Активную способность лидера можно применить (если сейчас ход этого игрока).
+  /// Активная способность лидера не потрачена и не отключена; чей сейчас ход, не учитывается.
   final bool leaderAvailable;
   final bool leaderUsed;
   final bool leaderDisabled;
@@ -155,14 +155,11 @@ final class RowView extends Value {
 
 /// Карта на поле с текущей силой.
 final class FieldCardView extends Value {
-  const FieldCardView({required this.card, required this.strength, required this.kept});
+  const FieldCardView({required this.card, required this.strength});
 
   final CardInstance card;
   final int strength;
 
-  /// Карту оставил на поле перк Чудовищ.
-  final bool kept;
-
   @override
-  List<Object?> get props => [card, strength, kept];
+  List<Object?> get props => [card, strength];
 }

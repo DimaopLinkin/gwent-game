@@ -104,8 +104,12 @@ RejectReason rejected(MatchEngine engine, MatchState state, Seat seat, Intent in
   Accepted() => fail('Намерение $intent должно быть отклонено'),
 };
 
+/// Номер экземпляра карты [card] в зоне игрока: в руке, колоде, отбое или на поле.
+CardInstanceId find(MatchState state, Seat seat, String card, {int nth = 0}) =>
+    instance(state, seat, card, nth: nth).id;
+
 /// Экземпляр карты [card] в зоне игрока: в руке, колоде, отбое или на поле.
-CardInstanceId find(MatchState state, Seat seat, String card, {int nth = 0}) {
+CardInstance instance(MatchState state, Seat seat, String card, {int nth = 0}) {
   final player = state.player(seat);
   final all = [
     ...player.hand,
@@ -113,7 +117,7 @@ CardInstanceId find(MatchState state, Seat seat, String card, {int nth = 0}) {
     ...player.discard,
     for (final row in player.rows.values) ...row.cards.map((field) => field.card),
   ];
-  return all.where((instance) => instance.cardId == CardId(card)).elementAt(nth).id;
+  return all.where((instance) => instance.cardId == CardId(card)).elementAt(nth);
 }
 
 /// Названия карт ряда по порядку.

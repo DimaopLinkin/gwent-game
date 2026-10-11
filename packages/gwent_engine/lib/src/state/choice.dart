@@ -1,4 +1,3 @@
-import 'package:gwent_engine/src/cards/ids.dart';
 import 'package:gwent_engine/src/cards/row.dart';
 import 'package:gwent_engine/src/core/value.dart';
 import 'package:gwent_engine/src/state/card_instance.dart';
@@ -37,10 +36,13 @@ sealed class ChoiceOption extends Value {
 }
 
 /// Выбор карты.
+///
+/// Вариант несёт и номер экземпляра, и определение карты: карты из колоды выбирающий не видит в проекции,
+/// а отрисовать вариант должен по одному выбору.
 final class CardOption extends ChoiceOption {
   const CardOption(this.card);
 
-  final CardInstanceId card;
+  final CardInstance card;
 
   @override
   List<Object?> get props => [card];

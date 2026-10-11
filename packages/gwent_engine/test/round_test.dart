@@ -212,6 +212,31 @@ void main() {
       expect(result.events, contains(isA<UnitKept>()));
     });
 
+    test('Чудовища у обоих: генератор сначала выбирает за начинающего следующий раунд', () {
+      const monsters = Side(
+        leader: 'eredin_return',
+        faction: Faction.monsters,
+        hand: ['footman'],
+        melee: ['ghoul', 'vesemir'],
+      );
+      // Ничья: следующий раунд снова начинает игрок 2, поэтому первое число — его.
+      final result = endRound(
+        one: monsters,
+        two: const Side(
+          leader: 'eredin_return',
+          faction: Faction.monsters,
+          hand: ['footman'],
+          melee: ['ghoul', 'vesemir'],
+          passed: true,
+        ),
+        starter: Seat.two,
+        rng: const ScriptedRng([0, 1]),
+      );
+      expect(result.state.roundStarter, Seat.two);
+      expect(rowCards(result.state, Seat.two, Row.melee), ['ghoul']);
+      expect(rowCards(result.state, Seat.one, Row.melee), ['vesemir']);
+    });
+
     test('Чудовища могут оставить героя и шпиона соперника, но не Чучело', () {
       final result = endRound(
         one: const Side(

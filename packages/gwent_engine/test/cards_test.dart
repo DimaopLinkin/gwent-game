@@ -62,13 +62,13 @@ void main() {
         PendingChoice(
           seat: Seat.one,
           kind: ChoiceKind.medicTarget,
-          options: [CardOption(find(state, Seat.one, 'archer')), CardOption(find(state, Seat.one, 'footman'))],
+          options: [CardOption(instance(state, Seat.one, 'archer')), CardOption(instance(state, Seat.one, 'footman'))],
         ),
       );
       expect(rejected(engine, played.state, Seat.two, const Pass()), RejectReason.choicePending);
       expect(rejected(engine, played.state, Seat.one, const Pass()), RejectReason.choicePending);
 
-      final chosen = act(engine, played.state, Seat.one, ChooseOption(CardOption(find(state, Seat.one, 'archer'))));
+      final chosen = act(engine, played.state, Seat.one, ChooseOption(CardOption(instance(state, Seat.one, 'archer'))));
       expect(rowCards(chosen.state, Seat.one, Row.ranged), ['archer']);
       expect(names(chosen.state.player(Seat.one).discard), ['geralt', 'decoy', 'footman']);
       expect(chosen.state.turn, Seat.two);
@@ -80,9 +80,9 @@ void main() {
         two: opponent,
       );
       var result = play(state, 'banner_medic');
-      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(find(state, Seat.one, 'archer_medic'))));
+      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(instance(state, Seat.one, 'archer_medic'))));
       expect(result.state.choice?.kind, ChoiceKind.medicTarget);
-      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(find(state, Seat.one, 'skellen'))));
+      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(instance(state, Seat.one, 'skellen'))));
       expect(rowCards(result.state, Seat.two, Row.melee), ['skellen']);
       expect(names(result.state.player(Seat.one).hand), ['footman', 'archer']);
       expect(result.state.turn, Seat.two);
@@ -104,7 +104,12 @@ void main() {
         two: opponent,
       );
       var result = play(state, 'banner_medic');
-      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(find(state, Seat.one, 'elf_skirmisher'))));
+      result = act(
+        engine,
+        result.state,
+        Seat.one,
+        ChooseOption(CardOption(instance(state, Seat.one, 'elf_skirmisher'))),
+      );
       expect(result.state.choice?.kind, ChoiceKind.unitRow);
       expect(result.state.choice?.options, const [RowOption(Row.melee), RowOption(Row.ranged)]);
       result = act(engine, result.state, Seat.one, const ChooseOption(RowOption(Row.melee)));
@@ -128,13 +133,13 @@ void main() {
         two: opponent,
       );
       var result = play(state, 'banner_medic');
-      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(find(state, Seat.one, 'skellen'))));
+      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(instance(state, Seat.one, 'skellen'))));
       expect(rowCards(result.state, Seat.two, Row.melee), ['skellen']);
     });
   });
 
   group('Двойник', () {
-    test('выкладывает связанные карты из колоды и руки', () {
+    test('выкладывает связанные карты из колоды и руки и называет зону каждой', () {
       final state = playing(
         one: const Side(hand: ['arachas', 'arachas', 'footman'], deck: ['arachas', 'behemoth', 'archer']),
         two: opponent,
@@ -145,8 +150,24 @@ void main() {
       expect(names(result.state.player(Seat.one).deck), ['behemoth', 'archer']);
       expect(
         result.events.whereType<UnitPlaced>().map((event) => event.source),
-        [EntrySource.hand, EntrySource.muster, EntrySource.muster],
+        [EntrySource.hand, EntrySource.musterFromDeck, EntrySource.musterFromHand],
       );
+    });
+
+    test('призванной проворной карте ряд выбирает игрок, призванный Медик срабатывает', () {
+      final state = playing(
+        one: const Side(hand: ['nekker'], deck: ['harpy', 'archer_medic'], discard: ['footman']),
+        two: opponent,
+      );
+      var result = play(state, 'nekker');
+      expect(result.state.choice?.kind, ChoiceKind.unitRow);
+      expect(result.state.choice?.subject, instance(state, Seat.one, 'harpy'));
+      result = act(engine, result.state, Seat.one, const ChooseOption(RowOption(Row.ranged)));
+      expect(result.state.choice?.kind, ChoiceKind.medicTarget);
+      result = act(engine, result.state, Seat.one, ChooseOption(CardOption(instance(state, Seat.one, 'footman'))));
+      expect(rowCards(result.state, Seat.one, Row.melee), ['nekker', 'footman']);
+      expect(rowCards(result.state, Seat.one, Row.ranged), ['harpy', 'archer_medic']);
+      expect(result.state.turn, Seat.two);
     });
 
     test('связь несимметрична: Огромный главоглаз призывает Главоглазов, но не наоборот', () {

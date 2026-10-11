@@ -1,5 +1,5 @@
 import 'package:gwent_engine/src/cards/row.dart';
-import 'package:gwent_engine/src/engine/internal/field_rules.dart';
+import 'package:gwent_engine/src/engine/internal/board_score.dart';
 import 'package:gwent_engine/src/engine/internal/legality.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
 import 'package:gwent_engine/src/state/match_phase.dart';
@@ -8,10 +8,10 @@ import 'package:gwent_engine/src/view/player_view.dart';
 
 /// Строит проекцию партии для одного игрока.
 final class Projector {
-  const Projector(this._ctx, this._field, this._legality);
+  const Projector(this._ctx, this._score, this._legality);
 
   final MatchContext _ctx;
-  final FieldRules _field;
+  final BoardScore _score;
   final Legality _legality;
 
   PlayerView project(Seat viewer) {
@@ -36,7 +36,7 @@ final class Projector {
   SideView _side(Seat seat, {required bool own}) {
     final draft = _ctx.draft;
     final player = _ctx.player(seat);
-    final weatherRows = _field.weatherRows();
+    final weatherRows = _score.weatherRows();
     final myTurn = draft.phase == MatchPhase.playing && draft.turn == seat && draft.choice == null;
     return SideView(
       seat: seat,
@@ -54,7 +54,7 @@ final class Projector {
       rows: Map.unmodifiable({
         for (final row in Row.values) row: _row(seat, row, weather: weatherRows.contains(row)),
       }),
-      score: _field.score(seat),
+      score: _score.score(seat),
       redrawsLeft: own ? player.redrawsLeft : null,
       redrawDone: player.redrawDone,
       playable: own && myTurn
@@ -68,11 +68,11 @@ final class Projector {
 
   RowView _row(Seat seat, Row row, {required bool weather}) {
     final draftRow = _ctx.player(seat).rows[row]!;
-    final strengths = _field.strengths(seat, row);
+    final strengths = _score.strengths(seat, row);
     return RowView(
       cards: List.unmodifiable([
         for (var i = 0; i < draftRow.cards.length; i++)
-          FieldCardView(card: draftRow.cards[i].card, strength: strengths[i], kept: draftRow.cards[i].kept),
+          FieldCardView(card: draftRow.cards[i].card, strength: strengths[i]),
       ]),
       slot: draftRow.slot,
       weather: weather,

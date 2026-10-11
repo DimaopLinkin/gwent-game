@@ -52,6 +52,13 @@ final List<CardDefinition> _units = [
   _unit('archer_medic', _ranged, 1, faction: Faction.nilfgaard, copies: 2, ability: const MedicAbility()),
   _unit('arachas', _melee, 4, faction: Faction.monsters, copies: 3, ability: const MusterAbility([CardId('arachas')])),
   _unit('behemoth', _siege, 6, faction: Faction.monsters, ability: const MusterAbility([CardId('arachas')])),
+  _unit(
+    'nekker',
+    _melee,
+    2,
+    faction: Faction.monsters,
+    ability: const MusterAbility([CardId('harpy'), CardId('archer_medic')]),
+  ),
   _unit('villentretenmerth', _melee, 7, ability: const ScorchRowAbility(Row.melee)),
   _unit('schirru', _siege, 8, faction: Faction.scoiatael, ability: const ScorchRowAbility(Row.siege)),
   _unit('pirate', _ranged, 6, faction: Faction.skellige, ability: const ScorchAllAbility()),

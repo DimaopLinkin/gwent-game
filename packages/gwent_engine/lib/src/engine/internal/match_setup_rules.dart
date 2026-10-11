@@ -19,14 +19,20 @@ final class MatchSetupRules {
   final TurnFlow _turns;
 
   /// Шаги 1–3: перемешивание колод, Белое Пламя, выбор первого хода. Колоды уже проверены.
-  void start(Map<Seat, Deck> decks) {
+  void start(Deck Function(Seat seat) decks) {
+    final shuffled = {
+      for (final seat in Seat.values) seat: _shuffled(decks(seat).cards, seat),
+    };
+    // Номера экземпляров — случайная перестановка: по номеру не узнать ни карту, ни её место в колоде,
+    // а значит, и то, что карта пришла при пересдаче (раздел 4 сетевой спецификации).
+    final total = shuffled.values.fold(0, (sum, cards) => sum + cards.length);
+    final ids = [for (var id = 1; id <= total; id++) id];
+    _ctx.shuffle(ids);
+    var next = 0;
     for (final seat in Seat.values) {
-      final cards = [...decks[seat]!.cards];
-      _ctx.shuffle(cards);
-      // Номера экземпляров идут по перемешанной колоде: по номеру нельзя узнать карту соперника.
-      _ctx.player(seat).deck.addAll(cards.map((id) => CardInstance(CardInstanceId(_ctx.draft.nextInstanceId++), id)));
-      _ctx.emit(DeckShuffled(seat));
+      _ctx.player(seat).deck.addAll(shuffled[seat]!.map((id) => CardInstance(CardInstanceId(ids[next++]), id)));
     }
+    _ctx.draft.nextInstanceId = ids.length + 1;
     for (final seat in Seat.values) {
       final opponentLeader = _ctx.catalog.leader(_ctx.player(seat.opponent).leader)!;
       _ctx.player(seat).leaderDisabled = opponentLeader.ability is DisableOpponentLeaderAbility;
@@ -44,6 +50,13 @@ final class MatchSetupRules {
       _ctx.emit(FirstPlayerChosen(first, byChoice: false));
       dealAndRedraw(first);
     }
+  }
+
+  List<CardId> _shuffled(List<CardId> cards, Seat seat) {
+    final shuffled = [...cards];
+    _ctx.shuffle(shuffled);
+    _ctx.emit(DeckShuffled(seat));
+    return shuffled;
   }
 
   /// Шаги 4–5: раздача и начало пересдачи.

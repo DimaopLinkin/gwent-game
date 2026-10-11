@@ -21,8 +21,10 @@ final class MatchContext {
 
   DraftPlayer player(Seat seat) => draft.player(seat);
 
-  /// Определение карты. Колоды проверены при создании партии, поэтому карта есть в справочнике.
-  CardDefinition definition(CardInstance card) => catalog.card(card.cardId)!;
+  /// Определение карты. Колоды проверены при создании партии, поэтому карта есть в справочнике; иначе состояние
+  /// создано с другим справочником, и это ошибка вызывающего кода (пакет контента партии сверяется до загрузки).
+  CardDefinition definition(CardInstance card) =>
+      catalog.card(card.cardId) ?? (throw StateError('Карты ${card.cardId} нет в справочнике партии'));
 
   /// Определение карты отряда или `null` для специальной карты.
   UnitCardDefinition? unit(CardInstance card) => switch (definition(card)) {

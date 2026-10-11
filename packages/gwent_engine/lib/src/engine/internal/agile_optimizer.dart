@@ -1,4 +1,5 @@
 import 'package:gwent_engine/src/cards/row.dart';
+import 'package:gwent_engine/src/engine/internal/board_score.dart';
 import 'package:gwent_engine/src/engine/internal/field_rules.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
 import 'package:gwent_engine/src/engine/internal/strength_calculator.dart';
@@ -9,13 +10,15 @@ import 'package:gwent_engine/src/state/seat.dart';
 /// Способность «Надежда Aen Seidhe» (раздел 10): раскладка своих проворных обычных отрядов между ближним
 /// и дальним рядом с наибольшей суммой силы этих рядов.
 final class AgileOptimizer {
-  AgileOptimizer(this._ctx, this._field) : _calculator = StrengthCalculator(_ctx.catalog);
+  AgileOptimizer(this._ctx, this._field, this._board) : _calculator = StrengthCalculator(_ctx.catalog);
 
   final MatchContext _ctx;
   final FieldRules _field;
+  final BoardScore _board;
   final StrengthCalculator _calculator;
 
-  /// Предел перебора: 2^n раскладок. В колоде столько проворных карт не набирается.
+  /// Предел перебора: 2^n раскладок. В данных обычных проворных отрядов не больше 9 у фракции и 1 нейтрального,
+  /// а чужие карты на поле игрока попадают только как шпионы, поэтому предел недостижим.
   static const int _maxAgile = 20;
 
   void optimize(Seat seat) {
@@ -26,7 +29,10 @@ final class AgileOptimizer {
         for (final card in rows[row]!.cards)
           if (_ctx.isNormalUnit(card.card) && _ctx.unit(card.card)!.placement.row == null) (card: card, row: row),
     ];
-    if (agile.isEmpty || agile.length > _maxAgile) return;
+    if (agile.isEmpty) return;
+    if (agile.length > _maxAgile) {
+      throw StateError('«Надежда Aen Seidhe»: ${agile.length} проворных карт, перебор рассчитан на $_maxAgile');
+    }
 
     final current = [for (final entry in agile) entry.row];
     var best = <List<Row>>[];
@@ -80,7 +86,7 @@ final class AgileOptimizer {
     final rows = _ctx.player(seat).rows;
     var total = 0;
     for (final MapEntry(key: row, value: cards) in _layoutRows(seat, agile, layout).entries) {
-      final strengths = _calculator.row(cards, rows[row]!.slot, _field.conditions(seat, row));
+      final strengths = _calculator.row(cards, rows[row]!.slot, _board.conditions(seat, row));
       total += strengths.fold(0, (sum, strength) => sum + strength);
     }
     return total;

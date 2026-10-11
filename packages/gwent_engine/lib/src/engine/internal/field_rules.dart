@@ -1,100 +1,29 @@
 import 'package:gwent_engine/src/cards/card_definition.dart';
-import 'package:gwent_engine/src/cards/ids.dart';
-import 'package:gwent_engine/src/cards/leader_ability.dart';
 import 'package:gwent_engine/src/cards/row.dart';
 import 'package:gwent_engine/src/cards/special_ability.dart';
 import 'package:gwent_engine/src/cards/unit_ability.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
-import 'package:gwent_engine/src/engine/internal/strength_calculator.dart';
 import 'package:gwent_engine/src/event/game_event.dart';
 import 'package:gwent_engine/src/state/card_instance.dart';
-import 'package:gwent_engine/src/state/effect.dart';
 import 'package:gwent_engine/src/state/entry_source.dart';
 import 'package:gwent_engine/src/state/field_card.dart';
 import 'package:gwent_engine/src/state/row_slot.dart';
 import 'package:gwent_engine/src/state/seat.dart';
-import 'package:gwent_engine/src/state/weather_card.dart';
 
 /// Карта на поле вместе с её местом.
 typedef FieldTarget = ({Seat side, Row row, FieldCard card});
 
-/// Правила поля: выкладка отрядов, способности при выходе, погода, слоты рога, Казнь, Чучело и Берсерки.
+/// Правила поля: выкладка и уход карт, Приманка, слоты рога, Чучело и превращение Берсерков.
 final class FieldRules {
-  FieldRules(this._ctx) : _calculator = StrengthCalculator(_ctx.catalog);
+  const FieldRules(this._ctx);
 
   final MatchContext _ctx;
-  final StrengthCalculator _calculator;
 
-  /// Ряды под действующей погодой.
-  Set<Row> weatherRows() => {
-    for (final weather in _ctx.draft.weather)
-      if (_ctx.definition(weather.card) case SpecialCardDefinition(ability: WeatherAbility(:final rows))) ...rows,
-  };
-
-  /// Текущая сила карт ряда в порядке выкладки.
-  List<int> strengths(Seat side, Row row) {
-    final draftRow = _ctx.player(side).rows[row]!;
-    return _calculator.row(draftRow.cards, draftRow.slot, conditions(side, row));
-  }
-
-  /// Условия ряда для расчёта силы.
-  RowConditions conditions(Seat side, Row row) => RowConditions(
-    weather: weatherRows().contains(row),
-    halveWeather: _ctx.leaderAbility(side) is HalveWeatherAbility,
-    doubleSpies: _ctx.anyLeader((ability) => ability is DoubleSpiesAbility),
-  );
-
-  /// Сила ряда: сумма всех его карт, включая героев.
-  int rowTotal(Seat side, Row row) => strengths(side, row).fold(0, (sum, strength) => sum + strength);
-
-  /// Очки стороны: сумма трёх рядов.
-  int score(Seat side) => Row.values.fold(0, (sum, row) => sum + rowTotal(side, row));
-
-  /// Кладёт отряд в ряд. Способности при выходе запускает [triggerOnEnter].
+  /// Кладёт отряд в ряд. Способности при выходе запускает `EnterAbilities`.
   void placeUnit(Seat side, Row row, CardInstance card, EntrySource source) {
     _ctx.player(side).rows[row]!.cards.add(FieldCard(card));
     _ctx.emit(UnitPlaced(side, row, card, source));
     transformBerserks();
-  }
-
-  /// Способности при выходе карты [card], которую выложил игрок [player] (раздел 9.2).
-  void triggerOnEnter(Seat player, CardInstance card, EntrySource source) {
-    switch (_ctx.unit(card)?.ability) {
-      case SpyAbility(:final draw):
-        _ctx.draw(player, draw);
-      case MedicAbility():
-        _ctx.draft.effects.add(MedicEffect(player));
-      case MusterAbility(:final summons):
-        if (source != EntrySource.muster) _muster(player, summons);
-      case ScorchRowAbility(:final row, :final threshold):
-        scorchRow(player.opponent, row, threshold);
-      case ScorchAllAbility():
-        scorchAll();
-      case TightBondAbility() ||
-          MoraleBoostAbility() ||
-          UnitHornAbility() ||
-          BaitAbility() ||
-          BerserkAbility() ||
-          MardremAuraAbility() ||
-          null:
-        break;
-    }
-  }
-
-  /// Двойник: все карты [summons] из колоды, затем из руки выходят на поле (раздел 9.4).
-  void _muster(Seat seat, List<CardId> summons) {
-    final player = _ctx.player(seat);
-    final summoned = <CardInstance>[];
-    for (final id in summons) {
-      for (final zone in [player.deck, player.hand]) {
-        summoned.addAll(zone.where((card) => card.cardId == id));
-        zone.removeWhere((card) => card.cardId == id);
-      }
-    }
-    // Стек: последний добавленный эффект выполняется первым, поэтому кладём в обратном порядке.
-    for (final card in summoned.reversed) {
-      _ctx.draft.effects.add(EnterFieldEffect(seat, card, EntrySource.muster, row: _ctx.unit(card)!.placement.row));
-    }
   }
 
   /// Превращает Берсерков в рядах с Мардрёмом (раздел 9.4).
@@ -175,67 +104,6 @@ final class FieldRules {
   void placeCreated(Seat side, Row row, CardInstance card) {
     _ctx.player(side).rows[row]!.cards.add(FieldCard(card));
     _ctx.emit(CreatedCardPlaced(side, row, card));
-  }
-
-  /// Казнь всего поля: сильнейшие обычные отряды у обоих игроков (раздел 9.3).
-  void scorchAll() {
-    final candidates = <(FieldTarget, int)>[
-      for (final side in Seat.values)
-        for (final row in Row.values) ..._normalUnits(side, row),
-    ];
-    destroy(_strongest(candidates));
-  }
-
-  /// Казнь по ряду: если сила ряда не меньше [threshold], сильнейшие обычные отряды ряда (раздел 9.4).
-  void scorchRow(Seat side, Row row, int threshold) {
-    if (rowTotal(side, row) < threshold) return;
-    destroy(_strongest(_normalUnits(side, row)));
-  }
-
-  List<(FieldTarget, int)> _normalUnits(Seat side, Row row) {
-    final cards = _ctx.player(side).rows[row]!.cards;
-    final strengths = this.strengths(side, row);
-    return [
-      for (var i = 0; i < cards.length; i++)
-        if (_ctx.isNormalUnit(cards[i].card)) ((side: side, row: row, card: cards[i]), strengths[i]),
-    ];
-  }
-
-  static List<FieldTarget> _strongest(List<(FieldTarget, int)> candidates) {
-    if (candidates.isEmpty) return const [];
-    final max = candidates.map((candidate) => candidate.$2).reduce((a, b) => a > b ? a : b);
-    return [
-      for (final (target, strength) in candidates)
-        if (strength == max) target,
-    ];
-  }
-
-  /// Карта погоды или Ясное небо от игрока [owner] (раздел 9.3).
-  void playWeather(Seat owner, CardInstance card) {
-    switch (_ctx.definition(card)) {
-      case SpecialCardDefinition(ability: WeatherAbility()):
-        if (_ctx.draft.weather.any((weather) => weather.card.cardId == card.cardId)) {
-          _ctx.discard(owner, card);
-        } else {
-          _ctx.draft.weather.add(WeatherCard(card, owner));
-          _ctx.emit(WeatherPlayed(owner, card));
-        }
-      case SpecialCardDefinition(ability: ClearWeatherAbility()):
-        clearWeather();
-        _ctx.discard(owner, card);
-      case SpecialCardDefinition() || UnitCardDefinition():
-        throw StateError('Карта ${card.cardId} не погода');
-    }
-  }
-
-  /// Снимает всю погоду: карты уходят в отбой своих хозяев.
-  void clearWeather() {
-    final weather = [..._ctx.draft.weather];
-    _ctx.draft.weather.clear();
-    _ctx.emit(const WeatherCleared());
-    for (final card in weather) {
-      _ctx.discard(card.owner, card.card);
-    }
   }
 
   bool slotFree(Seat side, Row row) => _ctx.player(side).rows[row]!.slot == null;

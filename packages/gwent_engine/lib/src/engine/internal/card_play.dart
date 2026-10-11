@@ -2,6 +2,8 @@ import 'package:gwent_engine/src/cards/card_definition.dart';
 import 'package:gwent_engine/src/cards/special_ability.dart';
 import 'package:gwent_engine/src/engine/internal/field_rules.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
+import 'package:gwent_engine/src/engine/internal/scorch_rules.dart';
+import 'package:gwent_engine/src/engine/internal/weather_rules.dart';
 import 'package:gwent_engine/src/engine/reject.dart';
 import 'package:gwent_engine/src/event/game_event.dart';
 import 'package:gwent_engine/src/intent/intent.dart';
@@ -13,10 +15,12 @@ import 'package:gwent_engine/src/state/seat.dart';
 
 /// Розыгрыш карты из руки (разделы 9.2 и 9.3).
 final class CardPlay {
-  const CardPlay(this._ctx, this._field);
+  const CardPlay(this._ctx, this._field, this._weather, this._scorch);
 
   final MatchContext _ctx;
   final FieldRules _field;
+  final WeatherRules _weather;
+  final ScorchRules _scorch;
 
   /// Разыгрывает карту или возвращает причину отказа. Проверки идут до любых изменений.
   Reject? play(Seat seat, PlayCard intent) {
@@ -36,11 +40,11 @@ final class CardPlay {
 
       case SpecialCardDefinition(ability: WeatherAbility() || ClearWeatherAbility()):
         _start(seat, card);
-        _field.playWeather(seat, card);
+        _weather.play(seat, card);
 
       case SpecialCardDefinition(ability: ScorchAbility()):
         _start(seat, card);
-        _field.scorchAll();
+        _scorch.all();
         _ctx.discard(seat, card);
 
       case SpecialCardDefinition(ability: HornCardAbility() || MardremCardAbility()):

@@ -2,16 +2,22 @@ import 'package:gwent_engine/src/cards/card_catalog.dart';
 import 'package:gwent_engine/src/cards/deck.dart';
 import 'package:gwent_engine/src/engine/engine_result.dart';
 import 'package:gwent_engine/src/engine/internal/agile_optimizer.dart';
+import 'package:gwent_engine/src/engine/internal/board_score.dart';
 import 'package:gwent_engine/src/engine/internal/card_play.dart';
 import 'package:gwent_engine/src/engine/internal/draft.dart';
 import 'package:gwent_engine/src/engine/internal/effect_resolver.dart';
+import 'package:gwent_engine/src/engine/internal/enter_abilities.dart';
+import 'package:gwent_engine/src/engine/internal/faction_perks.dart';
 import 'package:gwent_engine/src/engine/internal/field_rules.dart';
 import 'package:gwent_engine/src/engine/internal/leader_actions.dart';
 import 'package:gwent_engine/src/engine/internal/legality.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
 import 'package:gwent_engine/src/engine/internal/match_setup_rules.dart';
 import 'package:gwent_engine/src/engine/internal/projector.dart';
+import 'package:gwent_engine/src/engine/internal/round_transition.dart';
+import 'package:gwent_engine/src/engine/internal/scorch_rules.dart';
 import 'package:gwent_engine/src/engine/internal/turn_flow.dart';
+import 'package:gwent_engine/src/engine/internal/weather_rules.dart';
 import 'package:gwent_engine/src/engine/match_engine.dart';
 import 'package:gwent_engine/src/engine/match_setup.dart';
 import 'package:gwent_engine/src/engine/reject.dart';
@@ -36,7 +42,7 @@ final class GwentEngine implements MatchEngine {
   @override
   EngineResult start(MatchSetup setup) {
     for (final seat in Seat.values) {
-      final violations = validateDeck(setup.decks[seat]!);
+      final violations = validateDeck(setup.deck(seat));
       if (violations.isNotEmpty) {
         return Rejected(Reject(RejectReason.invalidDeck, seat: seat, deckViolations: List.unmodifiable(violations)));
       }
@@ -45,15 +51,15 @@ final class GwentEngine implements MatchEngine {
       players: {
         for (final seat in Seat.values)
           seat: DraftPlayer(
-            leader: setup.decks[seat]!.leader,
-            faction: _catalog.leader(setup.decks[seat]!.leader)!.faction,
+            leader: setup.deck(seat).leader,
+            faction: _catalog.leader(setup.deck(seat).leader)!.faction,
             crystals: _rules.crystals,
           ),
       },
       rng: setup.rng,
     );
     final rules = _Rules(MatchContext(draft, _catalog, _rules));
-    rules.setup.start(setup.decks);
+    rules.setup.start(setup.deck);
     rules.resolver.run();
     return Accepted(draft.freeze(), List.unmodifiable(rules.ctx.events));
   }
@@ -83,8 +89,12 @@ final class GwentEngine implements MatchEngine {
 final class _Rules {
   factory _Rules(MatchContext ctx) {
     final field = FieldRules(ctx);
+    final score = BoardScore(ctx);
+    final weather = WeatherRules(ctx);
+    final scorch = ScorchRules(ctx, score, field);
     final legality = Legality(ctx, field);
-    final turns = TurnFlow(ctx, field, legality);
+    final rounds = RoundTransition(ctx, field, score, weather, FactionPerks(ctx));
+    final turns = TurnFlow(ctx, rounds, legality);
     final setup = MatchSetupRules(ctx, turns);
     return _Rules._(
       ctx: ctx,
@@ -92,10 +102,10 @@ final class _Rules {
       legality: legality,
       turns: turns,
       setup: setup,
-      resolver: EffectResolver(ctx, field, turns, setup.dealAndRedraw),
-      cards: CardPlay(ctx, field),
-      leaders: LeaderActions(ctx, field, legality, AgileOptimizer(ctx, field)),
-      projector: Projector(ctx, field, legality),
+      resolver: EffectResolver(ctx, field, EnterAbilities(ctx, scorch), weather, turns, setup.dealAndRedraw),
+      cards: CardPlay(ctx, field, weather, scorch),
+      leaders: LeaderActions(ctx, field, weather, scorch, legality, AgileOptimizer(ctx, field, score)),
+      projector: Projector(ctx, score, legality),
     );
   }
 

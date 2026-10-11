@@ -35,6 +35,24 @@ void main() {
     );
   });
 
+  test('выбор из колоды отрисовывается по одной проекции и событиям выбирающего', () {
+    final state = playing(
+      one: const Side(leader: 'eredin_weather', faction: Faction.monsters, deck: ['footman', 'rain', 'clear']),
+      two: const Side(hand: ['archer']),
+    );
+    final result = act(engine, state, Seat.one, const UseLeader());
+    List<String> shown(List<ChoiceOption> options) => [
+      for (final option in options)
+        if (option case CardOption(:final card)) card.cardId.value,
+    ];
+    expect(shown(engine.project(result.state, Seat.one).choice!.options), ['rain', 'clear']);
+    expect(shown(engine.eventsFor(result.events, Seat.one).whereType<ChoiceRequested>().single.options), [
+      'rain',
+      'clear',
+    ]);
+    expect(engine.eventsFor(result.events, Seat.two).whereType<ChoiceRequested>().single.options, isEmpty);
+  });
+
   test('взятые карты сопернику видны только числом', () {
     final events = [
       const CardsDrawn(Seat.one, [CardInstance(CardInstanceId(5), CardId('footman'))]),

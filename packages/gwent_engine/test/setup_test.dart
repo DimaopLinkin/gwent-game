@@ -16,7 +16,7 @@ void main() {
   final scoiatael = deck('francesca_frost', ['elf_skirmisher', 'elf_skirmisher', ...filler.take(12)]);
 
   Accepted start(Deck one, Deck two, {Rng rng = const SeededRng(7), GwentEngine? with_}) {
-    final result = (with_ ?? engine).start(MatchSetup(decks: {Seat.one: one, Seat.two: two}, rng: rng));
+    final result = (with_ ?? engine).start(MatchSetup(one: one, two: two, rng: rng));
     if (result is! Accepted) fail('Партия не создана: ${(result as Rejected).reject}');
     return result;
   }
@@ -47,18 +47,25 @@ void main() {
     expect(start(northern, monsters).state, isNot(start(northern, monsters, rng: const SeededRng(8)).state));
   });
 
-  test('номера экземпляров идут по перемешанной колоде', () {
+  test('номера экземпляров — случайная перестановка номеров обеих колод', () {
     final state = start(northern, monsters).state;
-    expect([for (final card in state.player(Seat.one).hand) card.id.value], [for (var i = 1; i <= 10; i++) i]);
-    expect([for (final card in state.player(Seat.two).hand) card.id.value], [for (var i = 15; i <= 24; i++) i]);
+    final ids = [
+      for (final seat in Seat.values) ...[
+        for (final card in [...state.player(seat).hand, ...state.player(seat).deck]) card.id.value,
+      ],
+    ];
+    expect(ids.toSet(), {for (var id = 1; id <= ids.length; id++) id});
+    expect(ids, isNot(orderedEquals([for (var id = 1; id <= ids.length; id++) id])));
+    expect(state.nextInstanceId, ids.length + 1);
   });
 
   test('монетка: число генератора выбирает игрока', () {
-    // Колоды из одной карты перемешиваются без вызовов генератора, поэтому первое число — монетка.
+    // Колоды из одной карты перемешиваются без вызовов генератора; первое число перемешивает номера двух карт,
+    // второе — монетка.
     final one = deck('foltest_clear', ['footman']);
     final two = deck('eredin_return', ['ghoul']);
-    expect(start(one, two, rng: const ScriptedRng([0])).state.roundStarter, Seat.one);
-    expect(start(one, two, rng: const ScriptedRng([1])).state.roundStarter, Seat.two);
+    expect(start(one, two, rng: const ScriptedRng([0, 0])).state.roundStarter, Seat.one);
+    expect(start(one, two, rng: const ScriptedRng([0, 1])).state.roundStarter, Seat.two);
   });
 
   group("Скоя'таэли", () {
@@ -124,7 +131,7 @@ void main() {
 
   test('колода, нарушающая правила сборки, не допускается', () {
     final result = engineWith(rules: const GameRules()).start(
-      MatchSetup(decks: {Seat.one: northern, Seat.two: monsters}, rng: const SeededRng(1)),
+      MatchSetup(one: northern, two: monsters, rng: const SeededRng(1)),
     );
     expect(
       result,
