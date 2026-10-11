@@ -112,7 +112,7 @@ CI запускает ровно эти команды; PR с красным CI 
 
 ## Отладка и сборка
 
-- `.mcp.json` подключает Dart and Flutter MCP server (`dart mcp-server`, Dart 3.9+). На Mac через Remote Control он даёт `launch_app`, `hot_reload`, `get_runtime_errors`, `widget_inspector` и другие инструменты.
+- `.mcp.json` подключает Dart and Flutter MCP server (`dart mcp-server`, Dart 3.9+). На Mac через Remote Control он даёт `launch_app`, `hot_reload`, `get_runtime_errors`, `widget_inspector` и другие инструменты. Сервер и все его инструменты разрешены без подтверждения в `.claude/settings.json` (решение пользователя).
 - Скриншот iOS-симулятора: `xcrun simctl io booted screenshot shot.png`.
 - `flutter run`, симулятор, сборка iOS и проверка Bluetooth выполняются на Mac пользователя. Движок, пакет контента и их тесты работают в облаке с одним Dart SDK.
 - Приложение не публикуется в сторах: Android APK (`flutter build apk --release`), iOS Ad Hoc под корпоративным аккаунтом.

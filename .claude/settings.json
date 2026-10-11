@@ -6,7 +6,9 @@
       "Bash(xcrun simctl:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "mcp__dart"
     ]
-  }
+  },
+  "enabledMcpjsonServers": ["dart"]
 }
