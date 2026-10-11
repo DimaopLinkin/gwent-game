@@ -20,7 +20,7 @@ sealed class LeaderAbility extends Value {
 final class PlayWeatherFromDeckAbility extends LeaderAbility {
   const PlayWeatherFromDeckAbility(this.card);
 
-  static const String effectKey = 'leader_play_weather_from_deck';
+  static const String effectKey = 'play_weather_from_deck';
 
   final CardId card;
 
@@ -35,7 +35,7 @@ final class PlayWeatherFromDeckAbility extends LeaderAbility {
 final class ClearAllWeatherAbility extends LeaderAbility {
   const ClearAllWeatherAbility();
 
-  static const String effectKey = 'leader_clear_weather';
+  static const String effectKey = 'clear_weather';
 
   @override
   String get key => effectKey;
@@ -63,7 +63,7 @@ final class LeaderHornAbility extends LeaderAbility {
 final class ScorchOpponentRowAbility extends LeaderAbility {
   const ScorchOpponentRowAbility(this.row, {this.threshold = 10});
 
-  static const String effectKey = 'leader_scorch_row';
+  static const String effectKey = 'scorch_row';
 
   final Row row;
   final int threshold;
@@ -79,7 +79,7 @@ final class ScorchOpponentRowAbility extends LeaderAbility {
 final class RevealOpponentHandAbility extends LeaderAbility {
   const RevealOpponentHandAbility({this.count = 3});
 
-  static const String effectKey = 'leader_reveal_hand';
+  static const String effectKey = 'reveal_opponent_hand';
 
   final int count;
 
@@ -94,7 +94,7 @@ final class RevealOpponentHandAbility extends LeaderAbility {
 final class DisableOpponentLeaderAbility extends LeaderAbility {
   const DisableOpponentLeaderAbility();
 
-  static const String effectKey = 'leader_disable_opponent';
+  static const String effectKey = 'disable_opponent_leader';
 
   @override
   String get key => effectKey;
@@ -110,7 +110,7 @@ final class DisableOpponentLeaderAbility extends LeaderAbility {
 final class TakeFromOpponentDiscardAbility extends LeaderAbility {
   const TakeFromOpponentDiscardAbility();
 
-  static const String effectKey = 'leader_take_opponent_discard';
+  static const String effectKey = 'take_from_opponent_discard';
 
   @override
   String get key => effectKey;
@@ -123,7 +123,7 @@ final class TakeFromOpponentDiscardAbility extends LeaderAbility {
 final class RandomMedicAbility extends LeaderAbility {
   const RandomMedicAbility();
 
-  static const String effectKey = 'leader_random_medic';
+  static const String effectKey = 'random_medic';
 
   @override
   String get key => effectKey;
@@ -139,7 +139,7 @@ final class RandomMedicAbility extends LeaderAbility {
 final class ReturnFromDiscardAbility extends LeaderAbility {
   const ReturnFromDiscardAbility();
 
-  static const String effectKey = 'leader_return_from_discard';
+  static const String effectKey = 'return_from_discard';
 
   @override
   String get key => effectKey;
@@ -152,7 +152,7 @@ final class ReturnFromDiscardAbility extends LeaderAbility {
 final class DiscardAndTakeFromDeckAbility extends LeaderAbility {
   const DiscardAndTakeFromDeckAbility({this.discard = 2, this.take = 1});
 
-  static const String effectKey = 'leader_discard_and_take';
+  static const String effectKey = 'discard_and_draw';
 
   final int discard;
   final int take;
@@ -168,7 +168,7 @@ final class DiscardAndTakeFromDeckAbility extends LeaderAbility {
 final class PickWeatherFromDeckAbility extends LeaderAbility {
   const PickWeatherFromDeckAbility();
 
-  static const String effectKey = 'leader_pick_weather';
+  static const String effectKey = 'play_any_weather_from_deck';
 
   @override
   String get key => effectKey;
@@ -181,7 +181,7 @@ final class PickWeatherFromDeckAbility extends LeaderAbility {
 final class DoubleSpiesAbility extends LeaderAbility {
   const DoubleSpiesAbility();
 
-  static const String effectKey = 'leader_double_spies';
+  static const String effectKey = 'double_spies';
 
   @override
   String get key => effectKey;
@@ -197,7 +197,7 @@ final class DoubleSpiesAbility extends LeaderAbility {
 final class ExtraStartingCardsAbility extends LeaderAbility {
   const ExtraStartingCardsAbility({this.count = 1});
 
-  static const String effectKey = 'leader_extra_starting_cards';
+  static const String effectKey = 'extra_starting_card';
 
   final int count;
 
@@ -216,7 +216,7 @@ final class ExtraStartingCardsAbility extends LeaderAbility {
 final class OptimizeAgileAbility extends LeaderAbility {
   const OptimizeAgileAbility();
 
-  static const String effectKey = 'leader_optimize_agile';
+  static const String effectKey = 'optimize_agile';
 
   @override
   String get key => effectKey;
@@ -229,7 +229,7 @@ final class OptimizeAgileAbility extends LeaderAbility {
 final class HalveWeatherAbility extends LeaderAbility {
   const HalveWeatherAbility();
 
-  static const String effectKey = 'leader_halve_weather';
+  static const String effectKey = 'halve_weather';
 
   @override
   String get key => effectKey;
@@ -245,7 +245,7 @@ final class HalveWeatherAbility extends LeaderAbility {
 final class ShuffleDiscardsIntoDecksAbility extends LeaderAbility {
   const ShuffleDiscardsIntoDecksAbility();
 
-  static const String effectKey = 'leader_shuffle_discards';
+  static const String effectKey = 'shuffle_discards_into_decks';
 
   @override
   String get key => effectKey;

@@ -11,7 +11,8 @@ const int engineVersion = 1;
 /// Машинные ключи эффектов способностей, которые реализует движок.
 ///
 /// Пакет контента с эффектом не из этого списка несовместим с движком. Ключ — поле `key` у способностей
-/// отряда, специальных карт и лидеров; Командирский рог у отряда и у специальной карты — один эффект `horn`.
+/// отряда, специальных карт и лидеров; словарь согласован с пакетом контента (поле `effect`). Одинаковое действие
+/// у разных видов карт — один ключ: `commander_horn`, `scorch`, `mardroeme`, `clear_weather`, `scorch_row`.
 const Set<String> knownEffects = {
   SpyAbility.effectKey,
   MedicAbility.effectKey,
@@ -27,12 +28,8 @@ const Set<String> knownEffects = {
   WeatherAbility.effectKey,
   ClearWeatherAbility.effectKey,
   DecoyAbility.effectKey,
-  ScorchAbility.effectKey,
-  MardremCardAbility.effectKey,
   PlayWeatherFromDeckAbility.effectKey,
-  ClearAllWeatherAbility.effectKey,
   LeaderHornAbility.effectKey,
-  ScorchOpponentRowAbility.effectKey,
   RevealOpponentHandAbility.effectKey,
   DisableOpponentLeaderAbility.effectKey,
   TakeFromOpponentDiscardAbility.effectKey,

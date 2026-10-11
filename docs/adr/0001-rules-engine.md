@@ -31,7 +31,8 @@
   `BaitAbility(summon)` вместо `bait_config`, `BerserkAbility(transformsInto)` вместо `mardrem_config`,
   `WeatherAbility(rows)`, `ScorchRowAbility(row, threshold)`, `PlayWeatherFromDeckAbility(card)`, `LeaderHornAbility(row)` и т. д.
 - У каждой способности есть машинный ключ (`key`); их объединение — `knownEffects`. Пакет контента с ключом не из
-  этого списка несовместим с движком.
+  этого списка несовместим с движком. Ключи совпадают со словарём поля `effect` пакета контента; одинаковое действие
+  у разных видов карт — один ключ (`commander_horn`, `scorch`, `mardroeme`, `clear_weather`, `scorch_row`).
 - Созданная карта — карта отряда с `copies = 0`.
 
 ### Состояние и разрешение действий

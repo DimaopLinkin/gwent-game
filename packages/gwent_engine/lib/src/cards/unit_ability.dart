@@ -89,7 +89,7 @@ final class MoraleBoostAbility extends UnitAbility {
 final class UnitHornAbility extends UnitAbility {
   const UnitHornAbility();
 
-  static const String effectKey = 'horn';
+  static const String effectKey = 'commander_horn';
 
   @override
   String get key => effectKey;
@@ -119,7 +119,7 @@ final class ScorchRowAbility extends UnitAbility {
 final class ScorchAllAbility extends UnitAbility {
   const ScorchAllAbility();
 
-  static const String effectKey = 'scorch_all';
+  static const String effectKey = 'scorch';
 
   @override
   String get key => effectKey;
@@ -162,7 +162,7 @@ final class BerserkAbility extends UnitAbility {
 final class MardremAuraAbility extends UnitAbility {
   const MardremAuraAbility();
 
-  static const String effectKey = 'mardrem_aura';
+  static const String effectKey = 'mardroeme';
 
   @override
   String get key => effectKey;

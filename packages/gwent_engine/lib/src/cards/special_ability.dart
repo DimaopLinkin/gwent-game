@@ -41,7 +41,7 @@ final class ClearWeatherAbility extends SpecialAbility {
 final class HornCardAbility extends SpecialAbility {
   const HornCardAbility();
 
-  static const String effectKey = 'horn';
+  static const String effectKey = 'commander_horn';
 
   @override
   String get key => effectKey;
@@ -80,7 +80,7 @@ final class ScorchAbility extends SpecialAbility {
 final class MardremCardAbility extends SpecialAbility {
   const MardremCardAbility();
 
-  static const String effectKey = 'mardrem';
+  static const String effectKey = 'mardroeme';
 
   @override
   String get key => effectKey;

@@ -54,7 +54,8 @@ void main() {
       expect(keys.toSet(), hasLength(keys.length));
       expect(knownEffects, containsAll(keys));
     }
-    // Командирский рог у отряда и у специальной карты — один эффект.
-    expect(knownEffects, hasLength(unit.length + special.length + leader.length - 1));
+    // Одинаковое действие у разных видов карт — один эффект.
+    expect(knownEffects, hasLength(unit.length + special.length + leader.length - 5));
+    expect(knownEffects, containsAll(['commander_horn', 'scorch', 'mardroeme', 'clear_weather', 'scorch_row']));
   });
 }
