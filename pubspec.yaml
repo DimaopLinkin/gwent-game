@@ -1,5 +1,5 @@
-name: flutter_game_test_21_05_2026
-description: "A new Flutter project."
+name: gwent
+description: "Гвинт из «Ведьмака 3» для Android и iOS."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
@@ -14,11 +14,15 @@ dependencies:
   cupertino_icons: ^1.0.8
   uuid: ^4.5.3
 
+  gwent_content:
+    path: packages/gwent_content
+  gwent_engine:
+    path: packages/gwent_engine
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true

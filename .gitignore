@@ -1,6 +1,10 @@
 # Miscellaneous
 *.class
 *.lock
+# Lock-файл приложения коммитится, у пакетов в packages/ нет.
+!/pubspec.lock
+!/ios/Podfile.lock
+!/macos/Podfile.lock
 *.log
 *.pyc
 *.swp
@@ -103,6 +107,12 @@ unlinked_spec.ds
 **/linux/flutter/generated_plugin_registrant.cc
 **/linux/flutter/generated_plugin_registrant.h
 **/linux/flutter/generated_plugins.cmake
+
+# Сгенерированный код создаёт tools/scripts/setup.sh
+*.g.dart
+*.freezed.dart
+*.drift.dart
+*.mocks.dart
 
 # Coverage
 coverage/
