@@ -27,6 +27,21 @@ void main() {
       );
     });
 
+    test('эталонный кадр отказа: значения перечислений в snake_case', () {
+      final bytes = codec.encode(
+        const Envelope(
+          Refusal(RefusalCode.intentRejected, replyTo: 4, reject: Reject(RejectReason.notYourTurn)),
+          seq: 7,
+          ack: 4,
+        ),
+      );
+      expect(
+        utf8.decode(bytes),
+        '{"v":1,"t":"error","seq":7,"ack":4,"p":{"code":"intent_rejected","reply_to":4,'
+        '"reject":{"reason":"not_your_turn","violations":[]}}}',
+      );
+    });
+
     test('все намерения проходят туда и обратно', () {
       const intents = <Intent>[
         RedrawCard(CardInstanceId(3)),
@@ -151,7 +166,7 @@ void main() {
         const Envelope(Pong(sent: 4), ack: 3, matchId: 'm'),
         const Envelope(ResendRequest(), ack: 7, matchId: 'm'),
         Envelope(DeckSubmission(skellige), seq: 1),
-        const Envelope(OpponentPresence(online: false), seq: 8),
+        const Envelope(OpponentPresence(online: false, name: 'Цири'), seq: 8),
         const Envelope(Refusal(RefusalCode.matchPaused, replyTo: 3), seq: 9),
         const Envelope(
           Refusal(
@@ -215,7 +230,7 @@ void main() {
             't': 'opponent',
             'seq': 0,
             'ack': 0,
-            'p': {'online': true},
+            'p': {'online': true, 'name': 'Цири'},
           }),
         ),
         malformed('нет номера'),
@@ -231,13 +246,18 @@ void main() {
         () => codec.decode(frame({'v': 2, 't': 'hello', 'seq': 0, 'ack': 0, 'p': <String, Object?>{}})),
         throwsA(isA<UnsupportedProtocol>().having((error) => error.version, 'version', 2)),
       );
+      expect(
+        () => codec.decode(frame({'v': 2, 'type': 'hello'})),
+        throwsA(isA<UnsupportedProtocol>()),
+        reason: 'кадр будущей версии без поля t',
+      );
       final reject = codec.decode(
         frame({
           'v': 2,
           't': 'reject',
           'seq': 0,
           'ack': 0,
-          'p': {'reason': 'protocolMismatch', 'protocol': 2},
+          'p': {'reason': 'protocol_mismatch', 'protocol': 2},
         }),
       );
       expect(reject.message, const JoinRejected(JoinRefusal.protocolMismatch, protocol: 2));

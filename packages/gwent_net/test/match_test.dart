@@ -21,8 +21,12 @@ void main() {
       expect(table.guest.seat, Seat.two);
       expect(table.guest.status, ConnectionStatus.online);
       expect(table.guest.ticket, ResumeTicket(matchId: table.host.matchId, token: 'token-2'));
-      expect(table.eventsOf<OpponentPresenceChanged>(table.hostClient), [const OpponentPresenceChanged(online: true)]);
-      expect(table.eventsOf<OpponentPresenceChanged>(table.guest), [const OpponentPresenceChanged(online: true)]);
+      expect(table.eventsOf<OpponentPresenceChanged>(table.hostClient), [
+        const OpponentPresenceChanged(online: true, name: 'Гость'),
+      ]);
+      expect(table.eventsOf<OpponentPresenceChanged>(table.guest), [
+        const OpponentPresenceChanged(online: true, name: 'Хост'),
+      ]);
     });
 
     test('третий игрок не помещается', () async {
@@ -67,7 +71,7 @@ void main() {
           't': 'reject',
           'seq': 0,
           'ack': 0,
-          'p': {'reason': 'protocolMismatch', 'protocol': protocolVersion},
+          'p': {'reason': 'protocol_mismatch', 'protocol': protocolVersion},
         },
       ]);
     });

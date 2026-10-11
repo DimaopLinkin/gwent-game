@@ -21,10 +21,23 @@ void main() {
         onGuestFrame: (frame) => inspector.inspect(frame, table.host.state),
       );
       await table.start(hostDeck, guestDeck);
-      // Обрыв посреди партии: снимок и дослать пропущенное тоже проверяются.
+      // Обрыв в пересдаче: хост досылает пропущенное.
       await table.guestLink!.cut();
       table.connectGuest();
+      final bot = ViewBot();
+      while (table.host.state!.phase != MatchPhase.playing || table.journal.record!.moves.length < 8) {
+        await table.waitFor(() => table.converged, 'проекции не сошлись');
+        await bot.act(table, [table.hostClient, table.guest].firstWhere((client) => ViewBot.canAct(client.view!)));
+      }
+      // Перезапуск гостя посреди раунда: хост отдаёт снимок.
+      final ticket = table.guest.ticket!;
+      await table.guestLink!.cut();
+      await table.guest.close();
+      table.guest = table.newClient('Гость', ticket: ticket);
+      final snapshots = inspector.snapshots;
+      table.connectGuest();
       await table.playOut();
+      expect(inspector.snapshots, snapshots + 1, reason: 'снимок прошёл через проверку');
 
       expect(inspector.violations, isEmpty);
       if (hostDeck == nilfgaardReveal) {
@@ -53,7 +66,8 @@ void main() {
 }
 
 /// Проверяет кадры гостю: ни одна скрытая карта хоста (рука, колода, никогда не открывавшаяся) не попадает
-/// в них ни экземпляром, ни идентификатором карты.
+/// в них ни экземпляром (номер вместе с картой), ни идентификатором карты. Голый номер экземпляра не проверяется:
+/// номера — случайная перестановка (ADR 0001), без карты они ничего не говорят.
 final class HiddenCardInspector {
   HiddenCardInspector({required this.host});
 
@@ -62,6 +76,7 @@ final class HiddenCardInspector {
   final Set<CardId> _guestCards = {};
   final List<String> violations = [];
   int frames = 0;
+  int snapshots = 0;
   int cardsChecked = 0;
 
   /// Запоминает открытые карты состояния: поле, слоты рогов, отбои, погода.
@@ -89,7 +104,9 @@ final class HiddenCardInspector {
     final hidden = {...player.hand, ...player.deck}.difference(_everPublic);
     final shownIds = {..._everPublic.map((card) => card.cardId), ..._guestCards};
     final text = utf8.decode(frame);
-    for (final card in _cards(jsonDecode(text))) {
+    final json = jsonDecode(text);
+    if (json case {'t': 'snapshot'}) snapshots++;
+    for (final card in _cards(json)) {
       cardsChecked++;
       if (hidden.contains(card)) violations.add('экземпляр $card в кадре $text');
     }

@@ -9,7 +9,6 @@ environment:
 dependencies:
   gwent_engine:
     path: ../gwent_engine
-  meta: ^1.16.0
 
 dev_dependencies:
   analyzer: ^14.5.0

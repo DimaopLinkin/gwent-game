@@ -50,6 +50,10 @@ final class MatchClient {
   Seat? _seat;
   PlayerView? _view;
 
+  /// Сколько сообщений этого места хост принял до первого `welcome` этому экземпляру; `null` до него.
+  int? _base;
+  final List<ClientMessage> _unnumbered = [];
+
   Stream<ClientEvent> get events => _events.stream;
 
   ConnectionStatus get status => _status;
@@ -88,10 +92,10 @@ final class MatchClient {
     link.send(_channel.control(hello));
   }
 
-  /// Отправляет колоду; возвращает номер сообщения, на который сошлётся отказ.
+  /// Отправляет колоду; возвращает номер запроса, на который сошлётся `ActionRefused.request`.
   int submitDeck(Deck deck) => _sendSequenced(DeckSubmission(deck));
 
-  /// Отправляет намерение; возвращает номер сообщения, на который сошлётся отказ.
+  /// Отправляет намерение; возвращает номер запроса, на который сошлётся `ActionRefused.request`.
   int send(Intent intent) => _sendSequenced(IntentMessage(intent));
 
   /// Закрывает соединение и поток событий.
@@ -103,10 +107,18 @@ final class MatchClient {
     await _events.close();
   }
 
+  /// Номера запросов идут с 1 в этом экземпляре клиента. Номер на проводе — `_base + запрос`: до первого
+  /// `welcome` клиент не знает, сколько сообщений хост уже принял от этого места (после перезапуска с билетом
+  /// это сообщения прежнего экземпляра), поэтому до него сообщения ждут без номера.
   int _sendSequenced(ClientMessage message) {
+    final base = _base;
+    if (base == null) {
+      _unnumbered.add(message);
+      return _unnumbered.length;
+    }
     final envelope = _channel.sequenced(message);
     if (_status == ConnectionStatus.online) _link?.send(envelope);
-    return envelope.seq;
+    return envelope.seq - base;
   }
 
   void _onEnvelope(PeerLink link, Envelope envelope) {
@@ -146,8 +158,13 @@ final class MatchClient {
     _ticket = ResumeTicket(matchId: welcome.matchId, token: welcome.resumeToken);
     _channel
       ..matchId = welcome.matchId
-      ..adoptPeerAck(hostAck)
       ..expectNext(welcome.next);
+    if (_base == null) {
+      _base = hostAck;
+      _channel.startAfter(hostAck);
+      _unnumbered.forEach(_channel.sequenced);
+      _unnumbered.clear();
+    }
     _status = ConnectionStatus.online;
     _ping?.cancel();
     _ping = _scheduler.periodic(_settings.pingInterval, _sendPing);
@@ -164,9 +181,9 @@ final class MatchClient {
         _view = view;
         _emit(ViewChanged(view, const []));
       case final Refusal refusal:
-        _emit(ActionRefused(refusal));
-      case OpponentPresence(:final online):
-        _emit(OpponentPresenceChanged(online: online));
+        _emit(ActionRefused(refusal, request: refusal.replyTo - (_base ?? 0)));
+      case OpponentPresence(:final online, :final name):
+        _emit(OpponentPresenceChanged(online: online, name: name));
       case ControlMessage() || ClientMessage():
         // Нарушение протокола: сообщение клиента от хоста.
         unawaited(link.close());

@@ -10,7 +10,7 @@ Map<String, Object?> encodeIntent(Intent intent) => switch (intent) {
   PlayCard(:final card, :final row, :final target) => {
     typeKey: 'play_card',
     'card': card.value,
-    'row': ?row?.name,
+    'row': ?row?.wire,
     'target': ?target?.value,
   },
   UseLeader() => {typeKey: 'use_leader'},

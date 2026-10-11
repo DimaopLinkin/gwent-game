@@ -4,16 +4,16 @@ import 'package:gwent_net/src/codec/json_reader.dart';
 
 /// JSON проекции партии для одного игрока.
 Map<String, Object?> encodeView(PlayerView view) => {
-  'viewer': view.viewer.name,
-  'phase': view.phase.name,
+  'viewer': view.viewer.wire,
+  'phase': view.phase.wire,
   'round': view.round,
-  'round_starter': ?view.roundStarter?.name,
-  'turn': ?view.turn?.name,
+  'round_starter': ?view.roundStarter?.wire,
+  'turn': ?view.turn?.wire,
   'me': _encodeSide(view.me),
   'opponent': _encodeSide(view.opponent),
   'weather': [for (final weather in view.weather) encodeWeather(weather)],
   'choice': ?_encodeOptionalChoice(view.choice),
-  'opponent_choosing': ?view.opponentChoosing?.name,
+  'opponent_choosing': ?view.opponentChoosing?.wire,
   'history': [for (final result in view.history) encodeRoundResult(result)],
   'outcome': ?_encodeOptionalOutcome(view.outcome),
 };
@@ -34,9 +34,9 @@ PlayerView decodeView(JsonReader r) => PlayerView(
 );
 
 Map<String, Object?> _encodeSide(SideView side) => {
-  'seat': side.seat.name,
+  'seat': side.seat.wire,
   'leader': side.leader.value,
-  'faction': side.faction.name,
+  'faction': side.faction.wire,
   'leader_available': side.leaderAvailable,
   'leader_used': side.leaderUsed,
   'leader_disabled': side.leaderDisabled,
@@ -46,7 +46,7 @@ Map<String, Object?> _encodeSide(SideView side) => {
   'hand_count': side.handCount,
   'deck_count': side.deckCount,
   'discard': encodeCards(side.discard),
-  'rows': {for (final MapEntry(:key, :value) in side.rows.entries) key.name: _encodeRow(value)},
+  'rows': {for (final MapEntry(:key, :value) in side.rows.entries) key.wire: _encodeRow(value)},
   'score': side.score,
   'redraws_left': ?side.redrawsLeft,
   'redraw_done': side.redrawDone,

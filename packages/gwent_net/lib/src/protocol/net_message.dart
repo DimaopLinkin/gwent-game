@@ -24,7 +24,7 @@ final class Hello extends ControlMessage {
   final Ruleset ruleset;
   final String playerName;
 
-  /// Версия приложения: для журнала и сообщений об ошибках, совместимость по ней не проверяется.
+  /// Версия приложения: справочно, совместимость проверяется по [ruleset] и версии протокола.
   final String appVersion;
   final String? resumeToken;
 
@@ -192,10 +192,13 @@ final class Refusal extends HostMessage {
 
 /// Хост → клиент: соперник подключился, отключился или вернулся.
 final class OpponentPresence extends HostMessage {
-  const OpponentPresence({required this.online});
+  const OpponentPresence({required this.online, required this.name});
 
   final bool online;
 
+  /// Имя соперника из его `hello`.
+  final String name;
+
   @override
-  List<Object?> get props => [online];
+  List<Object?> get props => [online, name];
 }

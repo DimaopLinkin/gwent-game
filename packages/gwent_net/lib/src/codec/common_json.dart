@@ -33,8 +33,8 @@ Row decodeRow(JsonReader r, String key) => r.enumValue(key, Row.values);
 
 Map<String, Object?> encodeOption(ChoiceOption option) => switch (option) {
   CardOption(:final card) => {typeKey: 'card', 'card': encodeCard(card)},
-  RowOption(:final row) => {typeKey: 'row', 'row': row.name},
-  SeatOption(:final seat) => {typeKey: 'seat', 'seat': seat.name},
+  RowOption(:final row) => {typeKey: 'row', 'row': row.wire},
+  SeatOption(:final seat) => {typeKey: 'seat', 'seat': seat.wire},
 };
 
 ChoiceOption decodeOption(JsonReader r) => switch (r.string(typeKey)) {
@@ -45,8 +45,8 @@ ChoiceOption decodeOption(JsonReader r) => switch (r.string(typeKey)) {
 };
 
 Map<String, Object?> encodeChoice(PendingChoice choice) => {
-  'seat': choice.seat.name,
-  'kind': choice.kind.name,
+  'seat': choice.seat.wire,
+  'kind': choice.kind.wire,
   'options': [for (final option in choice.options) encodeOption(option)],
   'subject': ?_encodeOptionalCard(choice.subject),
 };
@@ -71,15 +71,15 @@ RowSlot decodeSlot(JsonReader r) => switch (r.string(typeKey)) {
 
 Map<String, Object?> encodeWeather(WeatherCard weather) => {
   'card': encodeCard(weather.card),
-  'owner': weather.owner.name,
+  'owner': weather.owner.wire,
 };
 
 WeatherCard decodeWeather(JsonReader r) => WeatherCard(decodeCard(r.object('card')), decodeSeat(r, 'owner'));
 
 Map<String, Object?> encodeRoundResult(RoundResult result) => {
   'round': result.round,
-  'scores': {for (final MapEntry(:key, :value) in result.scores.entries) key.name: value},
-  'winner': ?result.winner?.name,
+  'scores': {for (final MapEntry(:key, :value) in result.scores.entries) key.wire: value},
+  'winner': ?result.winner?.wire,
 };
 
 RoundResult decodeRoundResult(JsonReader r) => RoundResult(
@@ -91,16 +91,16 @@ RoundResult decodeRoundResult(JsonReader r) => RoundResult(
 );
 
 Map<String, Object?> encodeOutcome(MatchOutcome outcome) => {
-  'winner': ?outcome.winner?.name,
-  'reason': outcome.reason.name,
+  'winner': ?outcome.winner?.wire,
+  'reason': outcome.reason.wire,
 };
 
 MatchOutcome decodeOutcome(JsonReader r) =>
     MatchOutcome(winner: decodeOptionalSeat(r, 'winner'), reason: r.enumValue('reason', MatchEndReason.values));
 
 Map<String, Object?> encodeReject(Reject reject) => {
-  'reason': reject.reason.name,
-  'seat': ?reject.seat?.name,
+  'reason': reject.reason.wire,
+  'seat': ?reject.seat?.wire,
   'violations': [for (final violation in reject.deckViolations) encodeViolation(violation)],
 };
 

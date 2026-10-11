@@ -299,7 +299,9 @@ final class MatchHost {
   void _announce(Seat about) {
     final subject = _seats[about];
     final target = _seats[about.opponent];
-    if (subject != null && target != null) _send(target, OpponentPresence(online: subject.online));
+    if (subject != null && target != null) {
+      _send(target, OpponentPresence(online: subject.online, name: subject.playerName));
+    }
   }
 
   void _refuse(SeatSession session, RefusalCode code, int replyTo, [Reject? reject]) =>

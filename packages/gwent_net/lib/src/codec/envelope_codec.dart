@@ -46,10 +46,11 @@ final class EnvelopeCodec {
 
   Envelope fromJson(Object? json) {
     final r = JsonReader(json, r'$');
-    final type = r.string('t');
+    // Сначала версия: остальной кадр другой версии может быть устроен иначе. Исключение — `reject`,
+    // он не меняется между версиями, и его разбирает клиент любой версии.
     final version = r.integer('v');
-    // `reject` не меняется между версиями: его разбирает клиент любой версии.
-    if (version != protocolVersion && type != 'reject') throw UnsupportedProtocol(version);
+    if (version != protocolVersion && r.optionalString('t') != 'reject') throw UnsupportedProtocol(version);
+    final type = r.string('t');
     final message = _message(type, r.object('p'));
     final seq = r.integer('seq');
     final sequenced = message is! ControlMessage;
@@ -88,12 +89,12 @@ Map<String, Object?> _payload(NetMessage message) => switch (message) {
     'resume_token': ?resumeToken,
   },
   Welcome(:final seat, :final matchId, :final resumeToken, :final next) => {
-    'seat': seat.name,
+    'seat': seat.wire,
     'match': matchId,
     'resume_token': resumeToken,
     'next': next,
   },
-  JoinRejected(:final reason, :final protocol) => {'reason': reason.name, 'protocol': protocol},
+  JoinRejected(:final reason, :final protocol) => {'reason': reason.wire, 'protocol': protocol},
   Ping(:final sent) || Pong(:final sent) => {'sent': sent},
   ResendRequest() => const {},
   DeckSubmission(:final deck) => {'deck': encodeDeck(deck)},
@@ -104,11 +105,11 @@ Map<String, Object?> _payload(NetMessage message) => switch (message) {
   },
   MatchSnapshot(:final view) => {'view': encodeView(view)},
   Refusal(:final code, :final replyTo, :final reject) => {
-    'code': code.name,
+    'code': code.wire,
     'reply_to': replyTo,
     'reject': ?_encodeOptionalReject(reject),
   },
-  OpponentPresence(:final online) => {'online': online},
+  OpponentPresence(:final online, :final name) => {'online': online, 'name': name},
 };
 
 NetMessage _message(String type, JsonReader p) => switch (type) {
@@ -137,7 +138,7 @@ NetMessage _message(String type, JsonReader p) => switch (type) {
     replyTo: p.integer('reply_to'),
     reject: p.optional('reject', decodeReject),
   ),
-  'opponent' => OpponentPresence(online: p.boolean('online')),
+  'opponent' => OpponentPresence(online: p.boolean('online'), name: p.string('name')),
   final other => throw MalformedFrame(
     r'$.t: '
     'неизвестный тип сообщения «$other»',

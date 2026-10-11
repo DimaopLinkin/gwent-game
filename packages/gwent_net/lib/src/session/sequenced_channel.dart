@@ -92,17 +92,10 @@ final class SequencedChannel {
   /// Следующим ждём сообщение [next]: собеседник начал нумерацию заново или перешёл к снимку.
   void expectNext(int next) => _received = next - 1;
 
-  /// Собеседник принял от нас больше, чем мы помним (мы потеряли состояние, например после перезапуска):
-  /// продолжаем нумерацию после его [ack], иначе новые сообщения он примет за повторы. Неотправленные
-  /// сообщения получают номера после [ack].
-  void adoptPeerAck(int ack) {
-    if (ack <= _sent) {
-      acknowledge(ack);
-      return;
-    }
-    final queued = [for (final envelope in _unacked) envelope.message];
-    _unacked.clear();
+  /// Нумерация начинается после [ack]: собеседник уже принял столько сообщений этого места от прежнего
+  /// экземпляра клиента (перезапуск с билетом). Вызывается до первого номерного сообщения.
+  void startAfter(int ack) {
+    if (_sent != 0) throw StateError('Нумерация уже начата: отправлено $_sent');
     _sent = ack;
-    queued.forEach(sequenced);
   }
 }

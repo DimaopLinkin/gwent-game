@@ -64,10 +64,17 @@ final class JsonReader {
   }
 }
 
-/// Значение перечисления по имени или [MalformedFrame].
+/// Имя значения перечисления на проводе: snake_case, как типы сообщений (`protocolMismatch` → `protocol_mismatch`).
+extension WireName on Enum {
+  String get wire => name.replaceAllMapped(_upperCase, (match) => '_${match[0]!.toLowerCase()}');
+}
+
+final RegExp _upperCase = RegExp('[A-Z]');
+
+/// Значение перечисления по имени на проводе или [MalformedFrame].
 T enumByName<T extends Enum>(String name, List<T> values, String path) {
   for (final value in values) {
-    if (value.name == name) return value;
+    if (value.wire == name) return value;
   }
   throw MalformedFrame('$path: неизвестное значение «$name»');
 }

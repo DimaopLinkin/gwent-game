@@ -119,6 +119,44 @@ void main() {
     expect(table.host.state!.outcome, isNotNull);
   });
 
+  test('перезапущенный гость отправляет намерение сразу после connect: оно не теряется', () async {
+    final table = await midMatch(turn: Seat.one);
+    final ticket = table.guest.ticket!;
+    await table.guestLink!.cut();
+    await table.guest.close();
+
+    final restarted = table.guest = table.newClient('Гость', ticket: ticket);
+    table.connectGuest(restarted);
+    final pass = restarted.send(const Pass());
+    final resign = restarted.send(const Resign());
+    await table.waitFor(() => table.host.state!.phase == MatchPhase.finished && table.converged, 'сдача не дошла');
+    expect(table.host.state!.outcome, const MatchOutcome(winner: Seat.one, reason: MatchEndReason.resignation));
+    final refused = table.eventsOf<ActionRefused>(restarted).single;
+    expect(refused.request, pass, reason: 'отказ ссылается на номер, который вернул send');
+    expect(refused.refusal.reject, const Reject(RejectReason.notYourTurn));
+    expect(resign, pass + 1);
+  });
+
+  test('перезапущенный в лобби гость меняет колоду: хост берёт новую', () async {
+    final table = Table()
+      ..connectHost()
+      ..connectGuest();
+    table.guest.submitDeck(northern);
+    await table.scheduler.elapse(const Duration(seconds: 3));
+    final ticket = table.guest.ticket!;
+    await table.guestLink!.cut();
+    await table.guest.close();
+
+    final restarted = table.guest = table.newClient('Гость', ticket: ticket);
+    table.connectGuest(restarted);
+    restarted.submitDeck(scoiatael);
+    await table.scheduler.flush();
+    expect(table.eventsOf<ActionRefused>(restarted), isEmpty);
+    table.hostClient.submitDeck(skellige);
+    await table.waitFor(() => table.converged, 'партия не началась');
+    expect(table.journal.record!.two, scoiatael);
+  });
+
   test('потерянный welcome: место без подтверждения отдаётся новому подключению', () async {
     final table = Table()..connectHost();
     final link = table.connectGuest()..faults = const Faults(drop: 1);

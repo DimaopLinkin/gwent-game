@@ -224,13 +224,13 @@ final class ViewBot {
     for (var i = 0; i < queue.length;) {
       final intent = queue[i];
       final moves = journal.record!.moves.length;
-      final seq = client.send(intent);
+      final request = client.send(intent);
       Refusal? refusal;
       await table.waitFor(() {
         refusal = table
             .eventsOf<ActionRefused>(client)
+            .where((event) => event.request == request)
             .map((event) => event.refusal)
-            .where((refusal) => refusal.replyTo == seq)
             .firstOrNull;
         return refusal != null || (journal.record!.moves.length > moves && table.converged);
       }, 'хост не ответил на $intent');

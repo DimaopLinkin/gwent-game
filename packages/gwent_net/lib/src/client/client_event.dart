@@ -50,20 +50,26 @@ final class ViewChanged extends ClientEvent {
 
 /// Хост не выполнил сообщение клиента.
 final class ActionRefused extends ClientEvent {
-  const ActionRefused(this.refusal);
+  const ActionRefused(this.refusal, {required this.request});
 
   final Refusal refusal;
 
+  /// Номер, который вернули `MatchClient.send` или `MatchClient.submitDeck` для отклонённого сообщения.
+  final int request;
+
   @override
-  List<Object?> get props => [refusal];
+  List<Object?> get props => [refusal, request];
 }
 
 /// Соперник на связи или отключился.
 final class OpponentPresenceChanged extends ClientEvent {
-  const OpponentPresenceChanged({required this.online});
+  const OpponentPresenceChanged({required this.online, required this.name});
 
   final bool online;
 
+  /// Имя соперника.
+  final String name;
+
   @override
-  List<Object?> get props => [online];
+  List<Object?> get props => [online, name];
 }

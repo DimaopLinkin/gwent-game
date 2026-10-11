@@ -11,7 +11,7 @@ Map<String, Object?> encodeMatchRecord(MatchRecord record) => {
   'one': encodeDeck(record.one),
   'two': encodeDeck(record.two),
   'moves': [
-    for (final move in record.moves) {'seat': move.seat.name, 'intent': encodeIntent(move.intent)},
+    for (final move in record.moves) {'seat': move.seat.wire, 'intent': encodeIntent(move.intent)},
   ],
 };
 

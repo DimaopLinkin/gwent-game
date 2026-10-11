@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   const pass = IntentMessage(Pass());
-  const online = OpponentPresence(online: true);
+  const online = OpponentPresence(online: true, name: 'Цири');
 
   Envelope from(int seq, {int ack = 0}) => Envelope(online, seq: seq, ack: ack);
 
@@ -50,12 +50,10 @@ void main() {
     expect(channel.hasUnacked, isFalse);
   });
 
-  test('собеседник помнит больше, чем мы: нумерация продолжается после его ack', () {
-    final channel = SequencedChannel()
-      ..sequenced(pass)
-      ..adoptPeerAck(5);
-    expect(channel.pending().map((envelope) => envelope.seq), [6]);
-    expect(channel.sequenced(pass).seq, 7);
+  test('нумерация может начаться после ack собеседника, но только до первого сообщения', () {
+    final channel = SequencedChannel()..startAfter(5);
+    expect(channel.sequenced(pass).seq, 6);
+    expect(() => channel.startAfter(9), throwsStateError);
   });
 
   test('после снимка следующим ожидается указанный номер', () {
