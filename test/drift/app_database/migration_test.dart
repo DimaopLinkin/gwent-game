@@ -21,7 +21,7 @@ void main() {
     final db = AppDatabase(schema.newConnection());
     addTearDown(db.close);
 
-    expect(GeneratedHelper.versions.last, db.schemaVersion);
+    expect(db.schemaVersion, GeneratedHelper.versions.last);
     await verifier.migrateAndValidate(db, db.schemaVersion);
   });
 

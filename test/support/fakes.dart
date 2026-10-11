@@ -37,20 +37,20 @@ final class InMemoryDeckRepository implements DeckRepository {
   /// Ошибка, с которой падает [watchAll]; `null` — без ошибки.
   Exception? watchError;
 
-  List<Deck> get _sorted => _decks.values.toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  /// Порядок как у Drift: сначала недавно изменённые, при равном времени по идентификатору.
+  List<Deck> get _sorted => _decks.values.toList()
+    ..sort(
+      (a, b) => switch (b.updatedAt.compareTo(a.updatedAt)) {
+        0 => a.id.compareTo(b.id),
+        final order => order,
+      },
+    );
 
   @override
-  Stream<List<Deck>> watchAll() => Stream.multi((controller) {
-    if (watchError case final error?) {
-      controller
-        ..addError(error)
-        ..closeSync();
-      return;
-    }
-    controller.add(_sorted);
-    final changes = _changes.stream.listen((_) => controller.add(_sorted));
-    controller.onCancel = changes.cancel;
-  });
+  Stream<List<Deck>> watchAll() => switch (watchError) {
+    final error? => Stream.error(error),
+    null => _watch(_changes, () => _sorted),
+  };
 
   @override
   Future<Deck?> findById(String id) async => _decks[id];
@@ -68,24 +68,51 @@ final class InMemoryDeckRepository implements DeckRepository {
   }
 }
 
-/// Настройки в памяти.
+/// Настройки в памяти. Поток сразу выдаёт текущие настройки и новые после каждого сохранения.
 final class InMemorySettingsRepository implements SettingsRepository {
+  final StreamController<void> _changes = StreamController.broadcast();
+
   AppSettings saved = const AppSettings();
 
   @override
-  Stream<AppSettings> watch() => Stream.value(saved);
+  Stream<AppSettings> watch() => _watch(_changes, () => saved);
 
   @override
-  Future<void> save(AppSettings settings) async => saved = settings;
+  Future<void> save(AppSettings settings) async {
+    saved = settings;
+    _changes.add(null);
+  }
 }
 
-/// История партий в памяти.
+/// История партий в памяти. Поток сразу выдаёт историю и новую после каждой записи.
 final class InMemoryMatchHistoryRepository implements MatchHistoryRepository {
+  final StreamController<void> _changes = StreamController.broadcast();
+
+  /// Партии в порядке записи.
   final List<MatchRecord> records = [];
 
-  @override
-  Stream<List<MatchRecord>> watchAll() => Stream.value(List.of(records.reversed));
+  /// Порядок как у Drift: сначала последние, при равном времени по идентификатору.
+  List<MatchRecord> get _sorted => List.of(records)
+    ..sort(
+      (a, b) => switch (b.finishedAt.compareTo(a.finishedAt)) {
+        0 => a.id.compareTo(b.id),
+        final order => order,
+      },
+    );
 
   @override
-  Future<void> add(MatchRecord record) async => records.add(record);
+  Stream<List<MatchRecord>> watchAll() => _watch(_changes, () => _sorted);
+
+  @override
+  Future<void> add(MatchRecord record) async {
+    records.add(record);
+    _changes.add(null);
+  }
 }
+
+/// Поток, который сразу выдаёт [read] и повторяет его после каждого события [changes].
+Stream<T> _watch<T>(StreamController<void> changes, T Function() read) => Stream.multi((controller) {
+  controller.add(read());
+  final subscription = changes.stream.listen((_) => controller.add(read()));
+  controller.onCancel = subscription.cancel;
+});

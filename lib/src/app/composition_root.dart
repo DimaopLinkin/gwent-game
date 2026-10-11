@@ -10,6 +10,7 @@ import 'package:gwent/src/features/settings/data/drift_settings_repository.dart'
 /// Точка сборки: единственное место, где интерфейсы связываются с реализациями.
 ///
 /// База открывается лениво, при первом запросе, поэтому сборка синхронная и не задерживает первый кадр.
+/// База живёт столько же, сколько процесс приложения, и не закрывается явно: процесс завершает ОС.
 AppDependencies createAppDependencies() {
   final database = AppDatabase(openAppDatabaseConnection());
   return AppDependencies(
@@ -18,6 +19,5 @@ AppDependencies createAppDependencies() {
     matchHistoryRepository: DriftMatchHistoryRepository(database),
     clock: const SystemClock(),
     idGenerator: const UuidIdGenerator(),
-    onDispose: database.close,
   );
 }

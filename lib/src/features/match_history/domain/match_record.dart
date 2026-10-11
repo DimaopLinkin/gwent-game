@@ -31,8 +31,6 @@ enum MatchOutcome {
 }
 
 /// Запись о сыгранной партии.
-///
-/// Имена значений [MatchMode] и [MatchOutcome] хранятся в базе: переименование значения требует миграции.
 @immutable
 final class MatchRecord {
   /// Создаёт запись.

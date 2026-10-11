@@ -205,11 +205,7 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": [],
-            "type_converter": {
-              "dart_expr": "const EnumNameConverter<MatchMode>(MatchMode.values)",
-              "dart_type_name": "MatchMode"
-            }
+            "dsl_features": []
           },
           {
             "name": "player_faction_id",
@@ -249,11 +245,7 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": [],
-            "type_converter": {
-              "dart_expr": "const EnumNameConverter<MatchOutcome>(MatchOutcome.values)",
-              "dart_type_name": "MatchOutcome"
-            }
+            "dsl_features": []
           },
           {
             "name": "rounds_won",

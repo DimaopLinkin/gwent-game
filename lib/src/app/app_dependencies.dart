@@ -16,22 +16,20 @@ import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 /// Знает только абстракции: реализации выбирает точка сборки (`composition_root.dart`), а тесты подставляют фейки.
 /// Экраны получают отсюда сценарии через конструкторы своих держателей состояния (см. `router/app_router.dart`).
 final class AppDependencies {
-  /// Собирает сценарии. [onDispose] освобождает ресурсы реализаций (например, закрывает базу).
+  /// Собирает сценарии.
   AppDependencies({
     required DeckRepository deckRepository,
     required SettingsRepository settingsRepository,
     required MatchHistoryRepository matchHistoryRepository,
     required Clock clock,
     required IdGenerator idGenerator,
-    Future<void> Function()? onDispose,
   }) : watchDecks = WatchDecks(deckRepository),
        saveDeck = SaveDeck(deckRepository, clock, idGenerator),
        deleteDeck = DeleteDeck(deckRepository),
        watchSettings = WatchSettings(settingsRepository),
        saveSettings = SaveSettings(settingsRepository),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
-       recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator),
-       _onDispose = onDispose;
+       recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator);
 
   /// Список колод.
   final WatchDecks watchDecks;
@@ -53,9 +51,4 @@ final class AppDependencies {
 
   /// Запись партии в историю.
   final RecordMatch recordMatch;
-
-  final Future<void> Function()? _onDispose;
-
-  /// Освобождает ресурсы реализаций.
-  Future<void> dispose() async => _onDispose?.call();
 }

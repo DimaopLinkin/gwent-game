@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:gwent/src/core/database/tables/decks_table.dart';
 import 'package:gwent/src/core/database/tables/match_records_table.dart';
 import 'package:gwent/src/core/database/tables/settings_table.dart';
-import 'package:gwent/src/features/match_history/domain/match_record.dart';
 
 part 'app_database.g.dart';
 

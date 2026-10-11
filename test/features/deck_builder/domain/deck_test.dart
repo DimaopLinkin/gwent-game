@@ -30,6 +30,6 @@ void main() {
   });
 
   test('ноль копий карты недопустим', () {
-    expect(() => testDeck(cards: {'a': 0}), throwsA(isA<AssertionError>()));
+    expect(() => testDeck(cards: {'a': 0}), throwsArgumentError);
   });
 }

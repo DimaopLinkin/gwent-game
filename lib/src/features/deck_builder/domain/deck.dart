@@ -7,7 +7,9 @@ import 'package:meta/meta.dart';
 /// поэтому колода переживает обновления данных. Проверку правил состава колоды делает движок.
 @immutable
 final class Deck {
-  /// Создаёт колоду. [cards] сопоставляет UUID карты и число её копий (больше нуля).
+  /// Создаёт колоду. [cards] сопоставляет UUID карты и число её копий.
+  ///
+  /// Бросает [ArgumentError], если у карты меньше одной копии.
   Deck({
     required this.id,
     required this.name,
@@ -15,8 +17,11 @@ final class Deck {
     required this.leaderId,
     required Map<String, int> cards,
     required this.updatedAt,
-  }) : assert(cards.values.every((count) => count > 0), 'Число копий карты в колоде должно быть больше нуля'),
-       cards = Map.unmodifiable(cards);
+  }) : cards = Map.unmodifiable(cards) {
+    for (final MapEntry(key: cardId, value: copies) in cards.entries) {
+      if (copies < 1) throw ArgumentError.value(copies, 'cards[$cardId]', 'Число копий карты должно быть больше нуля');
+    }
+  }
 
   /// Идентификатор колоды.
   final String id;

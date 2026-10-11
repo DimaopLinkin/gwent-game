@@ -30,7 +30,8 @@ final class DriftDeckRepository implements DeckRepository {
             name: deck.name,
             factionId: deck.factionId,
             leaderId: deck.leaderId,
-            updatedAt: deck.updatedAt,
+            // Сортировка идёт по тексту ISO-8601 и верна, только если все моменты записаны в UTC.
+            updatedAt: deck.updatedAt.toUtc(),
           ),
         );
     await (_db.delete(_db.deckCards)..where((card) => card.deckId.equals(deck.id))).go();

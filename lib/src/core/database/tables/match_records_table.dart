@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:gwent/src/features/match_history/domain/match_record.dart';
 
 /// История сыгранных партий.
 @DataClassName('MatchRecordRow')
@@ -7,8 +6,8 @@ class MatchRecords extends Table {
   /// Идентификатор записи (UUID).
   TextColumn get id => text()();
 
-  /// Как шла партия; хранится имя значения [MatchMode].
-  TextColumn get mode => textEnum<MatchMode>()();
+  /// Как шла партия: стабильный строковый код, его задаёт репозиторий истории партий.
+  TextColumn get mode => text()();
 
   /// UUID фракции игрока.
   TextColumn get playerFactionId => text()();
@@ -19,8 +18,8 @@ class MatchRecords extends Table {
   /// Имя соперника, если известно.
   TextColumn get opponentName => text().nullable()();
 
-  /// Итог для игрока; хранится имя значения [MatchOutcome].
-  TextColumn get outcome => textEnum<MatchOutcome>()();
+  /// Итог для игрока: стабильный строковый код, его задаёт репозиторий истории партий.
+  TextColumn get outcome => text()();
 
   /// Раунды, выигранные игроком.
   IntColumn get roundsWon => integer()();

@@ -55,6 +55,13 @@ for target in "${targets[@]}"; do
     # и собирает шаги миграций (<база>.steps.dart). schema generate собирает тестовые схемы всех версий.
     if [ -f build.yaml ] && grep -qE '^[[:space:]]+databases:' build.yaml; then
       dart run drift_dev make-migrations --no-test
+      # В CI новая схема, созданная здесь, значит, что её забыли закоммитить: без файла схемы версия потеряна
+      # для будущих проверок миграций.
+      if [ -n "${CI:-}" ] && [ -n "$(git status --porcelain -- drift_schemas/)" ]; then
+        echo "setup.sh: схема базы новой версии не закоммичена:" >&2
+        git status --porcelain -- drift_schemas/ >&2
+        exit 1
+      fi
       for schemas in drift_schemas/*/; do
         [ -d "$schemas" ] || continue
         dart run drift_dev schema generate --data-classes --companions "$schemas" "test/drift/$(basename "$schemas")/generated/"

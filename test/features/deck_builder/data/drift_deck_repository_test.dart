@@ -71,4 +71,12 @@ void main() {
     expect(await repository.findById(deck.id), isNull);
     expect(await db.select(db.deckCards).get(), isEmpty);
   });
+
+  test('время изменения в другом часовом поясе сохраняется в UTC', () async {
+    final deck = testDeck(updatedAt: DateTime.parse('2026-10-11T15:00:00+03:00').toLocal());
+
+    await repository.save(deck);
+
+    expect((await repository.findById(deck.id))?.updatedAt, DateTime.utc(2026, 10, 11, 12));
+  });
 }
