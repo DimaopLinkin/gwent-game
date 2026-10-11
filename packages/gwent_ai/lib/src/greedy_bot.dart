@@ -94,14 +94,23 @@ final class GreedyBot implements MatchBot {
         }
       }
       if (cheapest != null) return cheapest.intent;
-      final reachable = _handPoints(me) > -lead && best.gain > 0;
-      return me.crystals == 1 || reachable ? best.intent : pass;
+      // Одной картой не догнать. На двух кристаллах раунд стоит догонять, только если хватит нескольких карт,
+      // иначе бот отдаёт его и сохраняет руку. Догоняют очками: карты, оставшиеся в руке, этот раунд не выигрывают.
+      final needed = _cardsToCatchUp(me, -lead);
+      if (needed == null) return me.crystals == 1 ? best.intent : pass;
+      if (me.crystals > 1 && needed > _settings.catchUpCards) return pass;
+      var strongest = best;
+      for (final move in moves) {
+        if (move.lead > strongest.lead || move.lead == strongest.lead && move.gain > strongest.gain) strongest = move;
+      }
+      return strongest.intent;
     }
 
+    // Соперник не может ответить: ему остаётся автопас, лишние карты не нужны.
+    if (ahead && opponent.handCount == 0 && !opponent.leaderAvailable) return pass;
     if (me.crystals == 1) {
-      // Проигрыш раунда проигрывает партию: пас только с отрывом, на который соперник не ответит или ответит хуже.
-      final unanswerable = opponent.handCount == 0 && !opponent.leaderAvailable;
-      return ahead && (unanswerable || best.gain <= 0) ? pass : best.intent;
+      // Проигрыш раунда проигрывает партию: пас с отрывом только тогда, когда любой ход его уменьшает.
+      return ahead && best.gain <= 0 ? pass : best.intent;
     }
     if (ahead && lead >= _settings.passLead) return pass;
     if (!ahead && -lead >= _settings.giveUpDeficit) return pass;
@@ -131,7 +140,7 @@ final class GreedyBot implements MatchBot {
       PlayCard(:final card) => _values.worth(before.me.hand!.firstWhere((instance) => instance.id == card).cardId),
       _ => _settings.leaderCost,
     };
-    return (intent: intent, gain: gain.toDouble(), winsRound: winsRound, spent: spent);
+    return (intent: intent, gain: gain.toDouble(), lead: leadAfter, winsRound: winsRound, spent: spent);
   }
 
   /// Сколько карт ход добавил руке сверх розыгрыша одной карты: взятые Шпионом, возвращённые Чучелом и лидером,
@@ -202,9 +211,18 @@ final class GreedyBot implements MatchBot {
       lead > 0 ||
       lead == 0 && view.me.faction.perk == FactionPerk.winTies && view.opponent.faction.perk != FactionPerk.winTies;
 
-  /// Сколько очков рука может добавить своей стороне.
-  int _handPoints(SideView me) =>
-      (me.hand ?? const <CardInstance>[]).fold(0, (sum, card) => sum + _values.points(card.cardId));
+  /// Сколько карт руки нужно, чтобы обогнать соперника при отставании [deficit], если класть сильнейшие;
+  /// `null`, если всей руки не хватит.
+  int? _cardsToCatchUp(SideView me, int deficit) {
+    final points = [for (final card in me.hand ?? const <CardInstance>[]) _values.points(card.cardId)]
+      ..sort((a, b) => b.compareTo(a));
+    var sum = 0;
+    for (var count = 0; count < points.length; count++) {
+      sum += points[count];
+      if (sum > deficit) return count + 1;
+    }
+    return null;
+  }
 
   /// Первое намерение, которое движок принимает.
   Intent _firstAccepted(MatchState state, Seat seat, List<Intent> intents) {
@@ -215,8 +233,9 @@ final class GreedyBot implements MatchBot {
   }
 }
 
-/// Пробный ход: прирост оценки [gain], выигрывает ли он раунд и оценка потраченного [spent].
-typedef _Move = ({Intent intent, double gain, bool winsRound, int spent});
+/// Пробный ход: прирост оценки [gain], разница очков после хода [lead], выигрывает ли он раунд и оценка
+/// потраченного [spent].
+typedef _Move = ({Intent intent, double gain, int lead, bool winsRound, int spent});
 
 /// Вариант выбора с состоянием после него и оценкой.
 typedef _Option = ({ChoiceOption option, MatchState state, double score});

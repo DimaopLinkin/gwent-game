@@ -8,6 +8,7 @@ final class GreedyBotSettings {
     this.leaderCost = 4,
     this.passLead = 12,
     this.giveUpDeficit = 25,
+    this.catchUpCards = 2,
     this.redrawBelow = 4,
   });
 
@@ -22,6 +23,10 @@ final class GreedyBotSettings {
 
   /// Отставание, при котором бот сдаёт раунд, если его проигрыш не проигрывает партию.
   final int giveUpDeficit;
+
+  /// Сколько карт бот готов потратить, чтобы догнать спасовавшего соперника, если проигрыш раунда
+  /// не проигрывает партию.
+  final int catchUpCards;
 
   /// Карты с оценкой ниже этой бот меняет при пересдаче.
   final int redrawBelow;

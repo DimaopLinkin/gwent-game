@@ -62,6 +62,34 @@ void main() {
       );
       expect(decide(state), plays(state, 'footman'));
     });
+
+    test('при двух кристаллах бот не тратит руку, чтобы догнать соперника', () {
+      final state = playing(
+        one: const Side(hand: ['footman', 'footman', 'footman', 'footman', 'footman', 'footman', 'footman', 'footman']),
+        two: const Side(
+          melee: ['geralt', 'vesemir'],
+          hand: ['footman', 'footman', 'footman', 'footman', 'footman', 'footman'],
+          passed: true,
+        ),
+      );
+      expect(decide(state), const Pass());
+    });
+
+    test('на последнем кристалле бот догоняет очками, а не берёт карты Шпионом', () {
+      final state = playing(
+        one: const Side(
+          leader: 'eredin_return',
+          faction: Faction.monsters,
+          hand: ['harpy', 'harpy', 'harpy', 'skellen'],
+          melee: ['poor_infantry'],
+          deck: ['ghoul', 'ghoul', 'ghoul'],
+          crystals: 1,
+        ),
+        two: const Side(melee: ['footman'], ranged: ['archer'], passed: true, crystals: 1),
+        round: 3,
+      );
+      expect(decide(state), plays(state, 'harpy'));
+    });
   });
 
   group('соперник ещё играет', () {
@@ -83,6 +111,14 @@ void main() {
     test('на последнем кристалле бот пасует, если соперник ответить не может', () {
       final state = playing(
         one: const Side(hand: ['footman'], melee: ['geralt'], crystals: 1),
+        two: const Side(leaderUsed: true),
+      );
+      expect(decide(state), const Pass());
+    });
+
+    test('с любым отрывом бот пасует, если соперник ответить не может', () {
+      final state = playing(
+        one: const Side(hand: ['footman'], melee: ['archer']),
         two: const Side(leaderUsed: true),
       );
       expect(decide(state), const Pass());
@@ -200,6 +236,14 @@ void main() {
       final state = (engine.start(MatchSetup(one: monsters, two: northern, rng: const SeededRng(5))) as Accepted).state;
       expect(state.phase, MatchPhase.redraw);
       expect(decide(state), RedrawCard(find(state, me, 'ghoul')));
+    });
+
+    test('при пересдаче бот не меняет сильного Шпиона', () {
+      final nilfgaard = deck('emgyr_take', ['skellen', ...strong.skip(6)]);
+      final state =
+          (engine.start(MatchSetup(one: nilfgaard, two: northern, rng: const SeededRng(5))) as Accepted).state;
+      expect(state.phase, MatchPhase.redraw);
+      expect(decide(state), const FinishRedraw());
     });
 
     test('без слабых карт бот сразу заканчивает пересдачу', () {
