@@ -13,6 +13,15 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$root"
 
+# Версия Flutter проекта (как на Mac и в CI). Другая версия меняет pubspec.lock: такие правки не коммитить.
+expected_flutter=3.41.0
+if command -v flutter >/dev/null 2>&1; then
+  actual_flutter="$(flutter --version 2>/dev/null | sed -n 's/^Flutter \([0-9.]*\).*/\1/p')"
+  if [ -n "$actual_flutter" ] && [ "$actual_flutter" != "$expected_flutter" ]; then
+    echo "setup.sh: внимание, Flutter $actual_flutter, а проекту нужен $expected_flutter" >&2
+  fi
+fi
+
 if [ "$#" -gt 0 ]; then
   targets=("$@")
 else
@@ -42,6 +51,10 @@ for target in "${targets[@]}"; do
 
     if grep -qE '^[[:space:]]+build_runner:' pubspec.yaml; then
       dart run build_runner build --delete-conflicting-outputs
+      # Генераторы пишут код под 80 колонок; приводим его к ширине проекта, иначе упадёт проверка формата.
+      find . -path ./build -prune -o -path ./.dart_tool -prune -o -type f \
+        \( -name '*.g.dart' -o -name '*.freezed.dart' -o -name '*.drift.dart' -o -name '*.mocks.dart' \) -print0 |
+        xargs -0 -r dart format >/dev/null
     fi
 
     if [ "$tool" = flutter ] && [ -f l10n.yaml ]; then

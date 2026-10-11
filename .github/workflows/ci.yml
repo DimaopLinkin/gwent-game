@@ -6,9 +6,13 @@ on:
   push:
     branches: [dev, main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Отменяем только устаревшие прогоны PR; прогоны после мержа в dev и main доходят до конца.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Та же версия, что на Mac пользователя (`.metadata`: Flutter 3.41.0, Dart 3.11.0).
@@ -19,6 +23,7 @@ jobs:
   package:
     name: ${{ matrix.package }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -40,6 +45,7 @@ jobs:
   app:
     name: app
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
@@ -48,6 +54,7 @@ jobs:
           channel: stable
           cache: true
       - run: tools/scripts/setup.sh
-      - run: dart format --output=none --set-exit-if-changed lib test
+      # Формат и анализ из корня покрывают приложение, packages/ и tools/.
+      - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze --fatal-infos
       - run: flutter test

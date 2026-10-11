@@ -4,20 +4,23 @@ import 'package:test/test.dart';
 
 /// Движок обязан оставаться чистым Dart: его запускают тесты без устройства, хост сетевой партии и сервер.
 final _forbidden = <String, RegExp>{
-  'Flutter': RegExp(r'''import\s+['"]package:flutter'''),
-  'dart:io': RegExp(r'''import\s+['"]dart:io['"]'''),
-  'dart:ui': RegExp(r'''import\s+['"]dart:ui['"]'''),
-  'DateTime.now()': RegExp(r'DateTime\.now\('),
-  'Random() без сида': RegExp(r'Random(\.secure)?\(\s*\)'),
+  'Flutter': RegExp(r'''^\s*(import|export)\b.*['"]package:flutter''', multiLine: true),
+  'dart:io': RegExp(r'''^\s*(import|export)\b.*['"]dart:io['"]''', multiLine: true),
+  'dart:ui': RegExp(r'''^\s*(import|export)\b.*['"]dart:ui['"]''', multiLine: true),
+  'текущее время': RegExp(r'\bDateTime\.(now|timestamp)\('),
+  'Random() без сида': RegExp(r'\bRandom(\.secure|\.new)?\(\s*\)'),
 };
+
+/// Убирает комментарии, чтобы слова из документации не считались нарушением.
+String _withoutComments(String source) =>
+    source.replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '').replaceAll(RegExp(r'//.*$', multiLine: true), '');
 
 void main() {
   test('lib/ не использует Flutter, ввод-вывод, текущее время и случайность без сида', () {
     final violations = <String>[];
     final files = Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'));
     for (final file in files) {
-      // Комментарии не проверяются: в документации эти слова встречаются законно.
-      final source = file.readAsLinesSync().where((line) => !line.trimLeft().startsWith('//')).join('\n');
+      final source = _withoutComments(file.readAsStringSync());
       _forbidden.forEach((what, pattern) {
         if (pattern.hasMatch(source)) violations.add('${file.path}: $what');
       });

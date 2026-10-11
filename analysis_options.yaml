@@ -11,8 +11,6 @@ analyzer:
     - "**/build/**"
     - "**/macos/**"
     - "**/windows/**"
-    # У пакетов свои зависимости; CI проверяет их из их папок.
-    - "packages/**"
 
   language:
     strict-casts: true

@@ -1,5 +1,5 @@
-name: flutter_game_test_21_05_2026
-description: "A new Flutter project."
+name: gwent
+description: "Гвинт из «Ведьмака 3» для Android и iOS."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
