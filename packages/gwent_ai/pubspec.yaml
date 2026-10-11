@@ -1,0 +1,16 @@
+name: gwent_ai
+description: ИИ-соперник Гвинта из «Ведьмака 3» для одиночной игры. Чистый Dart поверх движка правил.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  gwent_engine:
+    path: ../gwent_engine
+  meta: ^1.16.0
+
+dev_dependencies:
+  analyzer: ^14.5.0
+  test: ^1.26.0
