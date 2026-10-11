@@ -1,5 +1,4 @@
 import 'package:gwent_engine/gwent_engine.dart';
-import 'package:gwent_engine/src/core/value.dart';
 
 /// Генератор с заранее заданными числами: тест сам решает, что выпадет.
 final class ScriptedRng extends Value implements Rng {

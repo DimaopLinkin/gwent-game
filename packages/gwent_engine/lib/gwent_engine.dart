@@ -13,6 +13,7 @@ export 'src/cards/leader_ability.dart';
 export 'src/cards/row.dart';
 export 'src/cards/special_ability.dart';
 export 'src/cards/unit_ability.dart';
+export 'src/core/value.dart';
 export 'src/engine/engine_result.dart';
 export 'src/engine/gwent_engine.dart';
 export 'src/engine/match_engine.dart';

@@ -1,0 +1,69 @@
+import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/src/protocol/net_message.dart';
+
+/// Что произошло у клиента партии: для держателя состояния экрана.
+sealed class ClientEvent extends Value {
+  const ClientEvent();
+}
+
+/// Хост выдал или вернул место.
+final class Joined extends ClientEvent {
+  const Joined(this.seat);
+
+  final Seat seat;
+
+  @override
+  List<Object?> get props => [seat];
+}
+
+/// Хост не пустил; соединение закрыто, переподключаться с тем же билетом бессмысленно.
+final class JoinRefused extends ClientEvent {
+  const JoinRefused(this.reason, {required this.hostProtocol});
+
+  final JoinRefusal reason;
+
+  /// Версия протокола хоста.
+  final int hostProtocol;
+
+  @override
+  List<Object?> get props => [reason, hostProtocol];
+}
+
+/// Связь с хостом потеряна; неотправленные намерения дождутся переподключения.
+final class ConnectionLost extends ClientEvent {
+  const ConnectionLost();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Проекция партии изменилась. [events] пуст, если хост прислал снимок.
+final class ViewChanged extends ClientEvent {
+  const ViewChanged(this.view, this.events);
+
+  final PlayerView view;
+  final List<GameEvent> events;
+
+  @override
+  List<Object?> get props => [view, events];
+}
+
+/// Хост не выполнил сообщение клиента.
+final class ActionRefused extends ClientEvent {
+  const ActionRefused(this.refusal);
+
+  final Refusal refusal;
+
+  @override
+  List<Object?> get props => [refusal];
+}
+
+/// Соперник на связи или отключился.
+final class OpponentPresenceChanged extends ClientEvent {
+  const OpponentPresenceChanged({required this.online});
+
+  final bool online;
+
+  @override
+  List<Object?> get props => [online];
+}
