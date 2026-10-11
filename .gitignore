@@ -1,6 +1,8 @@
 # Miscellaneous
 *.class
 *.lock
+# Lock-файл приложения коммитится, у пакетов в packages/ нет.
+!/pubspec.lock
 *.log
 *.pyc
 *.swp

@@ -1,17 +1,21 @@
-# flutter_game_test_21_05_2026
+# Гвинт
 
-A new Flutter project.
+Мини-игра Гвинт из «Ведьмака 3» на Flutter. Android (APK) и iOS (Ad Hoc), без публикации в сторах.
 
-## Getting Started
+## Структура
 
-This project is a starting point for a Flutter application.
+- `lib/`, `test/` — Flutter-приложение.
+- `packages/gwent_engine` — движок правил, чистый Dart.
+- `packages/gwent_content` — пакет контента (модели, парсер, валидатор), чистый Dart.
+- `docs/hand` — данные карт и правила, источник правды.
+- `docs/adr`, `docs/spec` — архитектурные решения и требования к фичам.
 
-A few resources to get you started if this is your first Flutter project:
+Правила для разработчиков и агентов, команды проверки и git-процесс описаны в [CLAUDE.md](CLAUDE.md).
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Быстрая проверка
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+(cd packages/gwent_engine && dart pub get && dart test)
+(cd packages/gwent_content && dart pub get && dart test)
+flutter pub get && flutter analyze && flutter test
+```
