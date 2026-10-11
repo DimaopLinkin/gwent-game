@@ -33,7 +33,7 @@ dart analyze --fatal-infos
 dart test
 ```
 
-Приложение (Flutter 3.41, как в `.metadata`), из корня:
+Приложение (Flutter 3.41.0, как в `.metadata` и в CI), из корня:
 
 ```sh
 flutter pub get

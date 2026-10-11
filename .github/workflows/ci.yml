@@ -11,9 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Та же версия, что у проекта на Mac (`.metadata`: Flutter 3.41, Dart 3.11).
-  FLUTTER_VERSION: 3.41.9
-  DART_VERSION: 3.11.5
+  # Та же версия, что на Mac пользователя (`.metadata`: Flutter 3.41.0, Dart 3.11.0).
+  FLUTTER_VERSION: 3.41.0
+  DART_VERSION: 3.11.0
 
 jobs:
   package:
