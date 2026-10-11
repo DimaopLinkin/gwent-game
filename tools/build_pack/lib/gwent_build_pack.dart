@@ -7,3 +7,4 @@ export 'src/hand_data_exception.dart';
 export 'src/hand_data_reader.dart';
 export 'src/hand_tables.dart';
 export 'src/pack_pipeline.dart';
+export 'src/pack_writer.dart';

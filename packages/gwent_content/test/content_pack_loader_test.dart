@@ -53,6 +53,22 @@ void main() {
     expect(manifestOf(first)['content_hash'], contentHashOf(first[rulesFileName]!));
   });
 
+  test('порядок записей в таблицах не влияет на пакет', () {
+    final reversed = samplePackJson();
+    for (final table in ['zones', 'squad_cards', 'squad_abilities']) {
+      reversed[table] = rows(reversed, table).reversed.toList();
+    }
+    expect(buildSampleFiles(rules: reversed)[rulesFileName], buildSampleFiles()[rulesFileName]);
+  });
+
+  test('слишком глубокий JSON отклоняется, а не роняет загрузчик', () async {
+    final files = buildSampleFiles();
+    // jsonDecode такой файл читает, а рекурсивная запись JSON переполнила бы стек.
+    final deep = '{"extra":${'[' * 100000}${']' * 100000},${utf8.decode(files[rulesFileName]!).substring(1)}';
+    replaceFile(files, rulesFileName, utf8.encode(deep));
+    expect(await rejectionCodes(files), ['not_canonicalizable']);
+  });
+
   test('переформатированный pack.json с верным манифестом загружается с тем же content_hash', () async {
     final files = buildSampleFiles();
     final pretty = const JsonEncoder.withIndent('  ').convert(jsonDecode(utf8.decode(files[rulesFileName]!)));

@@ -61,7 +61,7 @@ final class _Converter {
         for (final row in _sorted(_rows('fractions')))
           Fraction(
             id: _id(row),
-            key: _string(row, 'tag'),
+            key: _fractionKey(row),
             isDeck: _bool(row, 'is_deck'),
             abilityId: _nullableString(row, 'ability_id'),
             nameKey: _text('fraction', row, 'name'),
@@ -117,6 +117,12 @@ final class _Converter {
     );
   }
 
+  String _fractionKey(Map<String, Object?> row) {
+    final key = fractionKeysByTag[_string(row, 'tag')];
+    if (key == null) problems.add('fractions ${_id(row)}: неизвестный tag ${row['tag']}');
+    return key ?? '';
+  }
+
   GameRules _gameRules() {
     final json = tables['game_rules'];
     if (json is! Map<String, Object?>) {
@@ -143,10 +149,10 @@ final class _Converter {
         Ability(
           id: _id(row),
           effect: mapping.effect,
-          params: {
+          params: Map.unmodifiable({
             for (final MapEntry(:key, :value) in mapping.params.entries)
               key: value is SpecialCardTag ? _specialId(specialIdsByTag, value.tag, table) : value,
-          },
+          }),
           nameKey: row.containsKey('name') ? _text(entity, row, 'name') : null,
           descriptionKey: _text(entity, row, 'description'),
         )
@@ -183,20 +189,22 @@ final class _Converter {
       final effect = tag == null ? null : squadEffectsByTag[tag]?.effect;
       switch (effect) {
         case EffectKey.muster:
-          params[id] = {'summons': _required(summons, id, 'twin_config')..sort()};
+          params[id] = Map.unmodifiable({
+            'summons': List<String>.unmodifiable(_required(summons, id, 'twin_config')..sort()),
+          });
           used.add('twin_config $id');
         case EffectKey.bait:
-          params[id] = {'summons': _single(baits, id, 'bait_config')};
+          params[id] = Map.unmodifiable({'summons': _single(baits, id, 'bait_config')});
           used.add('bait_config $id');
         case EffectKey.berserk:
-          params[id] = {'transform_to': _single(berserks, id, 'mardrem_config')};
+          params[id] = Map.unmodifiable({'transform_to': _single(berserks, id, 'mardrem_config')});
           used.add('mardrem_config $id');
         case EffectKey.scorchRow:
           final zone = zoneKeys[card['zone_id']];
           if (zone == null || zone == ZoneKey.agile) {
             problems.add('squad_cards $id: Казнь по ряду у карты без одного ряда');
           } else {
-            params[id] = {'row': zone.key};
+            params[id] = Map.unmodifiable({'row': zone.key});
           }
         case _:
           break;

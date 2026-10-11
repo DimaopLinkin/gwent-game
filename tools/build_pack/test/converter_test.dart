@@ -25,6 +25,7 @@ void main() {
     expect(tags('special_card_abilities'), specialEffectsByTag.keys.toSet());
     expect(tags('leader_card_abilities'), leaderEffectsByTag.keys.toSet());
     expect(tags('fraction_abilities'), fractionEffectsByTag.keys.toSet());
+    expect(tags('fractions'), fractionKeysByTag.keys.toSet());
   });
 
   test('сборка детерминирована и не зависит от порядка строк в таблицах', () async {
@@ -62,6 +63,25 @@ void main() {
     expect(problemsOf(tables), hasLength(greaterThanOrEqualTo(2)));
     expect(problemsOf(tables), contains(contains('bait_config: нет связей')));
     expect(problemsOf(tables), contains(contains('twin_config: карта ${geralt['id']} не имеет нужной способности')));
+  });
+
+  test('Казнь по ряду у проворной карты и две связи у Приманки', () {
+    final tables = realTables();
+    final zones = table(tables, 'zones');
+    final agile = zones.singleWhere((zone) => zone['tag'] == 'blizhniy_boy_dalniy_boy')['id'];
+    table(tables, 'squad_cards').firstWhere((card) => card['name'] == 'Виллентретенмерт')['zone_id'] = agile;
+    final bait = table(tables, 'bait_config');
+    bait.add({...bait.first, 'id': 'extra'});
+    expect(
+      problemsOf(tables),
+      containsAll([contains('Казнь по ряду у карты без одного ряда'), contains('2 связи, а нужна одна')]),
+    );
+  });
+
+  test('неизвестный tag фракции', () {
+    final tables = realTables();
+    table(tables, 'fractions').first['tag'] = 'redania';
+    expect(problemsOf(tables), [contains('неизвестный tag redania')]);
   });
 
   test('нет таблицы или поле не того типа', () {

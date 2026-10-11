@@ -89,8 +89,9 @@ void _checkSquadCards(PackRules rules, StringTable fallbackStrings, IssueSink si
         if (target.count != 0) {
           sink.add('$path.$paramName', 'created_card_in_deck', 'созданная карта $targetId должна иметь count = 0');
         }
-        if (effects[targetId]?.effect == effect.effect) {
-          sink.add('$path.$paramName', 'created_card_chain', 'созданная карта $targetId сама ${effect.effect.key}');
+        final targetEffect = effects[targetId]?.effect;
+        if (targetEffect == EffectKey.bait || targetEffect == EffectKey.berserk) {
+          sink.add('$path.$paramName', 'created_card_chain', 'созданная карта $targetId сама ${targetEffect!.key}');
         }
       case EffectKey.muster:
         for (final targetId in effect!.cardIds('summons')) {

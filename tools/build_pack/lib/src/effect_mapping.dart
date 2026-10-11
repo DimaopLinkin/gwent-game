@@ -34,6 +34,16 @@ const Map<String, ZoneKey> zoneKeysByTag = {
   'blizhniy_boy_dalniy_boy': ZoneKey.agile,
 };
 
+/// `fractions.tag` → машинный ключ фракции. Ключ стабилен, даже если `tag` в `docs/hand` переименуют.
+const Map<String, String> fractionKeysByTag = {
+  'northern_realms': 'northern_realms',
+  'nilfgaardian_empire': 'nilfgaardian_empire',
+  'monsters': 'monsters',
+  'scoia_tael': 'scoia_tael',
+  'skellige': 'skellige',
+  'common': 'common',
+};
+
 /// `squad_card_abilities.tag` → эффект. Параметры карт (`summons`, `transform_to`, `row`) добавляет конвертер.
 const Map<String, EffectMapping> squadEffectsByTag = {
   'dvoinik': EffectMapping(EffectKey.muster),

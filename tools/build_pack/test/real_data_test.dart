@@ -97,6 +97,90 @@ void main() {
     expect(name(rules.specialCardsById[effect.cardId('card_id')]!.nameKey), 'Мгла');
   });
 
+  test('эффекты всех лидеров по разделу 10 main.md', () {
+    String special(String cardId) => name(rules.specialCardsById[cardId]!.nameKey);
+    final expected = <String, (EffectKey, Map<String, Object>)>{
+      'Фольтест: Король Темерии': (EffectKey.playWeatherFromDeck, {'card_id': 'Мгла'}),
+      'Фольтест: Предводитель Севера': (EffectKey.clearWeather, {}),
+      'Фольтест: Завоеватель': (EffectKey.leaderHorn, {'row': CombatRow.siege}),
+      'Фольтест: Железный Владыка': (EffectKey.scorchRow, {'row': CombatRow.siege, 'threshold': 10}),
+      'Фольтест: Сын Меделла': (EffectKey.scorchRow, {'row': CombatRow.ranged, 'threshold': 10}),
+      'Эмгыр вар Эмрейс: Йож из Эрленвальда': (EffectKey.playWeatherFromDeck, {'card_id': 'Ливень'}),
+      'Эмгыр вар Эмрейс: Император Нильфгаарда': (EffectKey.revealOpponentHand, {'count': 3}),
+      'Эмгыр вар Эмрейс: Белое Пламя, Пляшущее на Курганах Врагов': (EffectKey.disableOpponentLeader, {}),
+      'Эмгыр вар Эмрейс: Властелин Юга': (EffectKey.takeFromOpponentDiscard, {}),
+      'Эмгыр вар Эмрейс: Завоеватель Севера': (EffectKey.randomMedic, {}),
+      'Эредин Бреакк Глас: Король Aen Elle': (EffectKey.leaderHorn, {'row': CombatRow.melee}),
+      'Эредин Бреакк Глас: Владыка Тир на Лиа': (EffectKey.returnFromDiscard, {}),
+      'Эредин Бреакк Глас: Убийца Оберона': (EffectKey.discardAndDraw, {'discard': 2, 'draw': 1}),
+      'Эредин Бреакк Глас: Командир Дикой Охоты': (EffectKey.playAnyWeatherFromDeck, {}),
+      'Эредин Бреакк Глас: Вероломный': (EffectKey.doubleSpies, {}),
+      'Францеска Финдабаир: Истинная эльфка': (EffectKey.playWeatherFromDeck, {'card_id': 'Мороз'}),
+      'Францеска Финдабаир: Королева Дол Блатанны': (EffectKey.scorchRow, {'row': CombatRow.melee, 'threshold': 10}),
+      'Францеска Финдабаир: Прекраснейшая': (EffectKey.leaderHorn, {'row': CombatRow.ranged}),
+      'Францеска Финдабаир: Маргаритка из Долин': (EffectKey.extraStartingCard, {'count': 1}),
+      'Францеска Финдабаир: Надежда Aen Seidhe': (EffectKey.optimizeAgile, {}),
+      'Король Бран': (EffectKey.halveWeather, {}),
+      'Крах ан Крайт': (EffectKey.shuffleDiscardsIntoDecks, {}),
+    };
+    expect(rules.leaderCards.map((card) => name(card.nameKey)).toSet(), expected.keys.toSet());
+    for (final card in rules.leaderCards) {
+      final effect = rules.effectOfLeaderCard(card);
+      final (key, params) = expected[name(card.nameKey)]!;
+      expect(effect.effect, key, reason: name(card.nameKey));
+      expect(
+        {
+          for (final MapEntry(key: param, :value) in effect.params.entries)
+            param: switch (value) {
+              CountParam(:final value) => value,
+              RowParam(:final value) => value,
+              CardRefParam(:final cardId) => special(cardId),
+              RowsParam() || CardRefsParam() => fail('у лидера нет списков'),
+            },
+        },
+        params,
+        reason: name(card.nameKey),
+      );
+    }
+  });
+
+  test('эффекты всех специальных карт по разделу 9.3 main.md', () {
+    final expected = <String, (EffectKey, List<CombatRow>?)>{
+      'Мороз': (EffectKey.weather, [CombatRow.melee]),
+      'Мгла': (EffectKey.weather, [CombatRow.ranged]),
+      'Ливень': (EffectKey.weather, [CombatRow.siege]),
+      'Шторм со Скеллиге': (EffectKey.weather, [CombatRow.ranged, CombatRow.siege]),
+      'Ясное небо': (EffectKey.clearWeather, null),
+      'Командирский рог': (EffectKey.commanderHorn, null),
+      'Мардрём': (EffectKey.mardroeme, null),
+      'Чучело': (EffectKey.decoy, null),
+      'Казнь': (EffectKey.scorch, null),
+    };
+    expect(rules.specialCards.map((card) => name(card.nameKey)).toSet(), expected.keys.toSet());
+    for (final card in rules.specialCards) {
+      final effect = rules.effectOfSpecialCard(card);
+      final (key, rows) = expected[name(card.nameKey)]!;
+      expect(effect.effect, key, reason: name(card.nameKey));
+      expect(effect.params.isEmpty ? null : effect.rows('rows'), rows, reason: name(card.nameKey));
+    }
+  });
+
+  test('перки всех фракций по разделу 11 main.md', () {
+    final expected = <String, (EffectKey, Map<String, int>)>{
+      'northern_realms': (EffectKey.drawOnRoundWin, {'count': 1}),
+      'nilfgaardian_empire': (EffectKey.winOnTie, {}),
+      'monsters': (EffectKey.keepRandomUnit, {'count': 1}),
+      'scoia_tael': (EffectKey.chooseFirstPlayer, {}),
+      'skellige': (EffectKey.reviveRandomUnits, {'count': 2, 'round': 3}),
+    };
+    for (final fraction in rules.fractions.where((fraction) => fraction.isDeck)) {
+      final perk = rules.perkOfFraction(fraction)!;
+      final (key, params) = expected[fraction.key]!;
+      expect(perk.effect, key, reason: fraction.key);
+      expect({for (final param in params.keys) param: perk.count(param)}, params, reason: fraction.key);
+    }
+  });
+
   test('перки фракций', () {
     final skellige = rules.fractions.singleWhere((fraction) => fraction.key == 'skellige');
     final perk = rules.perkOfFraction(skellige)!;

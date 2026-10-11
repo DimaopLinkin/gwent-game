@@ -56,7 +56,7 @@ ResolvedEffect? resolveEffect(
       params[spec.name] = param;
     }
   }
-  return ok ? ResolvedEffect(ability.effect, params) : null;
+  return ok ? ResolvedEffect(ability.effect, Map.unmodifiable(params)) : null;
 }
 
 EffectParam? _decode(ParamType type, Object value) {

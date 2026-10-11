@@ -37,15 +37,15 @@ final class BuiltContentPack {
 
 /// Собирает файлы пакета из правил [rules] и строк [strings] (язык → таблица).
 ///
-/// Все файлы пишутся каноническим JSON, поэтому одинаковые данные дают побайтово одинаковый пакет,
-/// а `content_hash` совпадает с SHA-256 файла `pack.json`. Проверку содержимого сборка не делает:
-/// её делает загрузчик над результатом.
+/// Записи каждой таблицы сортируются по UUID, а все файлы пишутся каноническим JSON, поэтому одинаковые данные
+/// в любом порядке дают побайтово одинаковый пакет, а `content_hash` совпадает с SHA-256 файла `pack.json`.
+/// Проверку содержимого сборка не делает: её делает загрузчик над результатом.
 BuiltContentPack buildContentPack({
   required PackIdentity identity,
   required PackRules rules,
   required Map<String, StringTable> strings,
 }) {
-  final rulesBytes = canonicalJsonBytes(encodeRules(rules));
+  final rulesBytes = canonicalJsonBytes(_sortedById(encodeRules(rules)));
   final locales = strings.keys.toList()..sort();
   final files = <String, List<int>>{
     rulesFileName: rulesBytes,
@@ -68,3 +68,11 @@ BuiltContentPack buildContentPack({
     files: {...files, manifestFileName: canonicalJsonBytes(encodeManifest(manifest))},
   );
 }
+
+/// Таблицы правил с записями, отсортированными по `id`.
+Map<String, Object?> _sortedById(Map<String, Object?> rulesJson) => {
+  for (final MapEntry(:key, :value) in rulesJson.entries)
+    key: value is List<Object?>
+        ? ([...value.cast<Map<String, Object?>>()]..sort((a, b) => (a['id']! as String).compareTo(b['id']! as String)))
+        : value,
+};

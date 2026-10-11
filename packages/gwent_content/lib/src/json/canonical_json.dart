@@ -20,16 +20,25 @@ final class CanonicalJsonException implements Exception {
 /// Строки экранируются как в `jsonEncode`. Поддерживаются `null`, `bool`, целые числа, строки, списки и объекты
 /// со строковыми ключами. Дробных чисел в пакете нет: их запись зависит от платформы, а хеш должен совпадать
 /// на всех устройствах. Одинаковые по смыслу данные дают одинаковую строку, поэтому от неё считается хеш.
+///
+/// Вложенность ограничена [maxCanonicalJsonDepth]: пакет может прийти от соперника по сети, и слишком глубокий JSON
+/// не должен переполнить стек.
 String canonicalJson(Object? value) {
   final out = StringBuffer();
-  _write(value, out, r'$');
+  _write(value, out, r'$', 0);
   return out.toString();
 }
 
 /// Канонический JSON в UTF-8.
 List<int> canonicalJsonBytes(Object? value) => utf8.encode(canonicalJson(value));
 
-void _write(Object? value, StringBuffer out, String path) {
+/// Наибольшая вложенность списков и объектов в каноническом JSON. В пакете она не больше 4.
+const int maxCanonicalJsonDepth = 32;
+
+void _write(Object? value, StringBuffer out, String path, int depth) {
+  if (depth > maxCanonicalJsonDepth) {
+    throw CanonicalJsonException(path, 'вложенность больше $maxCanonicalJsonDepth');
+  }
   switch (value) {
     case null:
       out.write('null');
@@ -43,7 +52,7 @@ void _write(Object? value, StringBuffer out, String path) {
       out.write('[');
       for (var i = 0; i < value.length; i++) {
         if (i > 0) out.write(',');
-        _write(value[i], out, '$path[$i]');
+        _write(value[i], out, '$path[$i]', depth + 1);
       }
       out.write(']');
     case Map<String, Object?>():
@@ -54,7 +63,7 @@ void _write(Object? value, StringBuffer out, String path) {
         out
           ..write(jsonEncode(keys[i]))
           ..write(':');
-        _write(value[keys[i]], out, '$path.${keys[i]}');
+        _write(value[keys[i]], out, '$path.${keys[i]}', depth + 1);
       }
       out.write('}');
     default:

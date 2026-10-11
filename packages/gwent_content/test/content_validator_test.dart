@@ -121,6 +121,13 @@ void main() {
       expect(codes(), ['created_card_chain', 'created_card_chain']);
     });
 
+    test('цель Приманки не может сама быть Берсерком', () {
+      row(pack, 'squad_cards', Ids.bovine)
+        ..['ability_id'] = Ids.berserkAbility
+        ..['ability_params'] = {'transform_to': Ids.bear};
+      expect(codes(), ['created_card_chain']);
+    });
+
     test('Двойник призывает карты из колоды; призыв своих копий требует больше одной копии', () {
       row(pack, 'squad_cards', Ids.muster)
         ..['count'] = 1
