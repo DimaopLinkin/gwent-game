@@ -21,7 +21,7 @@
     "id": "b60d66ee-d0be-45c1-9b64-890eea79ec85",
     "name": "Ливень",
     "description": "В этом краю даже дождь смердит мочой",
-    "tag": "livеn",
+    "tag": "liven",
     "ability_id": "efe1c2fd-693f-4057-9a85-ab493716d5ee",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 3
@@ -38,7 +38,7 @@
   {
     "id": "c858b281-84d5-410a-9e63-45f9e61d6825",
     "name": "Мороз",
-    "description": "Мечта хорошего коммандира... кошмар плохого.",
+    "description": "Мечта хорошего командира... кошмар плохого.",
     "tag": "moroz",
     "ability_id": "8c9a7b25-5b65-4408-8735-1bf7b48b5b6a",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
@@ -56,7 +56,7 @@
   {
     "id": "9454833b-22f2-4989-b039-2d0eee81ff1a",
     "name": "Ясное небо",
-    "description": "Дромил, солнце-то светит! Значит и надежда есть...",
+    "description": "Дромил, солнце-то светит! Значит, и надежда есть...",
     "tag": "yasnoe_nebo",
     "ability_id": "260c7145-61bd-4931-8cef-15fc4c3bb29c",
     "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
@@ -77,7 +77,7 @@
     "description": "Это не просто буря. Это гнев богов.",
     "tag": "shtorm_so_skellige",
     "ability_id": "dc0f2f84-0d0b-4143-b1ef-1b8b5de3c980",
-    "fraction_id": "166a05e0-36f0-4e16-a250-9c3bccf64b62",
+    "fraction_id": "00b3b73f-06eb-4944-9ccc-a861890c1b0c",
     "count": 3
   }
 ]

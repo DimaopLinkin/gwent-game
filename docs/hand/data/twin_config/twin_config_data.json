@@ -11,12 +11,12 @@
   },
   {
     "id": "038b038d-aedc-42b3-9e90-9a02c7fe7139",
-    "squad_card_trigger_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7",
+    "squad_card_trigger_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7a",
     "squad_card_slave_id": "5992544c-511d-47dd-8878-17fc13d6681e"
   },
   {
     "id": "e2b6697a-766e-4a17-a05e-b2efaff92558",
-    "squad_card_trigger_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7",
+    "squad_card_trigger_id": "d4074247-eb78-4d19-85a1-288ea6fe3c7a",
     "squad_card_slave_id": "002d03d1-ad7f-4ee4-abd0-d401c65f0283"
   },
   {
@@ -85,6 +85,11 @@
     "squad_card_slave_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168"
   },
   {
+    "id": "b29f38e5-c593-43a8-90f5-2da6e538a678",
+    "squad_card_trigger_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82",
+    "squad_card_slave_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd"
+  },
+  {
     "id": "fac1efa1-a1b2-4d75-9a7c-ab7b1506831f",
     "squad_card_trigger_id": "08e936e7-a0e1-445e-97b8-838b4db10db6",
     "squad_card_slave_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82"
@@ -98,6 +103,11 @@
     "id": "f5da4e6c-0e8b-494c-9cc0-db53e863aec9",
     "squad_card_trigger_id": "08e936e7-a0e1-445e-97b8-838b4db10db6",
     "squad_card_slave_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168"
+  },
+  {
+    "id": "8e254fa4-52da-4314-8025-f09238528821",
+    "squad_card_trigger_id": "08e936e7-a0e1-445e-97b8-838b4db10db6",
+    "squad_card_slave_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd"
   },
   {
     "id": "0b0c9752-edc2-4064-9732-d90f92942c5d",
@@ -115,6 +125,11 @@
     "squad_card_slave_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168"
   },
   {
+    "id": "3b2687bf-8439-487b-a7fd-d06aee63d18d",
+    "squad_card_trigger_id": "df03eaf5-4580-472b-ab81-3556ef03ee64",
+    "squad_card_slave_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd"
+  },
+  {
     "id": "ed79ef16-d4c7-4677-81ab-c83d26b89ed4",
     "squad_card_trigger_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168",
     "squad_card_slave_id": "08e936e7-a0e1-445e-97b8-838b4db10db6"
@@ -128,6 +143,11 @@
     "id": "dbf252d8-16ce-47cd-9490-e9bb2c0e394e",
     "squad_card_trigger_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168",
     "squad_card_slave_id": "dfa5ba18-8fbf-46c9-9b6d-2acff3085e82"
+  },
+  {
+    "id": "aae256d3-def2-4664-b224-bca87f6b7432",
+    "squad_card_trigger_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168",
+    "squad_card_slave_id": "04ea4373-fdd9-4be1-89b8-9526674b7cbd"
   },
   {
     "id": "3c85c32a-8673-49ee-b381-db32f56f3b5c",

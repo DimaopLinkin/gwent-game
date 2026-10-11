@@ -1,7 +1,7 @@
 [
   {
     "id": "94dd90c8-4833-4a5c-a9b5-d1b068d61519",
-    "name": "Эредин Бреакк Глас Вероломный",
+    "name": "Эредин Бреакк Глас: Вероломный",
     "description": "Мне это нравится. Ты - моя игрушка.",
     "tag": "eredin_breacc_glas_verolomny",
     "ability_id": "499f0289-e6f7-4d2a-bbed-b7c542ee5369",
@@ -9,7 +9,7 @@
   },
   {
     "id": "cbc592a0-3e35-4111-a6c0-d7f90a850a38",
-    "name": "Эредин Бреакк Глас Владыка Тир на Лиа",
+    "name": "Эредин Бреакк Глас: Владыка Тир на Лиа",
     "description": "Va faill, luned",
     "tag": "eredin_breacc_glas_vladyka_tir_na_lia",
     "ability_id": "3d9c8820-6fcc-4ca9-8b72-3a4d82fdf54a",
@@ -17,7 +17,7 @@
   },
   {
     "id": "197cf3fa-38f6-46e2-95c4-82ddd7db668c",
-    "name": "Эредин Бреакк Глас Командир Дикой Охоты",
+    "name": "Эредин Бреакк Глас: Командир Дикой Охоты",
     "description": "Ну давай, покажи мне эти свои финты и пируэты, а я посмотрю.",
     "tag": "eredin_breacc_glas_komandir_dikoy_ohoti",
     "ability_id": "9ca76b86-ec82-4feb-be6f-da9ec6bf43bd",
@@ -25,15 +25,15 @@
   },
   {
     "id": "23b83800-de52-478e-998b-f4e0af2dffae",
-    "name": "Эредин Бреакк Глас Король Aen Elle",
-    "description": "Держи себя в рауках, Геральт. Ты же знаешь, чем это кончится",
+    "name": "Эредин Бреакк Глас: Король Aen Elle",
+    "description": "Держи себя в руках, Геральт. Ты же знаешь, чем это кончится.",
     "tag": "eredin_breacc_glas_korol_aen_elle",
     "ability_id": "74e62900-6ec1-41f2-b499-f37dd8e48432",
     "fraction_id": "2926fb13-3aaa-4f1f-838e-ee0207846fb9"
   },
   {
     "id": "953f3df6-00db-4071-961f-ee1644025139",
-    "name": "Эредин Бреакк Глас Убийца Оберона",
+    "name": "Эредин Бреакк Глас: Убийца Оберона",
     "description": "Это неизбежно.",
     "tag": "eredin_breacc_glas_ubiytsa_oberona",
     "ability_id": "cb19d36f-2e0f-496d-a513-435caf5d47e2",
@@ -41,15 +41,15 @@
   },
   {
     "id": "9d086207-4490-497f-8f95-5515c46a8ced",
-    "name": "Эмгыр вар Эмрейс",
-    "description": "Меч - лишь одно из орудий в распоряжении имератора.",
-    "tag": "emgyr_var_emreys",
+    "name": "Эмгыр вар Эмрейс: Белое Пламя, Пляшущее на Курганах Врагов",
+    "description": "Меч - лишь одно из орудий в распоряжении императора.",
+    "tag": "emgyr_var_emreys_beloe_plamya",
     "ability_id": "faee014a-824d-4770-8be6-1a64c72f6687",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4"
   },
   {
     "id": "ed0364f3-febf-4b7e-b0d8-f251e82796c3",
-    "name": "Эмгыр вар Эмрейс Император Нильфгаарда",
+    "name": "Эмгыр вар Эмрейс: Император Нильфгаарда",
     "description": "Мотивы меня не интересуют. Только результаты.",
     "tag": "emgyr_var_emreys_imperator_nilfgaarda",
     "ability_id": "16828291-95fc-4965-8acc-76de5228357a",
@@ -57,7 +57,7 @@
   },
   {
     "id": "b6c78541-1a88-4b99-ad96-52546cb96e8e",
-    "name": "Эмгыр вар Эмрейс Йож из Эрленвальда",
+    "name": "Эмгыр вар Эмрейс: Йож из Эрленвальда",
     "description": "Интересно, как себя чувствует человек, прикончивший собственную жену?",
     "tag": "emgyr_var_emreys_yozh_iz_erlenvalda",
     "ability_id": "63f83025-95f5-4365-8aea-4338e3a5eb7f",
@@ -65,7 +65,7 @@
   },
   {
     "id": "6d5e2993-c461-47a8-9809-54613a6bd8b3",
-    "name": "Эмгыр вар Эмрейс Завоеватель Севера",
+    "name": "Эмгыр вар Эмрейс: Завоеватель Севера",
     "description": "Императоры владеют империями, но двумя вещами владеть не могут: своим сердцем и своим временем.",
     "tag": "emgyr_var_emreys_zavoevatel_severa",
     "ability_id": "4cee7e91-7add-4dbe-8810-983dc8cd2ced",
@@ -73,15 +73,15 @@
   },
   {
     "id": "5e4b1448-4820-4af2-afbd-4efa2addacfd",
-    "name": "Эмгыр вар Эмрейс Завоеватель Юга",
+    "name": "Эмгыр вар Эмрейс: Властелин Юга",
     "description": "Император не славится терпением. Он хочет видеть свою дочь. Как можно скорее.",
-    "tag": "emgyr_var_emreys_zavoevatel_yuga",
+    "tag": "emgyr_var_emreys_vlastelin_yuga",
     "ability_id": "8aca8d60-aad1-4138-b897-147cdc277b88",
     "fraction_id": "f4aaa6f2-1504-4234-8210-528c168f95b4"
   },
   {
     "id": "98fecd66-3c1b-48cb-b9a2-a5f82715021f",
-    "name": "Фольтест Железный Владыка",
+    "name": "Фольтест: Железный Владыка",
     "description": "Замечательный день для битвы!",
     "tag": "foltest_zhelezny_vladyka",
     "ability_id": "17670476-23b5-41e8-af3b-7efd00fe6f5c",
@@ -89,7 +89,7 @@
   },
   {
     "id": "d8c7de0f-b935-47b6-a32d-2cc1c63326f3",
-    "name": "Фольтест Завоеватель",
+    "name": "Фольтест: Завоеватель",
     "description": "Точный выстрел из баллисты сокрушит не только укрепления врага, но и его дух.",
     "tag": "foltest_zavoevatel",
     "ability_id": "6bb7caa6-6669-4a37-9785-f95dbc8dce2a",
@@ -97,23 +97,23 @@
   },
   {
     "id": "6f2495a1-8e60-4f30-b7b4-3d971940abef",
-    "name": "Фольтест Король Темерии",
-    "description": "Родственная любовь? Что может быть прекрасснее, чем сестра на коленях брата?",
+    "name": "Фольтест: Король Темерии",
+    "description": "Родственная любовь? Что может быть прекраснее, чем сестра на коленях брата?",
     "tag": "foltest_korol_temerii",
     "ability_id": "0074d973-7f7c-4bfd-8b88-5585d5d47052",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7"
   },
   {
     "id": "8c2c32b8-804b-45e4-9d8a-c70d28014a12",
-    "name": "Фольтест Предводитель Севера",
-    "description": "Проклятая политика... Я доверяю только своему оружию",
+    "name": "Фольтест: Предводитель Севера",
+    "description": "Проклятая политика... Я доверяю только своему оружию.",
     "tag": "foltest_predvoditel_severa",
     "ability_id": "f21bd917-e023-4309-a633-bbdb2c48439b",
     "fraction_id": "57845d37-a89d-4340-a670-5f52be61c0c7"
   },
   {
     "id": "df627a08-8939-4065-ab70-61e7fdc292bd",
-    "name": "Фольтест Сын Меделла",
+    "name": "Фольтест: Сын Меделла",
     "description": "Я здесь правитель и не стану сидеть в кустах!",
     "tag": "foltest_syn_medella",
     "ability_id": "abd20f9f-723b-4d26-a160-a82efb983e5c",
@@ -121,23 +121,23 @@
   },
   {
     "id": "bc470ef5-4ac7-40cd-9b70-8de517803890",
-    "name": "Францеска Финдабаир Истинная эльфка",
-    "description": "Всему своя цена. Война требует жертв. Мир, оказывается тоже.",
+    "name": "Францеска Финдабаир: Истинная эльфка",
+    "description": "Всему своя цена. Война требует жертв. Мир, оказывается, тоже.",
     "tag": "francesca_findabair_istinnaya_elfka",
     "ability_id": "6d9ed9c6-6bf6-405e-a5db-c0aa8096af4c",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85"
   },
   {
     "id": "5a37f868-89d4-4665-a20a-d84e1227deec",
-    "name": "Францеска Финдабаир Королева Дол Блатанны",
-    "description": "Пепел удобряет. Весной Дол Блатанна расцветет внось.",
+    "name": "Францеска Финдабаир: Королева Дол Блатанны",
+    "description": "Пепел удобряет. Весной Дол Блатанна расцветет вновь.",
     "tag": "francesca_findabair_koroleva_dol_blatanny",
     "ability_id": "075d6fd8-c387-459a-8c53-17a0fa721113",
     "fraction_id": "24831810-f488-4940-98cb-6b8367e87e85"
   },
   {
     "id": "98104fc6-07c0-4e72-a3a3-03cdd07e0c31",
-    "name": "Францеска Финдабаир Маргаритка из Долин",
+    "name": "Францеска Финдабаир: Маргаритка из Долин",
     "description": "Ты сюда пришел не на меня глазеть!",
     "tag": "francesca_findabair_margaritka_iz_dolin",
     "ability_id": "c82b1713-6bf6-420b-bb8b-ec0adb58de60",
@@ -145,7 +145,7 @@
   },
   {
     "id": "2f79a090-a3a6-45d6-94dc-157789af0c3a",
-    "name": "Францеска Финдабаир Надежда Aen Seidhe",
+    "name": "Францеска Финдабаир: Надежда Aen Seidhe",
     "description": "Daede sian caent. Aen Seidhe en'allane ae! coeden...",
     "tag": "francesca_findabair_nadezhda_aen_seidhe",
     "ability_id": "6dbdda8e-f266-4229-bc90-2385fbd35999",
@@ -153,7 +153,7 @@
   },
   {
     "id": "f8bbd5cf-e103-4ec1-9213-169c46368cc5",
-    "name": "Францеска Финдабаир Прекраснейшая",
+    "name": "Францеска Финдабаир: Прекраснейшая",
     "description": "Старая раса забыла больше, чем люди когда-либо знали.",
     "tag": "francesca_findabair_prekrasneyshaya",
     "ability_id": "322eec0e-32f8-46f6-99ba-5a5a154a6d3d",
@@ -169,7 +169,7 @@
   },
   {
     "id": "485d32b3-cf8c-4732-a0eb-9ff0ebedfdfc",
-    "name": "Крах Ан Крайт",
+    "name": "Крах ан Крайт",
     "description": "Король должен быть мудрым. Уважаемым. У короля должны быть яйца.",
     "tag": "krah_an_krait",
     "ability_id": "9225d499-55a8-436d-af9f-6dc9477fd12b",

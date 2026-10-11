@@ -4,6 +4,6 @@
 - name text
 - description text
 - tag text
-- ability_id text references to leader_card_abilities.id
+- ability_id text references to special_card_abilities.id
 - fraction_id text references to fractions.id
 - count int

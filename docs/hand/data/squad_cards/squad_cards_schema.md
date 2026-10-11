@@ -4,9 +4,9 @@
 - name text
 - description text
 - tag text
-- zone text references to zones.id
+- zone_id text references to zones.id
 - strength int
 - is_hero boolean
-- ability_id text references to squad_card_abilities.id
+- ability_id nullable text references to squad_card_abilities.id
 - fraction_id text references to fractions.id
 - count int
