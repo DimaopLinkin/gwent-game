@@ -1,0 +1,68 @@
+import 'dart:io';
+
+import 'package:gwent_build_pack/gwent_build_pack.dart';
+import 'package:gwent_content/gwent_content.dart';
+
+const String _usage = '''
+Сборка пакета контента из docs/hand/data.
+
+  dart run bin/build_pack.dart --data <docs/hand/data> --identity <docs/hand/content_pack.json> --out <папка пакета>
+
+Папка пакета пересоздаётся. Если в ней есть файлы, но нет manifest.json, сборка останавливается,
+чтобы не стереть чужую папку.''';
+
+Future<void> main(List<String> args) async {
+  final options = _parseArgs(args);
+  if (options == null) {
+    stderr.writeln(_usage);
+    exitCode = 64;
+    return;
+  }
+
+  try {
+    final identity = readPackIdentity(File(options.identity));
+    final (built, result) = await buildAndVerify(readHandTables(Directory(options.data)), identity);
+    switch (result) {
+      case PackRejected(:final issues):
+        stderr.writeln('Пакет не прошёл проверку:');
+        issues.forEach(stderr.writeln);
+        exitCode = 1;
+      case PackLoaded(:final pack):
+        _write(Directory(options.out), built.files);
+        stdout.writeln(
+          'Пакет ${pack.manifest.packId} v${pack.manifest.packVersion} (${pack.manifest.contentHash}) '
+          'записан в ${options.out}',
+        );
+    }
+  } on HandDataException catch (e) {
+    stderr.writeln('Данные docs/hand не конвертируются:');
+    e.problems.forEach(stderr.writeln);
+    exitCode = 1;
+  }
+}
+
+void _write(Directory out, Map<String, List<int>> files) {
+  if (out.existsSync()) {
+    final hasEntries = out.listSync().isNotEmpty;
+    if (hasEntries && !File('${out.path}/$manifestFileName').existsSync()) {
+      throw HandDataException(['${out.path}: папка не пуста и не похожа на пакет, сборка её не тронет']);
+    }
+    out.deleteSync(recursive: true);
+  }
+  out.createSync(recursive: true);
+  for (final MapEntry(key: path, value: bytes) in files.entries) {
+    File('${out.path}/$path').writeAsBytesSync(bytes);
+  }
+}
+
+({String data, String identity, String out})? _parseArgs(List<String> args) {
+  final values = <String, String>{};
+  for (var i = 0; i + 1 < args.length; i += 2) {
+    values[args[i]] = args[i + 1];
+  }
+  final data = values['--data'];
+  final identity = values['--identity'];
+  final out = values['--out'];
+  if (args.length != 6 || data == null || identity == null || out == null) return null;
+  return (data: data, identity: identity, out: out);
+}

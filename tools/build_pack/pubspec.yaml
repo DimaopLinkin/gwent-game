@@ -1,0 +1,14 @@
+name: gwent_build_pack
+description: Сборка пакета контента Гвинта из docs/hand/data. Утилита командной строки, в приложение не входит.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  gwent_content:
+    path: ../../packages/gwent_content
+
+dev_dependencies:
+  test: ^1.26.0
