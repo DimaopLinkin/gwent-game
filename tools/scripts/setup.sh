@@ -16,7 +16,8 @@ cd "$root"
 # Версия Flutter проекта (как на Mac и в CI). Другая версия меняет pubspec.lock: такие правки не коммитить.
 expected_flutter=3.41.0
 if command -v flutter >/dev/null 2>&1; then
-  actual_flutter="$(flutter --version 2>/dev/null | sed -n 's/^Flutter \([0-9.]*\).*/\1/p')"
+  # `|| true`: сломанный flutter не должен молча останавливать скрипт, это только предупреждение.
+  actual_flutter="$(flutter --version 2>/dev/null | sed -n 's/^Flutter \([0-9.]*\).*/\1/p' || true)"
   if [ -n "$actual_flutter" ] && [ "$actual_flutter" != "$expected_flutter" ]; then
     echo "setup.sh: внимание, Flutter $actual_flutter, а проекту нужен $expected_flutter" >&2
   fi

@@ -12,11 +12,10 @@
 
 Правила для разработчиков и агентов, команды проверки и git-процесс описаны в [CLAUDE.md](CLAUDE.md).
 
-## Быстрая проверка
+## Подготовка и проверка
 
 ```sh
 tools/scripts/setup.sh
-(cd packages/gwent_engine && dart test)
-(cd packages/gwent_content && dart test)
-flutter analyze && flutter test
 ```
+
+Команды проверки те же, что в CI; они перечислены в разделе «Команды» в [CLAUDE.md](CLAUDE.md).

@@ -10,8 +10,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  # Отменяем только устаревшие прогоны PR; прогоны после мержа в dev и main доходят до конца.
+  # PR: один прогон на ветку, устаревшие отменяются. Push в dev и main: отдельная группа на каждый коммит,
+  # поэтому при быстрых мержах ни один коммит не остаётся без результата CI.
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -36,7 +37,8 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ env.DART_VERSION }}
-      - run: tools/scripts/setup.sh packages/${{ matrix.package }}
+      # Готовим все пакеты: доменные пакеты могут зависеть друг от друга, а сгенерированный код не коммитится.
+      - run: tools/scripts/setup.sh packages/*
         working-directory: .
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
