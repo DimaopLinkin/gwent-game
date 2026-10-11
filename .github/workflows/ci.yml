@@ -28,17 +28,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [gwent_engine, gwent_content]
+        include:
+          - package: gwent_engine
+            dir: packages/gwent_engine
+          - package: gwent_content
+            dir: packages/gwent_content
+          - package: build_pack
+            dir: tools/build_pack
     defaults:
       run:
-        working-directory: packages/${{ matrix.package }}
+        working-directory: ${{ matrix.dir }}
     steps:
       - uses: actions/checkout@v5
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ env.DART_VERSION }}
-      # Готовим все пакеты: доменные пакеты могут зависеть друг от друга, а сгенерированный код не коммитится.
-      - run: tools/scripts/setup.sh packages/*
+      # Готовим все пакеты и утилиты: они зависят друг от друга, а сгенерированный код не коммитится.
+      - run: tools/scripts/setup.sh packages/* tools/build_pack
         working-directory: .
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos

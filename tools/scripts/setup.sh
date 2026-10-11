@@ -3,8 +3,11 @@
 #
 # Все команды подготовки (pub get, build_runner, gen-l10n и т. п.) добавляются сюда, а не в CI или README.
 # Использование:
-#   tools/scripts/setup.sh                        # всё: пакеты из packages/ и приложение
+#   tools/scripts/setup.sh                        # всё: пакеты из packages/, утилиты из tools/ и приложение
 #   tools/scripts/setup.sh packages/gwent_engine  # только перечисленные папки (CI для пакетов)
+#
+# Для приложения (папка «.») скрипт сначала собирает пакет контента из docs/hand в assets/content/:
+# это генерируемый файл, он не коммитится.
 #
 # Для Flutter-проектов нужен flutter, для чистых Dart-пакетов достаточно dart.
 # Скрипт совместим с bash 3.2 (стоит на macOS по умолчанию).
@@ -27,11 +30,25 @@ if [ "$#" -gt 0 ]; then
   targets=("$@")
 else
   targets=()
-  for dir in packages/*/; do
+  for dir in packages/*/ tools/*/; do
     [ -f "${dir}pubspec.yaml" ] && targets+=("${dir%/}")
   done
   targets+=(".")
 fi
+
+# Пакет контента для ассетов приложения: docs/hand/data → assets/content/gwent-w3-base (manifest, pack, strings).
+# Сборка проверяет пакет тем же загрузчиком, что и приложение, и падает, если данные не прошли проверку.
+build_content_pack() {
+  echo "==> пакет контента (tools/build_pack)"
+  (
+    cd tools/build_pack
+    dart pub get
+    dart run bin/build_pack.dart \
+      --data "$root/docs/hand/data" \
+      --identity "$root/docs/hand/content_pack.json" \
+      --out "$root/assets/content/gwent-w3-base"
+  )
+}
 
 for target in "${targets[@]}"; do
   if [ ! -f "$target/pubspec.yaml" ]; then
@@ -43,6 +60,10 @@ for target in "${targets[@]}"; do
     tool=flutter
   else
     tool=dart
+  fi
+
+  if [ "$target" = "." ]; then
+    build_content_pack
   fi
 
   echo "==> $target ($tool)"

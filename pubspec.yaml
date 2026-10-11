@@ -45,21 +45,9 @@ flutter:
   uses-material-design: true
   generate: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
-    # Data assets
-    - docs/hand/data/bait_config/bait_config_data.json
-    - docs/hand/data/fraction_abilities/fraction_abilities_data.json
-    - docs/hand/data/fractions/fractions_data.json
-    - docs/hand/data/leader_card_abilities/leader_card_abilities_data.json
-    - docs/hand/data/leader_cards/leader_cards_data.json
-    - docs/hand/data/mardrem_config/mardrem_config_data.json
-    - docs/hand/data/special_card_abilities/special_card_abilities_data.json
-    - docs/hand/data/special_cards/special_cards_data.json
-    - docs/hand/data/squad_card_abilities/squad_card_abilities_data.json
-    - docs/hand/data/squad_cards/squad_cards_data.json
-    - docs/hand/data/twin_config/twin_config_data.json
-    - docs/hand/data/zones/zones_data.json
+    # Пакет контента: собирается tools/scripts/setup.sh из docs/hand и не коммитится.
+    - assets/content/gwent-w3-base/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

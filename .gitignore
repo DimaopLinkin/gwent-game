@@ -1,3 +1,6 @@
+# Пакет контента собирает tools/scripts/setup.sh из docs/hand; не коммитится.
+/assets/content/
+
 # Miscellaneous
 *.class
 *.lock
