@@ -50,14 +50,35 @@ for target in "${targets[@]}"; do
     cd "$target"
     "$tool" pub get
 
-    if grep -qE '^[[:space:]]+build_runner:' pubspec.yaml; then
-      dart run build_runner build --delete-conflicting-outputs
-      # Генераторы пишут код под 80 колонок; приводим его к ширине проекта, иначе упадёт проверка формата.
-      find . -path ./build -prune -o -path ./.dart_tool -prune -o -type f \
-        \( -name '*.g.dart' -o -name '*.freezed.dart' -o -name '*.drift.dart' -o -name '*.mocks.dart' \) -print0 |
-        xargs -0 -r dart format >/dev/null
+    # Миграции Drift (базы перечислены в build.yaml, схемы всех версий коммитятся в drift_schemas/<база>/):
+    # make-migrations сохраняет схему новой версии, падает, если схема изменилась без увеличения schemaVersion,
+    # и собирает шаги миграций (<база>.steps.dart). schema generate собирает тестовые схемы всех версий.
+    if [ -f build.yaml ] && grep -qE '^[[:space:]]+databases:' build.yaml; then
+      dart run drift_dev make-migrations --no-test
+      # В CI новая схема, созданная здесь, значит, что её забыли закоммитить: без файла схемы версия потеряна
+      # для будущих проверок миграций.
+      if [ -n "${CI:-}" ] && [ -n "$(git status --porcelain -- drift_schemas/)" ]; then
+        echo "setup.sh: схема базы новой версии не закоммичена:" >&2
+        git status --porcelain -- drift_schemas/ >&2
+        exit 1
+      fi
+      for schemas in drift_schemas/*/; do
+        [ -d "$schemas" ] || continue
+        dart run drift_dev schema generate --data-classes --companions "$schemas" "test/drift/$(basename "$schemas")/generated/"
+      done
     fi
 
+    if grep -qE '^[[:space:]]+build_runner:' pubspec.yaml; then
+      dart run build_runner build --delete-conflicting-outputs
+    fi
+
+    # Генераторы пишут код под 80 колонок; приводим его к ширине проекта, иначе упадёт проверка формата.
+    find . -path ./build -prune -o -path ./.dart_tool -prune -o -type f \
+      \( -name '*.g.dart' -o -name '*.freezed.dart' -o -name '*.drift.dart' -o -name '*.mocks.dart' \
+      -o -name '*.steps.dart' -o -path './test/drift/*/generated/*.dart' \) -print0 |
+      xargs -0 -r dart format >/dev/null
+
+    # Локализация: вывод в output-dir из l10n.yaml (не коммитится), формат по analysis_options.yaml (format: true).
     if [ "$tool" = flutter ] && [ -f l10n.yaml ]; then
       flutter gen-l10n
     fi

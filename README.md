@@ -4,7 +4,7 @@
 
 ## Структура
 
-- `lib/`, `test/` — Flutter-приложение.
+- `lib/`, `test/` — Flutter-приложение: слои и фичи в `lib/src/`, решения по каркасу в [ADR 0003](docs/adr/0003-state-management-and-di.md).
 - `packages/gwent_engine` — движок правил, чистый Dart.
 - `packages/gwent_content` — пакет контента (модели, парсер, валидатор), чистый Dart.
 - `docs/hand` — данные карт и правила, источник правды.

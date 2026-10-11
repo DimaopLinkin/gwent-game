@@ -10,8 +10,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
+  bloc: ^9.2.1
+  collection: ^1.19.1
   cupertino_icons: ^1.0.8
+  # drift и drift_dev закреплены точно и меняются только вместе: drift_dev новее 2.34.0 требует analyzer 13+
+  # и meta 1.18, а Flutter 3.41.0 закрепляет meta 1.17.0; drift новее 2.34.0 несовместим с drift_dev 2.34.0.
+  drift: 2.34.0
+  drift_flutter: ^0.3.1
+  flutter_bloc: ^9.1.1
+  go_router: ^17.5.0
+  intl: ^0.20.2
+  meta: ^1.17.0
   uuid: ^4.5.3
 
   gwent_content:
@@ -23,9 +35,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Для архитектурного теста (разбор import). Версия совместима с drift_dev.
+  analyzer: ^10.0.1
+  build_runner: ^2.15.1
+  drift_dev: 2.34.0
+
 
 flutter:
   uses-material-design: true
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   assets:

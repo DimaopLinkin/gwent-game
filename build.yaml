@@ -1,0 +1,14 @@
+# Настройки кодогенерации (build_runner). Запускается из tools/scripts/setup.sh.
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # База пользовательских данных. Схемы всех версий лежат в drift_schemas/ и коммитятся:
+          # по ним setup.sh собирает шаги миграций и тестовые схемы (`drift_dev make-migrations`).
+          databases:
+            app_database: lib/src/core/database/app_database.dart
+          schema_dir: drift_schemas/
+          test_dir: test/drift/
+          # Дата и время как ISO-8601 с часовым поясом, без потери миллисекунд.
+          store_date_time_values_as_text: true
