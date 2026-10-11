@@ -1,3 +1,7 @@
+import 'package:gwent_engine/src/cards/leader_ability.dart';
+import 'package:gwent_engine/src/cards/special_ability.dart';
+import 'package:gwent_engine/src/cards/unit_ability.dart';
+
 /// Версия движка правил.
 ///
 /// Пакет контента объявляет `min_engine_version`; пакет, которому нужна версия выше этой,
@@ -6,6 +10,36 @@ const int engineVersion = 1;
 
 /// Машинные ключи эффектов способностей, которые реализует движок.
 ///
-/// Пакет контента с эффектом не из этого списка несовместим с движком.
-/// Пока движок не реализует ни одного эффекта.
-const Set<String> knownEffects = <String>{};
+/// Пакет контента с эффектом не из этого списка несовместим с движком. Ключ — поле `key` у способностей
+/// отряда, специальных карт и лидеров; словарь согласован с пакетом контента (поле `effect`). Пять ключей общие
+/// для разных видов карт: `commander_horn`, `scorch`, `mardroeme`, `clear_weather`, `scorch_row`.
+const Set<String> knownEffects = {
+  SpyAbility.effectKey,
+  MedicAbility.effectKey,
+  MusterAbility.effectKey,
+  TightBondAbility.effectKey,
+  MoraleBoostAbility.effectKey,
+  UnitHornAbility.effectKey,
+  ScorchRowAbility.effectKey,
+  ScorchAllAbility.effectKey,
+  BaitAbility.effectKey,
+  BerserkAbility.effectKey,
+  MardremAuraAbility.effectKey,
+  WeatherAbility.effectKey,
+  ClearWeatherAbility.effectKey,
+  DecoyAbility.effectKey,
+  PlayWeatherFromDeckAbility.effectKey,
+  LeaderHornAbility.effectKey,
+  RevealOpponentHandAbility.effectKey,
+  DisableOpponentLeaderAbility.effectKey,
+  TakeFromOpponentDiscardAbility.effectKey,
+  RandomMedicAbility.effectKey,
+  ReturnFromDiscardAbility.effectKey,
+  DiscardAndTakeFromDeckAbility.effectKey,
+  PickWeatherFromDeckAbility.effectKey,
+  DoubleSpiesAbility.effectKey,
+  ExtraStartingCardsAbility.effectKey,
+  OptimizeAgileAbility.effectKey,
+  HalveWeatherAbility.effectKey,
+  ShuffleDiscardsIntoDecksAbility.effectKey,
+};
