@@ -31,7 +31,8 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ env.DART_VERSION }}
-      - run: dart pub get
+      - run: tools/scripts/setup.sh packages/${{ matrix.package }}
+        working-directory: .
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
       - run: dart test
@@ -46,7 +47,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - run: flutter pub get
+      - run: tools/scripts/setup.sh
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --fatal-infos
       - run: flutter test

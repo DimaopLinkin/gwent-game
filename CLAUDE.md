@@ -45,25 +45,33 @@
 | `packages/gwent_content` | пакет контента: модели, парсер, канонический JSON, хеш, валидатор | чистый Dart без Flutter |
 | `lib/`, `test/` | Flutter-приложение | зависит от пакетов через `path` |
 | `docs/hand` | данные и правила (источник правды) | |
-| `.github/workflows/ci.yml` | CI: формат, анализ, тесты | |
+| `tools/scripts/setup.sh` | подготовка: зависимости и кодогенерация | единственное место для таких команд |
+| `.github/workflows/ci.yml` | CI: подготовка через `setup.sh`, формат, анализ, тесты | |
 
 Ограничения пакетов проверяются тестами `test/purity_test.dart` в каждом пакете.
 
 ## Команды
 
-Пакеты (нужен только Dart SDK 3.11+), из папки пакета:
+Подготовка (зависимости и кодогенерация для пакетов и приложения), из корня:
 
 ```sh
-dart pub get
+tools/scripts/setup.sh                        # всё
+tools/scripts/setup.sh packages/gwent_engine  # одна папка
+```
+
+Все команды подготовки и кодогенерации (`pub get`, `build_runner`, `gen-l10n` и любые новые) добавляются только в `tools/scripts/setup.sh`, а CI и разработчики вызывают этот скрипт. Скрипт должен работать в bash 3.2 (macOS). Новый генератор: добавить шаг в скрипт, проверить запуском и упомянуть в PR.
+
+Проверки пакетов (нужен только Dart SDK 3.11+), из папки пакета:
+
+```sh
 dart format --output=none --set-exit-if-changed .
 dart analyze --fatal-infos
 dart test
 ```
 
-Приложение (Flutter 3.41.0, как в `.metadata` и в CI), из корня:
+Проверки приложения (Flutter 3.41.0, как в `.metadata` и в CI), из корня:
 
 ```sh
-flutter pub get
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze --fatal-infos
 flutter test

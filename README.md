@@ -15,7 +15,8 @@
 ## Быстрая проверка
 
 ```sh
-(cd packages/gwent_engine && dart pub get && dart test)
-(cd packages/gwent_content && dart pub get && dart test)
-flutter pub get && flutter analyze && flutter test
+tools/scripts/setup.sh
+(cd packages/gwent_engine && dart test)
+(cd packages/gwent_content && dart test)
+flutter analyze && flutter test
 ```
