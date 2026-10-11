@@ -113,6 +113,9 @@ unlinked_spec.ds
 *.freezed.dart
 *.drift.dart
 *.mocks.dart
+*.steps.dart
+/test/drift/*/generated/
+/lib/src/core/l10n/generated/
 
 # Coverage
 coverage/

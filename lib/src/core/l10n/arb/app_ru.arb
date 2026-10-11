@@ -1,0 +1,52 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Гвинт",
+  "@appTitle": {
+    "description": "Название приложения в заголовке окна и главном меню."
+  },
+  "menuHotSeat": "Игра на одном телефоне",
+  "@menuHotSeat": {
+    "description": "Кнопка главного меню: партия двух игроков на одном устройстве."
+  },
+  "menuNetworkGame": "Сетевая игра",
+  "@menuNetworkGame": {
+    "description": "Кнопка главного меню: партия по Wi-Fi, Bluetooth или через сервер."
+  },
+  "menuDecks": "Колоды",
+  "@menuDecks": {
+    "description": "Кнопка главного меню: конструктор колоды."
+  },
+  "deckBuilderTitle": "Конструктор колоды",
+  "@deckBuilderTitle": {
+    "description": "Заголовок экрана конструктора колоды."
+  },
+  "deckListEmpty": "Колод пока нет",
+  "@deckListEmpty": {
+    "description": "Пустой список сохранённых колод."
+  },
+  "deckListLoadFailed": "Не удалось загрузить колоды",
+  "@deckListLoadFailed": {
+    "description": "Ошибка чтения сохранённых колод."
+  },
+  "deckCardCount": "{count, plural, one{{count} карта} few{{count} карты} many{{count} карт} other{{count} карты}}",
+  "@deckCardCount": {
+    "description": "Число карт в колоде в списке колод.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lobbyTitle": "Сетевая игра",
+  "@lobbyTitle": {
+    "description": "Заголовок экрана лобби сетевой игры."
+  },
+  "matchTitle": "Партия",
+  "@matchTitle": {
+    "description": "Заголовок экрана игрового поля."
+  },
+  "screenPendingDesign": "Экран появится по макетам",
+  "@screenPendingDesign": {
+    "description": "Заглушка экрана, который ещё не свёрстан по макетам."
+  }
+}

@@ -1,0 +1,10 @@
+# Локализация интерфейса (gen-l10n). Код генерирует tools/scripts/setup.sh в output-dir, он не коммитится.
+arb-dir: lib/src/core/l10n/arb
+template-arb-file: app_ru.arb
+output-dir: lib/src/core/l10n/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+preferred-supported-locales: [ru]
+nullable-getter: false
+required-resource-attributes: true
+format: true
