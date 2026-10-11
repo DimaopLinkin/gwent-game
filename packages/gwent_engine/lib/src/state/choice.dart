@@ -1,6 +1,7 @@
 import 'package:gwent_engine/src/cards/ids.dart';
 import 'package:gwent_engine/src/cards/row.dart';
 import 'package:gwent_engine/src/core/value.dart';
+import 'package:gwent_engine/src/state/card_instance.dart';
 import 'package:gwent_engine/src/state/seat.dart';
 
 /// Что выбирает игрок, когда эффекту нужно его решение.
@@ -67,13 +68,16 @@ final class SeatOption extends ChoiceOption {
 
 /// Выбор, которого ждёт партия: пока он не сделан, другие намерения отклоняются.
 final class PendingChoice extends Value {
-  const PendingChoice({required this.seat, required this.kind, required this.options});
+  const PendingChoice({required this.seat, required this.kind, required this.options, this.subject});
 
   /// Кто выбирает.
   final Seat seat;
   final ChoiceKind kind;
   final List<ChoiceOption> options;
 
+  /// Карта, ради которой выбор: для [ChoiceKind.unitRow] — карта, которая выходит на поле.
+  final CardInstance? subject;
+
   @override
-  List<Object?> get props => [seat, kind, options];
+  List<Object?> get props => [seat, kind, options, subject];
 }

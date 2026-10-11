@@ -68,6 +68,7 @@ final class EffectResolver {
         seat: player,
         kind: ChoiceKind.unitRow,
         options: List.unmodifiable(_ctx.unit(card)!.placement.rows.map(RowOption.new)),
+        subject: card,
       ),
       EnterFieldEffect() => null,
       MedicEffect(:final player) => _randomMedic ? null : cards(player, ChoiceKind.medicTarget, _medicTargets(player)),
@@ -114,21 +115,26 @@ final class EffectResolver {
 
       case TakeFromDiscardEffect(:final player, :final from):
         final card = _take(_ctx.player(from).discard, option);
+        if (card == null) return;
         _ctx.player(player).hand.add(card);
         _ctx.emit(CardTakenFromDiscard(player, from, card));
 
       case DiscardFromHandEffect(:final player, :final remaining):
-        _ctx.discard(player, _take(_ctx.player(player).hand, option));
+        final card = _take(_ctx.player(player).hand, option);
+        if (card == null) return;
+        _ctx.discard(player, card);
         if (remaining > 1) _ctx.draft.effects.add(DiscardFromHandEffect(player, remaining - 1));
 
       case TakeFromDeckEffect(:final player, :final remaining):
         final card = _take(_ctx.player(player).deck, option);
+        if (card == null) return;
         _ctx.player(player).hand.add(card);
         _ctx.emit(CardsDrawn(player, List.unmodifiable([card])));
         if (remaining > 1) _ctx.draft.effects.add(TakeFromDeckEffect(player, remaining - 1));
 
       case PickWeatherFromDeckEffect(:final player):
-        _field.playWeather(player, _take(_ctx.player(player).deck, option));
+        final card = _take(_ctx.player(player).deck, option);
+        if (card != null) _field.playWeather(player, card);
 
       case EndTurnEffect(:final player):
         _turns.advanceTurn(player);
@@ -138,11 +144,10 @@ final class EffectResolver {
     }
   }
 
-  /// Убирает из зоны карту, выбранную игроком.
-  static CardInstance _take(List<CardInstance> zone, ChoiceOption? option) {
-    final id = (option! as CardOption).card;
-    final index = zone.indexWhere((card) => card.id == id);
-    return zone.removeAt(index);
+  /// Убирает из зоны карту, выбранную игроком; `null`, если выбирать было не из чего.
+  static CardInstance? _take(List<CardInstance> zone, ChoiceOption? option) {
+    if (option is! CardOption) return null;
+    return zone.removeAt(zone.indexWhere((card) => card.id == option.card));
   }
 
   /// Медик выбирает случайно, если действует «Завоеватель Севера» (раздел 10).
