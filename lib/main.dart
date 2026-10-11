@@ -56,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
             builder: (context) {
               return Material(
                 child: Container(
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, 80),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
                   child: Text('UUID copied to clipboard: $newUuid'),
                 ),
               );
@@ -83,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Column(mainAxisAlignment: .center, children: [SelectableText(uuid1)]),
           ),
           if (_loading)
-            Container(
+            ColoredBox(
               color: Colors.black.withValues(alpha: 0.5),
               child: const Center(child: CircularProgressIndicator()),
             ),
