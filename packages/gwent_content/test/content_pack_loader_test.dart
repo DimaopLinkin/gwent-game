@@ -116,6 +116,14 @@ void main() {
       expect(await rejectionCodes(buildSampleFiles(), engine: oldEngine), ['engine_too_old']);
     });
 
+    test('способность без ссылок (Проворство) движку не нужна', () async {
+      final engine = EngineCapabilities(
+        engineVersion: 1,
+        knownEffects: {for (final effect in EffectKey.values) effect.key}..remove('agile'),
+      );
+      expect(await load(buildSampleFiles(), engine: engine), isA<PackLoaded>());
+    });
+
     test('эффект, которого нет в движке', () async {
       final engine = EngineCapabilities(
         engineVersion: 1,

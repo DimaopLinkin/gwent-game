@@ -31,12 +31,21 @@ ValidationIssue? checkFormatVersion(Object? formatVersion) => formatVersion == p
         message: 'формат пакета $formatVersion не поддерживается, нужен $packFormatVersion',
       );
 
-/// Уровень «совместимость» по правилам: каждый эффект из таблиц способностей реализован движком.
+/// Уровень «совместимость» по правилам: каждый эффект, который назначен карте или фракции, реализован движком.
+///
+/// Способность, на которую никто не ссылается (например, Проворство: оно задаётся зоной `agile`), движку
+/// реализовывать не нужно.
 List<ValidationIssue> checkEffectCompatibility(PackRules rules, EngineCapabilities engine) {
   final sink = IssueSink(ValidationLevel.compatibility);
+  final used = {
+    for (final fraction in rules.fractions) ?fraction.abilityId,
+    for (final card in rules.squadCards) ?card.abilityId,
+    for (final card in rules.specialCards) card.abilityId,
+    for (final card in rules.leaderCards) card.abilityId,
+  };
   void visit(String table, List<Ability> abilities) {
     for (final (i, ability) in abilities.indexed) {
-      if (!engine.knownEffects.contains(ability.effect.key)) {
+      if (used.contains(ability.id) && !engine.knownEffects.contains(ability.effect.key)) {
         sink.add('\$.$table[$i].effect', 'effect_not_supported', 'движок не реализует эффект ${ability.effect.key}');
       }
     }
