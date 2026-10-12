@@ -79,4 +79,88 @@ void main() {
 
     expect((await repository.findById(deck.id))?.updatedAt, DateTime.utc(2026, 10, 11, 12));
   });
+
+  test('колоды фракции, сначала недавно изменённые', () async {
+    await repository.save(testDeck(id: 'old', updatedAt: DateTime.utc(2026, 10, 3)));
+    await repository.save(testDeck(id: 'new', updatedAt: DateTime.utc(2026, 10, 4)));
+    await repository.save(testDeck(id: 'other', factionId: 'faction-monsters'));
+
+    final decks = await repository.findByFaction('faction-skellige');
+
+    expect([for (final deck in decks) deck.id], ['new', 'old']);
+    expect(await repository.findByFaction('нет такой'), isEmpty);
+  });
+
+  group('активные колоды', () {
+    test('по одной на фракцию, повторный выбор заменяет прежний', () async {
+      final first = testDeck(id: 'first');
+      final second = testDeck(id: 'second');
+      final monsters = testDeck(id: 'monsters', factionId: 'faction-monsters');
+      for (final deck in [first, second, monsters]) {
+        await repository.save(deck);
+      }
+
+      await repository.setActive(first);
+      await repository.setActive(monsters);
+      await repository.setActive(second);
+
+      expect(await repository.findActiveDeckId('faction-skellige'), 'second');
+      expect(await repository.findActiveDeckId('faction-monsters'), 'monsters');
+      expect(await repository.findActiveDeckId('нет такой'), isNull);
+    });
+
+    test('поток выдаёт выбор после каждого изменения', () async {
+      final deck = testDeck();
+      await repository.save(deck);
+
+      final expectation = expectLater(
+        repository.watchActiveDeckIds(),
+        emitsInOrder([
+          isEmpty,
+          {'faction-skellige': deck.id},
+          isEmpty,
+        ]),
+      );
+      await pumpEventQueue();
+      await repository.setActive(deck);
+      await pumpEventQueue();
+      await repository.delete(deck.id);
+      await expectation;
+    });
+
+    test('удаление активной колоды оставляет фракцию без выбора', () async {
+      final deck = testDeck();
+      await repository.save(deck);
+      await repository.setActive(deck);
+
+      await repository.delete(deck.id);
+
+      expect(await repository.findActiveDeckId('faction-skellige'), isNull);
+    });
+
+    test('пересохранение колоды той же фракции выбор не сбрасывает', () async {
+      final deck = testDeck();
+      await repository.save(deck);
+      await repository.setActive(deck);
+
+      await repository.save(deck.copyWith(name: 'Новое имя'));
+
+      expect(await repository.findActiveDeckId('faction-skellige'), deck.id);
+    });
+
+    test('колода, сменившая фракцию, перестаёт быть активной у прежней', () async {
+      final deck = testDeck();
+      await repository.save(deck);
+      await repository.setActive(deck);
+
+      await repository.save(deck.copyWith(factionId: 'faction-monsters'));
+
+      expect(await repository.findActiveDeckId('faction-skellige'), isNull);
+      expect(await repository.findActiveDeckId('faction-monsters'), isNull);
+    });
+
+    test('несохранённую колоду выбрать нельзя', () async {
+      await expectLater(repository.setActive(testDeck(id: 'нет такой')), throwsA(isA<Exception>()));
+    });
+  });
 }

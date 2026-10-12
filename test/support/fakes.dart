@@ -32,6 +32,7 @@ final class InMemoryDeckRepository implements DeckRepository {
   InMemoryDeckRepository([Iterable<Deck> decks = const []]) : _decks = {for (final deck in decks) deck.id: deck};
 
   final Map<String, Deck> _decks;
+  final Map<String, String> _active = {};
   final StreamController<void> _changes = StreamController.broadcast();
 
   /// Ошибка, с которой падает [watchAll]; `null` — без ошибки.
@@ -53,17 +54,36 @@ final class InMemoryDeckRepository implements DeckRepository {
   };
 
   @override
+  Future<List<Deck>> findByFaction(String factionId) async =>
+      _sorted.where((deck) => deck.factionId == factionId).toList();
+
+  @override
   Future<Deck?> findById(String id) async => _decks[id];
 
   @override
   Future<void> save(Deck deck) async {
     _decks[deck.id] = deck;
+    _active.removeWhere((factionId, deckId) => deckId == deck.id && factionId != deck.factionId);
     _changes.add(null);
   }
 
   @override
   Future<void> delete(String id) async {
     _decks.remove(id);
+    _active.removeWhere((_, deckId) => deckId == id);
+    _changes.add(null);
+  }
+
+  @override
+  Stream<Map<String, String>> watchActiveDeckIds() => _watch(_changes, () => Map.of(_active));
+
+  @override
+  Future<String?> findActiveDeckId(String factionId) async => _active[factionId];
+
+  @override
+  Future<void> setActive(Deck deck) async {
+    if (!_decks.containsKey(deck.id)) throw StateError('колода ${deck.id} не сохранена');
+    _active[deck.factionId] = deck.id;
     _changes.add(null);
   }
 }

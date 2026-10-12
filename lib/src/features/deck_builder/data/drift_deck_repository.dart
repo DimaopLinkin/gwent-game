@@ -3,7 +3,7 @@ import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 
-/// Колоды в базе Drift: строка в `decks` и по строке на карту в `deck_cards`.
+/// Колоды в базе Drift: строка в `decks`, по строке на карту в `deck_cards` и выбор активных колод в `active_decks`.
 final class DriftDeckRepository implements DeckRepository {
   /// Создаёт репозиторий над [database].
   const DriftDeckRepository(this._db);
@@ -12,6 +12,12 @@ final class DriftDeckRepository implements DeckRepository {
 
   @override
   Stream<List<Deck>> watchAll() => _decksWithCards().watch().map(_toDecks);
+
+  @override
+  Future<List<Deck>> findByFaction(String factionId) async {
+    final query = _decksWithCards()..where(_db.decks.factionId.equals(factionId));
+    return _toDecks(await query.get());
+  }
 
   @override
   Future<Deck?> findById(String id) async {
@@ -35,6 +41,10 @@ final class DriftDeckRepository implements DeckRepository {
           ),
         );
     await (_db.delete(_db.deckCards)..where((card) => card.deckId.equals(deck.id))).go();
+    // Колода сменила фракцию: активной колодой прежней фракции она больше быть не может.
+    await (_db.delete(
+      _db.activeDecks,
+    )..where((active) => active.deckId.equals(deck.id) & active.factionId.equals(deck.factionId).not())).go();
     await _db.batch((batch) {
       batch.insertAll(_db.deckCards, [
         for (final MapEntry(key: cardId, value: copies) in deck.cards.entries)
@@ -45,6 +55,21 @@ final class DriftDeckRepository implements DeckRepository {
 
   @override
   Future<void> delete(String id) => (_db.delete(_db.decks)..where((deck) => deck.id.equals(id))).go();
+
+  @override
+  Stream<Map<String, String>> watchActiveDeckIds() =>
+      _db.select(_db.activeDecks).watch().map((rows) => {for (final row in rows) row.factionId: row.deckId});
+
+  @override
+  Future<String?> findActiveDeckId(String factionId) async {
+    final query = _db.select(_db.activeDecks)..where((active) => active.factionId.equals(factionId));
+    return (await query.getSingleOrNull())?.deckId;
+  }
+
+  @override
+  Future<void> setActive(Deck deck) => _db
+      .into(_db.activeDecks)
+      .insertOnConflictUpdate(ActiveDecksCompanion.insert(factionId: deck.factionId, deckId: deck.id));
 
   /// Колоды со всеми картами одним запросом: поток следит за обеими таблицами.
   JoinedSelectStatement<HasResultSet, dynamic> _decksWithCards() =>
