@@ -43,3 +43,22 @@ const Set<String> knownEffects = {
   HalveWeatherAbility.effectKey,
   ShuffleDiscardsIntoDecksAbility.effectKey,
 };
+
+/// Числа перков фракций (раздел 11 правил), с которыми играет движок.
+///
+/// Пакет контента задаёт их параметрами перков, но логика перков живёт в движке с этими значениями: приложение
+/// сверяет с ними пакет и отклоняет пакет с другими числами.
+abstract final class PerkNumbers {
+  /// Сколько карт берёт игрок Королевств Севера после выигранного раунда.
+  static const int northernRealmsDraw = 1;
+
+  /// Сколько случайных отрядов Чудовищ остаётся на поле после раунда. Движок оставляет ровно один
+  /// (`FactionPerks.keepRandomUnits`); другое значение потребует изменить его логику.
+  static const int monstersKeptUnits = 1;
+
+  /// Сколько случайных отрядов Скеллиге возвращается из отбоя на поле.
+  static const int skelligeRevivedUnits = 2;
+
+  /// В начале какого раунда срабатывает перк Скеллиге.
+  static const int skelligeReviveRound = 3;
+}

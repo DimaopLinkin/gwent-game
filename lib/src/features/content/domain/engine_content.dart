@@ -15,8 +15,8 @@ final content.EngineCapabilities engineCapabilities = content.EngineCapabilities
 ///
 /// Пакет уже прошёл загрузчик (`ContentPackLoader`) с [engineCapabilities], поэтому эффекты и параметры известны.
 /// Здесь ловится только то, что формат пакета допускает, а движок нет: неизвестная фракция, эффект не того вида
-/// карты, перк фракции, который движок не реализует или реализует с другими параметрами (числа перков зашиты
-/// в движок).
+/// карты, расхождение признака фракции колоды, перк фракции, который движок не реализует или реализует с другими
+/// числами (`PerkNumbers`).
 GameContentResult mapContentToEngine(content.ContentPack pack) {
   final mapper = _Mapper(pack.rules);
   final factions = mapper.factions();
@@ -41,11 +41,20 @@ typedef _Perk = ({content.EffectKey effect, Map<String, int> params});
 
 /// Перки фракций движка (раздел 11 правил) и их параметры в движке.
 const Map<FactionPerk, _Perk> _perks = {
-  FactionPerk.drawOnRoundWin: (effect: content.EffectKey.drawOnRoundWin, params: {'count': 1}),
+  FactionPerk.drawOnRoundWin: (
+    effect: content.EffectKey.drawOnRoundWin,
+    params: {'count': PerkNumbers.northernRealmsDraw},
+  ),
   FactionPerk.winTies: (effect: content.EffectKey.winOnTie, params: {}),
-  FactionPerk.keepRandomUnit: (effect: content.EffectKey.keepRandomUnit, params: {'count': 1}),
+  FactionPerk.keepRandomUnit: (
+    effect: content.EffectKey.keepRandomUnit,
+    params: {'count': PerkNumbers.monstersKeptUnits},
+  ),
   FactionPerk.chooseFirstPlayer: (effect: content.EffectKey.chooseFirstPlayer, params: {}),
-  FactionPerk.reviveInFinalRound: (effect: content.EffectKey.reviveRandomUnits, params: {'count': 2, 'round': 3}),
+  FactionPerk.reviveInFinalRound: (
+    effect: content.EffectKey.reviveRandomUnits,
+    params: {'count': PerkNumbers.skelligeRevivedUnits, 'round': PerkNumbers.skelligeReviveRound},
+  ),
 };
 
 /// Фракции движка по машинному ключу фракции пакета.
@@ -101,6 +110,13 @@ final class _Mapper {
         continue;
       }
       result[fraction.id] = faction;
+      if (fraction.isDeck != faction.isDeckFaction) {
+        _issue(
+          '$path.is_deck',
+          'deck_faction_mismatch',
+          'у движка фракция ${faction.name} с is_deck ${faction.isDeckFaction}',
+        );
+      }
       _checkPerk(path, faction, _rules.perkOfFraction(fraction));
     }
     return result;
@@ -114,7 +130,12 @@ final class _Mapper {
         perk != null &&
         perk.effect == expected.effect &&
         perk.params.length == expected.params.length &&
-        expected.params.entries.every((param) => perk.count(param.key) == param.value);
+        expected.params.entries.every(
+          (param) => switch (perk.params[param.key]) {
+            content.CountParam(:final value) => value == param.value,
+            _ => false,
+          },
+        );
     if (!matches) {
       final wanted = expected == null ? 'без перка' : '${expected.effect.key} ${expected.params}';
       _issue('$path.ability_id', 'unsupported_perk', 'движок играет фракцию ${faction.name} $wanted');
@@ -161,7 +182,28 @@ final class _Mapper {
     content.EffectKey.berserk => BerserkAbility(CardId(effect.cardId('transform_to'))),
     content.EffectKey.mardroeme => const MardremAuraAbility(),
     content.EffectKey.agile => null,
-    _ => _notApplicable<UnitAbility>(path, effect, 'отряда'),
+    content.EffectKey.weather ||
+    content.EffectKey.clearWeather ||
+    content.EffectKey.decoy ||
+    content.EffectKey.playWeatherFromDeck ||
+    content.EffectKey.playAnyWeatherFromDeck ||
+    content.EffectKey.leaderHorn ||
+    content.EffectKey.revealOpponentHand ||
+    content.EffectKey.disableOpponentLeader ||
+    content.EffectKey.takeFromOpponentDiscard ||
+    content.EffectKey.randomMedic ||
+    content.EffectKey.returnFromDiscard ||
+    content.EffectKey.discardAndDraw ||
+    content.EffectKey.doubleSpies ||
+    content.EffectKey.extraStartingCard ||
+    content.EffectKey.optimizeAgile ||
+    content.EffectKey.halveWeather ||
+    content.EffectKey.shuffleDiscardsIntoDecks ||
+    content.EffectKey.drawOnRoundWin ||
+    content.EffectKey.winOnTie ||
+    content.EffectKey.keepRandomUnit ||
+    content.EffectKey.chooseFirstPlayer ||
+    content.EffectKey.reviveRandomUnits => _notApplicable<UnitAbility>(path, effect, 'отряда'),
   };
 
   SpecialCardDefinition? special(content.SpecialCard card, Map<String, Faction> factions) {
@@ -179,7 +221,34 @@ final class _Mapper {
     content.EffectKey.decoy => const DecoyAbility(),
     content.EffectKey.scorch => const ScorchAbility(),
     content.EffectKey.mardroeme => const MardremCardAbility(),
-    _ => _notApplicable<SpecialAbility>(path, effect, 'специальной карты'),
+    content.EffectKey.spy ||
+    content.EffectKey.medic ||
+    content.EffectKey.muster ||
+    content.EffectKey.tightBond ||
+    content.EffectKey.moraleBoost ||
+    content.EffectKey.scorchRow ||
+    content.EffectKey.bait ||
+    content.EffectKey.berserk ||
+    content.EffectKey.agile ||
+    content.EffectKey.playWeatherFromDeck ||
+    content.EffectKey.playAnyWeatherFromDeck ||
+    content.EffectKey.leaderHorn ||
+    content.EffectKey.revealOpponentHand ||
+    content.EffectKey.disableOpponentLeader ||
+    content.EffectKey.takeFromOpponentDiscard ||
+    content.EffectKey.randomMedic ||
+    content.EffectKey.returnFromDiscard ||
+    content.EffectKey.discardAndDraw ||
+    content.EffectKey.doubleSpies ||
+    content.EffectKey.extraStartingCard ||
+    content.EffectKey.optimizeAgile ||
+    content.EffectKey.halveWeather ||
+    content.EffectKey.shuffleDiscardsIntoDecks ||
+    content.EffectKey.drawOnRoundWin ||
+    content.EffectKey.winOnTie ||
+    content.EffectKey.keepRandomUnit ||
+    content.EffectKey.chooseFirstPlayer ||
+    content.EffectKey.reviveRandomUnits => _notApplicable<SpecialAbility>(path, effect, 'специальной карты'),
   };
 
   LeaderDefinition? leader(content.LeaderCard card, Map<String, Faction> factions) {
@@ -213,7 +282,24 @@ final class _Mapper {
     content.EffectKey.optimizeAgile => const OptimizeAgileAbility(),
     content.EffectKey.halveWeather => const HalveWeatherAbility(),
     content.EffectKey.shuffleDiscardsIntoDecks => const ShuffleDiscardsIntoDecksAbility(),
-    _ => _notApplicable<LeaderAbility>(path, effect, 'лидера'),
+    content.EffectKey.spy ||
+    content.EffectKey.medic ||
+    content.EffectKey.muster ||
+    content.EffectKey.tightBond ||
+    content.EffectKey.moraleBoost ||
+    content.EffectKey.commanderHorn ||
+    content.EffectKey.scorch ||
+    content.EffectKey.bait ||
+    content.EffectKey.berserk ||
+    content.EffectKey.mardroeme ||
+    content.EffectKey.agile ||
+    content.EffectKey.weather ||
+    content.EffectKey.decoy ||
+    content.EffectKey.drawOnRoundWin ||
+    content.EffectKey.winOnTie ||
+    content.EffectKey.keepRandomUnit ||
+    content.EffectKey.chooseFirstPlayer ||
+    content.EffectKey.reviveRandomUnits => _notApplicable<LeaderAbility>(path, effect, 'лидера'),
   };
 
   /// Отмечает эффект, который движок не играет у карты этого вида.

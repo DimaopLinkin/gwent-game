@@ -1,5 +1,6 @@
 import 'package:gwent_engine/src/cards/faction.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
+import 'package:gwent_engine/src/engine_info.dart';
 import 'package:gwent_engine/src/event/game_event.dart';
 import 'package:gwent_engine/src/state/card_instance.dart';
 import 'package:gwent_engine/src/state/seat.dart';
@@ -9,14 +10,9 @@ import 'package:gwent_engine/src/state/seat.dart';
 final class FactionPerks {
   const FactionPerks(this._ctx);
 
-  /// Раунд, в начале которого срабатывает перк Скеллиге.
-  static const int _skelligeRound = 3;
-
-  /// Сколько карт возвращает перк Скеллиге.
-  static const int _skelligeCards = 2;
-
-  /// Сколько карт берёт игрок Королевств Севера после выигранного раунда.
-  static const int _northernDraw = 1;
+  static const int _skelligeRound = PerkNumbers.skelligeReviveRound;
+  static const int _skelligeCards = PerkNumbers.skelligeRevivedUnits;
+  static const int _northernDraw = PerkNumbers.northernRealmsDraw;
 
   final MatchContext _ctx;
 

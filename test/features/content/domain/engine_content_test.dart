@@ -45,21 +45,86 @@ void main() {
       expect(game.factions.values.toSet(), Faction.values.toSet());
     });
 
-    test('параметры партии берутся из таблицы game_rules', () {
-      final rules = pack.rules.gameRules;
+    test('параметры партии берутся из таблицы game_rules поле в поле', () {
+      const rules = content.GameRules(
+        crystals: 3,
+        startingHandSize: 11,
+        maxRedraws: 4,
+        minSquadCards: 25,
+        maxSpecialCards: 7,
+      );
       expect(
-        ready(mapContentToEngine(pack)).rules,
-        GameRules(
-          startingHand: rules.startingHandSize,
-          redrawLimit: rules.maxRedraws,
-          crystals: rules.crystals,
-          minUnitCards: rules.minSquadCards,
-          maxSpecialCards: rules.maxSpecialCards,
-        ),
+        ready(mapContentToEngine(_withRules(pack, gameRules: rules))).rules,
+        const GameRules(startingHand: 11, redrawLimit: 4, crystals: 3, minUnitCards: 25, maxSpecialCards: 7),
       );
     });
 
-    test('способности и размещение переносятся с параметрами карты', () {
+    test('поля каждой карты отряда переносятся без изменений', () {
+      final game = ready(mapContentToEngine(pack));
+      for (final card in pack.rules.squadCards) {
+        final unit = game.catalog.card(CardId(card.id))! as UnitCardDefinition;
+        expect(unit.strength, card.strength, reason: card.id);
+        expect(unit.copies, card.count, reason: card.id);
+        expect(unit.isHero, card.isHero, reason: card.id);
+        expect(unit.faction, game.factions[card.fractionId], reason: card.id);
+        expect(unit.placement.name, pack.rules.zonesById[card.zoneId]!.key.key, reason: card.id);
+      }
+      for (final card in pack.rules.specialCards) {
+        final special = game.catalog.card(CardId(card.id))! as SpecialCardDefinition;
+        expect((special.copies, special.faction), (card.count, game.factions[card.fractionId]), reason: card.id);
+      }
+      for (final card in pack.rules.leaderCards) {
+        expect(game.catalog.leader(LeaderId(card.id))!.faction, game.factions[card.fractionId], reason: card.id);
+      }
+    });
+
+    test('параметры способностей известных карт', () {
+      final game = ready(mapContentToEngine(pack));
+      Object? card(String id) => game.catalog.card(CardId(id));
+      Object? leader(String id) => game.catalog.leader(LeaderId(id))!.ability;
+
+      // Отряды: Талер, Виллентретенмерт, Корова, Ольгерд фон Эверек, Лютик, Мышовур, Геральт.
+      expect((card('4a1311b2-4c5c-47b6-95c6-f5202ba77b53')! as UnitCardDefinition).ability, const SpyAbility());
+      expect(
+        (card('883e5b44-c2da-4595-8e1e-f1969e32ec65')! as UnitCardDefinition).ability,
+        const ScorchRowAbility(Row.melee),
+      );
+      expect(
+        (card('91dc1d59-32ab-45aa-9bba-52305024daa2')! as UnitCardDefinition).ability,
+        const BaitAbility(CardId('98141875-7fe6-4525-94ba-90dc861af750')),
+      );
+      final olgierd = card('840fbcda-f7c9-4f5e-9248-3479b4c15ae3')! as UnitCardDefinition;
+      expect((olgierd.placement, olgierd.ability), (UnitPlacement.agile, const MoraleBoostAbility()));
+      expect((card('90d7625b-2f3b-4840-ac21-826a9046df83')! as UnitCardDefinition).ability, const UnitHornAbility());
+      final mysovur = card('72c00295-782c-47ba-a3be-e298c90d09dd')! as UnitCardDefinition;
+      expect(
+        (mysovur.placement, mysovur.isHero, mysovur.ability),
+        (
+          UnitPlacement.ranged,
+          true,
+          const MardremAuraAbility(),
+        ),
+      );
+      final geralt = card('a4baf68d-3b98-4455-991e-8e2ca85ea8e8')! as UnitCardDefinition;
+      expect((geralt.strength, geralt.isHero, geralt.ability), (15, true, null));
+
+      // Погода: Мороз, Мгла, Ливень, Шторм со Скеллиге.
+      Object? weather(String id) => (card(id)! as SpecialCardDefinition).ability;
+      expect(weather('c858b281-84d5-410a-9e63-45f9e61d6825'), const WeatherAbility({Row.melee}));
+      expect(weather('7da6c359-b0a6-45ff-a8de-f713f398b2b8'), const WeatherAbility({Row.ranged}));
+      expect(weather('b60d66ee-d0be-45c1-9b64-890eea79ec85'), const WeatherAbility({Row.siege}));
+      expect(weather('8da9ddd9-b5d9-40d0-96f9-4f6e6440740b'), const WeatherAbility({Row.ranged, Row.siege}));
+      expect(weather('47d44246-c663-4218-b537-b81929c5caf0'), const HornCardAbility());
+      expect(weather('dafeabf0-b94f-4b4e-86d8-21822a8fee06'), const MardremCardAbility());
+
+      // Лидеры: Убийца Оберона, Фольтест Завоеватель, Францеска Прекраснейшая, Фольтест Предводитель Севера.
+      expect(leader('953f3df6-00db-4071-961f-ee1644025139'), const DiscardAndTakeFromDeckAbility());
+      expect(leader('d8c7de0f-b935-47b6-a32d-2cc1c63326f3'), const LeaderHornAbility(Row.siege));
+      expect(leader('f8bbd5cf-e103-4ec1-9213-169c46368cc5'), const LeaderHornAbility(Row.ranged));
+      expect(leader('8c2c32b8-804b-45e4-9d8a-c70d28014a12'), const ClearAllWeatherAbility());
+    });
+
+    test('ни один вид способности не теряется, ссылки ведут на карты справочника', () {
       final game = ready(mapContentToEngine(pack));
       final units = [
         for (final card in pack.rules.squadCards) game.catalog.card(CardId(card.id))! as UnitCardDefinition,
@@ -113,7 +178,10 @@ void main() {
         for (final fraction in pack.rules.fractions)
           fraction.key == 'monsters' ? _fraction(fraction, key: 'redania') : fraction,
       ];
-      expect(_issueCodes(mapContentToEngine(_withRules(pack, fractions: fractions))), contains('unknown_faction'));
+      final result = mapContentToEngine(_withRules(pack, fractions: fractions));
+      expect(_issueCodes(result), contains('unknown_faction'));
+      final index = pack.rules.fractions.indexWhere((fraction) => fraction.key == 'monsters');
+      expect((result as GameContentRejected).issues.first.path, 'fractions[$index].key');
     });
 
     test('перк фракции с числами, которых нет в движке', () {
@@ -135,10 +203,27 @@ void main() {
       expect(result.issues.single.level, content.ValidationLevel.compatibility);
     });
 
+    test('нейтральная фракция с перком', () {
+      final skellige = pack.rules.fractions.firstWhere((fraction) => fraction.key == 'skellige');
+      final fractions = [
+        for (final fraction in pack.rules.fractions)
+          fraction.key == 'common' ? _fraction(fraction, abilityId: skellige.abilityId) : fraction,
+      ];
+      expect(_issueCodes(mapContentToEngine(_withRules(pack, fractions: fractions))), ['unsupported_perk']);
+    });
+
+    test('признак фракции колоды расходится с движком', () {
+      final fractions = [
+        for (final fraction in pack.rules.fractions)
+          fraction.key == 'common' ? _fraction(fraction, isDeck: true) : fraction,
+      ];
+      expect(_issueCodes(mapContentToEngine(_withRules(pack, fractions: fractions))), ['deck_faction_mismatch']);
+    });
+
     test('фракция колоды без перка', () {
       final fractions = [
         for (final fraction in pack.rules.fractions)
-          fraction.key == 'skellige' ? _fraction(fraction, dropPerk: true) : fraction,
+          fraction.key == 'skellige' ? _fraction(fraction, abilityId: null) : fraction,
       ];
       expect(_issueCodes(mapContentToEngine(_withRules(pack, fractions: fractions))), ['unsupported_perk']);
     });
@@ -171,25 +256,30 @@ List<String> _issueCodes(GameContentResult result) => switch (result) {
   GameContentRejected(:final issues) => [for (final issue in issues) issue.code],
 };
 
-content.Fraction _fraction(content.Fraction fraction, {String? key, bool dropPerk = false}) => content.Fraction(
-  id: fraction.id,
-  key: key ?? fraction.key,
-  isDeck: fraction.isDeck,
-  abilityId: dropPerk ? null : fraction.abilityId,
-  nameKey: fraction.nameKey,
-);
+content.Fraction _fraction(content.Fraction fraction, {String? key, bool? isDeck, Object? abilityId = _keep}) =>
+    content.Fraction(
+      id: fraction.id,
+      key: key ?? fraction.key,
+      isDeck: isDeck ?? fraction.isDeck,
+      abilityId: identical(abilityId, _keep) ? fraction.abilityId : abilityId as String?,
+      nameKey: fraction.nameKey,
+    );
+
+/// Значение по умолчанию: поле не меняется (`null` значит «убрать перк»).
+const Object _keep = Object();
 
 content.ContentPack _withRules(
   content.ContentPack pack, {
   List<content.Fraction>? fractions,
   List<content.Ability>? fractionAbilities,
+  content.GameRules? gameRules,
 }) {
   final rules = pack.rules;
   return content.ContentPack(
     manifest: pack.manifest,
     strings: pack.strings,
     rules: content.PackRules(
-      gameRules: rules.gameRules,
+      gameRules: gameRules ?? rules.gameRules,
       zones: rules.zones,
       fractions: fractions ?? rules.fractions,
       fractionAbilities: fractionAbilities ?? rules.fractionAbilities,
