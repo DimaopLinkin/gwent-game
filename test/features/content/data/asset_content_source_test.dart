@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
+import 'package:gwent/src/features/content/domain/engine_content.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 void main() {
@@ -26,13 +27,7 @@ void main() {
   });
 
   test('базовый пакет из ассетов приложения проходит все уровни проверки', () async {
-    // Движок пока не реализует эффекты (`knownEffects` пуст), поэтому здесь движок, знающий весь формат.
-    // Сопоставление с движком появится отдельной задачей.
-    final engine = EngineCapabilities(
-      engineVersion: 1,
-      knownEffects: {for (final effect in EffectKey.values) effect.key},
-    );
-    final result = await ContentPackLoader(engine: engine).load(AssetContentSource.basePack(rootBundle));
+    final result = await ContentPackLoader(engine: engineCapabilities).load(AssetContentSource.basePack(rootBundle));
     if (result case PackRejected(:final issues)) fail(issues.join('\n'));
     final pack = (result as PackLoaded).pack;
     expect(pack.manifest.packId, 'gwent-w3-base');
