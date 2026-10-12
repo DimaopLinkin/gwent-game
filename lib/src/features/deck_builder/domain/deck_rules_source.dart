@@ -4,6 +4,9 @@ import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 abstract interface class DeckRulesSource {
   /// Правила по активному пакету контента.
   ///
+  /// Бросает `DeckRulesUnavailableException`, если пакет не прошёл проверку; ошибку чтения пакета
+  /// (например, `ContentSourceException`) пропускает как есть. Сценарии колод передают эти ошибки вызывающему.
+  ///
   /// Сценарии вызывают метод на каждое действие, поэтому реализация держит загруженные правила и отдаёт их повторно,
   /// пока активный пакет не сменился.
   Future<DeckRules> load();

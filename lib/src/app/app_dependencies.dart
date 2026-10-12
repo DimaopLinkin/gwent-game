@@ -13,6 +13,7 @@ import 'package:gwent/src/features/deck_builder/application/validate_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/watch_active_decks.dart';
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/application/watch_match_history.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
@@ -54,7 +55,7 @@ final class AppDependencies {
 
   AppDependencies._({
     required this.loadGameContent,
-    required GameContentDeckRulesSource deckRules,
+    required DeckRulesSource deckRules,
     required DeckRepository deckRepository,
     required CreateStarterDeck createStarterDeck,
     required DeckSelectionLock deckSelectionLock,
@@ -67,7 +68,7 @@ final class AppDependencies {
        deleteDeck = DeleteDeck(deckRepository),
        validateDeck = ValidateDeck(deckRules),
        watchActiveDecks = WatchActiveDecks(deckRepository),
-       setActiveDeck = SetActiveDeck(deckRepository, deckRules),
+       setActiveDeck = SetActiveDeck(deckRepository, deckRules, deckSelectionLock),
        getActiveDeck = GetActiveDeck(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
        ensureStarterDecks = EnsureStarterDecks(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
        watchSettings = WatchSettings(settingsRepository),

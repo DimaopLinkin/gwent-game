@@ -44,7 +44,7 @@ void main() {
   group('SetActiveDeck', () {
     late SetActiveDeck setActive;
 
-    setUp(() => setActive = SetActiveDeck(repository, rules));
+    setUp(() => setActive = SetActiveDeck(repository, rules, lock));
 
     test('годная колода становится активной для своей фракции', () async {
       await repository.save(smallSkelligeDeck());
@@ -174,10 +174,11 @@ void main() {
       repository.yieldOnRead = true;
 
       final results = await Future.wait([getActive(Small.skellige), getActive(Small.skellige)]);
-      await ensureStarterDecks();
+      await Future.wait([ensureStarterDecks(), getActive(Small.monsters)]);
 
       expect(results.first, results.last);
       expect(await repository.findByFaction(Small.skellige), [results.first]);
+      expect(await repository.findByFaction(Small.monsters), hasLength(1));
     });
 
     test('колода другой фракции не подходит', () async {
