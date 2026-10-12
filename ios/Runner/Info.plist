@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_gwent._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Нужно, чтобы найти партию соседа в той же Wi-Fi сети и сыграть с ним.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

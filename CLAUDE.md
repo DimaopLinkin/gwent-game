@@ -51,6 +51,7 @@
 | `packages/gwent_content` | пакет контента: модели, парсер, канонический JSON, хеш, валидатор | чистый Dart без Flutter и `dart:io`: данные приходят строками или байтами |
 | `packages/gwent_net` | сетевой протокол: сообщения, кодек, хост и клиент партии, переподключение, журнал, транспорт в памяти (ADR 0005) | чистый Dart без Flutter и `dart:io`; реальные транспорты (Wi-Fi, BLE, сервер) реализуют `Transport` в слое data |
 | `lib/`, `test/` | Flutter-приложение | зависит от пакетов через `path` |
+| `lib/src/features/lobby/` | лобби сетевой игры: `GameLobby` в domain, Wi-Fi (mDNS через `bonsoir` + WebSocket `dart:io`) в data (ADR 0007) | тип сервиса `_gwent._tcp` совпадает с `NSBonjourServices` в `ios/Runner/Info.plist` |
 | `docs/hand` | данные и правила (источник правды) | |
 | `tools/` | утилиты проекта (Dart CLI вроде проверки данных и сборки пакета контента) | |
 | `tools/build_pack` | сборка пакета контента из `docs/hand` и её тесты на настоящих данных | Dart CLI, в приложение не входит |

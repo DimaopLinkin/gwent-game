@@ -81,7 +81,7 @@ const Set<String> _pureDartLibraries = {
 };
 
 /// Пакеты, которые разрешены домену и сценариям (CLAUDE.md, таблица слоёв).
-const Set<String> _pureDartPackages = {'collection', 'meta', 'gwent_ai', 'gwent_content', 'gwent_engine'};
+const Set<String> _pureDartPackages = {'collection', 'meta', 'gwent_ai', 'gwent_content', 'gwent_engine', 'gwent_net'};
 
 /// Пакеты хранилища: экраны обращаются к данным только через сценарии.
 const Set<String> _storagePackages = {'drift', 'drift_flutter', 'path_provider', 'sqlite3', 'uuid'};
