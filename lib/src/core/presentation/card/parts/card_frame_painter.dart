@@ -79,8 +79,7 @@ class CardFramePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CardFramePainter oldDelegate) =>
-      oldDelegate.metrics != metrics || oldDelegate._frame != _frame;
+  bool shouldRepaint(CardFramePainter oldDelegate) => oldDelegate.metrics != metrics || oldDelegate._frame != _frame;
 }
 
 /// Обводка шириной [width] цвета [color].
@@ -160,7 +159,7 @@ final class _CardFrame {
       other.glow == glow &&
       other.ornaments == ornaments &&
       other.bands.length == bands.length &&
-      Iterable.generate(bands.length).every((i) => other.bands[i] == bands[i]);
+      Iterable<int>.generate(bands.length).every((i) => other.bands[i] == bands[i]);
 
   @override
   int get hashCode => Object.hash(Object.hashAll(bands), glow, ornaments);

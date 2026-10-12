@@ -36,7 +36,7 @@ enum CardSize {
 
 /// Размеры элементов карты в pt (макет карты, «Спецификация» и компонент `gwentCard`).
 final class CardMetrics {
-  const CardMetrics._({
+  const CardMetrics({
     required this.width,
     required this.height,
     required this.radius,
@@ -75,7 +75,7 @@ final class CardMetrics {
   });
 
   /// Полный просмотр.
-  static const CardMetrics full = CardMetrics._(
+  static const CardMetrics full = CardMetrics(
     width: 309,
     height: 444,
     radius: 10,
@@ -114,7 +114,7 @@ final class CardMetrics {
   );
 
   /// Сетка конструктора.
-  static const CardMetrics grid = CardMetrics._(
+  static const CardMetrics grid = CardMetrics(
     width: 103,
     height: 148,
     radius: 5,
@@ -147,13 +147,13 @@ final class CardMetrics {
     ribbon: 14,
     leaderMarker: 9,
     leaderMarkerInset: 7,
-    leaderLabelFontSize: 9,
+    leaderLabelFontSize: 0,
     stitchInset: 5,
     rings: (1.5, 3, 4),
   );
 
   /// Рука.
-  static const CardMetrics hand = CardMetrics._(
+  static const CardMetrics hand = CardMetrics(
     width: 77,
     height: 111,
     radius: 4,
@@ -186,13 +186,13 @@ final class CardMetrics {
     ribbon: 12,
     leaderMarker: 8,
     leaderMarkerInset: 6,
-    leaderLabelFontSize: 8,
+    leaderLabelFontSize: 0,
     stitchInset: 4,
     rings: (1.5, 3, 4),
   );
 
   /// Ряд на поле.
-  static const CardMetrics row = CardMetrics._(
+  static const CardMetrics row = CardMetrics(
     width: 52,
     height: 74,
     radius: 3,
@@ -231,7 +231,7 @@ final class CardMetrics {
   );
 
   /// Мини-карта.
-  static const CardMetrics mini = CardMetrics._(
+  static const CardMetrics mini = CardMetrics(
     width: 31,
     height: 44,
     radius: 2,

@@ -14,7 +14,7 @@ enum CoinLook {
 
 /// Круглый медальон с иконкой: ряд и способность под силой, эффект особой карты и погоды вместо силы.
 class CardCoin extends StatelessWidget {
-  /// Монета ряда или способности: тонкий ободок и тень.
+  /// Монета ряда или способности: ободок и тёмное кольцо 2,5 pt, чтобы иконка читалась на пёстром арте.
   const CardCoin({
     super.key,
     required this.icon,
@@ -98,7 +98,8 @@ class CardCoin extends StatelessWidget {
         boxShadow:
             rings ??
             [
-              const BoxShadow(color: Color(0x99000000), offset: Offset(0, 1), blurRadius: 3),
+              const BoxShadow(color: Color(0xB3000000), offset: Offset(0, 1), blurRadius: 4),
+              const BoxShadow(color: Color(0xD90E0B08), spreadRadius: 2.5),
               BoxShadow(color: rim, spreadRadius: 1),
             ],
       ),

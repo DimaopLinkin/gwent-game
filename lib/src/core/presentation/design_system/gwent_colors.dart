@@ -57,6 +57,9 @@ abstract final class GwentColors {
   /// Подложка модальных окон: #0A0806, 72 %.
   static const Color scrim = Color(0xB80A0806);
 
+  /// Затемнение под полным просмотром карты (88 %).
+  static const Color scrimDetail = Color(0xE00A0806);
+
   /// Кольцо фокуса, 2 pt.
   static const Color focusRing = textPrimary;
 

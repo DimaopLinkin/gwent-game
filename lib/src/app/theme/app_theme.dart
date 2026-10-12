@@ -49,7 +49,7 @@ abstract final class AppTheme {
       fontFamily: GwentText.alegreya,
       textTheme: _textTheme,
       iconTheme: const IconThemeData(color: GwentColors.gold, size: 24),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: GwentColors.bg,
         foregroundColor: GwentColors.textPrimary,
         surfaceTintColor: Colors.transparent,

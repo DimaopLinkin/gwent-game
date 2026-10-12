@@ -49,7 +49,11 @@ class PowerMedallion extends StatelessWidget {
         ),
         null,
         GwentColors.bg,
-        [drop, BoxShadow(color: GwentColors.bg, spreadRadius: r2), BoxShadow(color: GwentColors.brass, spreadRadius: r1)],
+        [
+          drop,
+          BoxShadow(color: GwentColors.bg, spreadRadius: r2),
+          BoxShadow(color: GwentColors.brass, spreadRadius: r1),
+        ],
       ),
       PowerLook.buffed => (
         null,
