@@ -19,6 +19,8 @@ void main() {
       final svg = await rootBundle.loadString(icon.assetPath);
       expect(svg, startsWith('<svg'), reason: icon.assetPath);
       if (!icon.isCrest) expect(svg, contains('currentColor'), reason: icon.assetPath);
+      // В макете вырезы заданы переменной CSS (`var(--cut, …)`): flutter_svg её не знает, в файле нужен сам цвет.
+      expect(svg, isNot(contains('var(')), reason: icon.assetPath);
     }
   });
 
@@ -46,6 +48,11 @@ void main() {
 
     final secondary = theme.outlinedButtonTheme.style!;
     expect(secondary.side!.resolve({})!.color, GwentColors.brass);
+
+    // Иконка без глифа: в Material 3 такая ручка переключателя 24 pt и во включённом, и в выключенном виде.
+    final thumbIcon = theme.switchTheme.thumbIcon!;
+    expect(thumbIcon.resolve({}), isNotNull);
+    expect(thumbIcon.resolve({WidgetState.selected}), isNotNull);
   });
 
   testWidgets('иконка рисуется заданным размером, кнопки темы — не ниже 48', (tester) async {

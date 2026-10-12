@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 
 import '../../../support/localized_app.dart';
 
@@ -13,6 +14,20 @@ void main() {
     final size = tester.getSize(find.byType(PassButton));
     expect(size.height, PassButton.height);
     expect(size.width, greaterThanOrEqualTo(156));
+  });
+
+  testWidgets('двойная рамка: 3 pt фона и 1 pt латуни внутри золотого кольца', (tester) async {
+    await pump(tester, PassButton(onPressed: () {}));
+    final rings = tester
+        .widgetList<DecoratedBox>(find.descendant(of: find.byType(PassButton), matching: find.byType(DecoratedBox)))
+        .map((box) => box.decoration)
+        .whereType<ShapeDecoration>()
+        .map((decoration) => (decoration.shape as StadiumBorder).side)
+        .toList();
+    expect(rings, [
+      const BorderSide(color: GwentColors.bg, width: 3),
+      const BorderSide(color: GwentColors.brass),
+    ]);
   });
 
   testWidgets('с подтверждением тап сразу вызывает колбэк, диалог открывает экран', (tester) async {

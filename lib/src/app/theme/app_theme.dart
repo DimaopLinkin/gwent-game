@@ -162,7 +162,8 @@ abstract final class AppTheme {
               ? GwentColors.gold
               : GwentColors.line,
         ),
-        thumbIcon: const WidgetStatePropertyAll(null),
+        // Пустая иконка без глифа: в Material 3 она увеличивает выключенную ручку с 16 до 24 pt, как в макете.
+        thumbIcon: const WidgetStatePropertyAll(Icon(null)),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: GwentColors.surfaceRaised,

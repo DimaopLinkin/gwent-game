@@ -187,12 +187,11 @@ class _PassSurface extends StatelessWidget {
                 stops: [0, 0.7],
               )
             : null,
+        // Внешнее кольцо и свечение рисуются тенями вокруг кнопки; внутреннюю двойную рамку (3 pt фона и 1 pt латуни)
+        // тени дать не могут, она лежит отдельным слоем поверх заливки.
         boxShadow: [
           if (enabled && !pressed) ...GwentShadows.glowCandle,
           BoxShadow(color: enabled ? GwentColors.gold : GwentColors.panelLine, spreadRadius: 1.5),
-          const BoxShadow(color: GwentColors.bg, spreadRadius: -1.5),
-          BoxShadow(color: ringColor, spreadRadius: -2.5),
-          const BoxShadow(color: GwentColors.bg, spreadRadius: -3.5),
         ],
       ),
       child: ClipRRect(
@@ -200,16 +199,36 @@ class _PassSurface extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: const ShapeDecoration(
+                  shape: StadiumBorder(side: BorderSide(color: GwentColors.bg, width: 3)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: DecoratedBox(
+                    decoration: ShapeDecoration(
+                      shape: StadiumBorder(side: BorderSide(color: ringColor)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             if (progress > 0)
               Positioned.fill(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: FractionallySizedBox(
-                    widthFactor: progress,
-                    child: const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [Color(0x1AC8A35B), Color(0x5CC8A35B)]),
-                        border: Border(right: BorderSide(color: GwentColors.gold, width: 2)),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: progress,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.horizontal(left: Radius.circular(GwentSpace.radiusPill)),
+                          gradient: LinearGradient(colors: [Color(0x1AC8A35B), Color(0x5CC8A35B)]),
+                          border: Border(right: BorderSide(color: GwentColors.gold, width: 2)),
+                        ),
+                        child: SizedBox.expand(),
                       ),
                     ),
                   ),
