@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/features/deck_builder/data/drift_deck_repository.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 
 import '../../../support/factories.dart';
 import '../../../support/test_database.dart';
@@ -100,9 +101,9 @@ void main() {
         await repository.save(deck);
       }
 
-      await repository.setActive(first);
-      await repository.setActive(monsters);
-      await repository.setActive(second);
+      await repository.setActive(first.id);
+      await repository.setActive(monsters.id);
+      await repository.setActive(second.id);
 
       expect(await repository.findActiveDeckId('faction-skellige'), 'second');
       expect(await repository.findActiveDeckId('faction-monsters'), 'monsters');
@@ -122,7 +123,7 @@ void main() {
         ]),
       );
       await pumpEventQueue();
-      await repository.setActive(deck);
+      await repository.setActive(deck.id);
       await pumpEventQueue();
       await repository.delete(deck.id);
       await expectation;
@@ -131,7 +132,7 @@ void main() {
     test('удаление активной колоды оставляет фракцию без выбора', () async {
       final deck = testDeck();
       await repository.save(deck);
-      await repository.setActive(deck);
+      await repository.setActive(deck.id);
 
       await repository.delete(deck.id);
 
@@ -141,7 +142,7 @@ void main() {
     test('пересохранение колоды той же фракции выбор не сбрасывает', () async {
       final deck = testDeck();
       await repository.save(deck);
-      await repository.setActive(deck);
+      await repository.setActive(deck.id);
 
       await repository.save(deck.copyWith(name: 'Новое имя'));
 
@@ -151,7 +152,7 @@ void main() {
     test('колода, сменившая фракцию, перестаёт быть активной у прежней', () async {
       final deck = testDeck();
       await repository.save(deck);
-      await repository.setActive(deck);
+      await repository.setActive(deck.id);
 
       await repository.save(deck.copyWith(factionId: 'faction-monsters'));
 
@@ -159,8 +160,27 @@ void main() {
       expect(await repository.findActiveDeckId('faction-monsters'), isNull);
     });
 
+    test('сохранение с выбором делает колоду активной сразу', () async {
+      final deck = testDeck();
+
+      await repository.save(deck, activate: true);
+
+      expect(await repository.findActiveDeckId('faction-skellige'), deck.id);
+    });
+
+    test('выбор берёт фракцию колоды из базы', () async {
+      final deck = testDeck();
+      await repository.save(deck);
+      await repository.save(deck.copyWith(factionId: 'faction-monsters'));
+
+      await repository.setActive(deck.id);
+
+      expect(await repository.findActiveDeckId('faction-monsters'), deck.id);
+      expect(await repository.findActiveDeckId('faction-skellige'), isNull);
+    });
+
     test('несохранённую колоду выбрать нельзя', () async {
-      await expectLater(repository.setActive(testDeck(id: 'нет такой')), throwsA(isA<Exception>()));
+      await expectLater(repository.setActive('нет такой'), throwsA(isA<DeckNotFoundException>()));
     });
   });
 }

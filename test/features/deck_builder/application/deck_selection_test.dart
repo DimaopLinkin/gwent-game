@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/deck_builder/application/create_starter_deck.dart';
+import 'package:gwent/src/features/deck_builder/application/deck_selection_lock.dart';
 import 'package:gwent/src/features/deck_builder/application/ensure_starter_decks.dart';
 import 'package:gwent/src/features/deck_builder/application/get_active_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/set_active_deck.dart';
@@ -17,12 +18,14 @@ void main() {
   late FakeDeckRulesSource rules;
   late FakeClock clock;
   late CreateStarterDeck createStarterDeck;
+  late DeckSelectionLock lock;
 
   setUp(() {
     repository = InMemoryDeckRepository();
     rules = FakeDeckRulesSource();
     clock = FakeClock(DateTime.utc(2026, 10, 12, 9));
-    createStarterDeck = CreateStarterDeck(repository, rules, clock, SequentialIdGenerator());
+    createStarterDeck = CreateStarterDeck(repository, clock, SequentialIdGenerator());
+    lock = DeckSelectionLock();
   });
 
   final invalidCards = {Small.warrior: 3};
@@ -68,7 +71,7 @@ void main() {
 
   group('CreateStarterDeck', () {
     test('сохраняет стартовую колоду и делает её активной', () async {
-      final deck = await createStarterDeck(Small.skellige);
+      final deck = await createStarterDeck(smallDeckRules, Small.skellige);
 
       expect(deck.id, 'id-1');
       expect(deck.updatedAt, clock.current);
@@ -76,12 +79,19 @@ void main() {
       expect(await repository.findActiveDeckId(Small.skellige), 'id-1');
       expect(smallDeckRules.check(deck), isEmpty);
     });
+
+    test('негодную стартовую колоду не сохраняет', () async {
+      final strict = deckRulesFor(smallPack, gameRules: const GameRules(minUnitCards: 50, maxSpecialCards: 2));
+
+      await expectLater(createStarterDeck(strict, Small.skellige), throwsA(isA<InvalidDeckException>()));
+      expect(await repository.findByFaction(Small.skellige), isEmpty);
+    });
   });
 
   group('EnsureStarterDecks', () {
     late EnsureStarterDecks ensure;
 
-    setUp(() => ensure = EnsureStarterDecks(repository, rules, createStarterDeck));
+    setUp(() => ensure = EnsureStarterDecks(repository, rules, createStarterDeck, lock));
 
     test('создаёт стартовые колоды только фракциям без колод', () async {
       await repository.save(smallSkelligeDeck(cards: invalidCards));
@@ -103,13 +113,13 @@ void main() {
   group('GetActiveDeck', () {
     late GetActiveDeck getActive;
 
-    setUp(() => getActive = GetActiveDeck(repository, rules, createStarterDeck));
+    setUp(() => getActive = GetActiveDeck(repository, rules, createStarterDeck, lock));
 
     test('возвращает годную активную колоду', () async {
       final active = smallSkelligeDeck(id: 'active', updatedAt: DateTime.utc(2026, 10, 5));
       await repository.save(active);
       await repository.save(smallSkelligeDeck(id: 'newer', updatedAt: DateTime.utc(2026, 10, 6)));
-      await repository.setActive(active);
+      await repository.setActive(active.id);
 
       expect(await getActive(Small.skellige), active);
     });
@@ -121,7 +131,7 @@ void main() {
       for (final deck in [broken, older, newer]) {
         await repository.save(deck);
       }
-      await repository.setActive(broken);
+      await repository.setActive(broken.id);
 
       expect(await getActive(Small.skellige), newer);
       expect(await repository.findActiveDeckId(Small.skellige), 'newer');
@@ -145,6 +155,29 @@ void main() {
       expect(smallDeckRules.check(deck), isEmpty);
       expect(await repository.findActiveDeckId(Small.skellige), 'id-1');
       expect(await getActive(Small.skellige), deck, reason: 'второй вызов не создаёт ещё одну колоду');
+    });
+
+    test('новый пакет сделал колоды негодными: стартовая колода, а прежние ждут правки', () async {
+      final deck = smallSkelligeDeck();
+      await repository.save(deck, activate: true);
+      rules.rules = deckRulesFor(smallPack, gameRules: const GameRules(minUnitCards: 6, maxSpecialCards: 2));
+
+      final active = await getActive(Small.skellige);
+
+      expect(active.id, 'id-1');
+      expect(rules.rules.check(active), isEmpty);
+      expect(await repository.findById(deck.id), deck);
+    });
+
+    test('одновременные вызовы не задваивают стартовую колоду', () async {
+      final ensureStarterDecks = EnsureStarterDecks(repository, rules, createStarterDeck, lock);
+      repository.yieldOnRead = true;
+
+      final results = await Future.wait([getActive(Small.skellige), getActive(Small.skellige)]);
+      await ensureStarterDecks();
+
+      expect(results.first, results.last);
+      expect(await repository.findByFaction(Small.skellige), [results.first]);
     });
 
     test('колода другой фракции не подходит', () async {
@@ -174,7 +207,7 @@ void main() {
       await pumpEventQueue();
       final deck = smallSkelligeDeck();
       await repository.save(deck);
-      await repository.setActive(deck);
+      await repository.setActive(deck.id);
       await expectation;
     });
   });

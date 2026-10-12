@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
@@ -38,6 +39,14 @@ final class InMemoryDeckRepository implements DeckRepository {
   /// Ошибка, с которой падает [watchAll]; `null` — без ошибки.
   Exception? watchError;
 
+  /// Чтения отдают снимок и уступают очередь событий, как запросы к настоящей базе: так одновременные сценарии
+  /// перемежаются и видят устаревшие данные.
+  bool yieldOnRead = false;
+
+  Future<void> _read() async {
+    if (yieldOnRead) await Future<void>(() {});
+  }
+
   /// Порядок как у Drift: сначала недавно изменённые, при равном времени по идентификатору.
   List<Deck> get _sorted => _decks.values.toList()
     ..sort(
@@ -54,16 +63,20 @@ final class InMemoryDeckRepository implements DeckRepository {
   };
 
   @override
-  Future<List<Deck>> findByFaction(String factionId) async =>
-      _sorted.where((deck) => deck.factionId == factionId).toList();
+  Future<List<Deck>> findByFaction(String factionId) async {
+    final decks = _sorted.where((deck) => deck.factionId == factionId).toList();
+    await _read();
+    return decks;
+  }
 
   @override
   Future<Deck?> findById(String id) async => _decks[id];
 
   @override
-  Future<void> save(Deck deck) async {
+  Future<void> save(Deck deck, {bool activate = false}) async {
     _decks[deck.id] = deck;
     _active.removeWhere((factionId, deckId) => deckId == deck.id && factionId != deck.factionId);
+    if (activate) _active[deck.factionId] = deck.id;
     _changes.add(null);
   }
 
@@ -78,11 +91,15 @@ final class InMemoryDeckRepository implements DeckRepository {
   Stream<Map<String, String>> watchActiveDeckIds() => _watch(_changes, () => Map.of(_active));
 
   @override
-  Future<String?> findActiveDeckId(String factionId) async => _active[factionId];
+  Future<String?> findActiveDeckId(String factionId) async {
+    final deckId = _active[factionId];
+    await _read();
+    return deckId;
+  }
 
   @override
-  Future<void> setActive(Deck deck) async {
-    if (!_decks.containsKey(deck.id)) throw StateError('колода ${deck.id} не сохранена');
+  Future<void> setActive(String deckId) async {
+    final deck = _decks[deckId] ?? (throw DeckNotFoundException(deckId));
     _active[deck.factionId] = deck.id;
     _changes.add(null);
   }

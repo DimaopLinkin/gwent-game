@@ -18,6 +18,6 @@ final class SetActiveDeck {
     final deck = await _repository.findById(deckId) ?? (throw DeckNotFoundException(deckId));
     final issues = (await _rules.load()).check(deck);
     if (issues.isNotEmpty) throw InvalidDeckException(deckId, issues);
-    await _repository.setActive(deck);
+    await _repository.setActive(deck.id);
   }
 }

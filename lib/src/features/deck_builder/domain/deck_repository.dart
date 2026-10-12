@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 
 /// Хранилище колод игрока и его выбора активной колоды каждой фракции.
 abstract interface class DeckRepository {
@@ -13,8 +14,9 @@ abstract interface class DeckRepository {
 
   /// Создаёт колоду или полностью заменяет существующую с тем же идентификатором.
   ///
-  /// Если у колоды сменилась фракция, она перестаёт быть активной колодой прежней фракции.
-  Future<void> save(Deck deck);
+  /// Если у колоды сменилась фракция, она перестаёт быть активной колодой прежней фракции. С [activate] колода
+  /// в том же изменении становится активной колодой своей фракции.
+  Future<void> save(Deck deck, {bool activate = false});
 
   /// Удаляет колоду. Удаление отсутствующей колоды ничего не делает.
   ///
@@ -27,6 +29,8 @@ abstract interface class DeckRepository {
   /// Идентификатор активной колоды фракции [factionId] или `null`, если она не выбрана.
   Future<String?> findActiveDeckId(String factionId);
 
-  /// Делает [deck] активной колодой её фракции. Колода должна быть сохранена.
-  Future<void> setActive(Deck deck);
+  /// Делает колоду [deckId] активной колодой фракции, с которой она сохранена.
+  ///
+  /// Бросает [DeckNotFoundException], если колоды нет.
+  Future<void> setActive(String deckId);
 }

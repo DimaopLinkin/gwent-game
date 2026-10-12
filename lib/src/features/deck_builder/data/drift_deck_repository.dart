@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 
 /// Колоды в базе Drift: строка в `decks`, по строке на карту в `deck_cards` и выбор активных колод в `active_decks`.
@@ -27,7 +28,7 @@ final class DriftDeckRepository implements DeckRepository {
   }
 
   @override
-  Future<void> save(Deck deck) => _db.transaction(() async {
+  Future<void> save(Deck deck, {bool activate = false}) => _db.transaction(() async {
     await _db
         .into(_db.decks)
         .insertOnConflictUpdate(
@@ -51,6 +52,7 @@ final class DriftDeckRepository implements DeckRepository {
           DeckCardsCompanion.insert(deckId: deck.id, cardId: cardId, copies: copies),
       ]);
     });
+    if (activate) await _activate(factionId: deck.factionId, deckId: deck.id);
   });
 
   @override
@@ -67,9 +69,19 @@ final class DriftDeckRepository implements DeckRepository {
   }
 
   @override
-  Future<void> setActive(Deck deck) => _db
+  Future<void> setActive(String deckId) => _db.transaction(() async {
+    // Фракция берётся из базы в той же транзакции: колоду могли пересохранить с другой фракцией.
+    final query = _db.selectOnly(_db.decks)
+      ..addColumns([_db.decks.factionId])
+      ..where(_db.decks.id.equals(deckId));
+    final factionId = (await query.getSingleOrNull())?.read(_db.decks.factionId);
+    if (factionId == null) throw DeckNotFoundException(deckId);
+    await _activate(factionId: factionId, deckId: deckId);
+  });
+
+  Future<void> _activate({required String factionId, required String deckId}) => _db
       .into(_db.activeDecks)
-      .insertOnConflictUpdate(ActiveDecksCompanion.insert(factionId: deck.factionId, deckId: deck.id));
+      .insertOnConflictUpdate(ActiveDecksCompanion.insert(factionId: factionId, deckId: deckId));
 
   /// Колоды со всеми картами одним запросом: поток следит за обеими таблицами.
   JoinedSelectStatement<HasResultSet, dynamic> _decksWithCards() =>
