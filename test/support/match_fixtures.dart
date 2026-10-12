@@ -3,7 +3,6 @@ import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
-import 'package:gwent_engine/gwent_engine.dart' as engine show CardId, Deck, LeaderId;
 import 'package:gwent_engine/gwent_engine.dart' show Faction;
 
 /// Контент базового пакета из ассетов; тест должен вызвать `TestWidgetsFlutterBinding.ensureInitialized()`.
@@ -42,12 +41,3 @@ Deck realDeck(GameContent content, Faction faction, {required String id}) {
     updatedAt: DateTime.utc(2026, 10, 12),
   );
 }
-
-/// Колода движка из колоды игрока: по элементу на копию.
-engine.Deck engineDeck(Deck deck) => engine.Deck(
-  leader: engine.LeaderId(deck.leaderId),
-  cards: [
-    for (final MapEntry(key: id, value: copies) in deck.cards.entries)
-      for (var i = 0; i < copies; i++) engine.CardId(id),
-  ],
-);

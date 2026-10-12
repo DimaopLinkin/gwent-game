@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Сетевая игра по Wi-Fi (ADR 0007): сервер хоста и WebSocket гостя. В debug и profile INTERNET уже есть,
+         release без него не откроет сокет. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Поиск и объявление партии через mDNS (NSD). Разрешения не опасные: запроса у игрока нет. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
     <application
         android:label="flutter_game_test_21_05_2026"
         android:name="${applicationName}"

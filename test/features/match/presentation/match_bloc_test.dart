@@ -8,6 +8,7 @@ import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
+import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
@@ -311,8 +312,8 @@ PlayerView _startView(GameContent content) {
   final start =
       engine.start(
             MatchSetup(
-              one: engineDeck(realDeck(content, Faction.skellige, id: 'one')),
-              two: engineDeck(realDeck(content, Faction.monsters, id: 'two')),
+              one: realDeck(content, Faction.skellige, id: 'one').toEngineDeck(),
+              two: realDeck(content, Faction.monsters, id: 'two').toEngineDeck(),
               rng: const SeededRng(7),
             ),
           )
@@ -358,10 +359,22 @@ final class _GatedDecks implements DeckRepository {
   }
 
   @override
-  Future<void> save(Deck deck) => _decks.save(deck);
+  Future<List<Deck>> findByFaction(String factionId) => _decks.findByFaction(factionId);
+
+  @override
+  Future<void> save(Deck deck, {bool activate = false}) => _decks.save(deck, activate: activate);
 
   @override
   Future<void> delete(String id) => _decks.delete(id);
+
+  @override
+  Stream<Map<String, String>> watchActiveDeckIds() => _decks.watchActiveDeckIds();
+
+  @override
+  Future<String?> findActiveDeckId(String factionId) => _decks.findActiveDeckId(factionId);
+
+  @override
+  Future<void> setActive(String deckId) => _decks.setActive(deckId);
 }
 
 /// Бот, который сообщает о каждом вопросе.

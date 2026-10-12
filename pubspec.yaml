@@ -14,6 +14,7 @@ dependencies:
     sdk: flutter
 
   bloc: ^9.2.1
+  bonsoir: ^7.1.4
   collection: ^1.19.1
   cupertino_icons: ^1.0.8
   # drift и drift_dev закреплены точно и меняются только вместе: drift_dev новее 2.34.0 требует analyzer 13+
@@ -32,6 +33,8 @@ dependencies:
     path: packages/gwent_content
   gwent_engine:
     path: packages/gwent_engine
+  gwent_net:
+    path: packages/gwent_net
 
 dev_dependencies:
   flutter_test:

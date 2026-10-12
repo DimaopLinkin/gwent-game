@@ -40,3 +40,16 @@ class DeckCards extends Table {
   @override
   List<String> get customConstraints => ['CHECK (copies > 0)'];
 }
+
+/// Активная колода каждой фракции: с ней игрок идёт в партию за эту фракцию.
+@DataClassName('ActiveDeckRow')
+class ActiveDecks extends Table {
+  /// UUID фракции из пакета контента.
+  TextColumn get factionId => text()();
+
+  /// Колода; при её удалении фракция остаётся без активной колоды.
+  TextColumn get deckId => text().references(Decks, #id, onDelete: KeyAction.cascade)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {factionId};
+}

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
@@ -23,8 +24,8 @@ void main() {
     start =
         engine.start(
               MatchSetup(
-                one: engineDeck(realDeck(content, Faction.skellige, id: 'one')),
-                two: engineDeck(realDeck(content, Faction.monsters, id: 'two')),
+                one: realDeck(content, Faction.skellige, id: 'one').toEngineDeck(),
+                two: realDeck(content, Faction.monsters, id: 'two').toEngineDeck(),
                 rng: const SeededRng(42),
               ),
             )

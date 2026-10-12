@@ -3,6 +3,7 @@ import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart' as app;
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
+import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
@@ -128,8 +129,8 @@ final class StartMatch {
   StartMatchResult _start(LocalMatchMode mode, GameContent content, Map<Seat, app.Deck> decks) {
     final engine = GwentEngine(content.catalog, rules: content.rules);
     final setup = MatchSetup(
-      one: _engineDeck(decks[Seat.one]!),
-      two: _engineDeck(decks[Seat.two]!),
+      one: decks[Seat.one]!.toEngineDeck(),
+      two: decks[Seat.two]!.toEngineDeck(),
       rng: SeededRng(_seeds.next()),
     );
     switch (engine.start(setup)) {
@@ -159,14 +160,4 @@ final class StartMatch {
         );
     }
   }
-
-  /// Колода движка: по элементу на копию. Порядок задан (по UUID), чтобы сид однозначно задавал партию.
-  static Deck _engineDeck(app.Deck deck) => Deck(
-    leader: LeaderId(deck.leaderId),
-    cards: [
-      for (final MapEntry(key: cardId, value: copies)
-          in deck.cards.entries.toList()..sort((a, b) => a.key.compareTo(b.key)))
-        for (var i = 0; i < copies; i++) CardId(cardId),
-    ],
-  );
 }

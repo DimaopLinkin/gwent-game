@@ -99,8 +99,20 @@ final class _LateDecks implements DeckRepository {
   Future<Deck?> findById(String id) async => null;
 
   @override
-  Future<void> save(Deck deck) async {}
+  Future<List<Deck>> findByFaction(String factionId) async => const [];
+
+  @override
+  Future<void> save(Deck deck, {bool activate = false}) async {}
 
   @override
   Future<void> delete(String id) async {}
+
+  @override
+  Stream<Map<String, String>> watchActiveDeckIds() => const Stream.empty();
+
+  @override
+  Future<String?> findActiveDeckId(String factionId) async => null;
+
+  @override
+  Future<void> setActive(String deckId) async {}
 }
