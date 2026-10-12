@@ -122,6 +122,9 @@ class GwentCard extends StatelessWidget {
       selected: highlight == CardHighlight.selected,
       enabled: highlight != CardHighlight.disabled,
       label: _semanticsLabel(context.l10n),
+      // excludeSemantics отбрасывает и действия детей, поэтому нажатия отдаются скринридеру отсюда.
+      onTap: onTap,
+      onLongPress: onLongPress,
       excludeSemantics: true,
       child: _gestures(card),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
@@ -174,6 +175,25 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await gesture.up();
     expect((taps, longPresses), (1, 1));
+  });
+
+  testWidgets('скринридер может нажать и удержать карту', (tester) async {
+    final semantics = tester.ensureSemantics();
+    var taps = 0;
+    var longPresses = 0;
+    await _pump(
+      tester,
+      GwentCard(face: _unit, size: CardSize.hand, onTap: () => taps++, onLongPress: () => longPresses++),
+    );
+    final node = tester.getSemantics(find.bySemanticsLabel('Лучник клана Броквар, сила 6'));
+    expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    expect(node.getSemanticsData().hasAction(SemanticsAction.longPress), isTrue);
+
+    final target = find.semantics.byLabel('Лучник клана Броквар, сила 6');
+    tester.semantics.tap(target);
+    tester.semantics.longPress(target);
+    expect((taps, longPresses), (1, 1));
+    semantics.dispose();
   });
 
   testWidgets('скринридер слышит имя и силу отряда, а у рубашки — что это рубашка', (tester) async {

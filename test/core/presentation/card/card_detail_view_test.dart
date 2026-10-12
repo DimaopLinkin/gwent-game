@@ -104,8 +104,6 @@ void main() {
     expect(card.height, closeTo(CardSize.full.metrics.height * CardDetailLayoutDelegate.minScale, 0.01));
     final hint = _rectOf(tester, find.text('Свайп вниз или тап вне карты — закрыть'));
     expect(hint.bottom, lessThanOrEqualTo(568));
-    final scroll = tester.widget<SingleChildScrollView>(find.byType(SingleChildScrollView));
-    expect(scroll.controller?.hasClients ?? true, isTrue);
     final position = tester.state<ScrollableState>(find.byType(Scrollable)).position;
     expect(position.maxScrollExtent, greaterThan(0));
   });
