@@ -31,6 +31,8 @@ jobs:
         include:
           - package: gwent_engine
             dir: packages/gwent_engine
+          - package: gwent_ai
+            dir: packages/gwent_ai
           - package: gwent_content
             dir: packages/gwent_content
           - package: gwent_net
