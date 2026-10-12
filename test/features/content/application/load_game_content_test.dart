@@ -25,6 +25,20 @@ void main() {
     expect(source.reads, reads);
   });
 
+  test('отказ и исключение не запоминаются: следующий вызов загружает заново', () async {
+    final source = _FlakySource(
+      AssetContentSource.basePack(rootBundle),
+      failures: [
+        const ContentSourceException(manifestFileName, 'нет связи'),
+        StateError('источник нарушил контракт'),
+      ],
+    );
+    final load = LoadGameContent(source);
+    expect(await load(), isA<GameContentRejected>());
+    await expectLater(load(), throwsStateError);
+    expect(await load(), isA<GameContentReady>());
+  });
+
   test('пакет не прошёл проверку: проблемы загрузчика', () async {
     final result = await LoadGameContent(InMemoryContentSource(const {}))();
     expect(result, isA<GameContentRejected>());
@@ -44,4 +58,16 @@ final class _CountingSource implements ContentSource {
     reads++;
     return _inner.readFile(path);
   }
+}
+
+/// Первые чтения падают с ошибками из [failures] по очереди, дальше читает [_inner].
+final class _FlakySource implements ContentSource {
+  _FlakySource(this._inner, {required List<Object> failures}) : _failures = [...failures];
+
+  final ContentSource _inner;
+  final List<Object> _failures;
+
+  @override
+  Future<List<int>> readFile(String path) =>
+      _failures.isEmpty ? _inner.readFile(path) : Future.error(_failures.removeAt(0));
 }
