@@ -27,6 +27,7 @@ void main() {
           matchHistoryRepository: InMemoryMatchHistoryRepository(),
           clock: FakeClock(DateTime.utc(2026, 10, 11)),
           idGenerator: SequentialIdGenerator(),
+          seedGenerator: FixedSeedGenerator(1),
         ),
       ),
     );

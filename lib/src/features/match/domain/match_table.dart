@@ -11,7 +11,7 @@ abstract interface class MatchTable {
   Set<Seat> get localSeats;
 
   /// Обновления для здешних мест. Подписчик один (держатель состояния); обновления до подписки не теряются,
-  /// первым для каждого здешнего места приходит [SeatViewChanged] с раздачей.
+  /// первым приходит [ViewsChanged] с раздачей.
   Stream<TableUpdate> get updates;
 
   /// Отправляет намерение за здешнее место [seat]. Итог придёт в [updates]: новые проекции или [IntentRefused].
@@ -29,19 +29,23 @@ sealed class TableUpdate {
   const TableUpdate();
 }
 
-/// Партия изменилась: новая проекция места [seat] и события, которые ему видны.
-final class SeatViewChanged extends TableUpdate {
+/// Партия изменилась: новые проекции всех здешних мест сразу и события, которые видны каждому из них.
+///
+/// Проекции приходят вместе, чтобы экран hot-seat не видел одно место уже после хода, а другое ещё до него.
+final class ViewsChanged extends TableUpdate {
   /// Создаёт обновление.
-  SeatViewChanged(this.seat, this.view, List<GameEvent> events) : events = List.unmodifiable(events);
+  ViewsChanged(Map<Seat, PlayerView> views, Map<Seat, List<GameEvent>> events)
+    : views = Map.unmodifiable(views),
+      events = Map.unmodifiable({
+        for (final MapEntry(key: seat, value: seatEvents) in events.entries)
+          seat: List<GameEvent>.unmodifiable(seatEvents),
+      });
 
-  /// Здешнее место.
-  final Seat seat;
+  /// Что каждое здешнее место видит теперь.
+  final Map<Seat, PlayerView> views;
 
-  /// Что место видит теперь.
-  final PlayerView view;
-
-  /// События с прошлого обновления этого места, уже отфильтрованные для него (`MatchEngine.eventsFor`).
-  final List<GameEvent> events;
+  /// События с прошлого обновления, уже отфильтрованные для каждого места (`MatchEngine.eventsFor`).
+  final Map<Seat, List<GameEvent>> events;
 }
 
 /// Движок отклонил намерение здешнего места: для интерфейса это рассинхрон, состояние не изменилось.

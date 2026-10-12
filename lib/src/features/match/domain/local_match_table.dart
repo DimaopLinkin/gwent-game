@@ -108,9 +108,10 @@ final class LocalMatchTable implements MatchTable {
     _publish(events);
   }
 
-  void _publish(List<GameEvent> events) {
-    for (final seat in localSeats) {
-      _updates.add(SeatViewChanged(seat, _engine.project(_state, seat), _engine.eventsFor(events, seat)));
-    }
-  }
+  void _publish(List<GameEvent> events) => _updates.add(
+    ViewsChanged(
+      {for (final seat in localSeats) seat: _engine.project(_state, seat)},
+      {for (final seat in localSeats) seat: _engine.eventsFor(events, seat)},
+    ),
+  );
 }

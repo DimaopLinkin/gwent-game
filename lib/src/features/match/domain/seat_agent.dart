@@ -1,5 +1,5 @@
-import 'package:gwent_engine/gwent_engine.dart';
 import 'package:gwent_ai/gwent_ai.dart';
+import 'package:gwent_engine/gwent_engine.dart';
 
 /// Источник ходов за место без человека на этом устройстве в местной партии.
 ///

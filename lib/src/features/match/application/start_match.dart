@@ -147,7 +147,11 @@ final class StartMatch {
           },
         );
         return MatchStarted(
-          MatchSession(mode: mode, table: table, factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId}),
+          MatchSession(
+            mode: mode,
+            table: table,
+            factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId},
+          ),
         );
     }
   }
@@ -156,8 +160,8 @@ final class StartMatch {
   static Deck _engineDeck(app.Deck deck) => Deck(
     leader: LeaderId(deck.leaderId),
     cards: [
-      for (final MapEntry(key: cardId, value: copies) in deck.cards.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key)))
+      for (final MapEntry(key: cardId, value: copies)
+          in deck.cards.entries.toList()..sort((a, b) => a.key.compareTo(b.key)))
         for (var i = 0; i < copies; i++) CardId(cardId),
     ],
   );

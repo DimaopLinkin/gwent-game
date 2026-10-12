@@ -26,6 +26,8 @@ dependencies:
   meta: ^1.17.0
   uuid: ^4.5.3
 
+  gwent_ai:
+    path: packages/gwent_ai
   gwent_content:
     path: packages/gwent_content
   gwent_engine:
