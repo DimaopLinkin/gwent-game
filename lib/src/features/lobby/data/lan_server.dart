@@ -35,19 +35,26 @@ final class LanServer {
   /// Партия, соединения к которой принимает сервер.
   final String gameId;
 
-  final StreamController<Transport> _connections = StreamController<Transport>();
+  /// Отмена подписки на соединения тоже закрывает сервер: принятые сокеты иначе некому отдать.
+  late final StreamController<Transport> _connections = StreamController<Transport>(onCancel: close);
+  final Completer<void> _done = Completer<void>();
   bool _closed = false;
+
+  /// Завершается, когда сервер перестал принимать соединения: после [close] или если ОС закрыла сокет.
+  Future<void> get done => _done.future;
 
   /// Порт, на котором слушает (или слушал) сервер.
   final int port;
 
-  /// Принятые соединения. Поток закрывается после [close] или если ОС закрыла сокет сервера.
+  /// Принятые соединения. Поток закрывается после [close] или если ОС закрыла сокет сервера; отмена подписки
+  /// закрывает сервер.
   Stream<Transport> get connections => _connections.stream;
 
   /// Перестаёт принимать соединения. Уже принятые остаются открытыми.
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
+    _done.complete();
     unawaited(_connections.close());
     await _server.close();
   }
@@ -70,7 +77,8 @@ final class LanServer {
       return;
     }
     if (_closed) {
-      unawaited(socket.close(WebSocketStatus.goingAway));
+      // Гость уже мог уйти: ошибка закрытия ничего не меняет.
+      socket.close(WebSocketStatus.goingAway).ignore();
       return;
     }
     _connections.add(WebSocketTransport(socket));

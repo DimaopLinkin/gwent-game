@@ -23,6 +23,9 @@ final class FakeServiceDirectory implements ServiceDirectory {
   /// Следующее объявление откажет.
   bool failNextAdvertise = false;
 
+  /// Сколько ОС подтверждает объявление.
+  Duration advertiseDelay = Duration.zero;
+
   final List<StreamController<DirectoryEvent>> _browsers = [];
 
   /// Сколько поисков сейчас идёт.
@@ -35,6 +38,7 @@ final class FakeServiceDirectory implements ServiceDirectory {
       failNextAdvertise = false;
       throw const LobbyException(LobbyFailure.unavailable);
     }
+    await Future<void>.delayed(advertiseDelay);
     advertised[record.name] = record;
     emit(
       ServiceFound(ServiceRecord(name: record.name, port: record.port, attributes: record.attributes, hosts: hosts)),

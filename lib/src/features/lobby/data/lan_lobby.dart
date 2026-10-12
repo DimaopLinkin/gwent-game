@@ -77,10 +77,34 @@ final class LanLobby implements GameLobby {
   /// IPv4-адреса сетевых интерфейсов без петли: в Wi-Fi сети гость доберётся до хоста по IPv4.
   static Future<List<String>> interfaceAddresses() async {
     final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
-    return [
+    return preferredAddresses([
       for (final interface in interfaces)
-        for (final address in interface.addresses) address.address,
-    ];
+        for (final address in interface.addresses) (interface.name, address.address),
+    ]);
+  }
+
+  /// Адреса `(интерфейс, адрес)` в порядке попыток гостя: сначала Wi-Fi и точка доступа, затем частные сети,
+  /// в конце сотовая связь и VPN. Гость ждёт тайм-аут на каждом недоступном адресе, поэтому порядок важен.
+  static List<String> preferredAddresses(List<(String, String)> addresses) {
+    int rank((String, String) entry) {
+      final (interface, address) = entry;
+      final wifi = _wifiInterfaces.any(interface.startsWith);
+      return (wifi ? 0 : 2) + (_isPrivate(address) ? 0 : 1);
+    }
+
+    final indexed = [for (final (index, entry) in addresses.indexed) (rank(entry), index, entry.$2)]
+      ..sort((a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2));
+    return [for (final (_, _, address) in indexed) address];
+  }
+
+  /// Интерфейсы Wi-Fi и точки доступа: `en` (iOS), `wlan`/`swlan`/`ap` (Android), `bridge` (режим модема iOS).
+  static const List<String> _wifiInterfaces = ['en', 'wlan', 'swlan', 'ap', 'bridge'];
+
+  static bool _isPrivate(String address) {
+    final octets = address.split('.').map(int.tryParse).toList();
+    if (octets.length != 4 || octets.contains(null)) return false;
+    final [a, b, _, _] = octets.cast<int>();
+    return a == 10 || (a == 172 && b >= 16 && b <= 31) || (a == 192 && b == 168);
   }
 
   ServiceRecord _record(GameAd ad, int port) =>
@@ -98,19 +122,30 @@ final class LanLobby implements GameLobby {
       address: LanAddress(gameId: ad.id, hosts: hosts, port: record.port),
     );
     if (games[record.name] == game) return false;
-    games[record.name] = game;
+    // Та же партия под другим именем: ОС переименовала новое объявление, пока старое ещё не пропало.
+    // Новее — последнее объявление.
+    games
+      ..removeWhere((name, other) => name != record.name && other.ad.id == ad.id)
+      ..[record.name] = game;
     return true;
   }
 }
 
 final class _LanHostedGame implements HostedGame {
-  _LanHostedGame(this._lobby, this._server, this._ad, this._advertisement);
+  _LanHostedGame(this._lobby, this._server, this._ad, this._advertisement) {
+    // ОС закрыла приём (iOS при сворачивании): объявлять мёртвый порт незачем.
+    unawaited(_server.done.then((_) => close()));
+  }
 
   final LanLobby _lobby;
   final LanServer _server;
   GameAd _ad;
   ServiceAdvertisement? _advertisement;
   bool _closed = false;
+
+  /// Конец последней операции с объявлением: объявления и закрытие идут по очереди, иначе одно из объявлений
+  /// останется в сети без хозяина.
+  Future<void> _queue = Future<void>.value();
 
   @override
   GameAd get ad => _ad;
@@ -126,21 +161,43 @@ final class _LanHostedGame implements HostedGame {
   }
 
   @override
-  Future<void> advertise(GameAd ad) async {
+  Future<void> advertise(GameAd ad) {
     if (ad.id != _ad.id) throw ArgumentError.value(ad.id, 'ad.id', 'Идентификатор партии менять нельзя');
-    if (_closed) throw StateError('Партия уже не объявляется');
-    await _advertisement?.stop();
-    _advertisement = null;
-    _advertisement = await _lobby._directory.advertise(_lobby._record(ad, _server.port));
-    _ad = ad;
+    return _serially(() async {
+      if (_closed) throw StateError('Партия уже не объявляется');
+      await _advertisement?.stop();
+      _advertisement = null;
+      final advertisement = await _lobby._directory.advertise(_lobby._record(ad, _server.port));
+      if (_closed) {
+        await advertisement.stop();
+        throw StateError('Партия закрыта во время объявления');
+      }
+      _advertisement = advertisement;
+      _ad = ad;
+    });
   }
 
   @override
   Future<void> close() async {
+    if (_closed) return;
     _closed = true;
-    final advertisement = _advertisement;
-    _advertisement = null;
-    await advertisement?.stop();
     await _server.close();
+    await _serially(() async {
+      final advertisement = _advertisement;
+      _advertisement = null;
+      await advertisement?.stop();
+    });
+  }
+
+  Future<void> _serially(Future<void> Function() operation) async {
+    final previous = _queue;
+    final current = Completer<void>();
+    _queue = current.future;
+    try {
+      await previous;
+      await operation();
+    } finally {
+      current.complete();
+    }
   }
 }

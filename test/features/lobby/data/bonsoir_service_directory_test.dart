@@ -45,13 +45,18 @@ void main() {
       final pending = directory.advertise(exampleRecord);
       await pumpEventQueue();
       final broadcast = platform.broadcasts.single;
-      broadcast.events.addError(PlatformException(code: 'broadcastError'));
+      broadcast.events.addError(PlatformException(code: 'broadcastError', details: -65540));
       await expectLater(pending, throwsA(_unavailable));
       expect(broadcast.stopped, isTrue);
     });
 
     test('ошибка канала платформы — тоже ошибка лобби', () async {
       platform.failStart = true;
+      await expectLater(directory.advertise(exampleRecord), throwsA(_unavailable));
+    });
+
+    test('без плагина платформы объявление отказывает ошибкой лобби', () async {
+      platform.missingPlugin = true;
       await expectLater(directory.advertise(exampleRecord), throwsA(_unavailable));
     });
 
@@ -112,11 +117,45 @@ void main() {
       directory.browse().listen(null, onError: errors.add, onDone: done.complete);
       await pumpEventQueue();
       final discovery = platform.discoveries.single;
-      discovery.events.addError(PlatformException(code: 'discoveryError'));
+      discovery.events.addError(PlatformException(code: 'discoveryError', details: -65555));
       await done.future;
       expect(errors, [_unavailable]);
       await pumpEventQueue();
       expect(discovery.stopped, isTrue);
+    });
+
+    test('ошибка разрешения одного сервиса не останавливает поиск', () async {
+      final events = <DirectoryEvent>[];
+      final errors = <Object>[];
+      var done = false;
+      final subscription = directory.browse().listen(events.add, onError: errors.add, onDone: () => done = true);
+      await pumpEventQueue();
+      final discovery = platform.discoveries.single;
+      // Так bonsoir сообщает, что сервис пропал до разрешения: без кода ошибки службы.
+      discovery.events.addError(PlatformException(code: 'discoveryError', message: 'undiscovered service'));
+      final service = BonsoirService(
+        name: 'game-1',
+        type: '_gwent._tcp',
+        port: 4000,
+        attributes: const {'g': 'game-1'},
+        hostAddresses: const ['192.168.1.5'],
+      );
+      discovery.events.add(BonsoirDiscoveryServiceResolvedEvent(service: service));
+      await pumpEventQueue();
+      expect(errors, isEmpty);
+      expect(done, isFalse);
+      expect(discovery.stopped, isFalse);
+      expect(events, hasLength(1));
+      await subscription.cancel();
+    });
+
+    test('без плагина платформы поиск отказывает ошибкой лобби', () async {
+      platform.missingPlugin = true;
+      final errors = <Object>[];
+      final done = Completer<void>();
+      directory.browse().listen(null, onError: errors.add, onDone: done.complete);
+      await done.future;
+      expect(errors, [_unavailable]);
     });
 
     test('отмена во время запуска не оставляет поиск работать', () async {
@@ -134,6 +173,7 @@ final class _FakeBonsoirPlatform extends BonsoirPlatformInterface {
   final List<_FakeBroadcast> broadcasts = [];
   final List<_FakeDiscovery> discoveries = [];
   bool failStart = false;
+  bool missingPlugin = false;
   Duration initializeDelay = Duration.zero;
 
   @override
@@ -165,6 +205,7 @@ abstract base class _FakeAction<T extends BonsoirEvent> extends BonsoirAction<T>
 
   @override
   Future<void> initialize() async {
+    if (platform.missingPlugin) throw MissingPluginException('нет плагина');
     await Future<void>.delayed(platform.initializeDelay);
     _initialized = true;
   }

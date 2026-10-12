@@ -27,6 +27,9 @@ final class BonsoirServiceDirectory implements ServiceDirectory {
     try {
       await broadcast.initialize();
       final started = Completer<void>();
+      // Отказ может прийти, пока ждём `start`: без этого он ушёл бы в зону как необработанный, хотя `await` ниже
+      // его всё равно получит.
+      started.future.ignore();
       final subscription = broadcast.eventStream?.listen(
         (event) {
           if (event is BonsoirBroadcastStartedEvent && !started.isCompleted) started.complete();
@@ -43,6 +46,8 @@ final class BonsoirServiceDirectory implements ServiceDirectory {
       }
     } on PlatformException catch (error) {
       await _stopQuietly(broadcast);
+      throw LobbyException(LobbyFailure.unavailable, error);
+    } on MissingPluginException catch (error) {
       throw LobbyException(LobbyFailure.unavailable, error);
     } on LobbyException {
       await _stopQuietly(broadcast);
@@ -62,6 +67,14 @@ final class BonsoirServiceDirectory implements ServiceDirectory {
       if (controller.isClosed) return;
       controller.addError(LobbyException(LobbyFailure.unavailable, error));
       unawaited(controller.close());
+    }
+
+    // Отказ службы поиска bonsoir передаёт с кодом ОС в `details`. Без кода приходят ошибки разрешения одного
+    // сервиса (он пропал между «найден» и «разрешить», например при повторном объявлении хоста): поиск
+    // продолжается, а такой сервис просто не появится в списке.
+    void onError(Object error) {
+      if (error is PlatformException && error.details == null) return;
+      fail(error);
     }
 
     Future<void> resolve(BonsoirDiscovery discovery, BonsoirService service) async {
@@ -100,9 +113,11 @@ final class BonsoirServiceDirectory implements ServiceDirectory {
       discovery = started;
       try {
         await started.initialize();
-        subscription = started.eventStream?.listen((event) => onEvent(started, event), onError: fail);
+        subscription = started.eventStream?.listen((event) => onEvent(started, event), onError: onError);
         await started.start();
       } on PlatformException catch (error) {
+        fail(error);
+      } on MissingPluginException catch (error) {
         fail(error);
       }
     }
@@ -132,6 +147,8 @@ final class BonsoirServiceDirectory implements ServiceDirectory {
       await action.stop();
     } on PlatformException {
       // Служба ОС уже остановила действие: снимать нечего.
+      return;
+    } on MissingPluginException {
       return;
     }
   }

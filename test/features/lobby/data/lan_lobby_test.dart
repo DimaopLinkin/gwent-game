@@ -131,6 +131,70 @@ void main() {
     expect(() => game.advertise(ad), throwsStateError);
   });
 
+  test('закрытие во время повторного объявления не оставляет объявление в сети', () async {
+    final game = await host(ad);
+    directory.advertiseDelay = const Duration(milliseconds: 50);
+    final readvertised = expectLater(game.advertise(ad.copyWith(open: false)), throwsStateError);
+    // Закрываем, пока ОС ещё подтверждает новое объявление.
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    await game.close();
+    await readvertised;
+    expect(directory.advertised, isEmpty);
+  });
+
+  test('повторные объявления идут по очереди, последнее остаётся', () async {
+    final game = await host(ad);
+    directory.advertiseDelay = const Duration(milliseconds: 20);
+    await Future.wait([game.advertise(ad.copyWith(open: false)), game.advertise(ad.copyWith(hostName: 'Цири'))]);
+    expect(directory.advertised.keys, [ad.id]);
+    expect(GameAdRecord.decode(directory.advertised[ad.id]!.attributes), ad.copyWith(hostName: 'Цири'));
+    expect(game.ad, ad.copyWith(hostName: 'Цири'));
+  });
+
+  test('если ОС закрыла сервер, объявление снимается', () async {
+    final game = await host(ad);
+    final connectionsDone = Completer<void>();
+    final subscription = game.connections.listen(null, onDone: connectionsDone.complete);
+    await subscription.cancel();
+    await _settle();
+    expect(directory.advertised, isEmpty, reason: 'без слушателя соединений сервер и объявление закрываются');
+  });
+
+  test('одна партия под двумя именами сервиса видна один раз', () async {
+    final lists = <List<FoundGame>>[];
+    final subscription = lobby.discover().listen(lists.add);
+    await host(ad);
+    await _settle();
+    final record = directory.advertised[ad.id]!;
+    directory.emit(
+      ServiceFound(
+        ServiceRecord(
+          name: '${ad.id} (2)',
+          port: record.port + 1,
+          attributes: record.attributes,
+          hosts: const ['127.0.0.1'],
+        ),
+      ),
+    );
+    await _settle();
+    expect(lists.last, hasLength(1));
+    expect((lists.last.single.address as LanAddress).port, record.port + 1, reason: 'новее — последнее объявление');
+    await subscription.cancel();
+  });
+
+  test('в приглашении сначала адреса Wi-Fi и частных сетей, сотовые и VPN в конце', () {
+    expect(
+      LanLobby.preferredAddresses([
+        ('pdp_ip0', '10.12.0.5'),
+        ('utun3', '100.64.1.2'),
+        ('en0', '192.168.1.5'),
+        ('rmnet_data0', '25.1.2.3'),
+        ('wlan0', '172.20.10.2'),
+      ]),
+      ['192.168.1.5', '172.20.10.2', '10.12.0.5', '100.64.1.2', '25.1.2.3'],
+    );
+  });
+
   test('идентификатор объявленной партии не меняется', () async {
     final game = await host(ad);
     expect(() => game.advertise(const GameAd(id: 'game-2', hostName: 'x', ruleset: testRuleset)), throwsArgumentError);
