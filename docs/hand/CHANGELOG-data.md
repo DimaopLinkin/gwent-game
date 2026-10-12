@@ -1,5 +1,17 @@
 # Журнал изменений данных docs/hand
 
+## 12.10.2026
+
+- Из описаний способностей убраны служебные пометки, которые видны игроку в полном просмотре карты. Почему: «см. twin_config»,
+  «см. mardrem_config» и «поле ability_id» ссылаются на таблицы данных, а не на правила игры. Что изменено:
+  - `squad_card_abilities` «Двойник»: убрано «, см. twin_config»;
+  - `squad_card_abilities` «Проворство»: убрано предложение «Задаётся зоной «Ближний бой / Дальний бой», а не полем
+    ability_id.»;
+  - `squad_card_abilities` «Берсерк»: убрано «(см. mardrem_config)»;
+  - `squad_card_abilities` «Мардрём» (карта отряда): вместо «(см. mardrem_config)» стало «превращаются в вильдкаарлов»;
+  - `special_card_abilities` «Мардрём» (специальная карта): вместо «(см. mardrem_config)» стало «в вильдкаарлов».
+  Источник: `docs/hand/main.md` и таблицы `twin_config`, `mardrem_config`: смысл пометок перенесён в текст. `pack_version` 1 → 2.
+
 ## 11.10.2026
 
 - Добавлена таблица `data/game_rules` (`game_rules_data.json`, `game_rules_schema.md`): числовые параметры партии
