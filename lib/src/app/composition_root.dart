@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
+import 'package:gwent/src/core/data/secure_seed_generator.dart';
 import 'package:gwent/src/core/data/system_clock.dart';
 import 'package:gwent/src/core/data/uuid_id_generator.dart';
 import 'package:gwent/src/core/database/app_database.dart';
@@ -22,5 +23,6 @@ AppDependencies createAppDependencies() {
     matchHistoryRepository: DriftMatchHistoryRepository(database),
     clock: const SystemClock(),
     idGenerator: const UuidIdGenerator(),
+    seedGenerator: SecureSeedGenerator(),
   );
 }

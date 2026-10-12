@@ -18,6 +18,7 @@ void main() {
       matchHistoryRepository: InMemoryMatchHistoryRepository(),
       clock: FakeClock(DateTime.utc(2026, 10, 12)),
       idGenerator: SequentialIdGenerator(),
+      seedGenerator: FixedSeedGenerator(1),
     );
     final content = (await dependencies.loadGameContent() as GameContentReady).content;
     final factions = content.pack.rules.fractions.where((fraction) => fraction.isDeck).toList();

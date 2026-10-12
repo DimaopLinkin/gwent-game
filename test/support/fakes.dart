@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
+import 'package:gwent/src/core/domain/seed_generator.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
@@ -26,6 +27,16 @@ final class SequentialIdGenerator implements IdGenerator {
 
   @override
   String next() => 'id-${++_last}';
+}
+
+/// Сиды по порядку, начиная с заданного: партии в тестах воспроизводимы.
+final class FixedSeedGenerator implements SeedGenerator {
+  FixedSeedGenerator(this._next);
+
+  int _next;
+
+  @override
+  int next() => _next++;
 }
 
 /// Колоды в памяти. Поток сразу выдаёт текущий список, как и реализация на Drift.
