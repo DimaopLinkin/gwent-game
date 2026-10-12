@@ -16,6 +16,7 @@
 - Изменение данных карт записывается в `docs/hand/CHANGELOG-data.md`: что, почему, источник. При каждой правке данных увеличивается `pack_version` в `docs/hand/content_pack.json`.
 - Числовые параметры партии и колоды: `docs/hand/data/game_rules/game_rules_data.json` (значения из `main.md`).
 - Пакет контента (формат, сборка, проверка): `docs/adr/0002-content-pack.md`. Новый тег способности в `docs/hand` сопоставляется с эффектом в `tools/build_pack/lib/src/effect_mapping.dart`, иначе сборка упадёт.
+- Пакет контента → движок: `lib/src/features/content/domain/engine_content.dart` (`mapContentToEngine`, `engineCapabilities`). Новый эффект пакета или способность движка сопоставляются там; числа перков фракций зашиты в движок, и пакет с другими числами приложение отклоняет. Контент для партии и конструктора колод даёт сценарий `LoadGameContent` из `AppDependencies`.
 - UUID карты не меняется никогда. Колоды и сетевой протокол ссылаются только на UUID.
 - Архитектурные решения: `docs/adr/NNNN-название.md`. Требования к фичам: `docs/spec/<фича>.md`.
 - Решили что-то новое — записать в репозиторий (ADR, spec или этот файл), а не оставлять в переписке.
