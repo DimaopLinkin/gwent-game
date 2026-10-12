@@ -47,7 +47,7 @@ void main() {
     expect(found, [
       FoundGame(
         ad: ad,
-        address: LanAddress(gameId: ad.id, hosts: ['127.0.0.1'], port: record.port),
+        address: LanAddress(gameId: ad.id, hosts: const ['127.0.0.1'], port: record.port),
       ),
     ]);
 
@@ -65,7 +65,7 @@ void main() {
   test('приглашение ведёт на тот же сервер, что и поиск', () async {
     final game = await host(ad);
     final address = await game.address();
-    expect(address, LanAddress(gameId: ad.id, hosts: ['192.168.1.5'], port: directory.advertised[ad.id]!.port));
+    expect(address, LanAddress(gameId: ad.id, hosts: const ['192.168.1.5'], port: directory.advertised[ad.id]!.port));
   });
 
   test('список следит за появлением, изменением и пропажей партий', () async {
@@ -86,7 +86,7 @@ void main() {
     directory.emit(ServiceFound(ServiceRecord(name: 'чужой', port: 1, attributes: const {'lib': 'bonsoir'})));
     directory.emit(
       ServiceFound(
-        ServiceRecord(name: 'без адреса', port: 1, attributes: GameAdRecord.encode(ad), hosts: ['fe80::1%en0']),
+        ServiceRecord(name: 'без адреса', port: 1, attributes: GameAdRecord.encode(ad), hosts: const ['fe80::1%en0']),
       ),
     );
     directory.emit(const ServiceLost('неизвестный'));

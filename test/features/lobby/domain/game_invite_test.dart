@@ -4,7 +4,7 @@ import 'package:gwent/src/features/lobby/domain/game_invite.dart';
 
 void main() {
   test('приглашение переносит адрес партии строкой', () {
-    final address = LanAddress(gameId: 'c0ffee-42', hosts: ['192.168.1.5', '10.0.0.7'], port: 40123);
+    final address = LanAddress(gameId: 'c0ffee-42', hosts: const ['192.168.1.5', '10.0.0.7'], port: 40123);
     final invite = GameInvite.encode(address);
     expect(invite, 'gwent://lan/c0ffee-42?p=40123&h=192.168.1.5&h=10.0.0.7');
     expect(GameInvite.decode(invite), address);
@@ -28,7 +28,7 @@ void main() {
   });
 
   test('адрес без хостов или с плохим портом не создаётся', () {
-    expect(() => LanAddress(gameId: 'g', hosts: [], port: 1), throwsArgumentError);
-    expect(() => LanAddress(gameId: 'g', hosts: ['1.2.3.4'], port: 0), throwsArgumentError);
+    expect(() => LanAddress(gameId: 'g', hosts: const [], port: 1), throwsArgumentError);
+    expect(() => LanAddress(gameId: 'g', hosts: const ['1.2.3.4'], port: 0), throwsArgumentError);
   });
 }

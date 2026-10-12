@@ -90,6 +90,7 @@ void main() {
     await socket.drain<void>().timeout(const Duration(seconds: 5));
     expect(received, isEmpty);
     expect(socket.closeCode, WebSocketStatus.unsupportedData);
+    await socket.close();
   });
 
   test('к чужой партии и не по WebSocket не подключиться', () async {
@@ -115,7 +116,7 @@ void main() {
     final port = server.port;
     await server.close();
     await expectLater(
-      connector.connect(LanAddress(gameId: 'game-1', hosts: ['127.0.0.1'], port: port)),
+      connector.connect(LanAddress(gameId: 'game-1', hosts: const ['127.0.0.1'], port: port)),
       throwsA(isA<LobbyException>().having((e) => e.failure, 'failure', LobbyFailure.unreachable)),
     );
   });

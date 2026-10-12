@@ -33,9 +33,7 @@ final class WebSocketTransport implements Transport {
   @override
   Future<void> close() async {
     if (_closed) return;
-    _finish();
-    // dart:io сам разрывает соединение, если собеседник не ответил на закрытие за несколько секунд.
-    await _socket.close(WebSocketStatus.normalClosure);
+    await _closeAs(WebSocketStatus.normalClosure);
   }
 
   void _onMessage(Object? message) {
@@ -52,9 +50,17 @@ final class WebSocketTransport implements Transport {
 
   void _onError(Object error) => _finish();
 
+  /// dart:io сам разрывает соединение, если собеседник не ответил на закрытие за несколько секунд.
   Future<void> _closeAs(int code) async {
     _finish();
-    await _socket.close(code);
+    try {
+      await _socket.close(code);
+    } on SocketException {
+      // Соединение уже разорвано: закрывать нечего, а вызывающий (`PeerLink`) не ждёт ошибки.
+      return;
+    } on WebSocketException {
+      return;
+    }
   }
 
   void _finish() {
