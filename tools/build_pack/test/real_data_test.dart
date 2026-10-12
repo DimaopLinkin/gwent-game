@@ -35,6 +35,15 @@ void main() {
     });
   });
 
+  test('в текстах для игрока нет служебных пометок на таблицы и поля данных', () {
+    final serviceNote = RegExp(r'[a-z]+_[a-z_]+|\bсм\.');
+    for (final table in pack.strings.values) {
+      for (final MapEntry(:key, :value) in table.entries.entries) {
+        expect(serviceNote.hasMatch(value), isFalse, reason: '$key: $value');
+      }
+    }
+  });
+
   test('параметры партии и колоды из docs/hand/main.md', () {
     final gameRules = rules.gameRules;
     expect(
