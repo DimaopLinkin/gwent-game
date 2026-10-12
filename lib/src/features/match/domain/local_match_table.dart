@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:gwent/src/features/match/domain/awaited_action.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent_engine/gwent_engine.dart';
@@ -11,7 +12,8 @@ import 'package:gwent_engine/gwent_engine.dart';
 ///
 /// После каждого изменения партии стол спрашивает агентов, пока им есть что сделать. Если, пока агент думал,
 /// партия изменилась (например, при пересдаче человек и бот действуют одновременно), его решение отбрасывается
-/// и он решает заново по новому состоянию.
+/// и он решает заново по новому состоянию. Если агент ошибся (движок отклонил его ход, агент бросил исключение
+/// или не ходит, когда партия ждёт его), приходит `TableFailed`.
 final class LocalMatchTable implements MatchTable {
   /// Создаёт стол над партией, которую начал движок: [state] и события [startEvents] из `MatchEngine.start`.
   LocalMatchTable({
@@ -94,6 +96,13 @@ final class LocalMatchTable implements MatchTable {
           }
           moved = true;
           break;
+        }
+      }
+      if (_closed) return;
+      for (final seat in _agents.keys) {
+        if (awaitsAction(_engine.project(_state, seat))) {
+          // Иначе партия молча встала бы: человек ждёт хода, которого не будет.
+          throw StateError('Агент места ${seat.name} не ходит, хотя партия ждёт его');
         }
       }
     } on Object catch (error) {

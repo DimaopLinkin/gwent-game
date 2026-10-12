@@ -3,7 +3,7 @@ import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' as history;
 import 'package:gwent_engine/gwent_engine.dart';
 
-/// Сценарий: записать законченную местную партию в историю глазами `MatchSession.perspective`.
+/// Сценарий: записать законченную партию в историю глазами `MatchSession.perspective`.
 final class RecordFinishedMatch {
   /// Создаёт сценарий.
   const RecordFinishedMatch(this._recordMatch);
@@ -19,10 +19,7 @@ final class RecordFinishedMatch {
     final me = session.perspective;
     int won(Seat seat) => finalView.history.where((round) => round.winner == seat).length;
     return _recordMatch(
-      mode: switch (session.mode) {
-        LocalMatchMode.hotSeat => history.MatchMode.hotSeat,
-        LocalMatchMode.vsBot => history.MatchMode.ai,
-      },
+      mode: session.mode,
       playerFactionId: session.factionIds[me]!,
       opponentFactionId: session.factionIds[me.opponent]!,
       outcome: switch (outcome.winner) {

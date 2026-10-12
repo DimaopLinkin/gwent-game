@@ -19,7 +19,7 @@ void main() {
     );
   });
 
-  MatchSession session(LocalMatchMode mode, Set<Seat> localSeats) => MatchSession(
+  MatchSession session(history.MatchMode mode, Set<Seat> localSeats) => MatchSession(
     mode: mode,
     table: _Table(localSeats),
     factionIds: const {Seat.one: 'skellige', Seat.two: 'monsters'},
@@ -27,7 +27,7 @@ void main() {
 
   test('победа против бота: режим ai, фракции и раунды глазами первого места', () async {
     final saved = await record(
-      session(LocalMatchMode.vsBot, {Seat.one}),
+      session(history.MatchMode.ai, {Seat.one}),
       _finalView(winner: Seat.one, rounds: [Seat.two, Seat.one, Seat.one]),
     );
     expect(repository.records, [saved]);
@@ -41,7 +41,7 @@ void main() {
 
   test('hot-seat записывается глазами первого игрока при проекции второго', () async {
     final saved = await record(
-      session(LocalMatchMode.hotSeat, Seat.values.toSet()),
+      session(history.MatchMode.hotSeat, Seat.values.toSet()),
       _finalView(winner: Seat.two, rounds: [Seat.two, Seat.two], viewer: Seat.two),
     );
     expect(saved.mode, history.MatchMode.hotSeat);
@@ -51,7 +51,7 @@ void main() {
 
   test('ничья: раунды вничью не идут в счёт', () async {
     final saved = await record(
-      session(LocalMatchMode.vsBot, {Seat.one}),
+      session(history.MatchMode.ai, {Seat.one}),
       _finalView(winner: null, rounds: [null, null]),
     );
     expect(saved.outcome, history.MatchOutcome.draw);
@@ -60,7 +60,7 @@ void main() {
 
   test('неоконченную партию записать нельзя', () {
     final view = _finalView(winner: Seat.one, rounds: const [], finished: false);
-    expect(() => record(session(LocalMatchMode.vsBot, {Seat.one}), view), throwsArgumentError);
+    expect(() => record(session(history.MatchMode.ai, {Seat.one}), view), throwsArgumentError);
   });
 }
 

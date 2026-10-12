@@ -7,6 +7,7 @@ import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent_content/gwent_content.dart' show InMemoryContentSource;
 import 'package:gwent_engine/gwent_engine.dart' hide Deck;
 
@@ -43,7 +44,7 @@ void main() {
     final session = await started(
       const LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
     );
-    expect(session.mode, LocalMatchMode.vsBot);
+    expect(session.mode, MatchMode.ai);
     expect(session.table.localSeats, {Seat.one});
     expect(session.perspective, Seat.one);
     expect(session.factionIds, {

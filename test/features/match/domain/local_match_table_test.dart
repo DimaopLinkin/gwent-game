@@ -131,6 +131,13 @@ void main() {
     expect(failed.error, isA<StateError>());
   });
 
+  test('агент молчит, когда партия ждёт его: партия прерывается, а не встаёт', () async {
+    // При пересдаче партия ждёт обоих, а агент ничего не делает.
+    final silent = table(agents: {Seat.two: _ScriptedAgent()});
+    final failed = await silent.updates.firstWhere((update) => update is TableFailed) as TableFailed;
+    expect(failed.error, isA<StateError>());
+  });
+
   test('полная партия: человек против жадного бота доходит до итога', () async {
     final human = GreedyBot(engine, content.catalog);
     final vsBot = table(agents: {Seat.two: BotAgent(GreedyBot(engine, content.catalog), thinkTime: Duration.zero)});

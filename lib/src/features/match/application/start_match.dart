@@ -6,6 +6,7 @@ import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_content/gwent_content.dart' show ValidationIssue;
 import 'package:gwent_engine/gwent_engine.dart';
@@ -148,7 +149,10 @@ final class StartMatch {
         );
         return MatchStarted(
           MatchSession(
-            mode: mode,
+            mode: switch (mode) {
+              LocalMatchMode.hotSeat => MatchMode.hotSeat,
+              LocalMatchMode.vsBot => MatchMode.ai,
+            },
             table: table,
             factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId},
           ),

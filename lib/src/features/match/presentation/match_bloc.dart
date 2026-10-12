@@ -22,6 +22,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   /// Создаёт держатель над сценариями.
   MatchBloc(this._startMatch, this._recordFinishedMatch) : super(const MatchIdle()) {
     on<MatchStartRequested>(_onStartRequested);
+    on<MatchSessionOpened>(_onSessionOpened);
     on<MatchIntentSubmitted>(_onIntentSubmitted);
     on<MatchHandoverAccepted>(_onHandoverAccepted);
     on<MatchTableUpdated>(_onTableUpdated);
@@ -42,17 +43,47 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   /// Чьими глазами экран показывает партию; `null`, пока партия не на экране.
   Seat? _shown;
 
+  /// Держатель закрывается: новые столы сразу закрываются, состояния не меняются.
+  bool _closing = false;
+
   Future<void> _onStartRequested(MatchStartRequested event, Emitter<MatchScreenState> emit) async {
     if (state is! MatchIdle && state is! MatchStartFailed) return;
     emit(const MatchStarting());
-    final result = await _startMatch(event.request);
+    final StartMatchResult result;
+    try {
+      result = await _startMatch(event.request);
+    } on Object catch (error, stackTrace) {
+      // Сбой хранилища или контента, а не причина из итога сценария: повторять бесполезно.
+      if (!_closing) emit(MatchCrashed(error));
+      addError(error, stackTrace);
+      return;
+    }
     switch (result) {
       case MatchStarted(:final session):
-        _session = session;
-        _subscription = session.table.updates.listen((update) => add(MatchTableUpdated(update)));
+        await _open(session, emit);
       case MatchContentUnavailable() || MatchDeckNotFound() || MatchDeckInvalid():
-        emit(MatchStartFailed(result));
+        if (!_closing) emit(MatchStartFailed(result));
     }
+  }
+
+  Future<void> _onSessionOpened(MatchSessionOpened event, Emitter<MatchScreenState> emit) async {
+    if (state is! MatchIdle && state is! MatchStartFailed) {
+      // Партия уже идёт: вторую не открываем, но и стол не бросаем.
+      await event.session.table.close();
+      return;
+    }
+    await _open(event.session, emit);
+  }
+
+  /// Начинает следить за столом партии. Если держатель уже закрывается (игрок ушёл с экрана во время старта),
+  /// закрывает стол, чтобы бот не ходил дальше без экрана.
+  Future<void> _open(MatchSession session, Emitter<MatchScreenState> emit) async {
+    if (_closing) {
+      await session.table.close();
+      return;
+    }
+    _session = session;
+    _subscription = session.table.updates.listen((update) => add(MatchTableUpdated(update)));
   }
 
   void _onIntentSubmitted(MatchIntentSubmitted event, Emitter<MatchScreenState> emit) {
@@ -78,7 +109,12 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
           emit(MatchInProgress(view: _views[seat]!, events: const [], refusal: reject));
         }
       case TableFailed(:final error):
+        if (state is MatchFinished || state is MatchCrashed) return;
         emit(MatchCrashed(error));
+        // Партия прервана: дальше стол ничего не показывает и не принимает.
+        await _subscription?.cancel();
+        _subscription = null;
+        await _session!.table.close();
     }
   }
 
@@ -86,12 +122,13 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   Future<void> _present(Emitter<MatchScreenState> emit) async {
     final session = _session!;
     final local = session.table.localSeats;
-    if (state is MatchHandover || state is MatchFinished) return;
+    if (state is MatchFinished || state is MatchCrashed) return;
     final shown = _shown;
     if (_views.values.first.phase == MatchPhase.finished) {
       await _finish(emit, shown ?? session.perspective);
       return;
     }
+    if (state is MatchHandover) return;
     final next = _actor(local) ?? shown ?? session.perspective;
     if (local.length > 1 && next != shown) {
       // Hot-seat: телефон уходит другому игроку, в том числе в начале партии; руку видит только он.
@@ -138,6 +175,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
 
   @override
   Future<void> close() async {
+    _closing = true;
     await _subscription?.cancel();
     await _session?.table.close();
     return super.close();

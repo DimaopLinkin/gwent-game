@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/match/domain/match_table.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:meta/meta.dart';
 
@@ -18,8 +19,8 @@ final class MatchSession {
   MatchSession({required this.mode, required this.table, required Map<Seat, String> factionIds})
     : factionIds = Map.unmodifiable(factionIds);
 
-  /// Режим.
-  final LocalMatchMode mode;
+  /// Режим партии для истории: местные режимы и (позже) сетевые.
+  final MatchMode mode;
 
   /// Стол, через который идёт партия.
   final MatchTable table;
