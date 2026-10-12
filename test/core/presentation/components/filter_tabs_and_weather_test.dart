@@ -103,14 +103,36 @@ void main() {
       }
     });
 
-    testWidgets('ясное небо: оверлей гаснет за 400 мс', (tester) async {
+    testWidgets('ясное небо: оверлей гаснет за 400 мс и снимается', (tester) async {
       await pump(tester, GwentWeather.frost);
       await pump(tester, GwentWeather.clear);
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
-      final halfway = tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity;
-      expect(halfway, 0);
+      final fade = find.descendant(of: find.byType(RowWeatherOverlay), matching: find.byType(FadeTransition));
+      final halfway = tester.widget<FadeTransition>(fade).opacity.value;
+      expect(halfway, inExclusiveRange(0, 1));
       await tester.pump(RowWeatherOverlay.fadeDuration);
-      expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 0);
+      await tester.pump();
+      expect(find.descendant(of: find.byType(RowWeatherOverlay), matching: find.byType(FadeTransition)), findsNothing);
+    });
+
+    testWidgets('иней статичен: кадры не планируются', (tester) async {
+      await pump(tester, GwentWeather.frost);
+      await tester.pump();
+      expect(tester.hasRunningAnimations, isFalse);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+    });
+
+    testWidgets('после затухания слой снят и тикер остановлен', (tester) async {
+      await pump(tester, GwentWeather.rain);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.hasRunningAnimations, isTrue);
+      await pump(tester, null);
+      await tester.pump();
+      await tester.pump(RowWeatherOverlay.fadeDuration + const Duration(milliseconds: 50));
+      await tester.pump();
+      expect(tester.hasRunningAnimations, isFalse);
+      expect(find.byType(AnimatedOpacity), findsNothing);
     });
 
     testWidgets('при «уменьшить движение» туман и дождь статичны', (tester) async {

@@ -25,11 +25,18 @@ class RowWeatherOverlay extends StatefulWidget {
 }
 
 class _RowWeatherOverlayState extends State<RowWeatherOverlay> with SingleTickerProviderStateMixin {
-  late final AnimationController _drift = AnimationController(vsync: this, duration: const Duration(seconds: 16));
+  late final AnimationController _drift = AnimationController(vsync: this);
   GwentWeather? _shown;
 
   static bool _hasOverlay(GwentWeather? weather) =>
       weather == GwentWeather.frost || weather == GwentWeather.fog || weather == GwentWeather.rain;
+
+  /// Длина цикла дрейфа в целых циклах анимации: туман 16 с (240 и 360 pt за цикл), дождь 14 с = 20 × 0,7 с.
+  static Duration? _cycle(GwentWeather? weather) => switch (weather) {
+    GwentWeather.fog => const Duration(seconds: 16),
+    GwentWeather.rain => const Duration(seconds: 14),
+    _ => null,
+  };
 
   @override
   void initState() {
@@ -42,19 +49,38 @@ class _RowWeatherOverlayState extends State<RowWeatherOverlay> with SingleTicker
     super.didUpdateWidget(oldWidget);
     // Пока слой гаснет, остаётся прежняя погода, иначе он исчез бы мгновенно.
     if (_hasOverlay(widget.weather)) _shown = widget.weather;
+    _syncTicker();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final animate = !MediaQuery.disableAnimationsOf(context);
-    if (animate && !_drift.isAnimating) {
-      unawaited(_drift.repeat());
-    } else if (!animate) {
+    _syncTicker();
+  }
+
+  /// Тикер крутится только у тумана и дождя и только когда анимации включены: у инея и пустого слоя кадры не
+  /// планируются.
+  void _syncTicker() {
+    final cycle = _cycle(_shown);
+    if (cycle == null || MediaQuery.disableAnimationsOf(context)) {
       _drift
         ..stop()
         ..value = 0;
+      return;
     }
+    if (_drift.duration != cycle) {
+      _drift
+        ..stop()
+        ..duration = cycle
+        ..value = 0;
+    }
+    if (!_drift.isAnimating) unawaited(_drift.repeat());
+  }
+
+  void _onFadeEnd() {
+    if (_hasOverlay(widget.weather)) return;
+    setState(() => _shown = null);
+    _syncTicker();
   }
 
   @override
@@ -72,18 +98,20 @@ class _RowWeatherOverlayState extends State<RowWeatherOverlay> with SingleTicker
         child: AnimatedOpacity(
           opacity: _hasOverlay(widget.weather) ? 1 : 0,
           duration: RowWeatherOverlay.fadeDuration,
+          onEnd: _onFadeEnd,
           child: RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: _drift,
-              builder: (context, _) => CustomPaint(
-                painter: _WeatherPainter(
-                  weather: shown,
-                  drift: _drift.value,
-                  seconds: _drift.duration!.inMilliseconds / 1000,
-                ),
-                child: const SizedBox.expand(),
-              ),
-            ),
+            child: _cycle(shown) == null
+                ? CustomPaint(
+                    painter: _WeatherPainter(weather: shown, drift: 0),
+                    child: const SizedBox.expand(),
+                  )
+                : AnimatedBuilder(
+                    animation: _drift,
+                    builder: (context, _) => CustomPaint(
+                      painter: _WeatherPainter(weather: shown, drift: _drift.value),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
           ),
         ),
       ),
@@ -92,13 +120,15 @@ class _RowWeatherOverlayState extends State<RowWeatherOverlay> with SingleTicker
 }
 
 class _WeatherPainter extends CustomPainter {
-  const _WeatherPainter({required this.weather, required this.drift, required this.seconds});
+  const _WeatherPainter({required this.weather, required this.drift});
+
+  /// Циклов капель (0,7 с каждый) в 14-секундном цикле дождя.
+  static const int rainCycles = 20;
 
   final GwentWeather weather;
 
-  /// Доля оборота 16-секундного цикла.
+  /// Доля оборота цикла дрейфа (у тумана 16 с, у дождя 14 с); у инея не используется.
   final double drift;
-  final double seconds;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -205,8 +235,7 @@ class _WeatherPainter extends CustomPainter {
   /// Штрихи капель с наклоном 12°, цикл 0,7 с, затемнение ряда 24 %.
   void _rain(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0x3D19202C));
-    final cycles = seconds / 0.7;
-    final t = (drift * cycles) % 1;
+    final t = (drift * rainCycles) % 1;
     canvas
       ..save()
       ..translate(size.width / 2, 0)

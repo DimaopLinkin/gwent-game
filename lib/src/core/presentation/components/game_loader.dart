@@ -23,7 +23,7 @@ class GameLoader extends StatefulWidget {
 class _GameLoaderState extends State<GameLoader> with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1800),
+    duration: const Duration(milliseconds: 1200),
   );
 
   @override
@@ -64,8 +64,8 @@ class _GameLoaderState extends State<GameLoader> with SingleTickerProviderStateM
                 for (var i = 0; i < 3; i++)
                   Builder(
                     builder: (context) {
-                      // Фаза каждого камня сдвинута на 0,2 с от периода 1,2 с, как в макете.
-                      final phase = ((_controller.value * 1.5) - i * (0.2 / 1.2)) % 1;
+                      // Период 1,2 с, фаза каждого следующего камня сдвинута на 0,2 с, как в макете.
+                      final phase = (_controller.value - i * (0.2 / 1.2)) % 1;
                       final wave = 0.5 - 0.5 * math.cos(phase * 2 * math.pi);
                       return Opacity(
                         opacity: 0.4 + 0.6 * wave,
@@ -125,9 +125,13 @@ class _GwentSpinnerState extends State<GwentSpinner> with SingleTickerProviderSt
   }
 
   @override
-  Widget build(BuildContext context) => RotationTransition(
-    turns: _controller,
-    child: CustomPaint(size: Size.square(widget.size), painter: const _RingPainter()),
+  Widget build(BuildContext context) => Semantics(
+    label: context.l10n.loaderSpinnerSemantics,
+    excludeSemantics: true,
+    child: RotationTransition(
+      turns: _controller,
+      child: CustomPaint(size: Size.square(widget.size), painter: const _RingPainter()),
+    ),
   );
 }
 

@@ -29,6 +29,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('длинный золотой заголовок на узком экране переносится без переполнения', (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const long = 'Ваш ход начинается прямо сейчас, не зевайте';
+    await tester.pumpWidget(
+      localizedApp(
+        const Center(
+          child: TurnBanner(title: long, kind: TurnBannerKind.yourTurn),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(TurnBanner)).width, lessThanOrEqualTo(320));
+    expect(tester.getSize(find.text(long)).height, greaterThan(40));
+  });
+
   testWidgets('минимальная высота 72 pt, подзаголовок показан', (tester) async {
     await tester.pumpWidget(
       localizedApp(
@@ -85,6 +102,49 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Ваш ход'), findsNothing);
       expect(dismissed, 1);
+    });
+
+    testWidgets('равный баннер при перестройке не сбрасывает отсчёт и не показывается дважды', (tester) async {
+      var dismissed = 0;
+      Future<void> pump() => tester.pumpWidget(
+        localizedApp(
+          TurnBannerPresenter(
+            banner: const TurnBanner(title: 'Ваш ход', kind: TurnBannerKind.yourTurn),
+            onDismissed: () => dismissed++,
+            child: const SizedBox.expand(),
+          ),
+        ),
+      );
+      await pump();
+      await tester.pump(const Duration(milliseconds: 1000));
+      await pump();
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpAndSettle();
+      expect(find.text('Ваш ход'), findsNothing);
+      expect(dismissed, 1);
+
+      await pump();
+      await tester.pumpAndSettle();
+      expect(find.text('Ваш ход'), findsNothing);
+      expect(dismissed, 1);
+    });
+
+    testWidgets('показанный баннер объявляется скринридеру', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        localizedApp(
+          const TurnBannerPresenter(
+            banner: TurnBanner(title: 'Ваш ход'),
+            child: SizedBox.expand(),
+          ),
+        ),
+      );
+      await tester.pump(TurnBannerPresenter.transition);
+      expect(
+        tester.getSemantics(find.text('Ваш ход')),
+        isSemantics(label: 'Ваш ход', isLiveRegion: true),
+      );
+      semantics.dispose();
     });
 
     testWidgets('новый баннер заменяет показанный и перезапускает отсчёт', (tester) async {

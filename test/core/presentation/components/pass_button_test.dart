@@ -79,6 +79,20 @@ void main() {
       expect(find.text('Удерживайте 1 с'), findsNothing);
     });
 
+    testWidgets('ход перешёл к сопернику во время удержания: пас не уходит', (tester) async {
+      var passes = 0;
+      await pump(tester, PassButton(onPressed: () => passes++, holdToPass: true));
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(PassButton)));
+      await tester.pump(const Duration(milliseconds: 600));
+      await pump(tester, PassButton(onPressed: () => passes++, holdToPass: true, enabled: false));
+      await tester.pump(const Duration(seconds: 2));
+      await gesture.up();
+      await tester.pump();
+      expect(passes, 0);
+      expect(haptics, isEmpty);
+      expect(find.text('Удерживайте 1 с'), findsNothing);
+    });
+
     testWidgets('обычный тап в режиме удержания не пасует', (tester) async {
       var passes = 0;
       await pump(tester, PassButton(onPressed: () => passes++, holdToPass: true));

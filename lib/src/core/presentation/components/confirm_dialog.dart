@@ -58,50 +58,55 @@ class ConfirmDialog extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 12,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: GwentText.cormorant,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 26,
-                  height: 1.1,
-                  color: GwentColors.textPrimary,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 12,
+              children: [
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: GwentText.cormorant,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 26,
+                    height: 1.1,
+                    color: GwentColors.textPrimary,
+                  ),
                 ),
-              ),
-              Text(
-                body,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: GwentText.alegreya,
-                  fontSize: 15,
-                  height: 21 / 15,
-                  color: GwentColors.textSecondary,
+                Text(
+                  body,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: GwentText.alegreya,
+                    fontSize: 15,
+                    height: 21 / 15,
+                    color: GwentColors.textSecondary,
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  spacing: 12,
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        autofocus: true,
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: Text(context.l10n.dialogCancel),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    spacing: 12,
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          autofocus: true,
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: Text(context.l10n.dialogCancel),
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(confirmLabel)),
-                    ),
-                  ],
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: Text(confirmLabel),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

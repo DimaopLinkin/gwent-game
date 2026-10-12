@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
@@ -72,6 +74,24 @@ class _FilterTab extends StatefulWidget {
 class _FilterTabState extends State<_FilterTab> {
   bool _pressed = false;
   bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selected) _scheduleReveal();
+  }
+
+  @override
+  void didUpdateWidget(_FilterTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selected && !oldWidget.selected) _scheduleReveal();
+  }
+
+  /// Прокручивает ряд так, чтобы выбранная вкладка была видна целиком.
+  void _scheduleReveal() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
+    unawaited(Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 200), curve: Curves.easeOut));
+  });
 
   @override
   Widget build(BuildContext context) {

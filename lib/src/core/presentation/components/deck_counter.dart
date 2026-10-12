@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
@@ -54,7 +55,7 @@ class DeckCounter extends StatelessWidget {
       DeckCounterStatus.limit => (GwentColors.gold, GwentColors.gold, GwentColors.textSecondary, 14.0),
     };
     return Semantics(
-      label: '$label: $count/$target',
+      label: context.l10n.deckCounterSemantics(label, count, target),
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

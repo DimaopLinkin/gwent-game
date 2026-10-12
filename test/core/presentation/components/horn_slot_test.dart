@@ -10,7 +10,7 @@ void main() {
       await tester.pumpWidget(
         localizedApp(
           Center(
-            child: HornSlot(look: look, onTap: () {}),
+            child: HornSlot(look: look, effectName: 'Командирский рог', onTap: () {}),
           ),
         ),
       );
@@ -50,7 +50,16 @@ void main() {
     expect(find.bySemanticsLabel('Положить Командирский рог в этот ряд'), findsOneWidget);
 
     await tester.pumpWidget(localizedApp(const Center(child: HornSlot(look: HornSlotLook.empty))));
-    expect(find.bySemanticsLabel('Слот рога'), findsOneWidget);
+    expect(find.bySemanticsLabel('Слот рога: пусто'), findsOneWidget);
+
+    await tester.pumpWidget(
+      localizedApp(
+        const Center(
+          child: HornSlot(look: HornSlotLook.filled, effectName: 'Мардрём'),
+        ),
+      ),
+    );
+    expect(find.bySemanticsLabel('Слот рога: Мардрём'), findsOneWidget);
     semantics.dispose();
   });
 }

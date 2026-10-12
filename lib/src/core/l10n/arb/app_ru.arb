@@ -217,10 +217,6 @@
   "@passButtonHoldHint": {
     "description": "Подсказка над кнопкой паса, пока её держат."
   },
-  "passButtonHoldSemantics": "Удерживайте кнопку, чтобы спасовать",
-  "@passButtonHoldSemantics": {
-    "description": "Подсказка скринридеру для кнопки паса с удержанием."
-  },
   "passConfirmTitle": "Спасовать?",
   "@passConfirmTitle": {
     "description": "Заголовок диалога подтверждения паса."
@@ -238,9 +234,18 @@
   "@dialogCancel": {
     "description": "Безопасная кнопка диалога подтверждения."
   },
-  "hornSlotSemantics": "Слот рога",
-  "@hornSlotSemantics": {
-    "description": "Подпись пустого слота Командирского рога у ряда."
+  "hornSlotEmpty": "Слот рога: пусто",
+  "@hornSlotEmpty": {
+    "description": "Подпись пустого слота рога у ряда для скринридера."
+  },
+  "hornSlotFilled": "Слот рога: {effect}",
+  "@hornSlotFilled": {
+    "description": "Подпись занятого слота рога у ряда для скринридера; effect — название карты в слоте.",
+    "placeholders": {
+      "effect": {
+        "type": "String"
+      }
+    }
   },
   "hornSlotTargetSemantics": "Положить Командирский рог в этот ряд",
   "@hornSlotTargetSemantics": {
@@ -278,6 +283,43 @@
   "bannerOpponentPassedHint": "Разыграйте карту или спасуйте",
   "@bannerOpponentPassedHint": {
     "description": "Подзаголовок баннера: соперник спасовал."
+  },
+  "loaderSpinnerSemantics": "Загрузка",
+  "@loaderSpinnerSemantics": {
+    "description": "Подпись встроенного индикатора загрузки для скринридера."
+  },
+  "rowScoreSemantics": "Сила ряда {score}",
+  "@rowScoreSemantics": {
+    "description": "Подпись силы ряда для скринридера.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "totalScoreSemantics": "Общий счёт {score}",
+  "@totalScoreSemantics": {
+    "description": "Подпись общего счёта игрока для скринридера.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "deckCounterSemantics": "{label}: {count} из {target}",
+  "@deckCounterSemantics": {
+    "description": "Подпись счётчика колоды для скринридера.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
   },
   "loaderShuffling": "Тасуем колоду…",
   "@loaderShuffling": {

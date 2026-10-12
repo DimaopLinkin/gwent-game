@@ -54,12 +54,26 @@ class _PassButtonState extends State<PassButton> with SingleTickerProviderStateM
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(PassButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Ход ушёл или режим сменился, пока кнопку держали: удержание отменяется, пас не оформляется.
+    if (!widget.enabled || widget.holdToPass != oldWidget.holdToPass) _cancelHold();
+  }
+
+  void _cancelHold() {
+    _hold
+      ..stop()
+      ..value = 0;
+    _pressed = false;
+  }
+
   void _onHoldStatus(AnimationStatus status) {
     if (status != AnimationStatus.completed) return;
     unawaited(HapticFeedback.lightImpact());
     _hold.value = 0;
     setState(() => _pressed = false);
-    widget.onPressed();
+    if (widget.enabled) widget.onPressed();
   }
 
   void _down() {
@@ -88,7 +102,6 @@ class _PassButtonState extends State<PassButton> with SingleTickerProviderStateM
       button: true,
       enabled: enabled,
       label: l10n.passButtonLabel,
-      hint: widget.holdToPass ? l10n.passButtonHoldHint : null,
       onTap: enabled ? widget.onPressed : null,
       excludeSemantics: true,
       child: Focus(
@@ -123,7 +136,7 @@ class _PassButtonState extends State<PassButton> with SingleTickerProviderStateM
                     style: const TextStyle(
                       fontFamily: GwentText.alegreya,
                       fontStyle: FontStyle.italic,
-                      fontSize: 14,
+                      fontSize: 13,
                       height: 1,
                       color: GwentColors.textSecondary,
                     ),

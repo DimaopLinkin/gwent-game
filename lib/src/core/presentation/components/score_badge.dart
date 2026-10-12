@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
@@ -20,28 +21,32 @@ class RowScoreBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final empty = score == 0;
-    return Container(
-      width: diameter,
-      height: diameter,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: empty ? GwentColors.bg : null,
-        gradient: empty ? null : _discGradient(GwentColors.surfaceRaised, 0.8),
-        boxShadow: empty
-            ? const [BoxShadow(color: GwentColors.line, spreadRadius: 1)]
-            : const [
-                BoxShadow(color: Color(0x99000000), offset: Offset(0, 2), blurRadius: 4),
-                BoxShadow(color: GwentColors.brass, spreadRadius: 1.5),
-              ],
-      ),
-      child: Text(
-        '$score',
-        textScaler: TextScaler.noScaling,
-        style: GwentText.scoreRow.copyWith(
-          fontSize: score >= 100 ? 14 : 16,
-          height: 1,
-          color: empty ? GwentColors.muted : GwentColors.textPrimary,
+    return Semantics(
+      label: context.l10n.rowScoreSemantics(score),
+      excludeSemantics: true,
+      child: Container(
+        width: diameter,
+        height: diameter,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: empty ? GwentColors.bg : null,
+          gradient: empty ? null : _discGradient(GwentColors.surfaceRaised, 0.8),
+          boxShadow: empty
+              ? const [BoxShadow(color: GwentColors.line, spreadRadius: 1)]
+              : const [
+                  BoxShadow(color: Color(0x99000000), offset: Offset(0, 2), blurRadius: 4),
+                  BoxShadow(color: GwentColors.brass, spreadRadius: 1.5),
+                ],
+        ),
+        child: Text(
+          '$score',
+          textScaler: TextScaler.noScaling,
+          style: GwentText.scoreRow.copyWith(
+            fontSize: score >= 100 ? 14 : 16,
+            height: 1,
+            color: empty ? GwentColors.muted : GwentColors.textPrimary,
+          ),
         ),
       ),
     );
@@ -64,40 +69,44 @@ class TotalScoreBadge extends StatelessWidget {
   final double diameter;
 
   @override
-  Widget build(BuildContext context) => SizedBox.square(
-    dimension: diameter,
-    child: Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: _discGradient(leading ? GwentColors.surfaceWarm : GwentColors.surfaceRaised, 0.75),
-              boxShadow: [
-                if (leading)
-                  const BoxShadow(color: Color(0x4DC8A35B), blurRadius: 20)
-                else
-                  const BoxShadow(color: Color(0x99000000), offset: Offset(0, 3), blurRadius: 8),
-                BoxShadow(color: leading ? GwentColors.brass : GwentColors.line, spreadRadius: 4),
-                const BoxShadow(color: GwentColors.bg, spreadRadius: 3),
-                BoxShadow(color: leading ? GwentColors.gold : GwentColors.brass, spreadRadius: 1.5),
-              ],
+  Widget build(BuildContext context) => Semantics(
+    label: context.l10n.totalScoreSemantics(score),
+    excludeSemantics: true,
+    child: SizedBox.square(
+      dimension: diameter,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: _discGradient(leading ? GwentColors.surfaceWarm : GwentColors.surfaceRaised, 0.75),
+                boxShadow: [
+                  if (leading)
+                    const BoxShadow(color: Color(0x4DC8A35B), blurRadius: 20)
+                  else
+                    const BoxShadow(color: Color(0x99000000), offset: Offset(0, 3), blurRadius: 8),
+                  BoxShadow(color: leading ? GwentColors.brass : GwentColors.line, spreadRadius: 4),
+                  const BoxShadow(color: GwentColors.bg, spreadRadius: 3),
+                  BoxShadow(color: leading ? GwentColors.gold : GwentColors.brass, spreadRadius: 1.5),
+                ],
+              ),
             ),
           ),
-        ),
-        Text(
-          '$score',
-          textScaler: TextScaler.noScaling,
-          style: GwentText.scoreTotal.copyWith(fontSize: 22, height: 1, color: GwentColors.textPrimary),
-        ),
-        if (leading)
-          Positioned(
-            top: -diameter * 0.3,
-            child: GwentIconView(GwentIcon.iconCrownLeading, size: diameter * 0.42),
+          Text(
+            '$score',
+            textScaler: TextScaler.noScaling,
+            style: GwentText.scoreTotal.copyWith(fontSize: 22, height: 1, color: GwentColors.textPrimary),
           ),
-      ],
+          if (leading)
+            Positioned(
+              top: -diameter * 0.3,
+              child: GwentIconView(GwentIcon.iconCrownLeading, size: diameter * 0.42),
+            ),
+        ],
+      ),
     ),
   );
 }

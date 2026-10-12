@@ -57,6 +57,22 @@ void main() {
       expect(tester.hasRunningAnimations, isFalse);
     });
 
+    testWidgets('камни мерцают по кругу: на границе цикла нет скачка фазы', (tester) async {
+      await tester.pumpWidget(localizedApp(const Center(child: GameLoader())));
+      double opacityOfFirst() => tester.widgetList<Opacity>(find.byType(Opacity)).first.opacity;
+      await tester.pump(const Duration(milliseconds: 1199));
+      final beforeWrap = opacityOfFirst();
+      await tester.pump(const Duration(milliseconds: 2));
+      expect((opacityOfFirst() - beforeWrap).abs(), lessThan(0.01));
+    });
+
+    testWidgets('кольцо подписано для скринридера', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(localizedApp(const Center(child: GwentSpinner())));
+      expect(find.bySemanticsLabel('Загрузка'), findsOneWidget);
+      semantics.dispose();
+    });
+
     testWidgets('кольцо 28 pt крутится', (tester) async {
       await tester.pumpWidget(localizedApp(const Center(child: GwentSpinner())));
       expect(tester.getSize(find.byType(GwentSpinner)), const Size.square(28));
@@ -73,7 +89,7 @@ void main() {
       final semantics = tester.ensureSemantics();
       await pump(tester, const DeckCounter(label: 'Карты отрядов', count: 22, target: 22));
       expect(find.textContaining('22'), findsWidgets);
-      expect(find.bySemanticsLabel('Карты отрядов: 22/22'), findsOneWidget);
+      expect(find.bySemanticsLabel('Карты отрядов: 22 из 22'), findsOneWidget);
       semantics.dispose();
     });
 

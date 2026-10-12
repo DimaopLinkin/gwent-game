@@ -16,14 +16,20 @@ enum TurnBannerKind {
 
 /// Баннер на всю ширину (макет дизайн-системы, `turnBanner`): затемнённая полоса с линиями сверху и снизу.
 ///
-/// Заголовок 32 pt; если не помещается в 326 pt, 24 pt; если и так не помещается, переносится на две строки.
-/// Подзаголовок 13 pt центрируется и тоже переносится.
+/// Заголовок 32 pt; если не помещается в строку (на экране 390 pt это 326 pt), 24 pt; если и так не помещается,
+/// переносится на две строки. Подзаголовок 13 pt центрируется и тоже переносится.
+///
+/// Баннеры равны, если равны заголовок, подзаголовок и вид: [TurnBannerPresenter] по этому решает, показывать ли
+/// баннер заново.
 class TurnBanner extends StatelessWidget {
   /// Создаёт баннер.
   const TurnBanner({super.key, required this.title, this.subtitle, this.kind = TurnBannerKind.info});
 
-  /// Ширина, доступная заголовку.
-  static const double titleWidth = 326;
+  /// Поля слева и справа от текста.
+  static const double horizontalPadding = 32;
+
+  /// Ромб (6 pt) и промежуток до него (14 pt) по каждую сторону золотого заголовка.
+  static const double diamondsWidth = 2 * (6 + 14);
 
   /// Заголовок.
   final String title;
@@ -34,8 +40,21 @@ class TurnBanner extends StatelessWidget {
   /// Вид.
   final TurnBannerKind kind;
 
+  /// Показывают ли [a] и [b] один и тот же баннер: виджет сравнить через `==` нельзя, поэтому по содержимому.
+  static bool isSame(TurnBanner? a, TurnBanner? b) =>
+      a == b || (a != null && b != null && a.title == b.title && a.subtitle == b.subtitle && a.kind == b.kind);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final gold = kind == TurnBannerKind.yourTurn;
+      final width = constraints.maxWidth.isFinite ? constraints.maxWidth : 390.0;
+      final titleWidth = width - 2 * horizontalPadding - (gold ? diamondsWidth : 0);
+      return SizedBox(width: double.infinity, child: _body(titleWidth));
+    },
+  );
+
+  Widget _body(double titleWidth) {
     final gold = kind == TurnBannerKind.yourTurn;
     final lineColor = gold ? GwentColors.gold : GwentColors.brass;
     final subtitle = this.subtitle;
@@ -46,7 +65,7 @@ class TurnBanner extends StatelessWidget {
       letterSpacing: 1.28,
       color: gold ? GwentColors.gold : GwentColors.textPrimary,
     );
-    final fontSize = _titleFontSize(title, titleStyle);
+    final fontSize = _titleFontSize(title, titleStyle, titleWidth);
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -60,7 +79,7 @@ class TurnBanner extends StatelessWidget {
           Positioned(left: 0, right: 0, bottom: 0, child: _Rule(color: lineColor)),
           Container(
             constraints: const BoxConstraints(minHeight: 72),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 10),
             alignment: Alignment.center,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -104,7 +123,7 @@ class TurnBanner extends StatelessWidget {
   }
 
   /// 32 pt, если заголовок влезает в одну строку, иначе 24 pt (и перенос, если и тогда не влезает).
-  static double _titleFontSize(String title, TextStyle style) {
+  static double _titleFontSize(String title, TextStyle style, double maxWidth) {
     for (final size in const [32.0, 24.0]) {
       final painter = TextPainter(
         text: TextSpan(
@@ -114,7 +133,7 @@ class TurnBanner extends StatelessWidget {
         textDirection: TextDirection.ltr,
         maxLines: 1,
       )..layout();
-      final fits = painter.width <= titleWidth;
+      final fits = painter.width <= maxWidth;
       painter.dispose();
       if (fits) return size;
     }
@@ -153,8 +172,10 @@ class _BannerDiamond extends StatelessWidget {
 
 /// Показывает баннер поверх экрана: появление 200 мс, пауза [visibleFor], исчезновение; касания не блокирует.
 ///
-/// Новый [banner] заменяет показанный и запускает отсчёт заново; `null` убирает баннер. При «уменьшить движение»
-/// появление без сдвига.
+/// Новый [banner] (не равный прежнему) заменяет показанный и запускает отсчёт заново; `null` убирает баннер. Равный
+/// баннер при перерисовке родителя ничего не меняет: ни не продлевает показ, ни не показывает баннер снова после
+/// таймаута. Чтобы показать тот же баннер ещё раз, родитель сначала передаёт `null` (удобно в [onDismissed]).
+/// Для скринридера баннер — живая область. При «уменьшить движение» появление без сдвига.
 class TurnBannerPresenter extends StatefulWidget {
   /// Создаёт показ баннера [banner] поверх [child].
   const TurnBannerPresenter({
@@ -197,7 +218,7 @@ class _TurnBannerPresenterState extends State<TurnBannerPresenter> {
   @override
   void didUpdateWidget(TurnBannerPresenter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(widget.banner, oldWidget.banner)) _show(widget.banner);
+    if (!TurnBanner.isSame(widget.banner, oldWidget.banner)) _show(widget.banner);
   }
 
   void _show(TurnBanner? banner) {
@@ -243,7 +264,9 @@ class _TurnBannerPresenterState extends State<TurnBannerPresenter> {
                           child: child,
                         ),
                 ),
-                child: shown == null ? const SizedBox.shrink() : KeyedSubtree(key: ValueKey(shown), child: shown),
+                child: shown == null
+                    ? const SizedBox.shrink()
+                    : Semantics(liveRegion: true, key: ValueKey(shown), child: shown),
               ),
             ),
           ),

@@ -21,7 +21,14 @@ enum HornSlotLook {
 /// 44×44. Мардрём занимает тот же слот.
 class HornSlot extends StatefulWidget {
   /// Создаёт слот.
-  const HornSlot({super.key, required this.look, this.art, this.effect = GwentIcon.abilityCommanderHorn, this.onTap});
+  const HornSlot({
+    super.key,
+    required this.look,
+    this.art,
+    this.effect = GwentIcon.abilityCommanderHorn,
+    this.effectName,
+    this.onTap,
+  }) : assert(look != HornSlotLook.filled || effectName != null, 'для занятого слота нужно название карты');
 
   /// Ширина мини-карты.
   static const double width = 31;
@@ -37,6 +44,9 @@ class HornSlot extends StatefulWidget {
 
   /// Эффект в слоте: рог или Мардрём.
   final GwentIcon effect;
+
+  /// Название карты в слоте для скринридера (при [HornSlotLook.filled]): «Командирский рог» или «Мардрём».
+  final String? effectName;
 
   /// Нажатие: положить рог сюда, когда слот — цель.
   final VoidCallback? onTap;
@@ -83,10 +93,14 @@ class _HornSlotState extends State<HornSlot> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final target = widget.look == HornSlotLook.target;
+    final label = switch (widget.look) {
+      HornSlotLook.empty => l10n.hornSlotEmpty,
+      HornSlotLook.filled => l10n.hornSlotFilled(widget.effectName ?? ''),
+      HornSlotLook.target => l10n.hornSlotTargetSemantics,
+    };
     return Semantics(
       button: widget.onTap != null,
-      label: target ? l10n.hornSlotTargetSemantics : l10n.hornSlotSemantics,
+      label: label,
       onTap: widget.onTap,
       excludeSemantics: true,
       child: GestureDetector(
