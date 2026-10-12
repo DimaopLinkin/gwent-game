@@ -108,10 +108,11 @@ final DeckRules smallDeckRules = deckRulesFor(smallPack, gameRules: smallGameRul
 DeckRules deckRulesFor(content.ContentPack pack, {engine.GameRules gameRules = const engine.GameRules()}) =>
     DeckRules(pack: pack, catalog: testCatalogFor(pack), gameRules: gameRules);
 
-/// Справочник движка по пакету [pack] для проверки колод.
+/// Справочник движка по маленькому пакету [pack] для проверки колод.
 ///
-/// Проверке колоды нужны только фракция, число копий и вид карты, поэтому способности здесь заглушки. Настоящее
-/// сопоставление пакета с движком делает слой data приложения.
+/// Проверке колоды нужны только фракция, число копий и вид карты, поэтому способности здесь заглушки: у карт
+/// маленького пакета нет способностей. Настоящий пакет переводит `mapContentToEngine`, его проверяет
+/// `game_content_deck_rules_source_test.dart`.
 engine.CardCatalog testCatalogFor(content.ContentPack pack) {
   final rules = pack.rules;
   engine.Faction faction(String fractionId) => switch (rules.fractionsById[fractionId]?.key) {

@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
+import 'package:gwent_content/gwent_content.dart' show ValidationIssue;
 
 /// Колоды с таким идентификатором нет.
 final class DeckNotFoundException implements Exception {
@@ -37,4 +38,16 @@ final class NotADeckFactionException implements Exception {
 
   @override
   String toString() => 'NotADeckFactionException: из фракции $factionId колоду не собрать';
+}
+
+/// Правил колод нет: пакет контента не прошёл проверку или не подходит движку.
+final class DeckRulesUnavailableException implements Exception {
+  /// Создаёт ошибку с проблемами пакета [issues].
+  DeckRulesUnavailableException(List<ValidationIssue> issues) : issues = List.unmodifiable(issues);
+
+  /// Проблемы пакета контента, список не пуст.
+  final List<ValidationIssue> issues;
+
+  @override
+  String toString() => 'DeckRulesUnavailableException: $issues';
 }
