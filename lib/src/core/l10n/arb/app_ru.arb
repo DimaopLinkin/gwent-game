@@ -48,5 +48,123 @@
   "screenPendingDesign": "Экран появится по макетам",
   "@screenPendingDesign": {
     "description": "Заглушка экрана, который ещё не свёрстан по макетам."
+  },
+  "cardLeaderAbilityReady": "Доступна",
+  "@cardLeaderAbilityReady": {
+    "description": "Метка на полной карте лидера: способность лидера ещё не использована."
+  },
+  "cardLeaderAbilityUsed": "Использована",
+  "@cardLeaderAbilityUsed": {
+    "description": "Метка на полной карте лидера: способность лидера уже использована."
+  },
+  "cardSemanticsUnit": "{name}, сила {power}",
+  "@cardSemanticsUnit": {
+    "description": "Подпись карты отряда для скринридера.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "power": {
+        "type": "int"
+      }
+    }
+  },
+  "cardSemanticsBack": "Рубашка карты",
+  "@cardSemanticsBack": {
+    "description": "Подпись закрытой карты для скринридера."
+  },
+  "cardDetailCloseHint": "Свайп вниз или тап вне карты — закрыть",
+  "@cardDetailCloseHint": {
+    "description": "Подсказка под полным просмотром карты."
+  },
+  "cardKindUnit": "Отряд",
+  "@cardKindUnit": {
+    "description": "Тип карты в полном просмотре: обычный отряд."
+  },
+  "cardKindHero": "Герой",
+  "@cardKindHero": {
+    "description": "Тип карты в полном просмотре: герой."
+  },
+  "cardKindSpecial": "Особая карта",
+  "@cardKindSpecial": {
+    "description": "Тип карты в полном просмотре: особая карта."
+  },
+  "cardKindWeather": "Погода",
+  "@cardKindWeather": {
+    "description": "Тип карты в полном просмотре: карта погоды."
+  },
+  "cardKindLeader": "Лидер",
+  "@cardKindLeader": {
+    "description": "Тип карты в полном просмотре: карта лидера."
+  },
+  "cardFactionNeutral": "Нейтральная",
+  "@cardFactionNeutral": {
+    "description": "Фракция нейтральной карты в полном просмотре."
+  },
+  "cardLeaderAbilityTitle": "Способность лидера",
+  "@cardLeaderAbilityTitle": {
+    "description": "Заголовок способности в полном просмотре карты лидера."
+  },
+  "cardHeroAbilityTitle": "Герой",
+  "@cardHeroAbilityTitle": {
+    "description": "Заголовок пункта о герое в полном просмотре."
+  },
+  "cardHeroAbilityDescription": "На героя не действуют погода, Командирский рог и способности других карт.",
+  "@cardHeroAbilityDescription": {
+    "description": "Описание свойства героя в полном просмотре."
+  },
+  "cardMetaUnit": "{faction} · {zone} · {kind}",
+  "@cardMetaUnit": {
+    "description": "Строка под названием отряда в полном просмотре: фракция, ряд и тип (Отряд или Герой).",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "zone": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMetaSpecial": "{kind} · {faction}",
+  "@cardMetaSpecial": {
+    "description": "Строка под названием особой карты или погоды в полном просмотре: тип и фракция.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "faction": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMetaLeader": "{faction} · {kind} · {status}",
+  "@cardMetaLeader": {
+    "description": "Строка под названием лидера в полном просмотре: фракция, тип и состояние способности.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "cardFactionCommon": "Общая",
+  "@cardFactionCommon": {
+    "description": "Принадлежность нейтральной особой карты или погоды в полном просмотре."
+  },
+  "cardLeaderStatusReady": "способность доступна",
+  "@cardLeaderStatusReady": {
+    "description": "Состояние способности лидера в строке полного просмотра."
+  },
+  "cardLeaderStatusUsed": "способность использована",
+  "@cardLeaderStatusUsed": {
+    "description": "Состояние способности лидера в строке полного просмотра."
   }
 }
