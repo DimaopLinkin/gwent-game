@@ -35,6 +35,8 @@ jobs:
             dir: packages/gwent_ai
           - package: gwent_content
             dir: packages/gwent_content
+          - package: gwent_net
+            dir: packages/gwent_net
           - package: build_pack
             dir: tools/build_pack
     defaults:
