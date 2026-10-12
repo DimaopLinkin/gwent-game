@@ -61,10 +61,8 @@ final class FieldCubit extends Cubit<FieldState> {
       case MatchInProgress(:final view, :final events, :final refusal):
         _onProgress(view, events, refusal);
       case MatchIdle() || MatchStarting() || MatchStartFailed() || MatchHandover() || MatchFinished() || MatchCrashed():
-        // Телефон ушёл другому игроку или партия закончилась: чужие выбор и листы не переносятся.
-        if (state.selected != null || state.overlay is! NoOverlay || state.recent.isNotEmpty) {
-          emit(const FieldState());
-        }
+        // Телефон ушёл другому игроку или партия закончилась: чужие выбор, листы, тосты и баннеры не переносятся.
+        if (!state.isClean) emit(const FieldState());
     }
   }
 

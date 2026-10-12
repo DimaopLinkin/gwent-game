@@ -73,7 +73,7 @@ class _FieldViewState extends State<FieldView> {
   @override
   void initState() {
     super.initState();
-    if (_isMyTurn(_view)) _banner = _BannerKind.yourTurn;
+    if (_turnIsMine(_view)) _banner = _BannerKind.yourTurn;
   }
 
   @override
@@ -88,7 +88,7 @@ class _FieldViewState extends State<FieldView> {
     _ensureContent();
     if (_view.round != oldWidget.view.round) {
       _banner = _BannerKind.round;
-    } else if (_isMyTurn(_view) && !_isMyTurn(oldWidget.view)) {
+    } else if (_turnIsMine(_view) && !_turnIsMine(oldWidget.view)) {
       _banner = _BannerKind.yourTurn;
     }
   }
@@ -101,8 +101,12 @@ class _FieldViewState extends State<FieldView> {
     }
   }
 
-  static bool _isMyTurn(PlayerView view) =>
-      view.phase == MatchPhase.playing && view.turn == view.viewer && !view.me.passed && view.choice == null;
+  /// Ход мой: по этому признаку показывается баннер «Ваш ход», выбор движка его не прерывает.
+  static bool _turnIsMine(PlayerView view) =>
+      view.phase == MatchPhase.playing && view.turn == view.viewer && !view.me.passed;
+
+  /// Можно ходить прямо сейчас: ход мой и движок не ждёт выбора.
+  static bool _isMyTurn(PlayerView view) => _turnIsMine(view) && view.choice == null;
 
   FieldContent get _fieldContent => _content!;
 
@@ -337,7 +341,10 @@ class _FieldViewState extends State<FieldView> {
                 if (field.showOpponentPassed) {
                   _cubit.clearBanner();
                 } else {
-                  setState(() => _banner = null);
+                  // После баннера раунда на своём ходу сразу показываем «Ваш ход».
+                  setState(
+                    () => _banner = _banner == _BannerKind.round && _turnIsMine(_view) ? _BannerKind.yourTurn : null,
+                  );
                 }
               },
               child: const SizedBox.expand(),
@@ -409,9 +416,10 @@ class _FieldViewState extends State<FieldView> {
       deckCount: side.deckCount,
       discardCount: side.discard.length,
       discardTop: discardTop == null ? null : _fieldContent.face(discardTop),
-      onLeaderTap: () => cubit.openLeader(mine: mine),
-      onLeaderLongPress: () => cubit.openLeader(mine: mine),
-      onDiscardTap: () => cubit.openDiscard(mine: mine),
+      // Пока движок ждёт выбора, листы игрока не открываются: они остались бы под листом выбора.
+      onLeaderTap: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
+      onLeaderLongPress: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
+      onDiscardTap: view.choice == null ? () => cubit.openDiscard(mine: mine) : null,
       trailing: mine
           ? PassButton(
               compact: true,
@@ -590,7 +598,11 @@ class _FieldViewState extends State<FieldView> {
     final side = mine ? view.me : view.opponent;
     final cubit = _cubit;
     final canUse = mine && side.leaderAvailable && _isMyTurn(view);
-    final note = side.leaderUsed
+    // Пассивная способность действует постоянно: использовать её нельзя, кнопки нет.
+    final passive = _catalog.leader(side.leader)?.ability.isPassive ?? false;
+    final note = passive
+        ? l10n.fieldLeaderPassiveNote
+        : side.leaderUsed
         ? l10n.fieldLeaderUsedNote
         : side.leaderDisabled
         ? l10n.fieldLeaderDisabledNote
@@ -601,7 +613,7 @@ class _FieldViewState extends State<FieldView> {
       detail: _fieldContent.leader(side.leader, used: side.leaderUsed),
       note: note,
       buttons: [
-        if (mine)
+        if (mine && !passive)
           SheetButton(
             label: l10n.fieldLeaderUse,
             primary: true,

@@ -64,43 +64,48 @@ class SheetFrame extends StatelessWidget {
           child: const ColoredBox(color: Color(0xB80A0806)),
         ),
       ),
-      Positioned(
-        left: 0,
-        right: 0,
-        bottom: 0,
+      // Панель прижата к низу и не выше доли высоты поля: Positioned.fill даёт LayoutBuilder настоящую высоту поля.
+      Positioned.fill(
         child: LayoutBuilder(
-          builder: (context, constraints) => ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: constraints.maxHeight * maxHeightFactor),
-            // Тап по самой панели не закрывает лист.
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [GwentColors.surfaceRaised, GwentColors.surface],
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: Color(0x99000000), offset: Offset(0, -10), blurRadius: 30),
-                    BoxShadow(color: GwentColors.brass, spreadRadius: 1),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 12,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(color: GwentColors.muted, borderRadius: BorderRadius.circular(2)),
-                      ),
-                      Flexible(child: child),
+          builder: (context, constraints) => Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                maxWidth: constraints.maxWidth,
+                maxHeight: constraints.maxHeight * maxHeightFactor,
+              ),
+              // Тап по самой панели не закрывает лист.
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [GwentColors.surfaceRaised, GwentColors.surface],
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: Color(0x99000000), offset: Offset(0, -10), blurRadius: 30),
+                      BoxShadow(color: GwentColors.brass, spreadRadius: 1),
                     ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 12,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(color: GwentColors.muted, borderRadius: BorderRadius.circular(2)),
+                        ),
+                        Flexible(child: child),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -63,6 +63,15 @@ final class TestCards {
 
   /// Лидер из пакета: первый по порядку.
   LeaderId get leader => LeaderId(content.pack.rules.leaderCards.first.id);
+
+  /// Лидер с пассивной способностью.
+  LeaderId get passiveLeader {
+    for (final card in content.pack.rules.leaderCards) {
+      final id = LeaderId(card.id);
+      if (content.catalog.leader(id)?.ability.isPassive ?? false) return id;
+    }
+    throw StateError('В пакете нет лидера с пассивной способностью');
+  }
 }
 
 /// Пустой ряд.
@@ -95,6 +104,7 @@ SideView sideOf(
   Set<CardInstanceId>? playable,
   List<CardInstance> discard = const [],
   bool passed = false,
+  LeaderId? leader,
   bool leaderAvailable = true,
   bool leaderUsed = false,
   bool leaderDisabled = false,
@@ -105,7 +115,7 @@ SideView sideOf(
   bool redrawDone = false,
 }) => SideView(
   seat: seat,
-  leader: source.leader,
+  leader: leader ?? source.leader,
   faction: Faction.skellige,
   leaderAvailable: leaderAvailable,
   leaderUsed: leaderUsed,

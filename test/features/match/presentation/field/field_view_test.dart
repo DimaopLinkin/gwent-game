@@ -17,6 +17,7 @@ import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
 import 'package:gwent/src/features/match/presentation/field/field_sheets.dart';
+import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
@@ -323,6 +324,36 @@ void main() {
       await endBanners(tester);
     });
 
+    testWidgets('пока движок ждёт выбора ряда, листы сброса и лидера не открываются и не остаются после', (
+      tester,
+    ) async {
+      final subject = cards.agile();
+      final choice = PendingChoice(
+        seat: Seat.one,
+        kind: ChoiceKind.unitRow,
+        options: const [RowOption(Row.melee), RowOption(Row.ranged)],
+        subject: subject,
+      );
+      final harness = await pumpField(
+        tester,
+        viewOf(
+          cards,
+          me: sideOf(cards, Seat.one, playable: const {}),
+          choice: choice,
+        ),
+      );
+      await tester.tapAt(const Offset(22, 568 + 24));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.byType(CardPile).at(1));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.overlay, isA<NoOverlay>());
+      harness.view.value = viewOf(cards, turn: Seat.two);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(LeaderSheet), findsNothing);
+      expect(find.byType(CardGridSheet), findsNothing);
+      await endBanners(tester);
+    });
+
     testWidgets('цель медика: лист с картами сброса, закрыть нельзя', (tester) async {
       final fallen = [cards.unit(Row.melee), cards.unit(Row.ranged)];
       final harness = await pumpField(
@@ -338,7 +369,7 @@ void main() {
         ),
       );
       expect(find.text('Медик: вернуть отряд'), findsOneWidget);
-      expect(find.text('Карта уже сыграна, отменить выбор нельзя'), findsOneWidget);
+      expect(find.text('Отменить выбор нельзя: способность уже сработала'), findsOneWidget);
       final sheetCards = find.descendant(of: find.byType(CardGridSheet), matching: find.byType(GwentCard));
       expect(sheetCards, findsNWidgets(2));
       await tester.tapAt(const Offset(195, 40));
@@ -379,6 +410,48 @@ void main() {
       );
       expect(find.text('Соперник выбирает'), findsOneWidget);
     });
+  });
+
+  group('листы на малых экранах', () {
+    for (final size in const [Size(360, 600), Size(320, 568)]) {
+      testWidgets(
+        'лист выбора с девятью картами: панель в пределах экрана ${size.width.toInt()}×${size.height.toInt()}, сетка прокручивается',
+        (tester) async {
+          final fallen = [for (var i = 0; i < 9; i++) cards.unit(Row.values[i % 3])];
+          await pumpField(
+            tester,
+            viewOf(
+              cards,
+              me: sideOf(cards, Seat.one, discard: fallen, playable: const {}),
+              choice: PendingChoice(
+                seat: Seat.one,
+                kind: ChoiceKind.medicTarget,
+                options: [for (final card in fallen) CardOption(card)],
+              ),
+            ),
+            size: size,
+          );
+          expect(tester.takeException(), isNull);
+          final scroll = find.descendant(of: find.byType(CardGridSheet), matching: find.byType(Scrollable)).first;
+          final rect = tester.getRect(scroll);
+          expect(rect.bottom, lessThanOrEqualTo(size.height));
+          expect(rect.top, greaterThanOrEqualTo(size.height * (1 - 0.62) - 1), reason: 'не выше 62 % поля');
+          expect(rect.width, lessThanOrEqualTo(size.width));
+          expect(tester.state<ScrollableState>(scroll).position.maxScrollExtent, greaterThan(0));
+          await endBanners(tester);
+        },
+      );
+
+      testWidgets('лист лидера на экране ${size.width.toInt()}×${size.height.toInt()} не выходит за экран', (
+        tester,
+      ) async {
+        await pumpField(tester, viewOf(cards), size: size);
+        await tester.tapAt(Offset(22, size.height * 0.7));
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(tester.takeException(), isNull);
+        await endBanners(tester);
+      });
+    }
   });
 
   group('листы', () {
@@ -482,6 +555,20 @@ void main() {
       await tester.tap(find.text('Использовать'));
       await tester.pump(const Duration(milliseconds: 250));
       expect(harness.intents, isEmpty);
+    });
+
+    testWidgets('пассивный лидер: «Действует постоянно», кнопки «Использовать» нет', (tester) async {
+      await pumpField(
+        tester,
+        viewOf(cards, me: sideOf(cards, Seat.one, leader: cards.passiveLeader, leaderAvailable: false)),
+      );
+      await tester.tapAt(const Offset(22, 568 + 24));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(LeaderSheet), findsOneWidget);
+      expect(find.text('Действует постоянно'), findsOneWidget);
+      expect(find.text('Использовать'), findsNothing);
+      expect(find.text('Её можно применить в свой ход'), findsNothing);
+      await endBanners(tester);
     });
 
     testWidgets('рука соперника, показанная лидером: лист закрывается «Готово»', (tester) async {
@@ -649,6 +736,32 @@ void main() {
       await endBanners(tester);
     });
 
+    testWidgets('новый раунд на моём ходу: после «Раунд 2» сразу «Ваш ход»', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      await endBanners(tester);
+      harness.view.value = viewOf(cards, round: 2);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.widget<TurnBanner>(find.byType(TurnBanner)).title, 'Раунд 2');
+      await tester.pump(const Duration(milliseconds: 1700));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.widget<TurnBanner>(find.byType(TurnBanner)).title, 'Ваш ход');
+      await endBanners(tester);
+      expect(find.byType(TurnBanner), findsNothing);
+    });
+
+    testWidgets('выбор движка в мой ход не вызывает баннер «Ваш ход» заново', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      await endBanners(tester);
+      harness.view.value = viewOf(
+        cards,
+        choice: const PendingChoice(seat: Seat.one, kind: ChoiceKind.unitRow, options: [RowOption(Row.melee)]),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      harness.view.value = viewOf(cards);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(TurnBanner), findsNothing);
+    });
+
     testWidgets('пас соперника: баннер с подсказкой, потом он убирается', (tester) async {
       final view = viewOf(cards, turn: Seat.two);
       final harness = await pumpField(tester, view);
@@ -729,8 +842,8 @@ void main() {
       await endBanners(tester);
     });
 
-    testWidgets('одиннадцать карт: прокрутка вместо веера, выбранная с края карта доезжает до центра', (tester) async {
-      final hand = [for (var i = 0; i < 11; i++) cards.unit(Row.values[i % 3])];
+    testWidgets('двенадцать карт: прокрутка вместо веера, выбранная с края карта доезжает до центра', (tester) async {
+      final hand = [for (var i = 0; i < 12; i++) cards.unit(Row.values[i % 3])];
       final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: hand)));
       expect(find.descendant(of: find.byType(HandView), matching: find.byType(ListView)), findsOneWidget);
       // Пятая карта торчит из-за правого края экрана: тап по видимой части выбирает её.

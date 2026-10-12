@@ -143,7 +143,7 @@ final class FieldGeometry {
   static const double fanInset = 28;
 
   /// Веер сменяется прокруткой, когда шаг меньше этого значения.
-  static const double minFanStep = 26;
+  static const double minFanStep = 25;
 
   /// Для [count] карт на руке нужна горизонтальная прокрутка, а не веер.
   bool handScrolls(int count) => count > 1 && fanStep(count) < minFanStep;

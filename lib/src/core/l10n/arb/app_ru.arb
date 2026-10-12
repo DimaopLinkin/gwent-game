@@ -530,7 +530,7 @@
   "@fieldChoiceSubtitle": {
     "description": "Пояснение листов выбора."
   },
-  "fieldChoiceNoCancel": "Карта уже сыграна, отменить выбор нельзя",
+  "fieldChoiceNoCancel": "Отменить выбор нельзя: способность уже сработала",
   "@fieldChoiceNoCancel": {
     "description": "Заметка под сеткой листов выбора."
   },
@@ -586,6 +586,10 @@
   "fieldLeaderWaitNote": "Её можно применить в свой ход",
   "@fieldLeaderWaitNote": {
     "description": "Заметка листа лидера, когда способность сейчас недоступна."
+  },
+  "fieldLeaderPassiveNote": "Действует постоянно",
+  "@fieldLeaderPassiveNote": {
+    "description": "Заметка листа лидера с пассивной способностью: применять её не нужно."
   },
   "fieldRevealTitle": "Рука противника",
   "@fieldRevealTitle": {

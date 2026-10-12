@@ -111,6 +111,15 @@ final class FieldState {
   /// Порядок карт в листе сброса.
   final DiscardSort sort;
 
+  /// Ничего не выбрано, не открыто и не показывается: состояние равно начальному.
+  bool get isClean =>
+      selected == null &&
+      overlay is NoOverlay &&
+      toast == null &&
+      !showOpponentPassed &&
+      recent.isEmpty &&
+      sort == DiscardSort.byStrength;
+
   /// Копия с заменёнными полями; [clearSelected] и [clearToast] обнуляют выбор и тост.
   FieldState copyWith({
     CardInstanceId? selected,

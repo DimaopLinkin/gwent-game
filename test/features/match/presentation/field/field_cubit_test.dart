@@ -128,4 +128,17 @@ void main() {
     expect(cubit.state.selected, isNull);
     expect(cubit.state.overlay, isA<NoOverlay>());
   });
+
+  test('передача телефона сбрасывает и тост, и баннер пасса, и порядок сброса', () {
+    cubit
+      ..say(FieldMessage.opponentTurn)
+      ..setSort(DiscardSort.byOrder);
+    cubit.onMatchState(progress(viewOf(cards), events: const [Passed(Seat.two, auto: false)]));
+    expect(cubit.state.isClean, isFalse);
+    cubit.onMatchState(const MatchHandover(Seat.two));
+    expect(cubit.state.toast, isNull);
+    expect(cubit.state.showOpponentPassed, isFalse);
+    expect(cubit.state.sort, DiscardSort.byStrength);
+    expect(cubit.state.isClean, isTrue);
+  });
 }

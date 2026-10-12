@@ -84,9 +84,16 @@ void main() {
       expect(geometry.fanStep(10), closeTo((390 - 56 - 77) / 9, 1e-9));
     });
 
-    test('десять карт на экране 390 pt веером, одиннадцать прокруткой', () {
+    test('на экране 390 pt одиннадцать карт веером, двенадцать прокруткой', () {
       expect(geometry.handScrolls(10), isFalse);
-      expect(geometry.handScrolls(11), isTrue);
+      expect(geometry.handScrolls(11), isFalse);
+      expect(geometry.handScrolls(12), isTrue);
+    });
+
+    test('на экране 360 pt десять карт веером, одиннадцать прокруткой', () {
+      const phone = FieldGeometry(width: 360);
+      expect(phone.handScrolls(10), isFalse);
+      expect(phone.handScrolls(11), isTrue);
     });
 
     test('на узком экране веер сменяется прокруткой раньше', () {
