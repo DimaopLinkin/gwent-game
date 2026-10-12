@@ -171,7 +171,6 @@ class _PassSurface extends StatelessWidget {
     return Container(
       height: PassButton.height,
       constraints: const BoxConstraints(minWidth: 156),
-      padding: const EdgeInsets.symmetric(horizontal: 28),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(GwentSpace.radiusPill),
         color: !enabled
@@ -218,41 +217,47 @@ class _PassSurface extends StatelessWidget {
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: progress,
-                      child: const DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.horizontal(left: Radius.circular(GwentSpace.radiusPill)),
-                          gradient: LinearGradient(colors: [Color(0x1AC8A35B), Color(0x5CC8A35B)]),
-                          border: Border(right: BorderSide(color: GwentColors.gold, width: 2)),
+                  // Срез по внутреннему овалу: у конца удержания прямой правый край полосы не заходит на рамку.
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(GwentSpace.radiusPill),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: progress,
+                        child: const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [Color(0x1AC8A35B), Color(0x5CC8A35B)]),
+                            border: Border(right: BorderSide(color: GwentColors.gold, width: 2)),
+                          ),
+                          child: SizedBox.expand(),
                         ),
-                        child: SizedBox.expand(),
                       ),
                     ),
                   ),
                 ),
               ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 12,
-              children: [
-                _Diamond(color: accent),
-                Text(
-                  label,
-                  textScaler: TextScaler.noScaling,
-                  style: TextStyle(
-                    fontFamily: GwentText.cormorant,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 26,
-                    height: 1,
-                    letterSpacing: 1.56,
-                    color: textColor,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 12,
+                children: [
+                  _Diamond(color: accent),
+                  Text(
+                    label,
+                    textScaler: TextScaler.noScaling,
+                    style: TextStyle(
+                      fontFamily: GwentText.cormorant,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 26,
+                      height: 1,
+                      letterSpacing: 1.56,
+                      color: textColor,
+                    ),
                   ),
-                ),
-                _Diamond(color: accent),
-              ],
+                  _Diamond(color: accent),
+                ],
+              ),
             ),
           ],
         ),
