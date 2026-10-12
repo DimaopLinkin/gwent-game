@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 
 import '../../../support/localized_app.dart';
 
@@ -13,6 +14,30 @@ void main() {
     final size = tester.getSize(find.byType(PassButton));
     expect(size.height, PassButton.height);
     expect(size.width, greaterThanOrEqualTo(156));
+  });
+
+  testWidgets('двойная рамка идёт по всему контуру: 3 pt фона и 1 pt латуни внутри золотого кольца', (tester) async {
+    Future<void> check({required bool enabled, required Color ring}) async {
+      await pump(tester, PassButton(onPressed: () {}, enabled: enabled));
+      final button = tester.getRect(find.byType(PassButton));
+      final layers = find
+          .descendant(of: find.byType(PassButton), matching: find.byType(DecoratedBox))
+          .evaluate()
+          .map((element) => element.widget as DecoratedBox)
+          .where((box) => box.decoration is ShapeDecoration)
+          .toList();
+      expect(layers.map((box) => (box.decoration as ShapeDecoration).shape), [
+        const StadiumBorder(side: BorderSide(color: GwentColors.bg, width: 3)),
+        StadiumBorder(side: BorderSide(color: ring)),
+      ]);
+      final outer = tester.getRect(find.byWidget(layers[0]));
+      final inner = tester.getRect(find.byWidget(layers[1]));
+      expect(outer, button);
+      expect(inner, button.deflate(3));
+    }
+
+    await check(enabled: true, ring: GwentColors.brass);
+    await check(enabled: false, ring: GwentColors.surfaceRaised);
   });
 
   testWidgets('с подтверждением тап сразу вызывает колбэк, диалог открывает экран', (tester) async {
