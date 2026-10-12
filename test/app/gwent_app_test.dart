@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/app/gwent_app.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent_content/gwent_content.dart';
 
 import '../support/factories.dart';
 import '../support/fakes.dart';
@@ -20,6 +21,7 @@ void main() {
     await tester.pumpWidget(
       GwentApp(
         dependencies: AppDependencies(
+          contentSource: InMemoryContentSource(const {}),
           deckRepository: decks,
           settingsRepository: InMemorySettingsRepository(),
           matchHistoryRepository: InMemoryMatchHistoryRepository(),
