@@ -166,5 +166,142 @@
   "cardLeaderStatusUsed": "способность использована",
   "@cardLeaderStatusUsed": {
     "description": "Состояние способности лидера в строке полного просмотра."
+  },
+  "lifeGemsSemantics": "Кристаллов: {remaining} из {total}",
+  "@lifeGemsSemantics": {
+    "description": "Подпись камней-жизней игрока для скринридера.",
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "playerPlateYou": "Вы",
+  "@playerPlateYou": {
+    "description": "Имя игрока на его плашке, когда это владелец телефона."
+  },
+  "playerPlateYourTurn": "Ваш ход",
+  "@playerPlateYourTurn": {
+    "description": "Метка активной плашки игрока."
+  },
+  "playerPlatePassed": "Пас",
+  "@playerPlatePassed": {
+    "description": "Метка плашки игрока, который спасовал."
+  },
+  "playerPlateHandCount": "{count, plural, one{{count} карта в руке} few{{count} карты в руке} many{{count} карт в руке} other{{count} карты в руке}}",
+  "@playerPlateHandCount": {
+    "description": "Подпись числа карт в руке для скринридера.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerPlateScoreSemantics": "Счёт {score}",
+  "@playerPlateScoreSemantics": {
+    "description": "Подпись общего счёта игрока для скринридера.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "passButtonLabel": "Пас",
+  "@passButtonLabel": {
+    "description": "Подпись кнопки паса."
+  },
+  "passButtonHoldHint": "Удерживайте 1 с",
+  "@passButtonHoldHint": {
+    "description": "Подсказка над кнопкой паса, пока её держат."
+  },
+  "passButtonHoldSemantics": "Удерживайте кнопку, чтобы спасовать",
+  "@passButtonHoldSemantics": {
+    "description": "Подсказка скринридеру для кнопки паса с удержанием."
+  },
+  "passConfirmTitle": "Спасовать?",
+  "@passConfirmTitle": {
+    "description": "Заголовок диалога подтверждения паса."
+  },
+  "passConfirmBody": "До конца раунда вы не сможете разыгрывать карты. {count, plural, one{В руке останется {count} карта.} few{В руке останется {count} карты.} many{В руке останется {count} карт.} other{В руке останется {count} карты.}}",
+  "@passConfirmBody": {
+    "description": "Текст диалога подтверждения паса.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dialogCancel": "Отмена",
+  "@dialogCancel": {
+    "description": "Безопасная кнопка диалога подтверждения."
+  },
+  "hornSlotSemantics": "Слот рога",
+  "@hornSlotSemantics": {
+    "description": "Подпись пустого слота Командирского рога у ряда."
+  },
+  "hornSlotTargetSemantics": "Положить Командирский рог в этот ряд",
+  "@hornSlotTargetSemantics": {
+    "description": "Подпись слота рога, пока выбрана карта рога."
+  },
+  "bannerYourTurn": "Ваш ход",
+  "@bannerYourTurn": {
+    "description": "Баннер начала хода игрока."
+  },
+  "bannerRound": "Раунд {round}",
+  "@bannerRound": {
+    "description": "Заголовок баннера начала раунда.",
+    "placeholders": {
+      "round": {
+        "type": "int"
+      }
+    }
+  },
+  "bannerRoundScore": "Счёт по раундам {mine} : {theirs}",
+  "@bannerRoundScore": {
+    "description": "Подзаголовок баннера раунда.",
+    "placeholders": {
+      "mine": {
+        "type": "int"
+      },
+      "theirs": {
+        "type": "int"
+      }
+    }
+  },
+  "bannerOpponentPassed": "Противник спасовал",
+  "@bannerOpponentPassed": {
+    "description": "Заголовок баннера: соперник спасовал."
+  },
+  "bannerOpponentPassedHint": "Разыграйте карту или спасуйте",
+  "@bannerOpponentPassedHint": {
+    "description": "Подзаголовок баннера: соперник спасовал."
+  },
+  "loaderShuffling": "Тасуем колоду…",
+  "@loaderShuffling": {
+    "description": "Подпись загрузки при тасовании колоды."
+  },
+  "deckCounterShortfall": "{count, plural, one{Нужно ещё {count} карта} few{Нужно ещё {count} карты} many{Нужно ещё {count} карт} other{Нужно ещё {count} карты}}",
+  "@deckCounterShortfall": {
+    "description": "Подпись счётчика колоды, в которой не хватает карт.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterTabCount": "{label}, {count}",
+  "@filterTabCount": {
+    "description": "Подпись вкладки-фильтра с числом карт для скринридера.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

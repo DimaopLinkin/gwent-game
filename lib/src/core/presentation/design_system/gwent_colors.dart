@@ -42,6 +42,15 @@ abstract final class GwentColors {
   /// Камень-жизнь.
   static const Color lifeGem = Color(0xFFB3261E);
 
+  /// Блик камня-жизни.
+  static const Color lifeGemHighlight = Color(0xFFE0574D);
+
+  /// Тень камня-жизни.
+  static const Color lifeGemDeep = Color(0xFF5A120E);
+
+  /// Пустое гнездо потерянного камня.
+  static const Color socket = Color(0xFF0E0B09);
+
   /// Мелкий текст ошибок: 6,1:1 на [bg], 5,5:1 на [surface].
   static const Color errorText = Color(0xFFE07462);
 
@@ -143,4 +152,13 @@ abstract final class GwentColors {
 
   /// Оттенок: рамка панелей и недоступных элементов.
   static const Color panelLine = Color(0xFF3A2F23);
+
+  /// Тёплая подсветка тёмной поверхности: кнопка «Пас», счёт ведущего.
+  static const Color surfaceWarm = Color(0xFF3A2F22);
+
+  /// Утопленная поверхность: кнопка-иконка, недоступная кнопка «Пас».
+  static const Color surfaceSunken = Color(0xFF1A1511);
+
+  /// Иконка и текст недоступного элемента на тёмном.
+  static const Color disabledIcon = Color(0xFF5A4E3D);
 }
