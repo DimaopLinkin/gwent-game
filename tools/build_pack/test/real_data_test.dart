@@ -36,7 +36,7 @@ void main() {
   });
 
   test('в текстах для игрока нет служебных пометок на таблицы и поля данных', () {
-    final serviceNote = RegExp(r'[a-z]+_[a-z_]+|\bсм\.');
+    final serviceNote = RegExp(r'[a-z]+_[a-z_]+|(?<![а-яё])см\.');
     for (final table in pack.strings.values) {
       for (final MapEntry(:key, :value) in table.entries.entries) {
         expect(serviceNote.hasMatch(value), isFalse, reason: '$key: $value');
