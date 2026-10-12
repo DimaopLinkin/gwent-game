@@ -1,5 +1,6 @@
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
+import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/deck_builder/application/delete_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
@@ -10,6 +11,7 @@ import 'package:gwent/src/features/match_history/domain/match_history_repository
 import 'package:gwent/src/features/settings/application/save_settings.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
+import 'package:gwent_content/gwent_content.dart';
 
 /// Сценарии приложения, собранные над интерфейсами.
 ///
@@ -18,18 +20,23 @@ import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 final class AppDependencies {
   /// Собирает сценарии.
   AppDependencies({
+    required ContentSource contentSource,
     required DeckRepository deckRepository,
     required SettingsRepository settingsRepository,
     required MatchHistoryRepository matchHistoryRepository,
     required Clock clock,
     required IdGenerator idGenerator,
-  }) : watchDecks = WatchDecks(deckRepository),
+  }) : loadGameContent = LoadGameContent(contentSource),
+       watchDecks = WatchDecks(deckRepository),
        saveDeck = SaveDeck(deckRepository, clock, idGenerator),
        deleteDeck = DeleteDeck(deckRepository),
        watchSettings = WatchSettings(settingsRepository),
        saveSettings = SaveSettings(settingsRepository),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator);
+
+  /// Контент для партии и конструктора колод: пакет и справочник движка.
+  final LoadGameContent loadGameContent;
 
   /// Список колод.
   final WatchDecks watchDecks;
