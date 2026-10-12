@@ -21,10 +21,17 @@ class PassButton extends StatefulWidget {
     this.enabled = true,
     this.holdToPass = false,
     this.holdDuration = const Duration(seconds: 1),
+    this.compact = false,
   });
 
   /// Высота кнопки.
   static const double height = 56;
+
+  /// Высота компактной кнопки на панели игрока.
+  static const double compactHeight = 38;
+
+  /// Ширина компактной кнопки на панели игрока.
+  static const double compactWidth = 70;
 
   /// Пас оформлен.
   final VoidCallback onPressed;
@@ -37,6 +44,12 @@ class PassButton extends StatefulWidget {
 
   /// Сколько держать в режиме [holdToPass].
   final Duration holdDuration;
+
+  /// Компактный вид для панели игрока на поле: 70×38 pt, зона нажатия не меньше [GwentSpace.minTapTarget].
+  final bool compact;
+
+  /// Высота самой кнопки без зоны нажатия вокруг.
+  double get visualHeight => compact ? compactHeight : height;
 
   @override
   State<PassButton> createState() => _PassButtonState();
@@ -93,11 +106,20 @@ class _PassButtonState extends State<PassButton> with SingleTickerProviderStateM
     }
   }
 
+  /// Компактная кнопка ниже 44 pt: зона нажатия растёт за счёт прозрачных полей вокруг.
+  Widget _hitArea(Widget surface) => widget.compact
+      ? SizedBox(
+          height: GwentSpace.minTapTarget,
+          child: Center(widthFactor: 1, child: surface),
+        )
+      : surface;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final enabled = widget.enabled;
     final holding = widget.holdToPass && _pressed;
+    final compact = widget.compact;
     return Semantics(
       button: true,
       enabled: enabled,
@@ -115,21 +137,24 @@ class _PassButtonState extends State<PassButton> with SingleTickerProviderStateM
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              Transform.translate(
-                offset: Offset(0, _pressed ? 1 : 0),
-                child: AnimatedBuilder(
-                  animation: _hold,
-                  builder: (context, _) => _PassSurface(
-                    enabled: enabled,
-                    pressed: _pressed,
-                    focused: _focused,
-                    progress: _hold.value,
+              _hitArea(
+                Transform.translate(
+                  offset: Offset(0, _pressed ? 1 : 0),
+                  child: AnimatedBuilder(
+                    animation: _hold,
+                    builder: (context, _) => _PassSurface(
+                      enabled: enabled,
+                      pressed: _pressed,
+                      focused: _focused,
+                      progress: _hold.value,
+                      compact: compact,
+                    ),
                   ),
                 ),
               ),
               if (holding)
                 Positioned(
-                  bottom: PassButton.height + 8,
+                  bottom: (compact ? GwentSpace.minTapTarget : PassButton.height) + 8,
                   child: Text(
                     l10n.passButtonHoldHint,
                     textScaler: TextScaler.noScaling,
@@ -151,12 +176,19 @@ class _PassButtonState extends State<PassButton> with SingleTickerProviderStateM
 }
 
 class _PassSurface extends StatelessWidget {
-  const _PassSurface({required this.enabled, required this.pressed, required this.focused, required this.progress});
+  const _PassSurface({
+    required this.enabled,
+    required this.pressed,
+    required this.focused,
+    required this.progress,
+    required this.compact,
+  });
 
   final bool enabled;
   final bool pressed;
   final bool focused;
   final double progress;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -169,8 +201,8 @@ class _PassSurface extends StatelessWidget {
         : GwentColors.textPrimary;
     final ringColor = enabled ? GwentColors.brass : GwentColors.surfaceRaised;
     return Container(
-      height: PassButton.height,
-      constraints: const BoxConstraints(minWidth: 156),
+      height: compact ? PassButton.compactHeight : PassButton.height,
+      constraints: BoxConstraints(minWidth: compact ? PassButton.compactWidth : 156),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(GwentSpace.radiusPill),
         color: !enabled
@@ -237,25 +269,25 @@ class _PassSurface extends StatelessWidget {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 28),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                spacing: 12,
+                spacing: compact ? 7 : 12,
                 children: [
-                  _Diamond(color: accent),
+                  _Diamond(color: accent, size: compact ? 4 : 6),
                   Text(
                     label,
                     textScaler: TextScaler.noScaling,
                     style: TextStyle(
                       fontFamily: GwentText.cormorant,
                       fontWeight: FontWeight.w700,
-                      fontSize: 26,
+                      fontSize: compact ? 19 : 26,
                       height: 1,
-                      letterSpacing: 1.56,
+                      letterSpacing: compact ? 1.14 : 1.56,
                       color: textColor,
                     ),
                   ),
-                  _Diamond(color: accent),
+                  _Diamond(color: accent, size: compact ? 4 : 6),
                 ],
               ),
             ),
@@ -267,13 +299,17 @@ class _PassSurface extends StatelessWidget {
 }
 
 class _Diamond extends StatelessWidget {
-  const _Diamond({required this.color});
+  const _Diamond({required this.color, required this.size});
 
   final Color color;
+  final double size;
 
   @override
   Widget build(BuildContext context) => Transform.rotate(
     angle: 0.785398,
-    child: SizedBox.square(dimension: 6, child: ColoredBox(color: color)),
+    child: SizedBox.square(
+      dimension: size,
+      child: ColoredBox(color: color),
+    ),
   );
 }

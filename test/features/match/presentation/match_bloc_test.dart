@@ -167,7 +167,7 @@ void main() {
     final subscription = bloc.stream.listen(states.add);
     addTearDown(subscription.cancel);
 
-    bloc.add(MatchSessionOpened(_session(table)));
+    bloc.add(MatchSessionOpened(_session(table, content)));
     await pumpEventQueue();
     table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
     table.push(TableFailed(StateError('бот сломался')));
@@ -300,9 +300,10 @@ Intent _humanIntent(PlayerView view, {required bool playCards}) {
 }
 
 /// Начатая партия против бота на поддельном столе.
-MatchSession _session(MatchTable table) => MatchSession(
+MatchSession _session(MatchTable table, GameContent content) => MatchSession(
   mode: history.MatchMode.ai,
   table: table,
+  content: content,
   factionIds: const {Seat.one: 'skellige', Seat.two: 'monsters'},
 );
 

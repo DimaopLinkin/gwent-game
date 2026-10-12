@@ -1,3 +1,4 @@
+import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/awaited_action.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchRecord;
@@ -43,11 +44,14 @@ final class MatchHandover extends MatchScreenState {
 /// Партия идёт; экран показывает её глазами `view.viewer`.
 final class MatchInProgress extends MatchScreenState {
   /// Создаёт состояние.
-  MatchInProgress({required this.view, required List<GameEvent> events, this.refusal})
+  MatchInProgress({required this.view, required this.content, required List<GameEvent> events, this.refusal})
     : events = List.unmodifiable(events);
 
   /// Что видит игрок, который держит телефон.
   final PlayerView view;
+
+  /// Контент партии: по нему экран рисует карты проекции.
+  final GameContent content;
 
   /// События, которых этот игрок ещё не видел, по порядку: для анимаций и журнала хода. В hot-seat сюда
   /// попадает и всё, что сделал соперник, пока телефон был у него.

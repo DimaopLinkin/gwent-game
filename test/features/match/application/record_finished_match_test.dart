@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
@@ -7,10 +8,16 @@ import 'package:gwent/src/features/match_history/domain/match_record.dart' as hi
 import 'package:gwent_engine/gwent_engine.dart';
 
 import '../../../support/fakes.dart';
+import '../../../support/match_fixtures.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late GameContent content;
   late InMemoryMatchHistoryRepository repository;
   late RecordFinishedMatch record;
+
+  setUpAll(() async => content = await loadBaseContent());
 
   setUp(() {
     repository = InMemoryMatchHistoryRepository();
@@ -22,6 +29,7 @@ void main() {
   MatchSession session(history.MatchMode mode, Set<Seat> localSeats) => MatchSession(
     mode: mode,
     table: _Table(localSeats),
+    content: content,
     factionIds: const {Seat.one: 'skellige', Seat.two: 'monsters'},
   );
 

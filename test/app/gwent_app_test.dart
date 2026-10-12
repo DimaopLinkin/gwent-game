@@ -53,10 +53,15 @@ void main() {
     expect(find.text(l10n.menuDecks), findsOneWidget);
   });
 
-  testWidgets('из меню открываются поле, лобби и колоды, «назад» возвращает в меню', (tester) async {
+  testWidgets('из меню открываются партия, лобби и колоды, «назад» возвращает в меню', (tester) async {
     await pumpApp(tester);
 
-    await openAndReturn(tester, l10n.menuHotSeat, l10n.matchTitle);
+    // У экрана партии нет шапки: выход в меню — кнопка на нём.
+    await tester.tap(find.text(l10n.menuHotSeat));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.matchExit));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.appTitle), findsOneWidget);
     await openAndReturn(tester, l10n.menuNetworkGame, l10n.lobbyTitle);
     await openAndReturn(tester, l10n.menuDecks, l10n.deckBuilderTitle);
   });
