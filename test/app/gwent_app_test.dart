@@ -106,7 +106,7 @@ void main() {
     expect(find.text(l10n.menuContentFailed), findsOneWidget);
     await tester.tap(find.text(l10n.menuHotSeat), warnIfMissed: false);
     await tester.pumpAndSettle();
-    expect(find.text(l10n.matchExit), findsNothing);
+    expect(find.bySemanticsLabel(l10n.setupBack), findsNothing);
 
     await openAndReturn(tester, l10n.menuSettings, l10n.settingsTitle);
   });
@@ -117,14 +117,14 @@ void main() {
     // У экрана партии нет шапки: выход в меню — кнопка на нём.
     await tester.tap(find.text(l10n.menuHotSeat));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.matchExit));
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
     await tester.pumpAndSettle();
     expect(find.byType(GwentLogo), findsOneWidget);
 
     await tester.tap(find.text(l10n.menuVsBot));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.matchSetupStart), findsOneWidget);
-    await tester.tap(find.text(l10n.matchExit));
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
     await tester.pumpAndSettle();
 
     await openAndReturn(tester, l10n.menuNetworkGame, l10n.lobbyTitle);
@@ -132,18 +132,18 @@ void main() {
     await openAndReturn(tester, l10n.menuSettings, l10n.settingsTitle);
   });
 
-  testWidgets('режим из меню попадает на экран выбора колод', (tester) async {
+  testWidgets('режим из меню попадает на выбор фракции: вдвоём шаг называет игрока', (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.text(l10n.menuHotSeat));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.matchSetupDeckTwo), findsOneWidget);
-    await tester.tap(find.text(l10n.matchExit));
+    expect(find.text(l10n.setupStepSeat(l10n.playerNumbered(1), 1, 2).toUpperCase()), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(l10n.menuVsBot));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.matchSetupDeckBot), findsOneWidget);
+    expect(find.text(l10n.setupStep(1, 2).toUpperCase()), findsOneWidget);
   });
 
   testWidgets('заставка идёт один раз при запуске и закрывает меню, пока данные не готовы', (tester) async {

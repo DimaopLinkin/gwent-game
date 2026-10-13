@@ -603,26 +603,6 @@
   "@fieldRevealDone": {
     "description": "Кнопка листа с показанными картами."
   },
-  "matchSetupTitle": "Новая партия",
-  "@matchSetupTitle": {
-    "description": "Заголовок экрана выбора партии."
-  },
-  "matchSetupDeckOne": "Ваша колода",
-  "@matchSetupDeckOne": {
-    "description": "Подпись выбора колоды первого игрока."
-  },
-  "matchSetupDeckBot": "Колода бота",
-  "@matchSetupDeckBot": {
-    "description": "Подпись выбора колоды бота."
-  },
-  "matchSetupDeckTwo": "Колода второго игрока",
-  "@matchSetupDeckTwo": {
-    "description": "Подпись выбора колоды второго игрока."
-  },
-  "matchSetupStart": "Начать партию",
-  "@matchSetupStart": {
-    "description": "Кнопка начала партии."
-  },
   "matchSetupLoadFailed": "Не удалось загрузить колоды",
   "@matchSetupLoadFailed": {
     "description": "Сообщение, когда колоды не прочитались."
@@ -1318,5 +1298,195 @@
   "settingsTitle": "Настройки",
   "@settingsTitle": {
     "description": "Заголовок экрана настроек."
+  },
+  "setupStep": "Шаг {step} из {total}",
+  "@setupStep": {
+    "description": "Надпись над заголовком шага выбора фракции и лидера.",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setupStepSeat": "{player} · шаг {step} из {total}",
+  "@setupStepSeat": {
+    "description": "Надпись над заголовком шага выбора, когда играют вдвоём на одном телефоне: чей шаг.",
+    "placeholders": {
+      "player": {
+        "type": "String"
+      },
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setupBack": "Назад",
+  "@setupBack": {
+    "description": "Подпись кнопки возврата на предыдущий шаг выбора."
+  },
+  "factionSelectTitle": "Выбор фракции",
+  "@factionSelectTitle": {
+    "description": "Заголовок экрана выбора фракции."
+  },
+  "factionSelectPerk": "Способность фракции",
+  "@factionSelectPerk": {
+    "description": "Надпись над описанием способности фракции."
+  },
+  "factionSelectConfirm": "Выбрать фракцию",
+  "@factionSelectConfirm": {
+    "description": "Кнопка подтверждения фракции."
+  },
+  "factionSelectPrevious": "Предыдущая фракция",
+  "@factionSelectPrevious": {
+    "description": "Подпись стрелки карусели фракций для экранного диктора."
+  },
+  "factionSelectNext": "Следующая фракция",
+  "@factionSelectNext": {
+    "description": "Подпись стрелки карусели фракций для экранного диктора."
+  },
+  "leaderSelectTitle": "Выбор лидера",
+  "@leaderSelectTitle": {
+    "description": "Заголовок экрана выбора лидера."
+  },
+  "leaderSelectAbility": "Способность лидера",
+  "@leaderSelectAbility": {
+    "description": "Надпись над описанием способности лидера."
+  },
+  "leaderSelectConfirm": "Подтвердить лидера",
+  "@leaderSelectConfirm": {
+    "description": "Кнопка подтверждения лидера."
+  },
+  "leaderSelectUnavailable": "Лидер недоступен",
+  "@leaderSelectUnavailable": {
+    "description": "Кнопка на недоступном лидере: подтвердить его нельзя."
+  },
+  "leaderStatusAvailable": "Доступен",
+  "@leaderStatusAvailable": {
+    "description": "Метка лидера, который есть в коллекции."
+  },
+  "leaderStatusLocked": "Нет в коллекции",
+  "@leaderStatusLocked": {
+    "description": "Метка лидера, которого ещё нет в коллекции."
+  },
+  "deckSelectEyebrow": "Перед матчем",
+  "@deckSelectEyebrow": {
+    "description": "Надпись над заголовком выбора колоды."
+  },
+  "deckSelectTitle": "Выбор колоды",
+  "@deckSelectTitle": {
+    "description": "Заголовок экрана выбора колоды перед партией."
+  },
+  "deckSelectCards": "Карт: {count}",
+  "@deckSelectCards": {
+    "description": "Число карт в колоде в строке списка колод.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckSelectReady": "Готова",
+  "@deckSelectReady": {
+    "description": "Метка колоды, которая проходит правила сборки."
+  },
+  "deckSelectNotReady": "Колода не готова",
+  "@deckSelectNotReady": {
+    "description": "Метка колоды, которая не проходит правила сборки."
+  },
+  "deckSelectEdit": "Изменить",
+  "@deckSelectEdit": {
+    "description": "Кнопка: открыть выбранную колоду в конструкторе."
+  },
+  "deckSelectPlay": "Играть",
+  "@deckSelectPlay": {
+    "description": "Кнопка: начать партию с выбранной колодой."
+  },
+  "deckSelectNext": "Дальше",
+  "@deckSelectNext": {
+    "description": "Кнопка: перейти к выбору второго игрока."
+  },
+  "deckIssueLeaderUnavailable": "Лидер колоды недоступен: выберите другого.",
+  "@deckIssueLeaderUnavailable": {
+    "description": "Причина, по которой колода не годится: нет лидера."
+  },
+  "deckIssueLeaderOfOtherFaction": "Лидер не из фракции колоды: выберите лидера этой фракции.",
+  "@deckIssueLeaderOfOtherFaction": {
+    "description": "Причина, по которой колода не годится: лидер чужой фракции."
+  },
+  "deckIssueUnknownCard": "В колоде есть карта, которой нет в наборе: откройте колоду и поправьте её.",
+  "@deckIssueUnknownCard": {
+    "description": "Причина, по которой колода не годится: карты нет в наборе."
+  },
+  "deckIssueWrongFaction": "Карта «{card}» чужой фракции.",
+  "@deckIssueWrongFaction": {
+    "description": "Причина, по которой колода не годится: карта не из фракции колоды и не нейтральная.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "deckIssueCreatedCard": "Карту «{card}» нельзя класть в колоду.",
+  "@deckIssueCreatedCard": {
+    "description": "Причина, по которой колода не годится: в неё положена созданная карта.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "deckIssueTooManyCopies": "Карты «{card}» в колоде {count}, а в игре их только {max}.",
+  "@deckIssueTooManyCopies": {
+    "description": "Причина, по которой колода не годится: копий карты больше, чем существует.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "deckIssueTooFewUnits": "Нужно минимум {min} {min, plural, one{карта} few{карты} many{карт} other{карты}} отрядов, сейчас {count}.",
+  "@deckIssueTooFewUnits": {
+    "description": "Причина, по которой колода не годится: мало карт отрядов.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckIssueTooManySpecials": "Не больше {max} особых карт, сейчас {count}.",
+  "@deckIssueTooManySpecials": {
+    "description": "Причина, по которой колода не годится: слишком много особых карт.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckSelectEyebrowSeat": "{player} · перед матчем",
+  "@deckSelectEyebrowSeat": {
+    "description": "Надпись над заголовком выбора колоды, когда играют вдвоём на одном телефоне: чей выбор.",
+    "placeholders": {
+      "player": {
+        "type": "String"
+      }
+    }
   }
 }

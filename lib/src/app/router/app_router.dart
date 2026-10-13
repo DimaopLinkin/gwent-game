@@ -45,17 +45,22 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
             providers: [
               BlocProvider(
                 create: (_) => MatchSetupCubit(
-                  dependencies.watchDecks,
+                  watchDecks: dependencies.watchDecks,
+                  loadDeckRules: dependencies.loadDeckRules,
+                  getActiveDeck: dependencies.getActiveDeck,
+                  setActiveDeck: dependencies.setActiveDeck,
+                  chooseOpponentDeck: dependencies.chooseOpponentDeck,
                   mode: _matchMode(state),
-                  ensureStarterDecks: dependencies.ensureStarterDecks,
-                  chooseDefaultDecks: dependencies.chooseDefaultDecks,
-                  preselect: true,
                 ),
               ),
               BlocProvider(create: (_) => MatchBloc(dependencies.startMatch, dependencies.recordFinishedMatch)),
               BlocProvider(create: (_) => FieldCubit()),
             ],
-            child: MatchScreen(onExit: () => context.go(AppRoutes.menu)),
+            child: MatchScreen(
+              onExit: () => context.go(AppRoutes.menu),
+              // Конструктор открывается поверх выбора, а не вместо него: после правки игрок возвращается к тому же шагу.
+              onEditDeck: (_) => context.push(AppRoutes.decks),
+            ),
           ),
         ),
       ],

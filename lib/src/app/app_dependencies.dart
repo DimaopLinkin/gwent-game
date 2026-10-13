@@ -9,6 +9,7 @@ import 'package:gwent/src/features/deck_builder/application/delete_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/ensure_starter_decks.dart';
 import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
 import 'package:gwent/src/features/deck_builder/application/get_active_deck.dart';
+import 'package:gwent/src/features/deck_builder/application/load_deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/set_active_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/validate_deck.dart';
@@ -16,7 +17,7 @@ import 'package:gwent/src/features/deck_builder/application/watch_active_decks.d
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
-import 'package:gwent/src/features/match/application/choose_default_decks.dart';
+import 'package:gwent/src/features/match/application/choose_opponent_deck.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
@@ -81,6 +82,7 @@ final class AppDependencies {
   }) : watchDecks = WatchDecks(deckRepository),
        saveDeck = SaveDeck(deckRepository, clock, idGenerator),
        deleteDeck = DeleteDeck(deckRepository),
+       loadDeckRules = LoadDeckRules(deckRules),
        validateDeck = ValidateDeck(deckRules),
        watchActiveDecks = WatchActiveDecks(deckRepository),
        setActiveDeck = SetActiveDeck(deckRepository, deckRules, deckSelectionLock),
@@ -90,7 +92,7 @@ final class AppDependencies {
        saveSettings = SaveSettings(settingsRepository),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator) {
-    chooseDefaultDecks = ChooseDefaultDecks(deckRules, getActiveDeck);
+    chooseOpponentDeck = ChooseOpponentDeck(deckRules, getActiveDeck);
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
@@ -107,6 +109,9 @@ final class AppDependencies {
 
   /// Удаление колоды.
   final DeleteDeck deleteDeck;
+
+  /// Правила сборки колод: фракции, лидеры, проверка.
+  final LoadDeckRules loadDeckRules;
 
   /// Проверка колоды по правилам сборки.
   final ValidateDeck validateDeck;
@@ -138,8 +143,8 @@ final class AppDependencies {
   /// Подготовка главного меню: набор карт, стартовые колоды, версии.
   late final LoadMenu loadMenu;
 
-  /// Колоды по умолчанию для местной партии.
-  late final ChooseDefaultDecks chooseDefaultDecks;
+  /// Колода бота против игрока.
+  late final ChooseOpponentDeck chooseOpponentDeck;
 
   /// Начало местной партии (hot-seat или против бота).
   late final StartMatch startMatch;

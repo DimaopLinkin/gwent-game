@@ -73,6 +73,37 @@ void main() {
     expect(other.state, isNot(first.state));
   });
 
+  test('лидер партии заменяет лидера колоды у своего места и не меняет сохранённую колоду', () async {
+    final skellige = (await decks.findById('skellige'))!;
+    final rules = content.pack.rules;
+    final other = rules.leaderCards.firstWhere((l) => l.fractionId == skellige.factionId && l.id != skellige.leaderId);
+
+    final session = await started(
+      LocalMatchRequest(
+        mode: LocalMatchMode.hotSeat,
+        deckOne: 'skellige',
+        deckTwo: 'monsters',
+        leaderOne: other.id,
+      ),
+    );
+
+    final table = session.table as LocalMatchTable;
+    expect(table.state.player(Seat.one).leader.value, other.id);
+    expect(table.state.player(Seat.two).leader.value, (await decks.findById('monsters'))!.leaderId);
+    expect((await decks.findById('skellige'))!.leaderId, skellige.leaderId);
+  });
+
+  test('лидер партии не из фракции колоды: колода не по правилам', () async {
+    final monsters = (await decks.findById('monsters'))!;
+    final foreign = content.pack.rules.leaderCards.firstWhere((l) => l.fractionId == monsters.factionId);
+
+    final result = await startMatch()(
+      LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters', leaderOne: foreign.id),
+    );
+
+    expect(result, isA<MatchDeckInvalid>().having((r) => r.seat, 'seat', Seat.one));
+  });
+
   test('колоды нет в хранилище', () async {
     final result = await startMatch()(
       const LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'gone'),
