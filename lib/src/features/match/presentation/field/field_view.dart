@@ -9,13 +9,14 @@ import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/components/confirm_dialog.dart';
 import 'package:gwent/src/core/presentation/components/game_toast.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
+import 'package:gwent/src/core/presentation/components/pause_button.dart';
 import 'package:gwent/src/core/presentation/components/player_bar.dart';
-import 'package:gwent/src/core/presentation/components/turn_banner.dart';
 import 'package:gwent/src/core/presentation/components/weather_strip.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/match/presentation/field/banner_layer.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
@@ -25,6 +26,10 @@ import 'package:gwent/src/features/match/presentation/field/field_sheets.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
 import 'package:gwent/src/features/match/presentation/field/play_targets.dart';
+import 'package:gwent/src/features/match/presentation/match_roster.dart';
+import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
+import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
+import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Игровое поле (макеты поля и оверлеев): ряды соперника, центральная полоса, мои ряды, полосы игроков и рука.
@@ -32,12 +37,17 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// Рисует проекцию [view] глазами игрока, который держит телефон, и отдаёт его ходы в [onIntent]. Что игрок выбрал
 /// и какой лист открыл, хранит `FieldCubit` из контекста. Поле строится на холсте шириной экрана и высотой
 /// бюджета макета (751 pt); на низких экранах холст уменьшается целиком, на высоких лишнее достаётся руке.
+///
+/// Поверх поля идут баннеры раунда, хода и паса, итог раунда и слои паузы (меню, правила, подтверждение сдачи).
+/// Системная кнопка «назад» закрывает лист или снимает выбор, а на чистом поле открывает паузу: выйти из партии можно
+/// только сдавшись.
 class FieldView extends StatefulWidget {
   /// Создаёт поле.
   const FieldView({
     super.key,
     required this.view,
     required this.content,
+    required this.roster,
     required this.onIntent,
     this.confirmPass = false,
   });
@@ -47,6 +57,9 @@ class FieldView extends StatefulWidget {
 
   /// Контент партии: по нему рисуются карты.
   final GameContent content;
+
+  /// Участники партии: по ним называются игроки.
+  final MatchRoster roster;
 
   /// Ход игрока уходит в партию.
   final ValueChanged<Intent> onIntent;
@@ -58,23 +71,14 @@ class FieldView extends StatefulWidget {
   State<FieldView> createState() => _FieldViewState();
 }
 
-enum _BannerKind { yourTurn, round }
-
 class _FieldViewState extends State<FieldView> {
   static const RowView _emptyRow = RowView(cards: [], slot: null, weather: false, strength: 0);
 
   FieldContent? _content;
   AppLocalizations? _l10n;
-  _BannerKind? _banner;
 
   PlayerView get _view => widget.view;
   FieldCubit get _cubit => context.read<FieldCubit>();
-
-  @override
-  void initState() {
-    super.initState();
-    if (_turnIsMine(_view)) _banner = _BannerKind.yourTurn;
-  }
 
   @override
   void didChangeDependencies() {
@@ -86,11 +90,6 @@ class _FieldViewState extends State<FieldView> {
   void didUpdateWidget(FieldView oldWidget) {
     super.didUpdateWidget(oldWidget);
     _ensureContent();
-    if (_view.round != oldWidget.view.round) {
-      _banner = _BannerKind.round;
-    } else if (_turnIsMine(_view) && !_turnIsMine(oldWidget.view)) {
-      _banner = _BannerKind.yourTurn;
-    }
   }
 
   void _ensureContent() {
@@ -101,7 +100,7 @@ class _FieldViewState extends State<FieldView> {
     }
   }
 
-  /// Ход мой: по этому признаку показывается баннер «Ваш ход», выбор движка его не прерывает.
+  /// Ход мой; выбор движка его не прерывает.
   static bool _turnIsMine(PlayerView view) =>
       view.phase == MatchPhase.playing && view.turn == view.viewer && !view.me.passed;
 
@@ -200,17 +199,38 @@ class _FieldViewState extends State<FieldView> {
     if (PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) case final intent?) _play(intent);
   }
 
+  void _onBack(FieldState field) {
+    final cubit = _cubit;
+    if (field.pause != PauseLayer.none) {
+      if (field.pause == PauseLayer.menu) {
+        cubit.closePause();
+      } else {
+        cubit.backToPauseMenu();
+      }
+    } else if (field.summary != null) {
+      cubit.dismissSummary();
+    } else if (field.overlay is! NoOverlay || field.selected != null) {
+      cubit
+        ..closeOverlay()
+        ..clearSelected();
+    } else {
+      cubit.openPause();
+    }
+  }
+
+  void _surrender() {
+    _cubit.closePause();
+    widget.onIntent(const Resign());
+  }
+
   @override
   Widget build(BuildContext context) => BlocBuilder<FieldCubit, FieldState>(
     builder: (context, field) {
       final sheet = _sheet(context, field);
       return PopScope(
-        canPop: field.overlay is NoOverlay && field.selected == null,
+        canPop: false,
         onPopInvokedWithResult: (didPop, _) {
-          if (didPop) return;
-          _cubit
-            ..closeOverlay()
-            ..clearSelected();
+          if (!didPop) _onBack(field);
         },
         child: Stack(
           children: [
@@ -232,11 +252,40 @@ class _FieldViewState extends State<FieldView> {
               ),
             ),
             ?sheet,
+            if (field.summary case final summary?)
+              Positioned.fill(
+                child: RoundSummaryView(
+                  summary: summary,
+                  roster: widget.roster,
+                  onDismissed: _cubit.dismissSummary,
+                ),
+              ),
+            ?_pauseLayer(field),
           ],
         ),
       );
     },
   );
+
+  Widget? _pauseLayer(FieldState field) {
+    final cubit = _cubit;
+    return switch (field.pause) {
+      PauseLayer.none => null,
+      PauseLayer.menu => Positioned.fill(
+        child: PauseMenuLayer(
+          onResume: cubit.closePause,
+          onRules: cubit.openRules,
+          onSurrender: cubit.askSurrender,
+        ),
+      ),
+      PauseLayer.rules => Positioned.fill(
+        child: RulesView(roster: widget.roster, onBack: cubit.backToPauseMenu),
+      ),
+      PauseLayer.surrenderConfirm => Positioned.fill(
+        child: SurrenderConfirmLayer(onCancel: cubit.backToPauseMenu, onConfirm: _surrender),
+      ),
+    };
+  }
 
   Widget _canvas(BuildContext context, FieldGeometry geometry, FieldState field) {
     final l10n = context.l10n;
@@ -247,12 +296,6 @@ class _FieldViewState extends State<FieldView> {
     final choiceRows = _choiceRows();
     final hint = _hint(l10n, targets);
     final isTargeting = hint != null;
-    final banner = switch ((field.showOpponentPassed, _banner)) {
-      (true, _) => TurnBanner(title: l10n.bannerOpponentPassed, subtitle: l10n.bannerOpponentPassedHint),
-      (false, _BannerKind.yourTurn) => TurnBanner(title: l10n.bannerYourTurn, kind: TurnBannerKind.yourTurn),
-      (false, _BannerKind.round) => TurnBanner(title: l10n.bannerRound(view.round)),
-      (false, null) => null,
-    };
     return ColoredBox(
       color: GwentColors.bg,
       child: Stack(
@@ -331,25 +374,20 @@ class _FieldViewState extends State<FieldView> {
             ),
           ),
           Positioned(
-            left: 0,
-            right: 0,
-            top: geometry.stripTop + FieldGeometry.stripHeight / 2 - 60,
-            height: 120,
-            child: TurnBannerPresenter(
-              banner: banner,
-              onDismissed: () {
-                if (field.showOpponentPassed) {
-                  _cubit.clearBanner();
-                } else {
-                  // После баннера раунда на своём ходу сразу показываем «Ваш ход».
-                  setState(
-                    () => _banner = _banner == _BannerKind.round && _turnIsMine(_view) ? _BannerKind.yourTurn : null,
-                  );
-                }
-              },
-              child: const SizedBox.expand(),
-            ),
+            left: geometry.width - 47,
+            top: geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
+            width: PauseButton.hitSize,
+            height: PauseButton.hitSize,
+            child: PauseButton(onPressed: _cubit.openPause, semanticsLabel: l10n.pauseButtonSemantics),
           ),
+          if (field.summary == null && field.pause == PauseLayer.none)
+            Positioned.fill(
+              child: BannerLayer(
+                banner: field.banners.firstOrNull,
+                roster: widget.roster,
+                onDismissed: _cubit.dismissBanner,
+              ),
+            ),
           if (field.toast case final toast?)
             Positioned(
               left: 16,
@@ -393,6 +431,7 @@ class _FieldViewState extends State<FieldView> {
       round: view.round,
       isTarget: targets.highlightsStrip,
       onTap: () => _tapStrip(field),
+      showPauseSlot: true,
     );
   }
 
@@ -405,7 +444,7 @@ class _FieldViewState extends State<FieldView> {
     final canPass = _isMyTurn(view);
     return PlayerBar(
       mine: mine,
-      name: mine ? l10n.playerPlateYou : l10n.fieldPlayerOpponent,
+      name: widget.roster.name(mine ? view.viewer : view.viewer.opponent, l10n),
       faction: _fieldContent.faction(side.faction),
       leader: _fieldContent.leaderFace(side.leader, used: side.leaderUsed),
       leaderAvailable: mine && side.leaderAvailable && canPass,

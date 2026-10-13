@@ -17,8 +17,14 @@ enum LocalMatchMode {
 @immutable
 final class MatchSession {
   /// Создаёт сессию.
-  MatchSession({required this.mode, required this.table, required this.content, required Map<Seat, String> factionIds})
-    : factionIds = Map.unmodifiable(factionIds);
+  MatchSession({
+    required this.mode,
+    required this.table,
+    required this.content,
+    required Map<Seat, String> factionIds,
+    Map<Seat, String> deckNames = const {},
+  }) : factionIds = Map.unmodifiable(factionIds),
+       deckNames = Map.unmodifiable(deckNames);
 
   /// Режим партии для истории: местные режимы и (позже) сетевые.
   final MatchMode mode;
@@ -31,6 +37,9 @@ final class MatchSession {
 
   /// UUID фракции пакета контента у колоды каждого места.
   final Map<Seat, String> factionIds;
+
+  /// Названия колод мест для экрана знакомства; места без названия (чужая колода по сети) в словаре нет.
+  final Map<Seat, String> deckNames;
 
   /// Чьими глазами партия записывается в историю: первое здешнее место (в hot-seat это первый игрок).
   Seat get perspective => Seat.values.firstWhere(table.localSeats.contains);

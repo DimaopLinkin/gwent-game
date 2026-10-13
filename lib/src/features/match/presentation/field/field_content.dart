@@ -83,6 +83,13 @@ final class FieldContent {
   /// Лицо лидера для мини-карты на полосе игрока.
   LeaderCardFace leaderFace(LeaderId id, {bool used = false}) => leader(id, used: used).face as LeaderCardFace;
 
+  /// Название фракции из пакета контента.
+  String factionName(Faction faction) {
+    final key = this.faction(faction).key;
+    final fraction = content.pack.rules.fractionsById.values.where((fraction) => fraction.key == key).firstOrNull;
+    return fraction == null ? '' : content.pack.text(fraction.nameKey);
+  }
+
   /// Фракция колоды для герба и рубашки.
   GwentFaction faction(Faction faction) => switch (faction) {
     Faction.northernRealms => GwentFaction.northernRealms,

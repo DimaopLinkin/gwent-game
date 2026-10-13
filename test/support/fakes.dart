@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
@@ -10,6 +11,16 @@ import 'package:gwent/src/features/match_history/domain/match_history_repository
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
+
+/// Версия приложения, заданная тестом.
+final class FakeAppInfo implements AppInfo {
+  const FakeAppInfo([this.current = '1.0.0']);
+
+  final String current;
+
+  @override
+  Future<String> version() async => current;
+}
 
 /// Часы, которые показывают заданное время.
 final class FakeClock implements Clock {

@@ -11,4 +11,16 @@ abstract final class AppRoutes {
 
   /// Игровое поле.
   static const String match = '/match';
+
+  /// Настройки.
+  static const String settings = '/settings';
+
+  /// Параметр пути партии: режим, `hotSeat` или `bot`.
+  static const String matchModeParam = 'mode';
+
+  /// Путь партии на одном телефоне.
+  static const String matchHotSeat = '$match?$matchModeParam=hotSeat';
+
+  /// Путь партии против бота.
+  static const String matchBot = '$match?$matchModeParam=bot';
 }

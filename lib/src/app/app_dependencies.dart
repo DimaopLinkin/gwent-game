@@ -1,3 +1,4 @@
+import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
@@ -15,11 +16,13 @@ import 'package:gwent/src/features/deck_builder/application/watch_active_decks.d
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
+import 'package:gwent/src/features/match/application/choose_default_decks.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/application/watch_match_history.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
+import 'package:gwent/src/features/menu/application/load_menu.dart';
 import 'package:gwent/src/features/settings/application/save_settings.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
@@ -33,6 +36,7 @@ final class AppDependencies {
   /// Собирает сценарии.
   factory AppDependencies({
     required ContentSource contentSource,
+    required AppInfo appInfo,
     required DeckRepository deckRepository,
     required SettingsRepository settingsRepository,
     required MatchHistoryRepository matchHistoryRepository,
@@ -46,6 +50,7 @@ final class AppDependencies {
     final createStarterDeck = CreateStarterDeck(deckRepository, clock, idGenerator);
     final deckSelectionLock = DeckSelectionLock();
     return AppDependencies._(
+      appInfo: appInfo,
       loadGameContent: loadGameContent,
       deckRules: deckRules,
       deckRepository: deckRepository,
@@ -61,6 +66,7 @@ final class AppDependencies {
   }
 
   AppDependencies._({
+    required AppInfo appInfo,
     required this.loadGameContent,
     required DeckRulesSource deckRules,
     required DeckRepository deckRepository,
@@ -84,6 +90,8 @@ final class AppDependencies {
        saveSettings = SaveSettings(settingsRepository),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator) {
+    chooseDefaultDecks = ChooseDefaultDecks(deckRules, getActiveDeck);
+    loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
   }
@@ -126,6 +134,12 @@ final class AppDependencies {
 
   /// Запись партии в историю.
   final RecordMatch recordMatch;
+
+  /// Подготовка главного меню: набор карт, стартовые колоды, версии.
+  late final LoadMenu loadMenu;
+
+  /// Колоды по умолчанию для местной партии.
+  late final ChooseDefaultDecks chooseDefaultDecks;
 
   /// Начало местной партии (hot-seat или против бота).
   late final StartMatch startMatch;

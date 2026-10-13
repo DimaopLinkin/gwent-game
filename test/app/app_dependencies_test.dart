@@ -13,6 +13,7 @@ void main() {
     final decks = InMemoryDeckRepository()..yieldOnRead = true;
     final dependencies = AppDependencies(
       contentSource: AssetContentSource.basePack(rootBundle),
+      appInfo: const FakeAppInfo(),
       deckRepository: decks,
       settingsRepository: InMemorySettingsRepository(),
       matchHistoryRepository: InMemoryMatchHistoryRepository(),

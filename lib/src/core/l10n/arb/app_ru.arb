@@ -4,7 +4,7 @@
   "@appTitle": {
     "description": "Название приложения в заголовке окна и главном меню."
   },
-  "menuHotSeat": "Игра на одном телефоне",
+  "menuHotSeat": "Играть на одном телефоне",
   "@menuHotSeat": {
     "description": "Кнопка главного меню: партия двух игроков на одном устройстве."
   },
@@ -607,14 +607,6 @@
   "@matchSetupTitle": {
     "description": "Заголовок экрана выбора партии."
   },
-  "matchSetupModeBot": "Против бота",
-  "@matchSetupModeBot": {
-    "description": "Режим партии против бота."
-  },
-  "matchSetupModeHotSeat": "Вдвоём на одном телефоне",
-  "@matchSetupModeHotSeat": {
-    "description": "Режим партии hot-seat."
-  },
   "matchSetupDeckOne": "Ваша колода",
   "@matchSetupDeckOne": {
     "description": "Подпись выбора колоды первого игрока."
@@ -647,19 +639,6 @@
   "@matchExit": {
     "description": "Кнопка выхода из партии."
   },
-  "matchHandoverTitle": "Передайте телефон: игрок {number}",
-  "@matchHandoverTitle": {
-    "description": "Заголовок экрана передачи телефона в hot-seat.",
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
-  "matchHandoverBody": "Не смотрите на экран чужой руки. Нажмите, когда готовы.",
-  "@matchHandoverBody": {
-    "description": "Пояснение экрана передачи телефона."
-  },
   "matchHandoverReady": "Я готов",
   "@matchHandoverReady": {
     "description": "Кнопка экрана передачи телефона."
@@ -668,38 +647,13 @@
   "@matchRedrawTitle": {
     "description": "Заголовок экрана пересдачи."
   },
-  "matchRedrawSubtitle": "Можно заменить ещё {count, plural, one{{count} карту} few{{count} карты} many{{count} карт} other{{count} карты}}",
-  "@matchRedrawSubtitle": {
-    "description": "Пояснение экрана пересдачи.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "matchRedrawWaiting": "Ждём, пока соперник закончит пересдачу",
-  "@matchRedrawWaiting": {
-    "description": "Пояснение экрана пересдачи после своей готовности."
-  },
   "matchRedrawDone": "Готово",
   "@matchRedrawDone": {
     "description": "Кнопка завершения пересдачи."
   },
-  "matchFirstPlayerTitle": "Кто ходит первым?",
-  "@matchFirstPlayerTitle": {
-    "description": "Заголовок экрана выбора первого игрока."
-  },
   "matchFirstPlayerMe": "Я",
   "@matchFirstPlayerMe": {
     "description": "Кнопка выбора себя первым игроком."
-  },
-  "matchFirstPlayerOpponent": "Соперник",
-  "@matchFirstPlayerOpponent": {
-    "description": "Кнопка выбора соперника первым игроком."
-  },
-  "matchFirstPlayerWaiting": "Соперник выбирает, кто ходит первым",
-  "@matchFirstPlayerWaiting": {
-    "description": "Пояснение, когда первого игрока выбирает соперник."
   },
   "matchFinishedWin": "Победа",
   "@matchFinishedWin": {
@@ -713,13 +667,295 @@
   "@matchFinishedDraw": {
     "description": "Заголовок итога партии при ничьей."
   },
-  "matchFinishedRound": "Раунд {round}: {mine} : {theirs}",
-  "@matchFinishedRound": {
-    "description": "Строка счёта раунда на экране итога.",
+  "playerNumbered": "Игрок {number}",
+  "@playerNumbered": {
+    "description": "Имя игрока по номеру места в партии на одном телефоне.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "matchPlayerOpponent": "Противник",
+  "@matchPlayerOpponent": {
+    "description": "Имя соперника в партии против бота или по сети."
+  },
+  "bannerDecisiveRound": "Решающий раунд",
+  "@bannerDecisiveRound": {
+    "description": "Заголовок баннера раунда, когда у каждого по одному кристаллу."
+  },
+  "bannerDecisiveRoundHint": "У каждого по одному камню",
+  "@bannerDecisiveRoundHint": {
+    "description": "Подпись баннера решающего раунда."
+  },
+  "bannerTurnOf": "Ход: {name}",
+  "@bannerTurnOf": {
+    "description": "Баннер хода в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerOpponentTurn": "Ход противника",
+  "@bannerOpponentTurn": {
+    "description": "Баннер хода соперника."
+  },
+  "bannerPassedBy": "{name} спасовал",
+  "@bannerPassedBy": {
+    "description": "Баннер паса в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerYouPassed": "Вы спасовали",
+  "@bannerYouPassed": {
+    "description": "Заголовок баннера: игрок спасовал."
+  },
+  "bannerYouPassedHint": "Ожидание хода противника",
+  "@bannerYouPassedHint": {
+    "description": "Подпись баннера: игрок спасовал."
+  },
+  "matchIntroSkipSemantics": "Пропустить",
+  "@matchIntroSkipSemantics": {
+    "description": "Подпись нажатия на экран знакомства и жребия для скринридера."
+  },
+  "matchIntroVersus": "ПРОТИВ",
+  "@matchIntroVersus": {
+    "description": "Слово между игроками на экране знакомства."
+  },
+  "matchIntroDeck": "Колода",
+  "@matchIntroDeck": {
+    "description": "Слово перед названием колоды на экране знакомства."
+  },
+  "matchTossTitle": "Жребий",
+  "@matchTossTitle": {
+    "description": "Заголовок экрана жребия."
+  },
+  "matchTossChoiceTitle": "Выбор",
+  "@matchTossChoiceTitle": {
+    "description": "Заголовок экрана, когда первого игрока выбрал игрок Скоя'таэлей."
+  },
+  "matchTossFlipping": "Бросаем монету…",
+  "@matchTossFlipping": {
+    "description": "Подпись, пока летит монета."
+  },
+  "matchTossYouFirst": "Вы ходите первым",
+  "@matchTossYouFirst": {
+    "description": "Результат жребия: первым ходит игрок."
+  },
+  "matchTossOpponentFirst": "Первым ходит противник",
+  "@matchTossOpponentFirst": {
+    "description": "Результат жребия: первым ходит соперник."
+  },
+  "matchTossHotFirst": "Первым ходит {name}",
+  "@matchTossHotFirst": {
+    "description": "Результат жребия в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchTossNoteChoice": "Решение Скоя'таэлей",
+  "@matchTossNoteChoice": {
+    "description": "Пояснение: первого игрока выбрал игрок Скоя'таэлей."
+  },
+  "matchTossNoteBothScoiatael": "Оба игрока — Скоя'таэли, решил жребий",
+  "@matchTossNoteBothScoiatael": {
+    "description": "Пояснение: у обоих Скоя'таэли, выбирать некому."
+  },
+  "matchTossNoteRandom": "Решил жребий",
+  "@matchTossNoteRandom": {
+    "description": "Пояснение жребия."
+  },
+  "matchFirstPlayerFaction": "Скоя'таэли",
+  "@matchFirstPlayerFaction": {
+    "description": "Название фракции на экране выбора первого игрока."
+  },
+  "matchFirstPlayerEyebrowHot": "{name} · Скоя'таэли",
+  "@matchFirstPlayerEyebrowHot": {
+    "description": "Надпись над заголовком выбора первого игрока в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchFirstPlayerTitle": "Кто ходит первым?",
+  "@matchFirstPlayerTitle": {
+    "description": "Заголовок экрана выбора первого игрока."
+  },
+  "matchFirstPlayerOpponentDecides": "Противник решает",
+  "@matchFirstPlayerOpponentDecides": {
+    "description": "Заголовок, пока первого игрока выбирает соперник."
+  },
+  "matchFirstPlayerSubtitle": "Фракция Скоя'таэли: вы сами решаете, кто начнёт партию.",
+  "@matchFirstPlayerSubtitle": {
+    "description": "Пояснение экрана выбора первого игрока."
+  },
+  "matchFirstPlayerSubtitleHot": "{name}: кто ходит первым — вы или соперник? Кнопки относятся к тому, кто держит телефон.",
+  "@matchFirstPlayerSubtitleHot": {
+    "description": "Пояснение выбора первого игрока в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchFirstPlayerSubtitleWaiting": "Фракция Скоя'таэли даёт противнику право выбрать, кто начнёт партию.",
+  "@matchFirstPlayerSubtitleWaiting": {
+    "description": "Пояснение, пока первого игрока выбирает соперник."
+  },
+  "matchFirstPlayerWaitingChoice": "Ожидание выбора…",
+  "@matchFirstPlayerWaitingChoice": {
+    "description": "Пульсирующая надпись, пока соперник выбирает первого игрока."
+  },
+  "matchFirstPlayerOpponent": "Противник",
+  "@matchFirstPlayerOpponent": {
+    "description": "Кнопка выбора соперника первым игроком."
+  },
+  "matchRedrawEyebrowHot": "{name} · {faction}",
+  "@matchRedrawEyebrowHot": {
+    "description": "Надпись над заголовком пересдачи в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "faction": {
+        "type": "String"
+      }
+    }
+  },
+  "matchRedrawLeft": "Можно заменить: {count}",
+  "@matchRedrawLeft": {
+    "description": "Счётчик оставшихся замен карт на экране пересдачи.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "matchRedrawHint": "Нажмите на карту, чтобы заменить её новой.",
+  "@matchRedrawHint": {
+    "description": "Подсказка экрана пересдачи."
+  },
+  "matchRedrawHoldHint": "Удерживайте карту — полный просмотр",
+  "@matchRedrawHoldHint": {
+    "description": "Подсказка под сеткой карт пересдачи."
+  },
+  "matchRedrawOpponentBusy": "Противник меняет карты…",
+  "@matchRedrawOpponentBusy": {
+    "description": "Заголовок ожидания, пока соперник проходит пересдачу."
+  },
+  "matchRedrawReplaced": "Вы заменили карт: {count}",
+  "@matchRedrawReplaced": {
+    "description": "Подпись ожидания пересдачи.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "matchHandoverTitle": "Передайте телефон:",
+  "@matchHandoverTitle": {
+    "description": "Заголовок экрана передачи телефона."
+  },
+  "matchHandoverFirstPlayerChoice": "Сейчас решается, кто ходит первым. Рука скрыта: нажмите «Я готов», когда телефон у вас.",
+  "@matchHandoverFirstPlayerChoice": {
+    "description": "Пояснение передачи телефона перед выбором первого игрока."
+  },
+  "matchHandoverRedraw": "Сейчас — пересдача карт. Рука скрыта: нажмите «Я готов», когда телефон у вас.",
+  "@matchHandoverRedraw": {
+    "description": "Пояснение передачи телефона перед пересдачей."
+  },
+  "matchHandoverFirstMove": "Рука скрыта. Первым ходит {name}. Нажмите «Я готов», когда телефон у вас.",
+  "@matchHandoverFirstMove": {
+    "description": "Пояснение передачи телефона перед первым ходом.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchHandoverTurn": "Рука скрыта. Нажмите «Я готов», когда телефон у вас: {name} увидит свои карты и поле.",
+  "@matchHandoverTurn": {
+    "description": "Пояснение передачи телефона между ходами.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "summaryEyebrow": "Раунд {round} · итог",
+  "@summaryEyebrow": {
+    "description": "Надпись над заголовком итога раунда.",
     "placeholders": {
       "round": {
         "type": "int"
-      },
+      }
+    }
+  },
+  "summaryYouWon": "Вы выиграли раунд",
+  "@summaryYouWon": {
+    "description": "Заголовок итога раунда: игрок выиграл."
+  },
+  "summaryOpponentWon": "Противник выиграл раунд",
+  "@summaryOpponentWon": {
+    "description": "Заголовок итога раунда: игрок проиграл."
+  },
+  "summaryDraw": "Ничья",
+  "@summaryDraw": {
+    "description": "Заголовок итога раунда: ничья."
+  },
+  "summaryWinnerHot": "{name} выиграл раунд",
+  "@summaryWinnerHot": {
+    "description": "Заголовок итога раунда в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "summaryContinue": "Нажмите, чтобы продолжить",
+  "@summaryContinue": {
+    "description": "Подсказка итога раунда."
+  },
+  "summaryFactionAbilities": "Способности фракций",
+  "@summaryFactionAbilities": {
+    "description": "Заголовок блока способностей фракций в итоге раунда."
+  },
+  "summaryMarkExtraCard": "+1 карта",
+  "@summaryMarkExtraCard": {
+    "description": "Способность Королевств Севера в итоге раунда."
+  },
+  "summaryMarkUnitStays": "карта остаётся на поле",
+  "@summaryMarkUnitStays": {
+    "description": "Способность Чудовищ в итоге раунда."
+  },
+  "summaryMarkWonTie": "победа при ничьей",
+  "@summaryMarkWonTie": {
+    "description": "Способность Нильфгаарда в итоге раунда."
+  },
+  "matchResultEyebrow": "Матч окончен",
+  "@matchResultEyebrow": {
+    "description": "Надпись над заголовком итога матча."
+  },
+  "matchResultWinnerHot": "Победил {name}",
+  "@matchResultWinnerHot": {
+    "description": "Подзаголовок итога матча на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchResultRounds": "Раунды {mine} : {theirs}",
+  "@matchResultRounds": {
+    "description": "Счёт выигранных раундов в итоге матча.",
+    "placeholders": {
       "mine": {
         "type": "int"
       },
@@ -727,5 +963,351 @@
         "type": "int"
       }
     }
+  },
+  "matchResultRound": "Раунд {number}",
+  "@matchResultRound": {
+    "description": "Строка таблицы раундов в итоге матча.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "matchResultColumnRound": "Раунд",
+  "@matchResultColumnRound": {
+    "description": "Заголовок столбца таблицы итога матча."
+  },
+  "matchResultColumnWinner": "Победитель",
+  "@matchResultColumnWinner": {
+    "description": "Заголовок столбца таблицы итога матча."
+  },
+  "matchResultRematch": "Реванш",
+  "@matchResultRematch": {
+    "description": "Кнопка итога матча: сыграть заново."
+  },
+  "pauseButtonSemantics": "Пауза",
+  "@pauseButtonSemantics": {
+    "description": "Подпись кнопки паузы для скринридера."
+  },
+  "pauseTitle": "Пауза",
+  "@pauseTitle": {
+    "description": "Заголовок меню паузы."
+  },
+  "pauseResume": "Продолжить",
+  "@pauseResume": {
+    "description": "Кнопка меню паузы."
+  },
+  "pauseRules": "Правила",
+  "@pauseRules": {
+    "description": "Кнопка меню паузы."
+  },
+  "pauseSettings": "Настройки",
+  "@pauseSettings": {
+    "description": "Кнопка меню паузы."
+  },
+  "pauseSurrender": "Сдаться",
+  "@pauseSurrender": {
+    "description": "Кнопка меню паузы и подтверждения сдачи."
+  },
+  "surrenderTitle": "Сдаться?",
+  "@surrenderTitle": {
+    "description": "Заголовок подтверждения сдачи."
+  },
+  "surrenderBody": "Матч будет засчитан как поражение.",
+  "@surrenderBody": {
+    "description": "Пояснение подтверждения сдачи."
+  },
+  "rulesTitle": "Правила",
+  "@rulesTitle": {
+    "description": "Заголовок справочника правил."
+  },
+  "rulesBackSemantics": "Назад",
+  "@rulesBackSemantics": {
+    "description": "Подпись кнопки «назад» справочника правил."
+  },
+  "rulesGoalTitle": "Цель",
+  "@rulesGoalTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesGoalText": "Выиграйте два раунда из трёх. Раунд выигрывает игрок с большей суммой силы на поле, когда оба спасовали. Спасовавший игрок больше не ходит до конца раунда. У каждого два камня жизни: проигравший раунд теряет один, при ничьей теряют оба.",
+  "@rulesGoalText": {
+    "description": "Правила: цель игры."
+  },
+  "rulesRowsTitle": "Ряды",
+  "@rulesRowsTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesRowsText": "Сила считается отдельно в каждом ряду, сумма трёх рядов — счёт раунда.",
+  "@rulesRowsText": {
+    "description": "Правила: ряды."
+  },
+  "rulesRowMeleeName": "Ближний бой",
+  "@rulesRowMeleeName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowMeleeText": "Рукопашные отряды.",
+  "@rulesRowMeleeText": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowRangedName": "Дальний бой",
+  "@rulesRowRangedName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowRangedText": "Лучники и стрелки.",
+  "@rulesRowRangedText": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowSiegeName": "Осадные",
+  "@rulesRowSiegeName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowSiegeText": "Катапульты и другие осадные орудия.",
+  "@rulesRowSiegeText": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowAgileName": "Проворство",
+  "@rulesRowAgileName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowAgileText": "Отряд можно выложить в ближний или дальний ряд.",
+  "@rulesRowAgileText": {
+    "description": "Правила: ряд."
+  },
+  "rulesWeatherTitle": "Погода",
+  "@rulesWeatherTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesWeatherText": "Погодная карта действует на оба поля. Герои погоде не подвержены.",
+  "@rulesWeatherText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFrostName": "Мороз",
+  "@rulesWeatherFrostName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFrostText": "Снижает силу рукопашных отрядов до 1.",
+  "@rulesWeatherFrostText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFogName": "Мгла",
+  "@rulesWeatherFogName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFogText": "Снижает силу отрядов дальнего боя до 1.",
+  "@rulesWeatherFogText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherRainName": "Ливень",
+  "@rulesWeatherRainName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherRainText": "Снижает силу осадных отрядов до 1.",
+  "@rulesWeatherRainText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherStormName": "Шторм со Скеллиге",
+  "@rulesWeatherStormName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherStormText": "Снижает силу дальних и осадных отрядов до 1 у обоих игроков.",
+  "@rulesWeatherStormText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherClearName": "Ясное небо",
+  "@rulesWeatherClearName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherClearText": "Снимает все эффекты погодных карт.",
+  "@rulesWeatherClearText": {
+    "description": "Правила: погода."
+  },
+  "rulesAbilitiesTitle": "Способности",
+  "@rulesAbilitiesTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesAbilityBondName": "Прочная связь",
+  "@rulesAbilityBondName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityBondText": "Сила умножается на число карт с тем же названием в ряду.",
+  "@rulesAbilityBondText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMoraleName": "Прилив сил",
+  "@rulesAbilityMoraleName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMoraleText": "Даёт +1 к силе всем отрядам в своём ряду, кроме себя.",
+  "@rulesAbilityMoraleText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMedicName": "Медик",
+  "@rulesAbilityMedicName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMedicText": "Выберите отряд в своём сбросе и сыграйте его немедленно.",
+  "@rulesAbilityMedicText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilitySpyName": "Шпион",
+  "@rulesAbilitySpyName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilitySpyText": "Выкладывается на поле противника, сила карты прибавляется ему. Взамен вы берёте две карты.",
+  "@rulesAbilitySpyText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityBerserkName": "Берсерк",
+  "@rulesAbilityBerserkName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityBerserkText": "Превращается в медведя, если в его ряду сыгран Мардрём.",
+  "@rulesAbilityBerserkText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMardroemeName": "Мардрём",
+  "@rulesAbilityMardroemeName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMardroemeText": "Превращает Берсерков в ряду.",
+  "@rulesAbilityMardroemeText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityScorchName": "Казнь",
+  "@rulesAbilityScorchName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityScorchText": "Уничтожает самую сильную карту.",
+  "@rulesAbilityScorchText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityTwinName": "Двойник",
+  "@rulesAbilityTwinName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityTwinText": "Вместе с картой выкладываются все связанные с ней.",
+  "@rulesAbilityTwinText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityAvengerName": "Приманка",
+  "@rulesAbilityAvengerName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityAvengerText": "При уходе с поля призывает на своё место сильную карту.",
+  "@rulesAbilityAvengerText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHornName": "Командирский рог",
+  "@rulesAbilityHornName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHornText": "Удваивает силу отрядов в ряду. В ряду может быть один рог.",
+  "@rulesAbilityHornText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityDecoyName": "Чучело",
+  "@rulesAbilityDecoyName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityDecoyText": "Заменяет отряд на поле и возвращает его в руку.",
+  "@rulesAbilityDecoyText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHeroName": "Герой",
+  "@rulesAbilityHeroName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHeroText": "На героя не действуют погода, рог и способности.",
+  "@rulesAbilityHeroText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityLeaderName": "Лидер",
+  "@rulesAbilityLeaderName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityLeaderText": "Способность лидера используется один раз за матч.",
+  "@rulesAbilityLeaderText": {
+    "description": "Правила: способность."
+  },
+  "rulesFactionsTitle": "Фракции",
+  "@rulesFactionsTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesFactionsText": "Способность фракции срабатывает в конце раунда.",
+  "@rulesFactionsText": {
+    "description": "Правила: фракции."
+  },
+  "rulesFactionNorthernRealms": "После победы в раунде вы берёте дополнительную карту.",
+  "@rulesFactionNorthernRealms": {
+    "description": "Правила: Королевства Севера."
+  },
+  "rulesFactionNilfgaard": "Побеждает при ничьей.",
+  "@rulesFactionNilfgaard": {
+    "description": "Правила: Нильфгаард."
+  },
+  "rulesFactionMonsters": "После раунда одна случайная карта отряда остаётся на поле.",
+  "@rulesFactionMonsters": {
+    "description": "Правила: Чудовища."
+  },
+  "rulesFactionScoiatael": "Сами решают, кто ходит первым.",
+  "@rulesFactionScoiatael": {
+    "description": "Правила: Скоя'таэли."
+  },
+  "rulesFactionSkellige": "В третьем раунде две случайные карты из сброса возвращаются на поле.",
+  "@rulesFactionSkellige": {
+    "description": "Правила: Скеллиге."
+  },
+  "menuVsBot": "Игра с ИИ",
+  "@menuVsBot": {
+    "description": "Кнопка главного меню: партия против бота."
+  },
+  "menuSettings": "Настройки",
+  "@menuSettings": {
+    "description": "Кнопка главного меню: настройки."
+  },
+  "menuNoDeckHint": "Соберите колоду, чтобы начать",
+  "@menuNoDeckHint": {
+    "description": "Подсказка главного меню, пока нет готовой колоды."
+  },
+  "menuContentFailed": "Не удалось загрузить карты",
+  "@menuContentFailed": {
+    "description": "Подсказка главного меню, когда набор карт не загрузился."
+  },
+  "menuToBuilder": "В конструктор",
+  "@menuToBuilder": {
+    "description": "Кнопка подсказки главного меню: открыть конструктор колод."
+  },
+  "menuVersion": "Версия {app} · Набор карт {pack}",
+  "@menuVersion": {
+    "description": "Строка версий внизу главного меню.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "pack": {
+        "type": "int"
+      }
+    }
+  },
+  "menuVersionApp": "Версия {app}",
+  "@menuVersionApp": {
+    "description": "Строка версии внизу главного меню, если набор карт не загружен.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuSplashLoading": "Загрузка данных карт…",
+  "@menuSplashLoading": {
+    "description": "Подпись полосы загрузки на заставке."
+  },
+  "menuSplashReady": "Готово",
+  "@menuSplashReady": {
+    "description": "Подпись заставки, когда данные загружены."
+  },
+  "settingsTitle": "Настройки",
+  "@settingsTitle": {
+    "description": "Заголовок экрана настроек."
   }
 }

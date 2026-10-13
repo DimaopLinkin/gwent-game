@@ -27,6 +27,8 @@ dependencies:
   go_router: ^17.5.0
   intl: ^0.20.2
   meta: ^1.17.0
+  # Версия приложения для главного меню.
+  package_info_plus: ^10.2.2
   uuid: ^4.5.3
 
   gwent_ai:

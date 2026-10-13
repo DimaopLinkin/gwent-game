@@ -9,10 +9,10 @@ import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/card_pile.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
 import 'package:gwent/src/core/presentation/components/row_score_pill.dart';
-import 'package:gwent/src/core/presentation/components/turn_banner.dart';
 import 'package:gwent/src/core/presentation/components/weather_strip.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/match/presentation/field/banner_layer.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
@@ -21,6 +21,9 @@ import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
+import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
+import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 import '../../../../support/fonts.dart';
@@ -56,6 +59,7 @@ void main() {
     WidgetTester tester,
     PlayerView view, {
     bool confirmPass = false,
+    bool hotSeat = false,
     Size size = const Size(390, 844),
   }) async {
     tester.view.physicalSize = size;
@@ -72,6 +76,7 @@ void main() {
             builder: (context, view, _) => FieldView(
               view: view,
               content: content,
+              roster: rosterOf(cards, hotSeat: hotSeat),
               onIntent: harness.intents.add,
               confirmPass: confirmPass,
             ),
@@ -94,6 +99,19 @@ void main() {
     final area = geometry.cardsArea(row, mine: mine);
     return Offset(area.right - 12, area.center.dy);
   }
+
+  /// Состояние партии доходит до держателя поля так же, как с экрана партии: с событиями, которых игрок не видел.
+  void feed(_Harness harness, PlayerView view, List<GameEvent> events, {bool hotSeat = false}) =>
+      harness.cubit.onMatchState(
+        MatchInProgress(
+          view: view,
+          content: content,
+          roster: rosterOf(cards, hotSeat: hotSeat),
+          events: events,
+        ),
+      );
+
+  String bannerTitle(WidgetTester tester) => tester.widget<MatchBannerStrip>(find.byType(MatchBannerStrip)).title;
 
   Future<void> endBanners(WidgetTester tester) async {
     await tester.pump(const Duration(seconds: 3));
@@ -576,7 +594,7 @@ void main() {
       final view = viewOf(cards);
       final harness = await pumpField(tester, view);
       harness.cubit.onMatchState(
-        MatchInProgress(view: view, content: content, events: [HandRevealed(Seat.one, shown)]),
+        MatchInProgress(view: view, content: content, roster: rosterOf(cards), events: [HandRevealed(Seat.one, shown)]),
       );
       await tester.pump(const Duration(milliseconds: 250));
       expect(find.text('Рука противника'), findsOneWidget);
@@ -710,70 +728,249 @@ void main() {
   });
 
   group('баннеры', () {
-    testWidgets('в свой ход при показе поля: «Ваш ход», через пару секунд исчезает', (tester) async {
-      await pumpField(tester, viewOf(cards));
+    testWidgets('начало раунда: «Раунд 1», затем «Ваш ход», потом баннеры исчезают', (tester) async {
+      final view = viewOf(cards);
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [RoundStarted(1, Seat.one), TurnStarted(Seat.one)]);
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.byType(TurnBanner), findsOneWidget);
-      await endBanners(tester);
-      expect(find.byType(TurnBanner), findsNothing);
+      expect(bannerTitle(tester), 'Раунд 1');
+      await tester.pump(const Duration(milliseconds: 2000));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(bannerTitle(tester), 'Ваш ход');
+      await tester.pump(const Duration(milliseconds: 1000));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(MatchBannerStrip), findsNothing);
+      expect(harness.cubit.state.banners, isEmpty);
     });
 
-    testWidgets('в ход соперника баннера нет, а когда ход переходит ко мне, появляется', (tester) async {
-      final harness = await pumpField(tester, viewOf(cards, turn: Seat.two));
-      expect(find.byType(TurnBanner), findsNothing);
-      harness.view.value = viewOf(cards);
+    testWidgets('в ход соперника: «Ход противника»', (tester) async {
+      final view = viewOf(cards, turn: Seat.two);
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [TurnStarted(Seat.two)]);
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.byType(TurnBanner), findsOneWidget);
+      expect(bannerTitle(tester), 'Ход противника');
       await endBanners(tester);
     });
 
-    testWidgets('новый раунд: «Раунд 2»', (tester) async {
-      final harness = await pumpField(tester, viewOf(cards, turn: Seat.two));
-      harness.view.value = viewOf(cards, turn: Seat.two, round: 2);
+    testWidgets('в hot-seat баннер называет игрока по номеру', (tester) async {
+      final view = viewOf(cards, turn: Seat.two);
+      final harness = await pumpField(tester, view, hotSeat: true);
+      feed(harness, view, const [TurnStarted(Seat.two)], hotSeat: true);
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('Раунд 2'), findsWidgets);
-      expect(find.byType(TurnBanner), findsOneWidget);
+      expect(bannerTitle(tester), 'Ход: Игрок 2');
       await endBanners(tester);
     });
 
-    testWidgets('новый раунд на моём ходу: после «Раунд 2» сразу «Ваш ход»', (tester) async {
-      final harness = await pumpField(tester, viewOf(cards));
-      await endBanners(tester);
-      harness.view.value = viewOf(cards, round: 2);
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(tester.widget<TurnBanner>(find.byType(TurnBanner)).title, 'Раунд 2');
-      await tester.pump(const Duration(milliseconds: 1700));
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(tester.widget<TurnBanner>(find.byType(TurnBanner)).title, 'Ваш ход');
-      await endBanners(tester);
-      expect(find.byType(TurnBanner), findsNothing);
-    });
-
-    testWidgets('выбор движка в мой ход не вызывает баннер «Ваш ход» заново', (tester) async {
-      final harness = await pumpField(tester, viewOf(cards));
-      await endBanners(tester);
-      harness.view.value = viewOf(
+    testWidgets('решающий раунд: у каждого по одному камню', (tester) async {
+      final view = viewOf(
         cards,
-        choice: const PendingChoice(seat: Seat.one, kind: ChoiceKind.unitRow, options: [RowOption(Row.melee)]),
+        round: 3,
+        me: sideOf(cards, Seat.one, crystals: 1),
+        opponent: sideOf(cards, Seat.two, crystals: 1),
       );
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [RoundStarted(3, Seat.one)]);
       await tester.pump(const Duration(milliseconds: 300));
-      harness.view.value = viewOf(cards);
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.byType(TurnBanner), findsNothing);
+      expect(bannerTitle(tester), 'Решающий раунд');
+      expect(find.text('У каждого по одному камню'), findsOneWidget);
+      await endBanners(tester);
     });
 
     testWidgets('пас соперника: баннер с подсказкой, потом он убирается', (tester) async {
       final view = viewOf(cards, turn: Seat.two);
       final harness = await pumpField(tester, view);
-      harness.cubit.onMatchState(
-        MatchInProgress(view: view, content: content, events: const [Passed(Seat.two, auto: false)]),
-      );
+      feed(harness, view, const [Passed(Seat.two, auto: false)]);
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Противник спасовал'), findsOneWidget);
       expect(find.text('Разыграйте карту или спасуйте'), findsOneWidget);
       await endBanners(tester);
       expect(find.text('Противник спасовал'), findsNothing);
-      expect(harness.cubit.state.showOpponentPassed, isFalse);
+      expect(harness.cubit.state.banners, isEmpty);
+    });
+
+    testWidgets('свой пас: «Вы спасовали» и ожидание хода противника', (tester) async {
+      final view = viewOf(cards, turn: Seat.two, me: sideOf(cards, Seat.one, passed: true));
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [Passed(Seat.one, auto: false)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(bannerTitle(tester), 'Вы спасовали');
+      expect(find.text('Ожидание хода противника'), findsOneWidget);
+      await endBanners(tester);
+    });
+
+    testWidgets('в hot-seat пас называет игрока', (tester) async {
+      final view = viewOf(cards, turn: Seat.two);
+      final harness = await pumpField(tester, view, hotSeat: true);
+      feed(harness, view, const [Passed(Seat.two, auto: false)], hotSeat: true);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(bannerTitle(tester), 'Игрок 2 спасовал');
+      await endBanners(tester);
+    });
+
+    testWidgets('при «уменьшить движение» баннер просто появляется и исчезает', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+      final view = viewOf(cards);
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [TurnStarted(Seat.one)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(bannerTitle(tester), 'Ваш ход');
+      await endBanners(tester);
+      expect(find.byType(MatchBannerStrip), findsNothing);
+    });
+
+    testWidgets('нажатия проходят сквозь баннер', (tester) async {
+      final unit = cards.unit(Row.melee);
+      final view = viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit]));
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [RoundStarted(1, Seat.one)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(handCards().first, warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.selected, unit.id);
+      await endBanners(tester);
+    });
+  });
+
+  group('итог раунда', () {
+    const won = RoundResult(round: 1, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+
+    testWidgets('показывает итог, нажатие в любом месте его закрывает', (tester) async {
+      final view = viewOf(cards, round: 2, opponent: sideOf(cards, Seat.two, crystals: 1));
+      final harness = await pumpField(tester, view);
+      feed(harness, view, [const RoundEnded(won), const RoundStarted(2, Seat.two), const TurnStarted(Seat.two)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(RoundSummaryView), findsOneWidget);
+      expect(find.text('РАУНД 1 · ИТОГ'), findsOneWidget);
+      expect(find.text('Вы выиграли раунд'), findsOneWidget);
+      expect(find.text('17'), findsWidgets);
+      expect(find.text('Нажмите, чтобы продолжить'), findsOneWidget);
+      expect(find.byType(MatchBannerStrip), findsNothing, reason: 'баннеры ждут, пока итог не закроют');
+
+      await tester.tapAt(const Offset(195, 300));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(RoundSummaryView), findsNothing);
+      expect(bannerTitle(tester), 'Раунд 2');
+      await endBanners(tester);
+    });
+
+    testWidgets('в hot-seat итог называет победителя по номеру', (tester) async {
+      final view = viewOf(cards, round: 2);
+      final harness = await pumpField(tester, view, hotSeat: true);
+      feed(harness, view, [const RoundEnded(won)], hotSeat: true);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Игрок 1 выиграл раунд'), findsOneWidget);
+    });
+
+    testWidgets('кнопка «назад» закрывает итог, а не открывает паузу', (tester) async {
+      final view = viewOf(cards);
+      final harness = await pumpField(tester, view);
+      feed(harness, view, [const RoundEnded(won)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(RoundSummaryView), findsNothing);
+      expect(harness.cubit.state.pause, PauseLayer.none);
+    });
+  });
+
+  group('пауза и сдача', () {
+    testWidgets('кнопка паузы открывает меню, «Продолжить» и нажатие мимо панели возвращают в игру', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      await tester.tap(find.bySemanticsLabel('Пауза'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(PauseMenuLayer), findsOneWidget);
+      expect(find.text('Продолжить'), findsOneWidget);
+      expect(find.text('Правила'), findsOneWidget);
+      expect(find.text('Сдаться'), findsOneWidget);
+
+      await tester.tap(find.text('Продолжить'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(PauseMenuLayer), findsNothing);
+
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.pause, PauseLayer.none);
+    });
+
+    testWidgets('кнопка паузы имеет зону нажатия не меньше 44 pt', (tester) async {
+      await pumpField(tester, viewOf(cards));
+      final size = tester.getSize(find.bySemanticsLabel('Пауза'));
+      expect(size.width, greaterThanOrEqualTo(44));
+      expect(size.height, greaterThanOrEqualTo(44));
+    });
+
+    testWidgets('«Настройки» в паузе недоступны', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(tester.widget<PauseMenuLayer>(find.byType(PauseMenuLayer)).onSettings, isNull);
+    });
+
+    testWidgets('«Правила» открывают справочник, «назад» возвращает в меню паузы', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.text('Правила'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(RulesView), findsOneWidget);
+      expect(find.text('Цель'), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(RulesView), findsNothing);
+      expect(harness.cubit.state.pause, PauseLayer.menu);
+    });
+
+    testWidgets('«Сдаться» спрашивает подтверждение; «Отмена» возвращает в меню, ход не отправляется', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.text('Сдаться'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(SurrenderConfirmLayer), findsOneWidget);
+      expect(find.text('Матч будет засчитан как поражение.'), findsOneWidget);
+
+      await tester.tap(find.text('Отмена'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(SurrenderConfirmLayer), findsNothing);
+      expect(find.byType(PauseMenuLayer), findsOneWidget);
+      expect(harness.intents, isEmpty);
+    });
+
+    testWidgets('подтверждённая сдача отправляет Resign и закрывает слой', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      harness.cubit
+        ..openPause()
+        ..askSurrender();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.descendant(of: find.byType(SurrenderConfirmLayer), matching: find.text('Сдаться')));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.intents, [const Resign()]);
+      expect(harness.cubit.state.pause, PauseLayer.none);
+    });
+
+    testWidgets('кнопка «назад» на чистом поле открывает паузу, повторное нажатие закрывает', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.pause, PauseLayer.menu);
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.pause, PauseLayer.none);
+    });
+
+    testWidgets('баннер не показывается под паузой', (tester) async {
+      final view = viewOf(cards);
+      final harness = await pumpField(tester, view);
+      harness.cubit.openPause();
+      feed(harness, view, const [TurnStarted(Seat.one)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(MatchBannerStrip), findsNothing);
     });
   });
 

@@ -11,13 +11,19 @@ import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent/src/features/match/presentation/match_stages.dart';
+import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
+import 'package:gwent/src/features/match/presentation/start/first_player_view.dart';
+import 'package:gwent/src/features/match/presentation/start/handover_view.dart';
+import 'package:gwent/src/features/match/presentation/start/match_intro_view.dart';
+import 'package:gwent/src/features/match/presentation/start/match_toss_view.dart';
+import 'package:gwent/src/features/match/presentation/start/redraw_view.dart';
 import 'package:gwent_engine/gwent_engine.dart' hide Row;
 
-/// Экран партии: выбор режима и колод, передача телефона, пересдача, поле и итог.
+/// Экран партии: от выбора колод до итога.
 ///
-/// Показывает то, что говорит `MatchBloc`; выбор игрока на поле держит `FieldCubit`, он получает состояние партии
-/// отсюда же. Экраны вокруг поля (выбор колод, передача телефона, пересдача, итог) простые и без макетов: макеты
-/// старта партии и итогов ещё в работе.
+/// Показывает то, что говорит `MatchBloc`: знакомство, жребий, выбор Скоя'таэлей, передачу телефона, пересдачу, поле
+/// и итог матча. Выбор игрока на поле, баннеры, итог раунда и паузу держит `FieldCubit`, он получает состояние
+/// партии отсюда же. Выбор колод перед партией временный, без макета: его заменит экран выбора фракции.
 class MatchScreen extends StatelessWidget {
   /// Создаёт экран; [onExit] уводит из партии в меню, [confirmPass] включает диалог подтверждения паса.
   const MatchScreen({super.key, required this.onExit, this.confirmPass = false});
@@ -57,19 +63,41 @@ class MatchScreen extends StatelessWidget {
         title: l10n.matchStartFailed,
         actions: [(label: l10n.matchExit, onPressed: onExit, primary: true)],
       ),
-      MatchHandover(:final next) => MatchPanel(
-        title: l10n.matchHandoverTitle(next.index + 1),
-        body: l10n.matchHandoverBody,
-        actions: [
-          (label: l10n.matchHandoverReady, onPressed: () => bloc.add(const MatchHandoverAccepted()), primary: true),
-        ],
+      MatchIntro(:final roster) => MatchIntroView(
+        roster: roster,
+        onFinished: () => bloc.add(const MatchIntroFinished()),
       ),
-      MatchInProgress(:final view, :final content) => switch (view) {
-        PlayerView(phase: MatchPhase.choosingFirstPlayer) => MatchFirstPlayerStage(view: view, onIntent: submit),
-        PlayerView(phase: MatchPhase.redraw) => MatchRedrawStage(view: view, content: content, onIntent: submit),
-        _ => FieldView(view: view, content: content, onIntent: submit, confirmPass: confirmPass),
+      MatchToss(:final roster, :final first, :final byChoice) => MatchTossView(
+        roster: roster,
+        first: first,
+        byChoice: byChoice,
+        onFinished: () => bloc.add(const MatchTossFinished()),
+      ),
+      MatchHandover(:final next, :final kind, :final roster) => MatchHandoverView(
+        next: next,
+        kind: kind,
+        roster: roster,
+        onReady: () => bloc.add(const MatchHandoverAccepted()),
+      ),
+      MatchInProgress(:final view, :final content, :final roster) => switch (view) {
+        PlayerView(phase: MatchPhase.choosingFirstPlayer) => MatchFirstPlayerView(
+          view: view,
+          roster: roster,
+          onIntent: submit,
+        ),
+        PlayerView(phase: MatchPhase.redraw, me: SideView(redrawDone: true)) => MatchRedrawWaitView(
+          view: view,
+          roster: roster,
+        ),
+        PlayerView(phase: MatchPhase.redraw) => MatchRedrawView(view: view, roster: roster, onIntent: submit),
+        _ => FieldView(view: view, content: content, roster: roster, onIntent: submit, confirmPass: confirmPass),
       },
-      MatchFinished(:final view) => MatchFinishedStage(view: view, onExit: onExit),
+      MatchFinished(:final view, :final roster, :final canRematch) => MatchResultView(
+        view: view,
+        roster: roster,
+        onExit: onExit,
+        onRematch: canRematch ? () => bloc.add(const MatchRematchRequested()) : null,
+      ),
       MatchCrashed() => MatchPanel(
         title: l10n.matchCrashed,
         actions: [(label: l10n.matchExit, onPressed: onExit, primary: true)],

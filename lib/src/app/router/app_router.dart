@@ -5,11 +5,13 @@ import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_builder_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_screen.dart';
+import 'package:gwent/src/features/match/domain/match_session.dart' show LocalMatchMode;
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/menu/presentation/menu_screen.dart';
+import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 
 /// Навигация приложения.
 ///
@@ -21,9 +23,11 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
     GoRoute(
       path: AppRoutes.menu,
       builder: (context, state) => MenuScreen(
-        onHotSeat: () => context.go(AppRoutes.match),
+        onHotSeat: () => context.go(AppRoutes.matchHotSeat),
+        onBot: () => context.go(AppRoutes.matchBot),
         onNetworkGame: () => context.go(AppRoutes.lobby),
         onDecks: () => context.go(AppRoutes.decks),
+        onSettings: () => context.go(AppRoutes.settings),
       ),
       routes: [
         GoRoute(
@@ -34,6 +38,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
           ),
         ),
         GoRoute(path: _child(AppRoutes.lobby), builder: (context, state) => const LobbyScreen()),
+        GoRoute(path: _child(AppRoutes.settings), builder: (context, state) => const SettingsScreen()),
         GoRoute(
           path: _child(AppRoutes.match),
           builder: (context, state) => MultiBlocProvider(
@@ -41,7 +46,9 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               BlocProvider(
                 create: (_) => MatchSetupCubit(
                   dependencies.watchDecks,
+                  mode: _matchMode(state),
                   ensureStarterDecks: dependencies.ensureStarterDecks,
+                  chooseDefaultDecks: dependencies.chooseDefaultDecks,
                   preselect: true,
                 ),
               ),
@@ -55,6 +62,10 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
     ),
   ],
 );
+
+/// Режим партии из параметра пути; без параметра — против бота.
+LocalMatchMode _matchMode(GoRouterState state) =>
+    state.uri.queryParameters[AppRoutes.matchModeParam] == 'hotSeat' ? LocalMatchMode.hotSeat : LocalMatchMode.vsBot;
 
 /// Путь вложенного маршрута относительно меню: `/decks` → `decks`.
 String _child(String path) => path.substring(AppRoutes.menu.length);
