@@ -228,7 +228,7 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
   /// Выбор сорвался: состояние становится ошибкой и больше не меняется.
   void _fail(Object error, StackTrace stackTrace) {
     addError(error, stackTrace);
-    if (isClosed) return;
+    if (isClosed || _done) return;
     _done = true;
     emit(MatchSetupFailed(error));
   }

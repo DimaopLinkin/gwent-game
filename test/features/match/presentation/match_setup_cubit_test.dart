@@ -145,6 +145,30 @@ void main() {
   });
 
   group('колода', () {
+    test('двойное подтверждение лидера открывает колоды один раз', () async {
+      await repository.save(smallSkelligeDeck());
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit);
+      cubit.confirmFaction();
+      await Future.wait([cubit.confirmLeader(), cubit.confirmLeader()]);
+      await pumpEventQueue();
+
+      expect(now(cubit).step, SetupStep.deck);
+      expect(now(cubit).busy, isFalse);
+    });
+
+    test('пока колода сохраняется, «назад» ничего не меняет, но из выбора не выходит', () async {
+      await repository.save(smallSkelligeDeck());
+      final cubit = build(LocalMatchMode.hotSeat);
+      await toDeckStep(cubit);
+
+      final pending = cubit.confirmDeck();
+      expect(cubit.back(), isTrue);
+      await pending;
+
+      expect(now(cubit).seat, Seat.two, reason: 'выбор первого места не откатился');
+    });
+
     test('у фракции без колод создаётся стартовая и выбирается заранее', () async {
       final cubit = build(LocalMatchMode.vsBot);
       await toDeckStep(cubit);

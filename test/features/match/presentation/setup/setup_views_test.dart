@@ -88,9 +88,21 @@ void main() {
       expect(confirmed, 0);
     });
 
-    testWidgets('на маленьком экране ничего не переполняется', (tester) async {
+    testWidgets('на маленьком экране ничего не переполняется, заголовок не заходит под «Назад»', (tester) async {
       await pump(tester, view(index: 1), size: const Size(320, 568));
       expect(tester.takeException(), isNull);
+
+      final back = tester.getRect(find.bySemanticsLabel(l10n.setupBack));
+      final title = tester.getRect(find.text(l10n.factionSelectTitle));
+      expect(title.left, greaterThanOrEqualTo(back.right));
+    });
+
+    testWidgets('точки карусели нажимаются зоной не меньше 44 pt', (tester) async {
+      final shown = <int>[];
+      await pump(tester, view(onIndex: shown.add));
+
+      final dot = find.bySemanticsLabel(RegExp(rules.factionInfos[2].name));
+      expect(tester.getSize(dot.first).shortestSide, greaterThanOrEqualTo(44));
     });
   });
 
@@ -143,6 +155,15 @@ void main() {
       expect(find.text(l10n.leaderSelectConfirm), findsNothing, reason: 'кнопка вместо подтверждения говорит о замке');
       await tester.tap(find.text(l10n.leaderSelectUnavailable).last, warnIfMissed: false);
       expect(confirmed, 0);
+    });
+
+    testWidgets('на экране средней высоты сетка не сжимается до щели', (tester) async {
+      final faction = rules.factionInfos.firstWhere((faction) => faction.leaders.length > 4);
+      await pump(tester, view(faction, selected: faction.leaders.first.id), size: const Size(375, 760));
+      expect(tester.takeException(), isNull);
+
+      final grid = tester.getSize(find.byType(SingleChildScrollView).first);
+      expect(grid.height, greaterThanOrEqualTo(160), reason: 'сетке остаётся место хотя бы для строки карт');
     });
 
     testWidgets('на маленьком экране ничего не переполняется', (tester) async {
@@ -212,6 +233,11 @@ void main() {
       );
 
       expect(find.text(l10n.deckSelectReady), findsOneWidget);
+      expect(
+        tester.getSemantics(find.bySemanticsLabel(RegExp('Годная'))).value,
+        contains(l10n.deckSelectReady),
+        reason: 'скринридер называет состояние колоды',
+      );
       await tester.tap(find.text(l10n.deckSelectPlay));
       await tester.tap(find.text(l10n.deckSelectEdit));
       expect(played, 1);

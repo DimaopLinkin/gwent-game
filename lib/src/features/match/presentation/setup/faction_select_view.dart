@@ -71,10 +71,14 @@ class _FactionSelectViewState extends State<FactionSelectView> {
       _controller.jumpToPage(widget.index);
       return;
     }
-    _animatingTo = widget.index;
+    final target = widget.index;
+    _animatingTo = target;
     _controller
-        .animateToPage(widget.index, duration: FactionSelectView.pageDuration, curve: Curves.easeOutCubic)
-        .whenComplete(() => _animatingTo = null);
+        .animateToPage(target, duration: FactionSelectView.pageDuration, curve: Curves.easeOutCubic)
+        .whenComplete(() {
+          // Прерванная анимация заканчивается уже после начала следующей: её цель сбрасывать нельзя.
+          if (_animatingTo == target) _animatingTo = null;
+        });
   }
 
   @override
@@ -98,13 +102,17 @@ class _FactionSelectViewState extends State<FactionSelectView> {
           Stack(
             alignment: Alignment.topCenter,
             children: [
+              // Слева кнопка «Назад» (16 + 44 pt): заголовок держится правее неё и сжимается, а не заходит под неё.
               Padding(
-                padding: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.fromLTRB(64, 2, 64, 0),
                 child: Column(
                   spacing: 4,
                   children: [
                     Eyebrow(widget.eyebrow, size: 14, align: TextAlign.center),
-                    StartTitle(l10n.factionSelectTitle, size: 34, color: GwentColors.goldHighlight),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: StartTitle(l10n.factionSelectTitle, size: 34, color: GwentColors.goldHighlight),
+                    ),
                   ],
                 ),
               ),
@@ -240,7 +248,7 @@ class _PerkLabel extends StatelessWidget {
   Widget build(BuildContext context) => SetupPanelLabel(context.l10n.factionSelectPerk);
 }
 
-/// Точка-ромб под каруселью; зона нажатия 24×24 pt.
+/// Точка-ромб под каруселью; зона нажатия 44×44 pt.
 class _Dot extends StatelessWidget {
   const _Dot({required this.label, required this.selected, required this.onTap});
 
@@ -259,7 +267,7 @@ class _Dot extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox.square(
-        dimension: 24,
+        dimension: 44,
         child: Center(
           child: DiamondMarker(
             size: selected ? 12 : 8,

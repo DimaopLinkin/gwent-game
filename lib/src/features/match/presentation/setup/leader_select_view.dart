@@ -54,6 +54,9 @@ class LeaderSelectView extends StatelessWidget {
   /// Идёт подготовка колод: кнопка не принимает нажатий.
   final bool busy;
 
+  /// Доступная высота, с которой сетка лидеров стоит на месте, а не прокручивается вместе с картой.
+  static const double _minHeightForFixedGrid = 740;
+
   /// Выбранный лидер и описание его способности.
   List<Widget> _selectedBlock(AppLocalizations l10n, LeaderInfo selected) => [
     const SizedBox(height: 16),
@@ -89,8 +92,10 @@ class LeaderSelectView extends StatelessWidget {
     final l10n = context.l10n;
     final gwent = GwentFaction.fromKey(faction.key);
     final selected = selectedId == null ? null : faction.leader(selectedId!);
-    // На низком экране карта, способность и сетка не помещаются вместе: они прокручиваются, кнопка остаётся внизу.
-    final compact = MediaQuery.sizeOf(context).height < 720;
+    // Шапка, карта, способность и кнопка занимают около 500 pt; сетке нужна хотя бы строка карт и запас под вторую.
+    // Если доступной высоты (без системных панелей) меньше, всё это прокручивается, а кнопка остаётся внизу.
+    final media = MediaQuery.of(context);
+    final compact = media.size.height - media.padding.vertical < _minHeightForFixedGrid;
     final available = selected?.available ?? false;
     final canConfirm = available && !busy;
     return SetupScaffold(

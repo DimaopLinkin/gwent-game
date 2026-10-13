@@ -242,6 +242,9 @@ class _DeckRow extends StatelessWidget {
       button: true,
       selected: selected,
       label: choice.deck.name,
+      value:
+          '${choice.ready ? l10n.deckSelectReady : l10n.deckSelectNotReady}, '
+          '${l10n.deckSelectCards(choice.deck.cardCount)}, ${shortLeaderName(leaderName)}',
       onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
