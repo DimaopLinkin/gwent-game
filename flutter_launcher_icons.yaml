@@ -1,0 +1,16 @@
+# Иконки Android: mipmap, адаптивная иконка и монохромный слой Android 13.
+# Запускается из tools/scripts/setup.sh; исходники и описание слоёв в tools/app_icon/.
+# iOS пакетом не генерируется: он портит ios/Runner.xcodeproj и плодит устаревшие размеры. Для iOS в каталоге
+# ресурсов лежит один мастер 1024×1024 (формат Xcode 14+), его копирует setup.sh.
+flutter_launcher_icons:
+  # Мастер (1024×1024, без прозрачности и скруглений) заодно служит значком Android до 8.0.
+  image_path: tools/app_icon/app_icon_ios.png
+  android: true
+  min_sdk_android: 21
+  ios: false
+  # Адаптивная иконка Android 8.0+: знак уже лежит в безопасной зоне 66/108, поэтому отступ слоя нулевой
+  # (по умолчанию пакет добавляет 16%, и знак стал бы мельче).
+  adaptive_icon_background: tools/app_icon/app_icon_background.png
+  adaptive_icon_foreground: tools/app_icon/app_icon_foreground.png
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_monochrome: tools/app_icon/app_icon_monochrome.png

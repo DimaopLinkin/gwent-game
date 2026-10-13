@@ -7,7 +7,8 @@
 #   tools/scripts/setup.sh packages/gwent_engine  # только перечисленные папки (CI для пакетов)
 #
 # Для приложения (папка «.») скрипт сначала собирает пакет контента из docs/hand в assets/content/:
-# это генерируемый файл, он не коммитится.
+# это генерируемый файл, он не коммитится. Иконки приложения (Android и iOS) скрипт воспроизводит из tools/app_icon/ и
+# кладёт в ios/ и android/: эти файлы коммитятся.
 #
 # Для Flutter-проектов нужен flutter, для чистых Dart-пакетов достаточно dart.
 # Скрипт совместим с bash 3.2 (стоит на macOS по умолчанию).
@@ -98,6 +99,14 @@ for target in "${targets[@]}"; do
       \( -name '*.g.dart' -o -name '*.freezed.dart' -o -name '*.drift.dart' -o -name '*.mocks.dart' \
       -o -name '*.steps.dart' -o -path './test/drift/*/generated/*.dart' \) -print0 |
       xargs -0 -r dart format >/dev/null
+
+    # Иконки из PNG-слоёв tools/app_icon/. Результат коммитится: сборка читает готовые файлы, а скрипт лишь
+    # воспроизводит их. Android (mipmap, адаптивная иконка, монохромный слой) делает flutter_launcher_icons по
+    # flutter_launcher_icons.yaml; iOS это один мастер 1024×1024 в каталоге ресурсов (Xcode 14+ сам нарезает размеры).
+    if [ -f flutter_launcher_icons.yaml ]; then
+      dart run flutter_launcher_icons
+      cp tools/app_icon/app_icon_ios.png ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png
+    fi
 
     # Локализация: вывод в output-dir из l10n.yaml (не коммитится), формат по analysis_options.yaml (format: true).
     if [ "$tool" = flutter ] && [ -f l10n.yaml ]; then
