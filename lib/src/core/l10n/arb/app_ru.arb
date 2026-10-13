@@ -730,6 +730,15 @@
   "@matchIntroDeck": {
     "description": "Слово перед названием колоды на экране знакомства."
   },
+  "matchIntroDeckName": "«{deck}»",
+  "@matchIntroDeckName": {
+    "description": "Название колоды в кавычках на экране знакомства.",
+    "placeholders": {
+      "deck": {
+        "type": "String"
+      }
+    }
+  },
   "matchTossTitle": "Жребий",
   "@matchTossTitle": {
     "description": "Заголовок экрана жребия."

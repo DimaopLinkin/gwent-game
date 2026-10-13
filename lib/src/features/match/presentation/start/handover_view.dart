@@ -7,6 +7,7 @@ import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
@@ -92,7 +93,7 @@ class MatchHandoverView extends StatelessWidget {
                     l10n.matchHandoverTitle,
                     textScaler: TextScaler.noScaling,
                     style: const TextStyle(
-                      fontFamily: 'Cormorant SC',
+                      fontFamily: GwentText.cormorant,
                       fontWeight: FontWeight.w600,
                       fontSize: 24,
                       height: 1,

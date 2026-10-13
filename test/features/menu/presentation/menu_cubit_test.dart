@@ -70,7 +70,7 @@ void main() {
     expect(state.canPlay, isFalse);
   });
 
-  test('сбой подготовки меню не оставляет заставку навсегда', () async {
+  test('версия приложения не прочиталась: заставка закрывается, играть можно', () async {
     final content = LoadGameContent(AssetContentSource.basePack(rootBundle));
     final failing = LoadMenu(
       _ThrowingAppInfo(),
@@ -86,9 +86,9 @@ void main() {
     addTearDown(cubit.close);
 
     final state = await ready(cubit);
-    expect(state.contentAvailable, isFalse);
+    expect(state.contentAvailable, isTrue);
     expect(state.appVersion, isNull);
-    expect(state.canPlay, isFalse);
+    expect(state.canPlay, isTrue);
   });
 
   test('удалили последнюю колоду: играть нельзя, появилась — можно', () async {
@@ -110,6 +110,15 @@ void main() {
 
   test('ошибка чтения колод: играть нельзя, меню остаётся', () async {
     decks.watchError = Exception('база недоступна');
+    final cubit = newCubit(AssetContentSource.basePack(rootBundle));
+
+    final state = await ready(cubit);
+    expect(state.hasDeck, isFalse);
+    expect(state.canPlay, isFalse);
+  });
+
+  test('колоды не читаются сразу: меню всё равно открывается, играть нельзя', () async {
+    decks.watchThrows = StateError('нет базы');
     final cubit = newCubit(AssetContentSource.basePack(rootBundle));
 
     final state = await ready(cubit);

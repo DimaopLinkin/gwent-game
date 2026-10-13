@@ -32,23 +32,30 @@ final class MenuCubit extends Cubit<MenuState> {
     final minimum = Future<void>.delayed(minSplash);
     try {
       _info = await _loadMenu();
+      if (_info?.starterDecksError case final Object error) addError(error, StackTrace.current);
     } on Object catch (error, stackTrace) {
       // Набор не прочитался: играть нельзя, но меню остаётся рабочим (колоды, настройки).
       addError(error, stackTrace);
     }
     await minimum;
     if (isClosed) return;
-    _subscription = _watchDecks().listen(
-      (decks) {
-        _hasDeck = decks.isNotEmpty;
-        _emitReady();
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        addError(error, stackTrace);
-        _hasDeck = false;
-        _emitReady();
-      },
-    );
+    try {
+      _subscription = _watchDecks().listen(
+        (decks) {
+          _hasDeck = decks.isNotEmpty;
+          _emitReady();
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          addError(error, stackTrace);
+          _hasDeck = false;
+          _emitReady();
+        },
+      );
+    } on Object catch (error, stackTrace) {
+      // Колоды не читаются: меню всё равно открывается, играть нельзя.
+      addError(error, stackTrace);
+      _emitReady();
+    }
   }
 
   void _emitReady() {

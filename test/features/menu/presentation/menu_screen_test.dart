@@ -193,6 +193,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text(l10n.menuSplashReady), findsOneWidget, reason: 'полоса дошла до конца');
     expect(find.text(l10n.menuSplashLoading), findsNothing);
+    // Заставка уже растворяется: нажатия идут к меню под ней.
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(SplashLayer), findsOneWidget);
+    await tester.tap(find.text(l10n.menuDecks));
+    expect(taps, ['decks']);
     await tester.pump(SplashLayer.finish);
     await tester.pump();
     expect(find.byType(SplashLayer), findsNothing);

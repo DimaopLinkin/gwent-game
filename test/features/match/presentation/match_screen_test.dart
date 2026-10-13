@@ -189,6 +189,24 @@ void main() {
   });
 
   group('начало партии против бота', () {
+    testWidgets('системное «назад» посреди партии не выходит молча, до старта и после итога выходит', (tester) async {
+      bool canPop() => tester
+          .widgetList<PopScope>(find.descendant(of: find.byType(MatchScreen), matching: find.byType(PopScope)))
+          .first
+          .canPop;
+
+      await pumpScreen(tester);
+      expect(canPop(), isTrue, reason: 'выбор колод');
+
+      await tester.tap(find.text('Начать партию'));
+      await settle(tester);
+      expect(find.byType(MatchIntroView), findsOneWidget);
+      expect(canPop(), isFalse, reason: 'знакомство');
+
+      await skipIntroAndToss(tester);
+      expect(canPop(), isFalse, reason: 'пересдача');
+    });
+
     testWidgets('сначала знакомство: «ПРОТИВ», фракции и колоды обоих; руки не видно', (tester) async {
       await pumpScreen(tester);
       await tester.tap(find.text('Начать партию'));

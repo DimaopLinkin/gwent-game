@@ -136,9 +136,11 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   Future<void> _onRematchRequested(MatchRematchRequested event, Emitter<MatchScreenState> emit) async {
     final request = _request;
     if (state is! MatchFinished || request == null) return;
-    await _subscription?.cancel();
+    // Состояние меняется до первого await: повторное нажатие «Реванш» уже не пройдёт проверку выше.
+    emit(const MatchStarting());
+    final subscription = _subscription;
+    final oldSession = _session;
     _subscription = null;
-    await _session?.table.close();
     _session = null;
     _views.clear();
     _unseen.clear();
@@ -147,10 +149,14 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     _introDone = false;
     _tossDone = false;
     _boardShown = false;
+    await subscription?.cancel();
+    await oldSession?.table.close();
     await _start(request, emit);
   }
 
   Future<void> _onTableUpdated(MatchTableUpdated event, Emitter<MatchScreenState> emit) async {
+    // Обновление прежнего стола пришло уже после реванша.
+    if (_session == null) return;
     switch (event.update) {
       case ViewsChanged(:final views, :final events):
         _views.addAll(views);
@@ -262,9 +268,12 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     final events = _takeUnseen(seat);
     final roster = _roster ??= MatchRoster.of(_session!, _views);
     final canRematch = _request != null;
+    final session = _session!;
     emit(MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch));
     try {
-      final record = await _recordFinishedMatch(_session!, view);
+      final record = await _recordFinishedMatch(session, view);
+      // Пока писалась история, игрок мог начать реванш или уйти: итог прежней партии новое состояние не затирает.
+      if (isClosed || !identical(_session, session)) return;
       emit(MatchFinished(view: view, roster: roster, events: events, record: record, canRematch: canRematch));
     } on Object catch (error, stackTrace) {
       // Итог партии важнее записи в историю: экран остаётся на итоге, ошибка уходит в журнал.

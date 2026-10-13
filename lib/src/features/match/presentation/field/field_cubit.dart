@@ -180,7 +180,8 @@ final class FieldCubit extends Cubit<FieldState> {
     final result = (events[endIndex] as RoundEnded).result;
     if (!_summarizedRounds.add(result.round)) return null;
     final me = view.viewer;
-    final after = events.sublist(endIndex + 1);
+    // Перки фракций сыграли до первого хода нового раунда; ход бота в той же пачке (лидер, добор) к ним не относится.
+    final after = events.sublist(endIndex + 1).takeWhile((event) => event is! TurnStarted);
     final marks = <FactionMark>[];
     Faction factionOf(Seat seat) => seat == me ? view.me.faction : view.opponent.faction;
     void mark(Seat seat, FactionMarkKind kind) =>

@@ -77,17 +77,18 @@ class _SplashLayerState extends State<SplashLayer> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return IgnorePointer(
-      ignoring: _finish.value > 0.33,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_crawl, _finish]),
-        builder: (context, _) {
-          final f = _finish.value;
-          // До 0,24 полоса доходит до конца, до 0,33 пауза, дальше растворение.
-          final fill = f == 0 ? 0.9 * Curves.easeOut.transform(_crawl.value) : 0.9 + 0.1 * (f / 0.24).clamp(0, 1);
-          final opacity = f <= 0.33 ? 1.0 : 1 - ((f - 0.33) / 0.67).clamp(0, 1);
-          final done = fill >= 1;
-          return Opacity(
+    return AnimatedBuilder(
+      animation: Listenable.merge([_crawl, _finish]),
+      builder: (context, _) {
+        final f = _finish.value;
+        // До 0,24 полоса доходит до конца, до 0,33 пауза, дальше растворение.
+        final fill = f == 0 ? 0.9 * Curves.easeOut.transform(_crawl.value) : 0.9 + 0.1 * (f / 0.24).clamp(0, 1);
+        final opacity = f <= 0.33 ? 1.0 : 1 - ((f - 0.33) / 0.67).clamp(0, 1);
+        final done = fill >= 1;
+        // Растворяющаяся заставка пропускает нажатия к меню: решение берётся на каждом кадре.
+        return IgnorePointer(
+          ignoring: f > 0.33,
+          child: Opacity(
             opacity: opacity.toDouble(),
             child: Semantics(
               container: true,
@@ -164,9 +165,9 @@ class _SplashLayerState extends State<SplashLayer> with TickerProviderStateMixin
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

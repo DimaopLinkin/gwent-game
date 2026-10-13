@@ -229,6 +229,23 @@ void main() {
     expect(marks.map((mark) => mark.mine), [true, false, true, false]);
   });
 
+  test('добор после первого хода нового раунда (ход бота в той же пачке) не считается способностью фракции', () {
+    const result = RoundResult(round: 1, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+    final drawn = cards.unit(Row.ranged);
+    cubit.onMatchState(
+      progress(
+        viewOf(cards),
+        events: [
+          const RoundEnded(result),
+          CardsDrawn(Seat.one, [drawn]),
+          const TurnStarted(Seat.one),
+          const CardsDrawnHidden(Seat.two, 1),
+        ],
+      ),
+    );
+    expect(cubit.state.summary!.marks.map((mark) => (mark.kind, mark.mine)), [(FactionMarkKind.extraCard, true)]);
+  });
+
   test('в конце партии итог раунда не нужен: его заменяет итог матча', () {
     const result = RoundResult(round: 2, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
     cubit.onMatchState(

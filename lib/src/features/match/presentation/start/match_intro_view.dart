@@ -207,7 +207,7 @@ class _Side extends StatelessWidget {
                 children: [
                   TextSpan(text: '${l10n.matchIntroDeck} '),
                   TextSpan(
-                    text: '«$deck»',
+                    text: l10n.matchIntroDeckName(deck),
                     style: const TextStyle(
                       fontStyle: FontStyle.italic,
                       fontWeight: FontWeight.w700,

@@ -270,6 +270,50 @@ void main() {
     expect(matches.records, hasLength(2));
   });
 
+  test('реванш до конца записи в историю: итог прежней партии не затирает новую', () async {
+    final gate = Completer<void>();
+    final slow = newBloc(history: _GatedHistory(gate.future));
+    final finished = _playOut(slow, <MatchScreenState>[], recorded: false);
+    slow.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+
+    slow.add(const MatchRematchRequested());
+    await pumpEventQueue();
+    expect(slow.state, isA<MatchIntro>());
+    gate.complete();
+    await pumpEventQueue();
+    expect(slow.state, isA<MatchIntro>(), reason: 'запись прежней партии закончилась, но экран остался на новой');
+  });
+
+  test('двойное нажатие «Реванш» открывает один стол', () async {
+    var bots = 0;
+    final counted = newBloc(
+      createBot: (engine, catalog) {
+        bots++;
+        return GreedyBot(engine, catalog);
+      },
+    );
+    final finished = _playOut(counted, <MatchScreenState>[]);
+    counted.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+    expect(bots, 1);
+
+    counted
+      ..add(const MatchRematchRequested())
+      ..add(const MatchRematchRequested());
+    await pumpEventQueue();
+    expect(bots, 2);
+    expect(counted.state, isA<MatchIntro>());
+  });
+
   test('партия, открытая снаружи, реванша не предлагает: запроса колод у неё нет', () async {
     final table = _FakeTable();
     bloc.add(MatchSessionOpened(_session(table, content)));
@@ -580,6 +624,19 @@ final class _FailingHistory implements MatchHistoryRepository {
 
   @override
   Future<void> add(history.MatchRecord record) => Future.error(StateError('диск полон'));
+}
+
+/// История, которая записывает партию, когда откроют [gate].
+final class _GatedHistory implements MatchHistoryRepository {
+  _GatedHistory(this._gate);
+
+  final Future<void> _gate;
+
+  @override
+  Stream<List<history.MatchRecord>> watchAll() => const Stream.empty();
+
+  @override
+  Future<void> add(history.MatchRecord record) => _gate;
 }
 
 /// Наблюдатель, который собирает ошибки держателей состояния.

@@ -40,10 +40,17 @@ class MatchScreen extends StatelessWidget {
     body: SafeArea(
       child: BlocConsumer<MatchBloc, MatchScreenState>(
         listener: (context, state) => context.read<FieldCubit>().onMatchState(state),
-        builder: _stage,
+        builder: (context, state) => PopScope(canPop: _canLeave(state), child: _stage(context, state)),
       ),
     ),
   );
+
+  /// Системное «назад» уводит из партии только до её начала и после конца. Посреди партии оно не выходит молча:
+  /// на поле его перехватывает пауза (`FieldView`), на остальных экранах старта выхода нет, чтобы не потерять партию.
+  bool _canLeave(MatchScreenState state) => switch (state) {
+    MatchIdle() || MatchStarting() || MatchStartFailed() || MatchFinished() || MatchCrashed() => true,
+    MatchIntro() || MatchToss() || MatchHandover() || MatchInProgress() => false,
+  };
 
   Widget _stage(BuildContext context, MatchScreenState state) {
     final l10n = context.l10n;
