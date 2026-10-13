@@ -10,7 +10,14 @@ import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/deck_builder/application/create_starter_deck.dart';
+import 'package:gwent/src/features/deck_builder/application/deck_selection_lock.dart';
+import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
+import 'package:gwent/src/features/deck_builder/application/get_active_deck.dart';
+import 'package:gwent/src/features/deck_builder/application/load_deck_rules.dart';
+import 'package:gwent/src/features/deck_builder/application/set_active_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
+import 'package:gwent/src/features/match/application/choose_opponent_deck.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
@@ -21,6 +28,7 @@ import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
+import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match/presentation/start/handover_view.dart';
@@ -44,18 +52,23 @@ void main() {
   late InMemoryMatchHistoryRepository matches;
   late MatchBloc bloc;
   late int exits;
+  late List<String> edited;
+  late MatchSetupCubit setupCubit;
+  late AppLocalizations l10n;
 
   setUpAll(() async {
     content = await loadBaseContent();
+    l10n = await AppLocalizations.delegate.load(const Locale('ru'));
     await loadDesignFonts();
   });
 
   setUp(() {
     exits = 0;
+    edited = [];
     matches = InMemoryMatchHistoryRepository();
     decks = InMemoryDeckRepository([
-      realDeck(content, Faction.skellige, id: 'skellige'),
       realDeck(content, Faction.monsters, id: 'monsters'),
+      realDeck(content, Faction.northernRealms, id: 'realms'),
     ]);
     bloc = MatchBloc(
       StartMatch(
@@ -72,17 +85,39 @@ void main() {
     addTearDown(bloc.close);
   });
 
+  /// Выбор колод читает хранилище и пакет: даём им отработать.
+  Future<void> settleSetup(WidgetTester tester) async {
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+    await tester.pump();
+  }
+
   Future<void> pumpScreen(
     WidgetTester tester, {
     LocalMatchMode mode = LocalMatchMode.vsBot,
-    bool preselect = true,
     Size size = const Size(390, 844),
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final setup = MatchSetupCubit(WatchDecks(decks), mode: mode, preselect: preselect);
+    final rules = GameContentDeckRulesSource(LoadGameContent(AssetContentSource.basePack(rootBundle)));
+    final lock = DeckSelectionLock();
+    final getActiveDeck = GetActiveDeck(
+      decks,
+      rules,
+      CreateStarterDeck(decks, FakeClock(DateTime.utc(2026, 10, 12)), SequentialIdGenerator()),
+      lock,
+    );
+    final setup = MatchSetupCubit(
+      watchDecks: WatchDecks(decks),
+      loadDeckRules: LoadDeckRules(rules),
+      getActiveDeck: getActiveDeck,
+      setActiveDeck: SetActiveDeck(decks, rules, lock),
+      chooseOpponentDeck: ChooseOpponentDeck(rules, getActiveDeck),
+      mode: mode,
+    );
     addTearDown(setup.close);
+    setupCubit = setup;
     final field = FieldCubit();
     addTearDown(field.close);
     await tester.pumpWidget(
@@ -97,19 +132,32 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('ru'),
-          home: MatchScreen(onExit: () => exits++),
+          home: MatchScreen(onExit: () => exits++, onEditDeck: edited.add),
         ),
       ),
     );
+    await settleSetup(tester);
+  }
+
+  /// Проходит три шага выбора для места: фракция с ключом [factionKey], её первый лидер, первая колода.
+  Future<void> chooseSeat(WidgetTester tester, String factionKey) async {
+    final ready = setupCubit.state as MatchSetupReady;
+    setupCubit.showFaction(ready.rules.factionInfos.indexWhere((faction) => faction.key == factionKey));
     await tester.pump();
-    await tester.pump();
-    // Предвыбор ставит на оба места первую колоду списка; играть разными фракциями интереснее.
-    if (preselect) {
-      setup
-        ..selectDeck(Seat.one, 'skellige')
-        ..selectDeck(Seat.two, 'monsters');
-      await tester.pump();
-      await tester.pump();
+    await tester.tap(find.text(l10n.factionSelectConfirm));
+    await settleSetup(tester);
+    await tester.tap(find.text(l10n.leaderSelectConfirm));
+    await settleSetup(tester);
+    final last = (setupCubit.state as MatchSetupReady).isLastSeat;
+    await tester.tap(find.text(last ? l10n.deckSelectPlay : l10n.deckSelectNext));
+    await settleSetup(tester);
+  }
+
+  /// Выбор колод до конца: игрок — Чудовища, бот или второй игрок — Королевства Севера.
+  Future<void> playSetup(WidgetTester tester) async {
+    await chooseSeat(tester, 'monsters');
+    if ((setupCubit.state is MatchSetupReady) && (setupCubit.state as MatchSetupReady).seat == Seat.two) {
+      await chooseSeat(tester, 'northern_realms');
     }
   }
 
@@ -135,7 +183,7 @@ void main() {
   }
 
   Future<void> startAndSkip(WidgetTester tester) async {
-    await tester.tap(find.text('Начать партию'));
+    await playSetup(tester);
     await skipIntroAndToss(tester);
   }
 
@@ -144,36 +192,64 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  group('выбор колод', () {
-    testWidgets('против бота: колоды выбраны сразу, подпись второй колоды «Колода бота»', (tester) async {
+  group('выбор фракции, лидера и колоды', () {
+    testWidgets('против бота: фракция, лидер, колода; второго места нет', (tester) async {
       await pumpScreen(tester);
-      expect(find.text('Новая партия'), findsOneWidget);
-      expect(find.text('Колода бота'), findsOneWidget);
-      expect(find.text('Колода второго игрока'), findsNothing);
-      expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Начать партию')).onPressed, isNotNull);
+      expect(find.text(l10n.setupStep(1, 2).toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+
+      setupCubit.showFaction(2);
+      await tester.pump();
+      await tester.tap(find.text(l10n.factionSelectConfirm));
+      await settleSetup(tester);
+      expect(find.text(l10n.setupStep(2, 2).toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.leaderSelectConfirm), findsOneWidget);
+
+      await tester.tap(find.text(l10n.leaderSelectConfirm));
+      await settleSetup(tester);
+      expect(find.text(l10n.deckSelectEyebrow.toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.deckSelectPlay), findsOneWidget);
+      expect(find.text('monsters'), findsOneWidget, reason: 'колода выбранной фракции');
+      expect(find.text('realms'), findsNothing, reason: 'колод других фракций в списке нет');
     });
 
-    testWidgets('вдвоём на одном телефоне: подпись «Колода второго игрока», переключателя режима нет', (tester) async {
+    testWidgets('вдвоём на одном телефоне: после первого места выбирает второй игрок', (tester) async {
       await pumpScreen(tester, mode: LocalMatchMode.hotSeat);
-      expect(find.text('Колода второго игрока'), findsOneWidget);
-      expect(find.text('Колода бота'), findsNothing);
-      expect(find.text('Вдвоём на одном телефоне'), findsNothing);
+      expect(find.text(l10n.setupStepSeat(l10n.playerNumbered(1), 1, 2).toUpperCase()), findsOneWidget);
+
+      await chooseSeat(tester, 'monsters');
+
+      expect(find.text(l10n.setupStepSeat(l10n.playerNumbered(2), 1, 2).toUpperCase()), findsOneWidget);
+      expect(find.byType(MatchIntroView), findsNothing);
     });
 
-    testWidgets('без предвыбора колод партию начать нельзя, пока колоды не выбраны', (tester) async {
-      await pumpScreen(tester, preselect: false);
-      expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Начать партию')).onPressed, isNull);
-      await tester.tap(find.text('skellige').first);
-      await tester.pump();
-      await tester.tap(find.text('monsters').last);
-      await tester.pump();
-      expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Начать партию')).onPressed, isNotNull);
-    });
-
-    testWidgets('«В меню» на экране выбора уходит из партии', (tester) async {
+    testWidgets('«Назад» на первом шаге выходит из выбора, дальше — на шаг назад', (tester) async {
       await pumpScreen(tester);
-      await tester.tap(find.text('В меню'));
+      await tester.tap(find.text(l10n.factionSelectConfirm));
+      await settleSetup(tester);
+      expect(find.text(l10n.leaderSelectConfirm), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+      await settleSetup(tester);
+      expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+      expect(exits, 0);
+
+      await tester.tap(find.bySemanticsLabel(l10n.setupBack));
       expect(exits, 1);
+    });
+
+    testWidgets('«Изменить» у колоды передаёт её в конструктор', (tester) async {
+      await pumpScreen(tester);
+      setupCubit.showFaction(2);
+      await tester.pump();
+      await tester.tap(find.text(l10n.factionSelectConfirm));
+      await settleSetup(tester);
+      await tester.tap(find.text(l10n.leaderSelectConfirm));
+      await settleSetup(tester);
+
+      await tester.tap(find.text(l10n.deckSelectEdit));
+
+      expect(edited, ['monsters']);
     });
 
     testWidgets('колода не найдена: сообщение и выход', (tester) async {
@@ -196,9 +272,9 @@ void main() {
           .canPop;
 
       await pumpScreen(tester);
-      expect(canPop(), isTrue, reason: 'выбор колод');
+      expect(canPop(), isTrue, reason: 'выбор фракции');
 
-      await tester.tap(find.text('Начать партию'));
+      await playSetup(tester);
       await settle(tester);
       expect(find.byType(MatchIntroView), findsOneWidget);
       expect(canPop(), isFalse, reason: 'знакомство');
@@ -209,15 +285,15 @@ void main() {
 
     testWidgets('сначала знакомство: «ПРОТИВ», фракции и колоды обоих; руки не видно', (tester) async {
       await pumpScreen(tester);
-      await tester.tap(find.text('Начать партию'));
+      await playSetup(tester);
       await settle(tester);
 
       expect(find.byType(MatchIntroView), findsOneWidget);
       expect(find.text('ПРОТИВ'), findsOneWidget);
-      expect(find.text('Скеллиге'), findsOneWidget);
       expect(find.text('Чудовища'), findsOneWidget);
-      expect(find.textContaining('«skellige»', findRichText: true), findsOneWidget);
+      expect(find.text('Королевства Севера'), findsOneWidget);
       expect(find.textContaining('«monsters»', findRichText: true), findsOneWidget);
+      expect(find.textContaining('«northernRealms»', findRichText: true), findsOneWidget);
       expect(find.text('Вы'), findsOneWidget);
       expect(find.text('Противник'), findsOneWidget);
       expect(find.text('Пересдача'), findsNothing);
@@ -327,7 +403,7 @@ void main() {
 
     testWidgets('в hot-seat знакомство называет игроков по номеру', (tester) async {
       await pumpScreen(tester, mode: LocalMatchMode.hotSeat);
-      await tester.tap(find.text('Начать партию'));
+      await playSetup(tester);
       await settle(tester);
       expect(find.text('Игрок 1'), findsWidgets);
       expect(find.text('Игрок 2'), findsWidgets);

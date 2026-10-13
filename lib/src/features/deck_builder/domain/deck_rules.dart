@@ -2,6 +2,7 @@ import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
+import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
 import 'package:gwent_content/gwent_content.dart' show ContentPack, Fraction;
 import 'package:gwent_engine/gwent_engine.dart' show CardCatalog, DeckValidator, GameRules;
 
@@ -24,6 +25,32 @@ final class DeckRules {
 
   /// Фракции, из которых можно собрать колоду, в порядке пакета.
   List<Fraction> get deckFactions => List.unmodifiable(pack.rules.fractions.where((fraction) => fraction.isDeck));
+
+  /// Фракции, из которых можно собрать колоду, с перком и лидерами: тексты берутся из строк пакета.
+  late final List<FactionInfo> factionInfos = List.unmodifiable([
+    for (final fraction in deckFactions)
+      FactionInfo(
+        id: fraction.id,
+        key: fraction.key,
+        name: pack.text(fraction.nameKey),
+        perk: switch (pack.rules.fractionAbilitiesById[fraction.abilityId]) {
+          final ability? => pack.text(ability.descriptionKey),
+          null => '',
+        },
+        leaders: [
+          for (final leader in pack.rules.leaderCards.where((card) => card.fractionId == fraction.id))
+            LeaderInfo(
+              id: leader.id,
+              factionId: fraction.id,
+              name: pack.text(leader.nameKey),
+              ability: switch (pack.rules.leaderAbilitiesById[leader.abilityId]) {
+                final ability? => pack.text(ability.descriptionKey),
+                null => '',
+              },
+            ),
+        ],
+      ),
+  ]);
 
   /// Можно ли собрать колоду фракции [factionId].
   bool isDeckFaction(String factionId) => pack.rules.fractionsById[factionId]?.isDeck ?? false;

@@ -16,11 +16,20 @@ import 'package:meta/meta.dart';
 /// Создаёт бота для партии над движком и справочником карт.
 typedef BotFactory = MatchBot Function(MatchEngine engine, CardCatalog catalog);
 
-/// Что выбрал игрок перед местной партией: режим и колоды мест.
+/// Что выбрал игрок перед местной партией: режим, колоды мест и, если игрок выбрал, лидеры.
 @immutable
 final class LocalMatchRequest {
   /// Создаёт запрос. Против бота [deckTwo] — колода бота.
-  const LocalMatchRequest({required this.mode, required this.deckOne, required this.deckTwo});
+  ///
+  /// [leaderOne] и [leaderTwo] — UUID лидеров, с которыми места идут в эту партию вместо лидера колоды: лидер
+  /// выбирается перед партией и не меняет сохранённую колоду. Без них места играют лидерами своих колод.
+  const LocalMatchRequest({
+    required this.mode,
+    required this.deckOne,
+    required this.deckTwo,
+    this.leaderOne,
+    this.leaderTwo,
+  });
 
   /// Режим.
   final LocalMatchMode mode;
@@ -31,10 +40,22 @@ final class LocalMatchRequest {
   /// Идентификатор колоды второго места.
   final String deckTwo;
 
+  /// UUID лидера первого места на эту партию или `null`, если играет лидер колоды.
+  final String? leaderOne;
+
+  /// UUID лидера второго места на эту партию или `null`, если играет лидер колоды.
+  final String? leaderTwo;
+
   /// Колода места [seat].
   String deck(Seat seat) => switch (seat) {
     Seat.one => deckOne,
     Seat.two => deckTwo,
+  };
+
+  /// Выбранный лидер места [seat] или `null`, если играет лидер колоды.
+  String? leader(Seat seat) => switch (seat) {
+    Seat.one => leaderOne,
+    Seat.two => leaderTwo,
   };
 }
 
@@ -121,7 +142,10 @@ final class StartMatch {
     for (final seat in Seat.values) {
       final deck = await _decks.findById(request.deck(seat));
       if (deck == null) return MatchDeckNotFound(seat, request.deck(seat));
-      decks[seat] = deck;
+      decks[seat] = switch (request.leader(seat)) {
+        final leaderId? => deck.copyWith(leaderId: leaderId),
+        null => deck,
+      };
     }
     return _start(request.mode, content, decks);
   }

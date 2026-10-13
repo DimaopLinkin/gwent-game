@@ -8,10 +8,9 @@ import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
-import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
-import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent/src/features/match/presentation/match_stages.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
+import 'package:gwent/src/features/match/presentation/setup/match_setup_stage.dart';
 import 'package:gwent/src/features/match/presentation/start/first_player_view.dart';
 import 'package:gwent/src/features/match/presentation/start/handover_view.dart';
 import 'package:gwent/src/features/match/presentation/start/match_intro_view.dart';
@@ -19,17 +18,21 @@ import 'package:gwent/src/features/match/presentation/start/match_toss_view.dart
 import 'package:gwent/src/features/match/presentation/start/redraw_view.dart';
 import 'package:gwent_engine/gwent_engine.dart' hide Row;
 
-/// Экран партии: от выбора колод до итога.
+/// Экран партии: от выбора фракции и колоды до итога.
 ///
 /// Показывает то, что говорит `MatchBloc`: знакомство, жребий, выбор Скоя'таэлей, передачу телефона, пересдачу, поле
 /// и итог матча. Выбор игрока на поле, баннеры, итог раунда и паузу держит `FieldCubit`, он получает состояние
-/// партии отсюда же. Выбор колод перед партией временный, без макета: его заменит экран выбора фракции.
+/// партии отсюда же. Выбор фракции, лидера и колоды перед партией (макет 7) держит `MatchSetupCubit`.
 class MatchScreen extends StatelessWidget {
-  /// Создаёт экран; [onExit] уводит из партии в меню, [confirmPass] включает диалог подтверждения паса.
-  const MatchScreen({super.key, required this.onExit, this.confirmPass = false});
+  /// Создаёт экран; [onExit] уводит из партии в меню, [onEditDeck] открывает колоду в конструкторе, [confirmPass]
+  /// включает диалог подтверждения паса.
+  const MatchScreen({super.key, required this.onExit, required this.onEditDeck, this.confirmPass = false});
 
   /// Выход из партии.
   final VoidCallback onExit;
+
+  /// Игрок хочет изменить колоду с данным идентификатором.
+  final ValueChanged<String> onEditDeck;
 
   /// Спрашивать подтверждение паса диалогом; иначе пас нужно держать 1 с.
   final bool confirmPass;
@@ -57,13 +60,10 @@ class MatchScreen extends StatelessWidget {
     final bloc = context.read<MatchBloc>();
     void submit(Intent intent) => bloc.add(MatchIntentSubmitted(intent));
     return switch (state) {
-      MatchIdle() => BlocBuilder<MatchSetupCubit, MatchSetupState>(
-        builder: (context, setup) => MatchSetupStage(
-          state: setup,
-          cubit: context.read<MatchSetupCubit>(),
-          onStart: (request) => bloc.add(MatchStartRequested(request)),
-          onExit: onExit,
-        ),
+      MatchIdle() => MatchSetupStage(
+        onStart: (request) => bloc.add(MatchStartRequested(request)),
+        onEditDeck: onEditDeck,
+        onExit: onExit,
       ),
       MatchStarting() => const GameLoader(),
       MatchStartFailed() => MatchPanel(

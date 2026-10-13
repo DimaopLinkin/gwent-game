@@ -41,6 +41,17 @@ enum GwentFaction {
   /// Герб; у нейтральных карт его нет.
   final GwentIcon? crest;
 
+  /// Цвет фракции на тёмном фоне экранов выбора (макеты 7 и 8): кольцо герба, полоса под названием, ромб-метка.
+  /// У Нильфгаарда чёрное поле герба сливается с фоном, поэтому берётся золото, у Чудовищ и Скоя'таэлей чуть светлее
+  /// цвета поля. Не для текста: контраст не проверен.
+  Color get accent => switch (this) {
+    northernRealms || skellige => color,
+    nilfgaard => GwentColors.gold,
+    monsters => const Color(0xFFA8423A),
+    scoiatael => const Color(0xFF4F8A52),
+    neutral => GwentColors.brass,
+  };
+
   /// Свечение фона экранов старта и передачи телефона в цвете фракции (макет 4): 30 % цвета поля герба, у
   /// Нильфгаарда чёрное поле не светится, поэтому берётся золото герба, 14 %.
   Color get glow => this == nilfgaard ? charge.withValues(alpha: 0.14) : color.withValues(alpha: 0.30);
