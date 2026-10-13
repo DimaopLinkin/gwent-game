@@ -1,3 +1,4 @@
+import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent_engine/gwent_engine.dart';
@@ -16,7 +17,7 @@ enum LocalMatchMode {
 @immutable
 final class MatchSession {
   /// Создаёт сессию.
-  MatchSession({required this.mode, required this.table, required Map<Seat, String> factionIds})
+  MatchSession({required this.mode, required this.table, required this.content, required Map<Seat, String> factionIds})
     : factionIds = Map.unmodifiable(factionIds);
 
   /// Режим партии для истории: местные режимы и (позже) сетевые.
@@ -24,6 +25,9 @@ final class MatchSession {
 
   /// Стол, через который идёт партия.
   final MatchTable table;
+
+  /// Контент партии: экран рисует карты по пакету, а правила движка берёт из справочника.
+  final GameContent content;
 
   /// UUID фракции пакета контента у колоды каждого места.
   final Map<Seat, String> factionIds;

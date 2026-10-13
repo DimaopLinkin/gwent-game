@@ -5,6 +5,7 @@ import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_builder_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_screen.dart';
+import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
@@ -37,10 +38,17 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
           path: _child(AppRoutes.match),
           builder: (context, state) => MultiBlocProvider(
             providers: [
-              BlocProvider(create: (_) => MatchSetupCubit(dependencies.watchDecks)),
+              BlocProvider(
+                create: (_) => MatchSetupCubit(
+                  dependencies.watchDecks,
+                  ensureStarterDecks: dependencies.ensureStarterDecks,
+                  preselect: true,
+                ),
+              ),
               BlocProvider(create: (_) => MatchBloc(dependencies.startMatch, dependencies.recordFinishedMatch)),
+              BlocProvider(create: (_) => FieldCubit()),
             ],
-            child: const MatchScreen(),
+            child: MatchScreen(onExit: () => context.go(AppRoutes.menu)),
           ),
         ),
       ],

@@ -106,7 +106,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
         await _present(emit);
       case IntentRefused(:final seat, :final reject):
         if (seat == _shown && state is MatchInProgress) {
-          emit(MatchInProgress(view: _views[seat]!, events: const [], refusal: reject));
+          emit(MatchInProgress(view: _views[seat]!, content: _session!.content, events: const [], refusal: reject));
         }
       case TableFailed(:final error):
         if (state is MatchFinished || state is MatchCrashed) return;
@@ -150,7 +150,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
 
   void _show(Seat seat, Emitter<MatchScreenState> emit) {
     _shown = seat;
-    emit(MatchInProgress(view: _views[seat]!, events: _takeUnseen(seat)));
+    emit(MatchInProgress(view: _views[seat]!, content: _session!.content, events: _takeUnseen(seat)));
   }
 
   List<GameEvent> _takeUnseen(Seat seat) {

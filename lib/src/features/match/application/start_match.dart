@@ -155,6 +155,7 @@ final class StartMatch {
               LocalMatchMode.vsBot => MatchMode.ai,
             },
             table: table,
+            content: content,
             factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId},
           ),
         );

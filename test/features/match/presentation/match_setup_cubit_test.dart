@@ -1,15 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/features/deck_builder/application/create_starter_deck.dart';
+import 'package:gwent/src/features/deck_builder/application/deck_selection_lock.dart';
+import 'package:gwent/src/features/deck_builder/application/ensure_starter_decks.dart';
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Seat;
 
+import '../../../support/deck_rules_fixtures.dart';
 import '../../../support/factories.dart';
 import '../../../support/fakes.dart';
 
@@ -78,12 +84,79 @@ void main() {
     expect(state.decks, [testDeck()]);
   });
 
+  group('стартовые колоды и предвыбор', () {
+    EnsureStarterDecks ensure(DeckRepository repository, DeckRulesSource rules) => EnsureStarterDecks(
+      repository,
+      rules,
+      CreateStarterDeck(repository, FakeClock(DateTime.utc(2026, 10, 12)), SequentialIdGenerator()),
+      DeckSelectionLock(),
+    );
+
+    test('на пустом хранилище каждая фракция получает стартовую колоду', () async {
+      final empty = InMemoryDeckRepository();
+      final rules = FakeDeckRulesSource();
+      final started = MatchSetupCubit(WatchDecks(empty), ensureStarterDecks: ensure(empty, rules));
+      addTearDown(started.close);
+      final state = await started.stream.firstWhere(
+        (state) => state is MatchSetupReady && state.decks.length == rules.rules.deckFactions.length,
+      );
+      expect((state as MatchSetupReady).decks, isNotEmpty);
+      expect(state.request, isNull, reason: 'без preselect выбор остаётся за игроком');
+    });
+
+    test('предвыбор ставит первую колоду на оба места, ручной выбор не затирается', () async {
+      final repository = InMemoryDeckRepository([testDeck(id: 'a'), testDeck(id: 'b')]);
+      final preselected = MatchSetupCubit(WatchDecks(repository), preselect: true);
+      addTearDown(preselected.close);
+      final state = await preselected.stream.firstWhere((state) => state is MatchSetupReady) as MatchSetupReady;
+      expect(state.request, isNotNull);
+      expect(state.deckOne, state.decks.first.id);
+      expect(state.deckTwo, state.decks.first.id);
+
+      final other = state.decks.last.id;
+      preselected.selectDeck(Seat.two, other);
+      await repository.save(testDeck(id: 'c'));
+      final updated = await preselected.stream.firstWhere(
+        (state) => state is MatchSetupReady && state.decks.length == 3,
+      );
+      expect((updated as MatchSetupReady).deckTwo, other);
+    });
+
+    test('без колод предвыбирать нечего', () async {
+      final empty = InMemoryDeckRepository();
+      final preselected = MatchSetupCubit(WatchDecks(empty), preselect: true);
+      addTearDown(preselected.close);
+      final state = await preselected.stream.firstWhere((state) => state is MatchSetupReady) as MatchSetupReady;
+      expect(state.request, isNull);
+    });
+
+    test('стартовые колоды создать не удалось: состояние ошибки', () async {
+      final failure = StateError('нет пакета');
+      final failing = _FailingRules(failure);
+      final repository = InMemoryDeckRepository();
+      final cubit = MatchSetupCubit(WatchDecks(repository), ensureStarterDecks: ensure(repository, failing));
+      addTearDown(cubit.close);
+      final state = await cubit.stream.firstWhere((state) => state is MatchSetupFailed);
+      expect((state as MatchSetupFailed).error, failure);
+    });
+  });
+
   test('ошибка чтения колод', () async {
     final failure = Exception('база недоступна');
     final failing = MatchSetupCubit(WatchDecks(InMemoryDeckRepository()..watchError = failure));
     addTearDown(failing.close);
     expect(await failing.stream.first, isA<MatchSetupFailed>().having((state) => state.error, 'error', failure));
   });
+}
+
+/// Источник правил, который не отдаёт их.
+final class _FailingRules implements DeckRulesSource {
+  _FailingRules(this.error);
+
+  final Object error;
+
+  @override
+  Future<DeckRules> load() => Future.error(error);
 }
 
 /// Хранилище, которое отдаёт список колод, только когда тест его добавит.
