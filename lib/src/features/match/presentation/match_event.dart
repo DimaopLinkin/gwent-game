@@ -45,6 +45,24 @@ final class MatchHandoverAccepted extends MatchEvent {
   const MatchHandoverAccepted();
 }
 
+/// Знакомство показано: время вышло или игрок нажал на экран.
+final class MatchIntroFinished extends MatchEvent {
+  /// Создаёт событие.
+  const MatchIntroFinished();
+}
+
+/// Жребий показан: время вышло или игрок нажал на экран.
+final class MatchTossFinished extends MatchEvent {
+  /// Создаёт событие.
+  const MatchTossFinished();
+}
+
+/// Игрок просит реванш: та же партия с теми же колодами. Принимается только на экране итога местной партии.
+final class MatchRematchRequested extends MatchEvent {
+  /// Создаёт событие.
+  const MatchRematchRequested();
+}
+
 /// Обновление со стола партии. Создаёт только сам держатель состояния.
 final class MatchTableUpdated extends MatchEvent {
   /// Создаёт событие.

@@ -1,4 +1,6 @@
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/match/presentation/match_roster.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Карты из настоящего пакета для тестов поля: по признаку находит определение и выдаёт экземпляры с номерами.
@@ -158,4 +160,28 @@ PlayerView viewOf(
   opponentChoosing: opponentChoosing,
   history: history,
   outcome: outcome,
+);
+
+/// Состав партии для экранов: против бота (местное место одно) или hot-seat (оба места здешние).
+///
+/// Фракции и лидеры берутся из [factions] (по умолчанию Скеллиге у обоих, как в проекциях `sideOf`); колоды названы
+/// «Колода 1» и «Колода 2».
+MatchRoster rosterOf(
+  TestCards source, {
+  bool hotSeat = false,
+  Map<Seat, Faction> factions = const {Seat.one: Faction.skellige, Seat.two: Faction.skellige},
+  Map<Seat, LeaderId>? leaders,
+}) => MatchRoster(
+  mode: MatchMode.hotSeat,
+  content: source.content,
+  localSeats: hotSeat ? {Seat.one, Seat.two} : {Seat.one},
+  players: {
+    for (final seat in Seat.values)
+      seat: MatchPlayer(
+        seat: seat,
+        faction: factions[seat] ?? Faction.skellige,
+        leader: leaders?[seat] ?? source.leader,
+        deckName: 'Колода ${seat.index + 1}',
+      ),
+  },
 );

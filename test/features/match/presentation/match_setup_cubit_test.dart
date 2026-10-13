@@ -4,11 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/deck_builder/application/create_starter_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/deck_selection_lock.dart';
 import 'package:gwent/src/features/deck_builder/application/ensure_starter_decks.dart';
+import 'package:gwent/src/features/deck_builder/application/get_active_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
+import 'package:gwent/src/features/match/application/choose_default_decks.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
@@ -25,7 +27,7 @@ void main() {
 
   setUp(() {
     decks = InMemoryDeckRepository([testDeck(id: 'a'), testDeck(id: 'b')]);
-    cubit = MatchSetupCubit(WatchDecks(decks));
+    cubit = MatchSetupCubit(WatchDecks(decks), mode: LocalMatchMode.vsBot);
     addTearDown(cubit.close);
   });
 
@@ -34,7 +36,7 @@ void main() {
     _ => await cubit.stream.firstWhere((state) => state is MatchSetupReady) as MatchSetupReady,
   };
 
-  test('колоды без выбора; по умолчанию против бота', () async {
+  test('колоды без выбора; режим берётся из меню', () async {
     final state = await ready();
     expect(state.decks.map((deck) => deck.id), unorderedEquals(['a', 'b']));
     expect(state.mode, LocalMatchMode.vsBot);
@@ -45,14 +47,13 @@ void main() {
     await ready();
     cubit
       ..selectDeck(Seat.one, 'a')
-      ..selectDeck(Seat.two, 'b')
-      ..selectMode(LocalMatchMode.hotSeat);
+      ..selectDeck(Seat.two, 'b');
     final state = cubit.state as MatchSetupReady;
     expect(state.deck(Seat.one), 'a');
     expect(
       state.request,
       isA<LocalMatchRequest>()
-          .having((request) => request.mode, 'mode', LocalMatchMode.hotSeat)
+          .having((request) => request.mode, 'mode', LocalMatchMode.vsBot)
           .having((request) => request.deckOne, 'deckOne', 'a')
           .having((request) => request.deckTwo, 'deckTwo', 'b'),
     );
@@ -70,12 +71,11 @@ void main() {
     expect((await updated as MatchSetupReady).deckTwo, isNull);
   });
 
-  test('пока колоды читаются, состояние загрузки; режим, выбранный до них, сохраняется', () async {
+  test('пока колоды читаются, состояние загрузки; режим из меню доходит до готового выбора', () async {
     final lateDecks = _LateDecks();
     addTearDown(lateDecks.close);
-    final waiting = MatchSetupCubit(WatchDecks(lateDecks));
+    final waiting = MatchSetupCubit(WatchDecks(lateDecks), mode: LocalMatchMode.hotSeat);
     addTearDown(waiting.close);
-    waiting.selectMode(LocalMatchMode.hotSeat);
     expect(waiting.state, isA<MatchSetupLoading>());
 
     lateDecks.decks.add([testDeck()]);
@@ -95,7 +95,11 @@ void main() {
     test('на пустом хранилище каждая фракция получает стартовую колоду', () async {
       final empty = InMemoryDeckRepository();
       final rules = FakeDeckRulesSource();
-      final started = MatchSetupCubit(WatchDecks(empty), ensureStarterDecks: ensure(empty, rules));
+      final started = MatchSetupCubit(
+        WatchDecks(empty),
+        mode: LocalMatchMode.vsBot,
+        ensureStarterDecks: ensure(empty, rules),
+      );
       addTearDown(started.close);
       final state = await started.stream.firstWhere(
         (state) => state is MatchSetupReady && state.decks.length == rules.rules.deckFactions.length,
@@ -106,7 +110,7 @@ void main() {
 
     test('предвыбор ставит первую колоду на оба места, ручной выбор не затирается', () async {
       final repository = InMemoryDeckRepository([testDeck(id: 'a'), testDeck(id: 'b')]);
-      final preselected = MatchSetupCubit(WatchDecks(repository), preselect: true);
+      final preselected = MatchSetupCubit(WatchDecks(repository), mode: LocalMatchMode.vsBot, preselect: true);
       addTearDown(preselected.close);
       final state = await preselected.stream.firstWhere((state) => state is MatchSetupReady) as MatchSetupReady;
       expect(state.request, isNotNull);
@@ -122,9 +126,70 @@ void main() {
       expect((updated as MatchSetupReady).deckTwo, other);
     });
 
+    ChooseDefaultDecks chooser(DeckRepository repository, DeckRulesSource rules) => ChooseDefaultDecks(
+      rules,
+      GetActiveDeck(
+        repository,
+        rules,
+        CreateStarterDeck(repository, FakeClock(DateTime.utc(2026, 10, 12)), SequentialIdGenerator()),
+        DeckSelectionLock(),
+      ),
+    );
+
+    test('колоды по умолчанию: на места встают активные колоды двух первых фракций', () async {
+      final repository = InMemoryDeckRepository();
+      final rules = FakeDeckRulesSource();
+      final cubit = MatchSetupCubit(
+        WatchDecks(repository),
+        mode: LocalMatchMode.hotSeat,
+        ensureStarterDecks: ensure(repository, rules),
+        chooseDefaultDecks: chooser(repository, rules),
+      );
+      addTearDown(cubit.close);
+      final state =
+          await cubit.stream.firstWhere((state) => state is MatchSetupReady && state.request != null)
+              as MatchSetupReady;
+      final one = state.decks.firstWhere((deck) => deck.id == state.deckOne);
+      final two = state.decks.firstWhere((deck) => deck.id == state.deckTwo);
+      expect(one.factionId, rules.rules.deckFactions[0].id);
+      expect(two.factionId, rules.rules.deckFactions[1].id);
+      expect(state.request!.mode, LocalMatchMode.hotSeat);
+    });
+
+    test('колода по умолчанию не затирает выбор игрока', () async {
+      final repository = InMemoryDeckRepository([testDeck(id: 'a'), testDeck(id: 'b')]);
+      final rules = FakeDeckRulesSource();
+      final cubit = MatchSetupCubit(
+        WatchDecks(repository),
+        mode: LocalMatchMode.vsBot,
+        ensureStarterDecks: ensure(repository, rules),
+        chooseDefaultDecks: chooser(repository, rules),
+      );
+      addTearDown(cubit.close);
+      await cubit.stream.firstWhere((state) => state is MatchSetupReady);
+      cubit.selectDeck(Seat.one, 'b');
+      await pumpEventQueue();
+      expect((cubit.state as MatchSetupReady).deckOne, 'b');
+    });
+
+    test('без колод по умолчанию и без предвыбора выбор остаётся за игроком', () async {
+      final repository = InMemoryDeckRepository([testDeck(id: 'a')]);
+      final rules = FakeDeckRulesSource();
+      final cubit = MatchSetupCubit(
+        WatchDecks(repository),
+        mode: LocalMatchMode.vsBot,
+        ensureStarterDecks: ensure(repository, rules),
+      );
+      addTearDown(cubit.close);
+      await pumpEventQueue();
+      final state = cubit.state as MatchSetupReady;
+      expect(state.deckOne, isNull);
+      expect(state.request, isNull);
+    });
+
     test('без колод предвыбирать нечего', () async {
       final empty = InMemoryDeckRepository();
-      final preselected = MatchSetupCubit(WatchDecks(empty), preselect: true);
+      final preselected = MatchSetupCubit(WatchDecks(empty), mode: LocalMatchMode.vsBot, preselect: true);
       addTearDown(preselected.close);
       final state = await preselected.stream.firstWhere((state) => state is MatchSetupReady) as MatchSetupReady;
       expect(state.request, isNull);
@@ -134,7 +199,11 @@ void main() {
       final failure = StateError('нет пакета');
       final failing = _FailingRules(failure);
       final repository = InMemoryDeckRepository();
-      final cubit = MatchSetupCubit(WatchDecks(repository), ensureStarterDecks: ensure(repository, failing));
+      final cubit = MatchSetupCubit(
+        WatchDecks(repository),
+        mode: LocalMatchMode.vsBot,
+        ensureStarterDecks: ensure(repository, failing),
+      );
       addTearDown(cubit.close);
       final state = await cubit.stream.firstWhere((state) => state is MatchSetupFailed);
       expect((state as MatchSetupFailed).error, failure);
@@ -143,7 +212,10 @@ void main() {
 
   test('ошибка чтения колод', () async {
     final failure = Exception('база недоступна');
-    final failing = MatchSetupCubit(WatchDecks(InMemoryDeckRepository()..watchError = failure));
+    final failing = MatchSetupCubit(
+      WatchDecks(InMemoryDeckRepository()..watchError = failure),
+      mode: LocalMatchMode.vsBot,
+    );
     addTearDown(failing.close);
     expect(await failing.stream.first, isA<MatchSetupFailed>().having((state) => state.error, 'error', failure));
   });

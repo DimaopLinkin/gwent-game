@@ -76,6 +76,7 @@ void main() {
     final result = await finished;
 
     expect(states.first, isA<MatchStarting>());
+    expect(states[1], isA<MatchIntro>(), reason: 'партия начинается со знакомства, пока на экране нет рук');
     expect(states.whereType<MatchHandover>(), isEmpty, reason: 'против бота телефон никому не передаётся');
     final inProgress = states.whereType<MatchInProgress>().toList();
     expect(inProgress.first.view.phase, MatchPhase.redraw);
@@ -98,22 +99,239 @@ void main() {
     );
     await finished;
 
-    // Начало партии: руку первого игрока видит только он.
-    expect(states[1], isA<MatchHandover>().having((state) => state.next, 'next', Seat.one));
-    final redrawOne = states[2] as MatchInProgress;
+    // Начало партии: знакомство без рук, потом руку первого игрока видит только он.
+    expect(states[1], isA<MatchIntro>());
+    final firstHandover = states.indexWhere((state) => state is MatchHandover);
+    expect(
+      states[firstHandover],
+      isA<MatchHandover>()
+          .having((state) => state.next, 'next', Seat.one)
+          .having((state) => state.kind, 'kind', HandoverKind.redraw),
+    );
+    final redrawOne = states[firstHandover + 1] as MatchInProgress;
     expect((redrawOne.view.viewer, redrawOne.view.phase), (Seat.one, MatchPhase.redraw));
     // Первый закончил пересдачу: телефон уходит второму, и тот видит раздачу и пересдачу первого.
-    expect(states[3], isA<MatchHandover>().having((state) => state.next, 'next', Seat.two));
-    final redrawTwo = states[4] as MatchInProgress;
+    expect(states[firstHandover + 2], isA<MatchHandover>().having((state) => state.next, 'next', Seat.two));
+    final redrawTwo = states[firstHandover + 3] as MatchInProgress;
     expect(redrawTwo.view.viewer, Seat.two);
     expect(redrawTwo.events, contains(const RedrawFinished(Seat.one)));
     expect(states.last, isA<MatchFinished>());
     expect(matches.records.single.mode, history.MatchMode.hotSeat);
   });
 
+  /// Виды передач телефона в партии вдвоём с заданным сидом (сид решает, кто ходит первым).
+  Future<List<HandoverKind>> handoverKinds(int seed) async {
+    final hotSeat = newBloc(seed: seed);
+    final states = <MatchScreenState>[];
+    final finished = _playOut(hotSeat, states);
+    hotSeat.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.hotSeat, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+    return [for (final state in states.whereType<MatchHandover>()) state.kind];
+  }
+
+  test('hot-seat: если первым ходит не тот, кто держит телефон, передача называется «первый ход»', () async {
+    final kinds = await handoverKinds(4);
+    expect(kinds.take(2), [HandoverKind.redraw, HandoverKind.redraw], reason: 'каждый игрок пересдаёт свои карты');
+    expect(kinds[2], HandoverKind.firstMove);
+    expect(kinds.skip(3), everyElement(HandoverKind.turn));
+  });
+
+  test('hot-seat: если первым ходит тот, у кого телефон, первой передачи хода нет, дальше передачи — ходы', () async {
+    final kinds = await handoverKinds(3);
+    expect(kinds.take(2), [HandoverKind.redraw, HandoverKind.redraw]);
+    expect(kinds.skip(2), isNotEmpty);
+    expect(kinds.skip(2), everyElement(HandoverKind.turn));
+  });
+
+  test('знакомство называет фракции, лидеров и колоды обоих игроков', () async {
+    final intro = bloc.stream.firstWhere((state) => state is MatchIntro);
+    bloc.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    final roster = (await intro as MatchIntro).roster;
+    expect(roster.hotSeat, isFalse);
+    expect(roster.isLocal(Seat.one), isTrue);
+    expect(roster.isLocal(Seat.two), isFalse);
+    expect(roster.player(Seat.one).faction, Faction.skellige);
+    expect(roster.player(Seat.two).faction, Faction.monsters);
+    expect(roster.player(Seat.one).deckName, 'skellige');
+    expect(roster.player(Seat.two).deckName, 'monsters');
+  });
+
+  test('знакомство ждёт: пока игрок не нажал или не вышло время, поле не показывается', () async {
+    final states = <MatchScreenState>[];
+    final subscription = bloc.stream.listen(states.add);
+    addTearDown(subscription.cancel);
+    bloc.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await bloc.stream.firstWhere((state) => state is MatchIntro);
+    await pumpEventQueue();
+    expect(states.last, isA<MatchIntro>());
+    expect(states.whereType<MatchInProgress>(), isEmpty);
+
+    bloc.add(const MatchIntroFinished());
+    await bloc.stream.firstWhere((state) => state is! MatchIntro);
+    expect(bloc.state, anyOf(isA<MatchToss>(), isA<MatchInProgress>()));
+  });
+
+  test('«знакомство» и «жребий» вне своего места игнорируются', () async {
+    bloc.add(const MatchIntroFinished());
+    bloc.add(const MatchTossFinished());
+    bloc.add(const MatchHandoverAccepted());
+    bloc.add(const MatchRematchRequested());
+    await pumpEventQueue();
+    expect(bloc.state, isA<MatchIdle>());
+  });
+
+  test('жребий: после знакомства экран называет, кто ходит первым, и только потом показывает пересдачу', () async {
+    final table = _FakeTable();
+    final states = <MatchScreenState>[];
+    final subscription = bloc.stream.listen(states.add);
+    addTearDown(subscription.cancel);
+
+    bloc.add(MatchSessionOpened(_session(table, content)));
+    await pumpEventQueue();
+    table.push(
+      ViewsChanged(
+        {Seat.one: _startView(content)},
+        const {
+          Seat.one: [FirstPlayerChosen(Seat.two, byChoice: true)],
+        },
+      ),
+    );
+    await pumpEventQueue();
+    expect(states, [isA<MatchIntro>()]);
+
+    bloc.add(const MatchIntroFinished());
+    await pumpEventQueue();
+    expect(
+      states.last,
+      isA<MatchToss>()
+          .having((state) => state.first, 'first', Seat.two)
+          .having((state) => state.byChoice, 'byChoice', true),
+    );
+
+    bloc.add(const MatchTossFinished());
+    await pumpEventQueue();
+    expect(states.last, isA<MatchInProgress>().having((state) => state.view.phase, 'phase', MatchPhase.redraw));
+  });
+
+  test('сдача: Resign на любом этапе заканчивает партию поражением и записывает её', () async {
+    final states = <MatchScreenState>[];
+    final subscription = bloc.stream.listen((state) {
+      states.add(state);
+      if (state is MatchIntro) bloc.add(const MatchIntroFinished());
+      if (state is MatchToss) bloc.add(const MatchTossFinished());
+      if (state is MatchInProgress && state.view.phase == MatchPhase.redraw && state.refusal == null) {
+        bloc.add(const MatchIntentSubmitted(Resign()));
+      }
+    });
+    addTearDown(subscription.cancel);
+    bloc.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    final finished = await bloc.stream.firstWhere((state) => state is MatchFinished && state.record != null);
+    expect((finished as MatchFinished).outcome.winner, Seat.two);
+    expect(matches.records.single.outcome, history.MatchOutcome.defeat);
+  });
+
+  test('реванш: та же партия с теми же колодами начинается заново со знакомства', () async {
+    final first = <MatchScreenState>[];
+    final firstResult = await (() {
+      final finished = _playOut(bloc, first);
+      bloc.add(
+        const MatchStartRequested(
+          LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+        ),
+      );
+      return finished;
+    })();
+    expect(firstResult.canRematch, isTrue);
+
+    final second = <MatchScreenState>[];
+    final secondFinished = _playOut(bloc, second);
+    bloc.add(const MatchRematchRequested());
+    final secondResult = await secondFinished;
+    expect(second.first, isA<MatchStarting>());
+    expect(second[1], isA<MatchIntro>());
+    expect(second.whereType<MatchInProgress>().first.view.phase, MatchPhase.redraw);
+    expect(secondResult.record, isNotNull);
+    expect(matches.records, hasLength(2));
+  });
+
+  test('реванш до конца записи в историю: итог прежней партии не затирает новую', () async {
+    final gate = Completer<void>();
+    final slow = newBloc(history: _GatedHistory(gate.future));
+    final finished = _playOut(slow, <MatchScreenState>[], recorded: false);
+    slow.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+
+    slow.add(const MatchRematchRequested());
+    await pumpEventQueue();
+    expect(slow.state, isA<MatchIntro>());
+    gate.complete();
+    await pumpEventQueue();
+    expect(slow.state, isA<MatchIntro>(), reason: 'запись прежней партии закончилась, но экран остался на новой');
+  });
+
+  test('двойное нажатие «Реванш» открывает один стол', () async {
+    var bots = 0;
+    final counted = newBloc(
+      createBot: (engine, catalog) {
+        bots++;
+        return GreedyBot(engine, catalog);
+      },
+    );
+    final finished = _playOut(counted, <MatchScreenState>[]);
+    counted.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+    expect(bots, 1);
+
+    counted
+      ..add(const MatchRematchRequested())
+      ..add(const MatchRematchRequested());
+    await pumpEventQueue();
+    expect(bots, 2);
+    expect(counted.state, isA<MatchIntro>());
+  });
+
+  test('партия, открытая снаружи, реванша не предлагает: запроса колод у неё нет', () async {
+    final table = _FakeTable();
+    bloc.add(MatchSessionOpened(_session(table, content)));
+    await pumpEventQueue();
+    table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
+    await pumpEventQueue();
+    bloc.add(const MatchIntroFinished());
+    await pumpEventQueue();
+    bloc.add(const MatchRematchRequested());
+    await pumpEventQueue();
+    expect(bloc.state, isA<MatchInProgress>());
+  });
+
   test('отказ движка показывается тому, кто держит телефон', () async {
     final refused = Completer<MatchInProgress>();
     final subscription = bloc.stream.listen((state) {
+      if (state is MatchIntro) bloc.add(const MatchIntroFinished());
+      if (state is MatchToss) bloc.add(const MatchTossFinished());
       if (state is MatchInProgress && state.refusal != null) refused.complete(state);
       if (state is MatchInProgress && state.refusal == null && state.view.phase == MatchPhase.redraw) {
         // Пас во время пересдачи движок отклоняет.
@@ -170,11 +388,14 @@ void main() {
     bloc.add(MatchSessionOpened(_session(table, content)));
     await pumpEventQueue();
     table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
+    await pumpEventQueue();
+    bloc.add(const MatchIntroFinished());
+    await pumpEventQueue();
     table.push(TableFailed(StateError('бот сломался')));
     table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
     await pumpEventQueue();
 
-    expect(states, [isA<MatchInProgress>(), isA<MatchCrashed>()]);
+    expect(states, [isA<MatchIntro>(), isA<MatchInProgress>(), isA<MatchCrashed>()]);
     expect(table.closed, isTrue);
     bloc.add(const MatchIntentSubmitted(FinishRedraw()));
     await pumpEventQueue();
@@ -265,6 +486,10 @@ Future<MatchFinished> _playOut(
       if (holder != null && view.viewer != holder) fail(StateError('рука ${view.viewer} на экране у $holder'));
     }
     switch (state) {
+      case MatchIntro():
+        bloc.add(const MatchIntroFinished());
+      case MatchToss():
+        bloc.add(const MatchTossFinished());
       case MatchHandover(:final next):
         holder = next;
         bloc.add(const MatchHandoverAccepted());
@@ -399,6 +624,19 @@ final class _FailingHistory implements MatchHistoryRepository {
 
   @override
   Future<void> add(history.MatchRecord record) => Future.error(StateError('диск полон'));
+}
+
+/// История, которая записывает партию, когда откроют [gate].
+final class _GatedHistory implements MatchHistoryRepository {
+  _GatedHistory(this._gate);
+
+  final Future<void> _gate;
+
+  @override
+  Stream<List<history.MatchRecord>> watchAll() => const Stream.empty();
+
+  @override
+  Future<void> add(history.MatchRecord record) => _gate;
 }
 
 /// Наблюдатель, который собирает ошибки держателей состояния.

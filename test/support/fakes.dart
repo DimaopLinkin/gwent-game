@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
@@ -10,6 +11,16 @@ import 'package:gwent/src/features/match_history/domain/match_history_repository
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
+
+/// Версия приложения, заданная тестом.
+final class FakeAppInfo implements AppInfo {
+  const FakeAppInfo([this.current = '1.0.0']);
+
+  final String current;
+
+  @override
+  Future<String> version() async => current;
+}
 
 /// Часы, которые показывают заданное время.
 final class FakeClock implements Clock {
@@ -50,6 +61,12 @@ final class InMemoryDeckRepository implements DeckRepository {
   /// Ошибка, с которой падает [watchAll]; `null` — без ошибки.
   Exception? watchError;
 
+  /// Ошибка, с которой [watchAll] падает сразу, а не в потоке; `null` — без ошибки.
+  Error? watchThrows;
+
+  /// Ошибка, с которой падает [save]; `null` — без ошибки.
+  Error? saveError;
+
   /// Чтения отдают снимок и уступают очередь событий, как запросы к настоящей базе: так одновременные сценарии
   /// перемежаются и видят устаревшие данные.
   bool yieldOnRead = false;
@@ -69,6 +86,7 @@ final class InMemoryDeckRepository implements DeckRepository {
 
   @override
   Stream<List<Deck>> watchAll() => switch (watchError) {
+    _ when watchThrows != null => throw watchThrows!,
     final error? => Stream.error(error),
     null => _watch(_changes, () => _sorted),
   };
@@ -85,6 +103,7 @@ final class InMemoryDeckRepository implements DeckRepository {
 
   @override
   Future<void> save(Deck deck, {bool activate = false}) async {
+    if (saveError case final error?) throw error;
     _decks[deck.id] = deck;
     _active.removeWhere((factionId, deckId) => deckId == deck.id && factionId != deck.factionId);
     if (activate) _active[deck.factionId] = deck.id;

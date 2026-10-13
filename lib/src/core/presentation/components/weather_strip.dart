@@ -27,6 +27,7 @@ class WeatherStrip extends StatelessWidget {
     this.statusActive = true,
     this.isTarget = false,
     this.onTap,
+    this.showPauseSlot = false,
   }) : assert(slots.length == 3, 'слотов погоды три: ближний, дальний и осадный ряды');
 
   /// Высота полосы.
@@ -49,6 +50,12 @@ class WeatherStrip extends StatelessWidget {
 
   /// Тап по полосе.
   final VoidCallback? onTap;
+
+  /// Справа оставлено место под кнопку паузы: сама кнопка лежит поверх полосы (её зона нажатия больше полосы).
+  final bool showPauseSlot;
+
+  /// Сколько места справа занимает кнопка паузы: круг 30 pt и отступ 2 pt.
+  static const double pauseSlotWidth = 32;
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +118,7 @@ class WeatherStrip extends StatelessWidget {
                 ),
               ),
               _RoundMark(round: round),
+              if (showPauseSlot) const SizedBox(width: pauseSlotWidth - 8),
             ],
           ),
         ),

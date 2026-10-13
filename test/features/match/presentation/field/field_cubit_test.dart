@@ -23,7 +23,7 @@ void main() {
   });
 
   MatchInProgress progress(PlayerView view, {List<GameEvent> events = const [], Reject? refusal}) =>
-      MatchInProgress(view: view, content: content, events: events, refusal: refusal);
+      MatchInProgress(view: view, content: content, roster: rosterOf(cards), events: events, refusal: refusal);
 
   test('выбор карты переключается повторным нажатием и снимается', () {
     cubit.toggleSelected(const CardInstanceId(1));
@@ -86,14 +86,201 @@ void main() {
     expect(cubit.state.overlay, isA<RevealOverlay>().having((overlay) => overlay.cards, 'cards', shown));
   });
 
-  test('пас соперника показывает баннер, свой пас нет; баннер убирается', () {
+  test('пас соперника и свой пас ставят в очередь баннеры, баннер убирается по одному', () {
     final view = viewOf(cards);
     cubit.onMatchState(progress(view, events: const [Passed(Seat.one, auto: false)]));
-    expect(cubit.state.showOpponentPassed, isFalse);
+    expect(cubit.state.banners, hasLength(1));
+    expect(cubit.state.banners.single, isA<PassBanner>().having((banner) => banner.mine, 'mine', isTrue));
     cubit.onMatchState(progress(view, events: const [Passed(Seat.two, auto: false)]));
-    expect(cubit.state.showOpponentPassed, isTrue);
-    cubit.clearBanner();
-    expect(cubit.state.showOpponentPassed, isFalse);
+    expect(cubit.state.banners, hasLength(2));
+    expect(cubit.state.banners.last, isA<PassBanner>().having((banner) => banner.mine, 'mine', isFalse));
+    cubit.dismissBanner();
+    expect(cubit.state.banners.single, isA<PassBanner>().having((banner) => banner.mine, 'mine', isFalse));
+    cubit
+      ..dismissBanner()
+      ..dismissBanner();
+    expect(cubit.state.banners, isEmpty);
+  });
+
+  test('начало раунда объявляется один раз, у обоих кристаллов по одному — «решающий раунд»', () {
+    final view = viewOf(
+      cards,
+      round: 3,
+      me: sideOf(cards, Seat.one, crystals: 1),
+      opponent: sideOf(cards, Seat.two, crystals: 1),
+    );
+    const started = RoundStarted(3, Seat.two);
+    cubit.onMatchState(progress(view, events: const [started, TurnStarted(Seat.two)]));
+    expect(cubit.state.banners.first, isA<RoundStartBanner>().having((banner) => banner.decisive, 'decisive', isTrue));
+    expect(cubit.state.banners.first, isA<RoundStartBanner>().having((banner) => banner.round, 'round', 3));
+    expect(cubit.state.banners.last, isA<TurnStartBanner>().having((banner) => banner.mine, 'mine', isFalse));
+    cubit.onMatchState(progress(view));
+    cubit
+      ..dismissBanner()
+      ..dismissBanner();
+
+    // В hot-seat те же события приходят второму месту, когда телефон перейдёт к нему: раунд не объявляется заново.
+    cubit.onMatchState(progress(view, events: const [started]));
+    expect(cubit.state.banners, isEmpty);
+  });
+
+  test('обычный раунд без решающего: баннер без отметки «решающий»', () {
+    cubit.onMatchState(progress(viewOf(cards), events: const [RoundStarted(1, Seat.one)]));
+    expect(
+      cubit.state.banners.single,
+      isA<RoundStartBanner>().having((banner) => banner.decisive, 'decisive', isFalse),
+    );
+  });
+
+  test('ход объявляется, только когда он перешёл к другому месту', () {
+    final view = viewOf(cards);
+    cubit.onMatchState(progress(view, events: const [TurnStarted(Seat.one)]));
+    expect(cubit.state.banners.single, isA<TurnStartBanner>().having((banner) => banner.mine, 'mine', isTrue));
+    cubit.dismissBanner();
+    cubit.onMatchState(progress(view, events: const [TurnStarted(Seat.one)]));
+    expect(cubit.state.banners, isEmpty, reason: 'после паса соперника каждый мой ход начинается заново');
+    cubit.onMatchState(progress(view, events: const [TurnStarted(Seat.two)]));
+    expect(cubit.state.banners.single, isA<TurnStartBanner>().having((banner) => banner.mine, 'mine', isFalse));
+  });
+
+  test('пас соперника заменяет баннер его хода', () {
+    cubit.onMatchState(
+      progress(viewOf(cards), events: const [Passed(Seat.two, auto: false), TurnStarted(Seat.one)]),
+    );
+    expect(cubit.state.banners.map((banner) => banner.runtimeType), [PassBanner]);
+  });
+
+  test('пас, которым кончился раунд, баннера не даёт: его объявляет итог раунда', () {
+    const result = RoundResult(round: 1, scores: {Seat.one: 10, Seat.two: 4}, winner: Seat.one);
+    cubit.onMatchState(
+      progress(viewOf(cards), events: [const Passed(Seat.two, auto: false), const RoundEnded(result)]),
+    );
+    expect(cubit.state.banners, isEmpty);
+    expect(cubit.state.summary, isNotNull);
+  });
+
+  test('итог раунда: победа, счёт и кристаллы; повтор тех же событий его не показывает заново', () {
+    const result = RoundResult(round: 2, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+    final view = viewOf(
+      cards,
+      round: 2,
+      me: sideOf(cards, Seat.one),
+      opponent: sideOf(cards, Seat.two, crystals: 1),
+    );
+    cubit.onMatchState(progress(view, events: [const RoundEnded(result)]));
+    final summary = cubit.state.summary!;
+    expect(summary.round, 2);
+    expect(summary.outcome, RoundOutcome.win);
+    expect((summary.scoreMine, summary.scoreOpponent), (17, 9));
+    expect((summary.crystalsMine, summary.crystalsOpponent), (2, 1));
+    expect((summary.lostMine, summary.lostOpponent), (false, true));
+    expect(summary.marks, isEmpty);
+
+    cubit.dismissSummary();
+    expect(cubit.state.summary, isNull);
+    cubit.onMatchState(progress(view, events: [const RoundEnded(result)]));
+    expect(cubit.state.summary, isNull);
+  });
+
+  test('итог раунда глазами второго места: поражение и ничья', () {
+    const lost = RoundResult(round: 1, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+    const tie = RoundResult(round: 2, scores: {Seat.one: 9, Seat.two: 9}, winner: null);
+    final view = PlayerView(
+      viewer: Seat.two,
+      phase: MatchPhase.playing,
+      round: 2,
+      turn: Seat.two,
+      me: sideOf(cards, Seat.two),
+      opponent: sideOf(cards, Seat.one),
+      weather: const [],
+      history: const [],
+    );
+    cubit.onMatchState(progress(view, events: [const RoundEnded(lost)]));
+    expect(cubit.state.summary!.outcome, RoundOutcome.loss);
+    expect((cubit.state.summary!.scoreMine, cubit.state.summary!.scoreOpponent), (9, 17));
+    cubit.dismissSummary();
+    cubit.onMatchState(progress(view, events: [const RoundEnded(tie)]));
+    expect(cubit.state.summary!.outcome, RoundOutcome.draw);
+    expect((cubit.state.summary!.lostMine, cubit.state.summary!.lostOpponent), (true, true));
+  });
+
+  test('итог раунда называет сработавшие способности фракций: карта, оставшийся отряд, победа при ничьей', () {
+    const tie = RoundResult(round: 1, scores: {Seat.one: 9, Seat.two: 9}, winner: Seat.one);
+    final unit = cards.unit(Row.melee);
+    final drawn = cards.unit(Row.ranged);
+    cubit.onMatchState(
+      progress(
+        viewOf(cards),
+        events: [
+          const RoundEnded(tie),
+          UnitKept(Seat.two, Row.melee, unit),
+          CardsDrawn(Seat.one, [drawn]),
+          const CardsDrawnHidden(Seat.two, 1),
+        ],
+      ),
+    );
+    final marks = cubit.state.summary!.marks;
+    expect(marks.map((mark) => mark.kind), [
+      FactionMarkKind.wonTie,
+      FactionMarkKind.unitStays,
+      FactionMarkKind.extraCard,
+      FactionMarkKind.extraCard,
+    ]);
+    expect(marks.map((mark) => mark.mine), [true, false, true, false]);
+  });
+
+  test('добор после первого хода нового раунда (ход бота в той же пачке) не считается способностью фракции', () {
+    const result = RoundResult(round: 1, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+    final drawn = cards.unit(Row.ranged);
+    cubit.onMatchState(
+      progress(
+        viewOf(cards),
+        events: [
+          const RoundEnded(result),
+          CardsDrawn(Seat.one, [drawn]),
+          const TurnStarted(Seat.one),
+          const CardsDrawnHidden(Seat.two, 1),
+        ],
+      ),
+    );
+    expect(cubit.state.summary!.marks.map((mark) => (mark.kind, mark.mine)), [(FactionMarkKind.extraCard, true)]);
+  });
+
+  test('в конце партии итог раунда не нужен: его заменяет итог матча', () {
+    const result = RoundResult(round: 2, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+    cubit.onMatchState(
+      progress(
+        viewOf(cards),
+        events: [
+          const RoundEnded(result),
+          const MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.crystals)),
+        ],
+      ),
+    );
+    expect(cubit.state.summary, isNull);
+  });
+
+  test('слои паузы: меню, правила, сдача и возврат в меню; выбор карты при паузе снимается', () {
+    cubit
+      ..select(const CardInstanceId(1))
+      ..openPause();
+    expect(cubit.state.pause, PauseLayer.menu);
+    expect(cubit.state.selected, isNull);
+
+    cubit.openRules();
+    expect(cubit.state.pause, PauseLayer.rules);
+    cubit.backToPauseMenu();
+    expect(cubit.state.pause, PauseLayer.menu);
+
+    cubit.askSurrender();
+    expect(cubit.state.pause, PauseLayer.surrenderConfirm);
+    cubit.backToPauseMenu();
+    expect(cubit.state.pause, PauseLayer.menu);
+
+    cubit.closePause();
+    expect(cubit.state.pause, PauseLayer.none);
+    cubit.backToPauseMenu();
+    expect(cubit.state.pause, PauseLayer.none, reason: 'из игры в меню паузы возвращаться некуда');
   });
 
   test('только что сыгранные карты подсвечиваются до следующих событий', () {
@@ -124,9 +311,18 @@ void main() {
     cubit
       ..select(const CardInstanceId(1))
       ..openLeader(mine: true);
-    cubit.onMatchState(const MatchHandover(Seat.two));
+    cubit.onMatchState(MatchHandover(Seat.two, kind: HandoverKind.turn, roster: rosterOf(cards, hotSeat: true)));
     expect(cubit.state.selected, isNull);
     expect(cubit.state.overlay, isA<NoOverlay>());
+  });
+
+  test('новая партия забывает, что объявлялось в прошлой: раунд снова объявляется', () {
+    cubit.onMatchState(progress(viewOf(cards), events: const [RoundStarted(1, Seat.one)]));
+    expect(cubit.state.banners, hasLength(1));
+    cubit.onMatchState(MatchIntro(rosterOf(cards)));
+    expect(cubit.state.isClean, isTrue);
+    cubit.onMatchState(progress(viewOf(cards), events: const [RoundStarted(1, Seat.one)]));
+    expect(cubit.state.banners, hasLength(1));
   });
 
   test('передача телефона сбрасывает и тост, и баннер пасса, и порядок сброса', () {
@@ -135,9 +331,9 @@ void main() {
       ..setSort(DiscardSort.byOrder);
     cubit.onMatchState(progress(viewOf(cards), events: const [Passed(Seat.two, auto: false)]));
     expect(cubit.state.isClean, isFalse);
-    cubit.onMatchState(const MatchHandover(Seat.two));
+    cubit.onMatchState(MatchHandover(Seat.two, kind: HandoverKind.turn, roster: rosterOf(cards, hotSeat: true)));
     expect(cubit.state.toast, isNull);
-    expect(cubit.state.showOpponentPassed, isFalse);
+    expect(cubit.state.banners, isEmpty);
     expect(cubit.state.sort, DiscardSort.byStrength);
     expect(cubit.state.isClean, isTrue);
   });

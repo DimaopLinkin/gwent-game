@@ -51,6 +51,10 @@ void main() {
       Seat.one: (await decks.findById('skellige'))!.factionId,
       Seat.two: (await decks.findById('monsters'))!.factionId,
     });
+    expect(session.deckNames, {
+      Seat.one: (await decks.findById('skellige'))!.name,
+      Seat.two: (await decks.findById('monsters'))!.name,
+    });
   });
 
   test('hot-seat: оба места здешние', () async {

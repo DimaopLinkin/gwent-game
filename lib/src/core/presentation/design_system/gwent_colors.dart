@@ -161,4 +161,19 @@ abstract final class GwentColors {
 
   /// Иконка и текст недоступного элемента на тёмном.
   static const Color disabledIcon = Color(0xFF5A4E3D);
+
+  /// Рамка опасного действия («Сдаться»): приглушённый красный.
+  static const Color dangerRing = Color(0xFFA8483E);
+
+  /// Рамка панели подтверждения опасного действия.
+  static const Color dangerPanelRing = Color(0xFF7A3A33);
+
+  /// Поражение: заголовок итога матча.
+  static const Color defeat = Color(0xFFC4655A);
+
+  /// Проигравший: приглушённый цвет счёта и надписей.
+  static const Color loserText = Color(0xFF8A7C64);
+
+  /// Подпись, которая светлее вторичного текста, но слабее основного (надписи на тёмных панелях).
+  static const Color textTertiary = Color(0xFFCFC3A8);
 }

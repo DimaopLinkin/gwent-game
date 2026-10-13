@@ -41,6 +41,10 @@ enum GwentFaction {
   /// Герб; у нейтральных карт его нет.
   final GwentIcon? crest;
 
+  /// Свечение фона экранов старта и передачи телефона в цвете фракции (макет 4): 30 % цвета поля герба, у
+  /// Нильфгаарда чёрное поле не светится, поэтому берётся золото герба, 14 %.
+  Color get glow => this == nilfgaard ? charge.withValues(alpha: 0.14) : color.withValues(alpha: 0.30);
+
   /// Фракция по ключу из пакета контента; неизвестный ключ считается нейтральным.
   static GwentFaction fromKey(String key) => values.firstWhere((f) => f.key == key, orElse: () => neutral);
 }

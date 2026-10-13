@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
+import 'package:gwent/src/core/data/package_app_info.dart';
 import 'package:gwent/src/core/data/secure_seed_generator.dart';
 import 'package:gwent/src/core/data/system_clock.dart';
 import 'package:gwent/src/core/data/uuid_id_generator.dart';
@@ -18,6 +19,7 @@ AppDependencies createAppDependencies() {
   final database = AppDatabase(openAppDatabaseConnection());
   return AppDependencies(
     contentSource: AssetContentSource.basePack(rootBundle),
+    appInfo: const PackageAppInfo(),
     deckRepository: DriftDeckRepository(database),
     settingsRepository: DriftSettingsRepository(database),
     matchHistoryRepository: DriftMatchHistoryRepository(database),

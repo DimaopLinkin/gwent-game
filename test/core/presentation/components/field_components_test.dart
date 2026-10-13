@@ -188,6 +188,15 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('место под кнопку паузы сдвигает метку раунда влево на ширину круга', (tester) async {
+      await pump(tester, WeatherStrip(slots: slots, status: 'Ваш ход', round: 2));
+      final plain = tester.getTopRight(find.textContaining('2').last).dx;
+      await pump(tester, WeatherStrip(slots: slots, status: 'Ваш ход', round: 2, showPauseSlot: true));
+      final shifted = tester.getTopRight(find.textContaining('2').last).dx;
+      expect(plain - shifted, WeatherStrip.pauseSlotWidth);
+      expect(tester.getSize(find.byType(WeatherStrip)).height, 40);
+    });
   });
 
   group('PassButton compact', () {

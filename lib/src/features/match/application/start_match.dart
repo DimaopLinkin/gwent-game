@@ -157,6 +157,7 @@ final class StartMatch {
             table: table,
             content: content,
             factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId},
+            deckNames: {for (final seat in Seat.values) seat: decks[seat]!.name},
           ),
         );
     }
