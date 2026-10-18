@@ -44,6 +44,9 @@ final class TestCards {
     _find((card) => card is UnitCardDefinition && !card.isHero && card.placement.rows.length > 1).id,
   );
 
+  /// Созданная карта (медведь, жетон Приманки): в колоду не входит.
+  CardInstance created() => _instance(_find((card) => card is UnitCardDefinition && card.isCreated && !card.isHero).id);
+
   /// Шпион.
   CardInstance spy() => _instance(_find((card) => card is UnitCardDefinition && card.ability is SpyAbility).id);
 

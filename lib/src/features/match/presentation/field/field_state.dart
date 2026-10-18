@@ -1,3 +1,4 @@
+import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:meta/meta.dart';
 
@@ -248,6 +249,7 @@ final class FieldState {
     this.recent = const {},
     this.sort = DiscardSort.byStrength,
     this.finishing = false,
+    this.stage,
   });
 
   /// Выбранная карта руки.
@@ -277,10 +279,13 @@ final class FieldState {
   /// Партия закончена, и поле ещё держит последний ход и счёт на экране, прежде чем открыть итог матча.
   final bool finishing;
 
+  /// Сценарий показа последнего обновления партии (розыгрыш карты и эффекты, макет 12), пока он идёт.
+  final StageScript? stage;
+
   /// Поле что-то показывает или ждёт игрока и не принимает ходов: идут баннеры, открыт итог раунда или пауза, поле
   /// держит конец партии. Пока это так, экран партии откладывает следующие состояния партии и не пускает ходы игрока.
-  /// Сюда же встанут анимации карт.
-  bool get isBusy => banners.isNotEmpty || summary != null || pause != PauseLayer.none || finishing;
+  /// Сюда же входит показ розыгрыша карт: `FieldState.stage`.
+  bool get isBusy => banners.isNotEmpty || summary != null || pause != PauseLayer.none || finishing || stage != null;
 
   /// Ничего не выбрано, не открыто и не показывается: состояние равно начальному.
   bool get isClean =>
@@ -292,9 +297,11 @@ final class FieldState {
       pause == PauseLayer.none &&
       recent.isEmpty &&
       sort == DiscardSort.byStrength &&
-      !finishing;
+      !finishing &&
+      stage == null;
 
-  /// Копия с заменёнными полями; [clearSelected], [clearToast] и [clearSummary] обнуляют выбор, тост и итог раунда.
+  /// Копия с заменёнными полями; [clearSelected], [clearToast], [clearSummary] и [clearStage] обнуляют выбор, тост,
+  /// итог раунда и сценарий показа.
   FieldState copyWith({
     CardInstanceId? selected,
     bool clearSelected = false,
@@ -308,6 +315,8 @@ final class FieldState {
     Set<CardInstanceId>? recent,
     DiscardSort? sort,
     bool? finishing,
+    StageScript? stage,
+    bool clearStage = false,
   }) => FieldState(
     selected: clearSelected ? null : selected ?? this.selected,
     overlay: overlay ?? this.overlay,
@@ -318,5 +327,6 @@ final class FieldState {
     recent: recent ?? this.recent,
     sort: sort ?? this.sort,
     finishing: finishing ?? this.finishing,
+    stage: clearStage ? null : stage ?? this.stage,
   );
 }

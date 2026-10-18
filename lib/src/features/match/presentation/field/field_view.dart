@@ -11,6 +11,7 @@ import 'package:gwent/src/core/presentation/components/game_toast.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
 import 'package:gwent/src/core/presentation/components/pause_button.dart';
 import 'package:gwent/src/core/presentation/components/player_bar.dart';
+import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/core/presentation/components/weather_strip.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
@@ -30,6 +31,11 @@ import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
 import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_geometry.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_host.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_layer.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Игровое поле (макеты поля и оверлеев): ряды соперника, центральная полоса, мои ряды, полосы игроков и рука.
@@ -76,6 +82,13 @@ class _FieldViewState extends State<FieldView> {
 
   FieldContent? _content;
   AppLocalizations? _l10n;
+
+  /// Метка холста и меток полос игроков: по ним анимации карт находят места на полосах.
+  final GlobalKey _canvasKey = GlobalKey();
+  final Map<bool, PlayerBarAnchors> _anchors = {true: PlayerBarAnchors(), false: PlayerBarAnchors()};
+  StageGeometry? _stageGeometry;
+  int? _stageGeometryScript;
+  double? _stageGeometryWidth;
 
   PlayerView get _view => widget.view;
   FieldCubit get _cubit => context.read<FieldCubit>();
@@ -256,7 +269,15 @@ class _FieldViewState extends State<FieldView> {
                     );
                     return FittedBox(
                       alignment: Alignment.topLeft,
-                      child: SizedBox(width: width, height: height, child: _canvas(context, geometry, field)),
+                      child: SizedBox(
+                        width: width,
+                        height: height,
+                        child: StageHost(
+                          script: field.stage,
+                          onDone: _cubit.endStage,
+                          builder: (context, frame, speedUp) => _canvas(context, geometry, field, frame, speedUp),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -298,7 +319,41 @@ class _FieldViewState extends State<FieldView> {
     };
   }
 
-  Widget _canvas(BuildContext context, FieldGeometry geometry, FieldState field) {
+  /// Перевод мест сценария в координаты холста; пока идёт один сценарий, помнит места исчезнувших карт.
+  StageGeometry _stageGeometryFor(FieldGeometry geometry, StageScript script) {
+    final cached = _stageGeometry;
+    if (cached != null && _stageGeometryScript == script.id && _stageGeometryWidth == geometry.width) return cached;
+    _stageGeometryScript = script.id;
+    _stageGeometryWidth = geometry.width;
+    return _stageGeometry = StageGeometry(
+      field: geometry,
+      canvas: _canvasKey,
+      anchors: _anchors,
+      projection: _view,
+    );
+  }
+
+  Widget _stageLayer(FieldGeometry geometry, StageScript script, StageFrame frame) {
+    final view = _view;
+    CardFace back({required bool mine}) =>
+        CardBackFace(faction: _fieldContent.faction((mine ? view.me : view.opponent).faction));
+    CardFace leader({required bool mine}) => _fieldContent.leaderFace((mine ? view.me : view.opponent).leader);
+    return StageLayer(
+      frame: frame,
+      geometry: _stageGeometryFor(geometry, script),
+      faceOf: _fieldContent.face,
+      backOf: back,
+      leaderOf: leader,
+    );
+  }
+
+  Widget _canvas(
+    BuildContext context,
+    FieldGeometry geometry,
+    FieldState field,
+    StageFrame? frame,
+    VoidCallback speedUp,
+  ) {
     final l10n = context.l10n;
     final view = _view;
     final me = view.me;
@@ -307,119 +362,148 @@ class _FieldViewState extends State<FieldView> {
     final choiceRows = _choiceRows();
     final hint = _hint(l10n, targets);
     final isTargeting = hint != null;
-    return ColoredBox(
-      color: GwentColors.bg,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (final mine in const [false, true])
-            for (final row in Row.values)
-              FieldRowView(
-                key: ValueKey((mine, row)),
-                geometry: geometry,
-                content: _fieldContent,
-                row: row,
-                mine: mine,
-                data: (mine ? me : opponent).rows[row] ?? _emptyRow,
-                isTarget:
-                    (targets.highlightsRow(row, mine: mine) && targets.kind != PlayTargetKind.hornSlot) ||
-                    (mine && choiceRows.contains(row)),
-                hornTarget: targets.highlightsHornSlot(row),
-                decoyTargets: mine && targets.kind == PlayTargetKind.decoy ? targets.fieldCards : const {},
-                recent: field.recent,
-                onTap: () => _tapRow(row, mine: mine, field: field),
-                canDrop: (card) => _canDrop(card, row: row, mine: mine),
-                onDrop: (card) => _drop(card, row: row, mine: mine),
-                onCardTap: (card) => _tapFieldCard(card, row, mine: mine, field: field),
-                onCardLongPress: (card, strength) => _showDetail(
-                  card,
-                  power: strength,
-                  frosted: (mine ? me : opponent).rows[row]?.weather == true && row == Row.melee,
+    final script = field.stage;
+    return KeyedSubtree(
+      key: _canvasKey,
+      child: ColoredBox(
+        color: GwentColors.bg,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            for (final mine in const [false, true])
+              for (final row in Row.values)
+                FieldRowView(
+                  key: ValueKey((mine, row)),
+                  geometry: geometry,
+                  content: _fieldContent,
+                  row: row,
+                  mine: mine,
+                  data: (mine ? me : opponent).rows[row] ?? _emptyRow,
+                  isTarget:
+                      (targets.highlightsRow(row, mine: mine) && targets.kind != PlayTargetKind.hornSlot) ||
+                      (mine && choiceRows.contains(row)),
+                  hornTarget: targets.highlightsHornSlot(row),
+                  decoyTargets: mine && targets.kind == PlayTargetKind.decoy ? targets.fieldCards : const {},
+                  recent: field.recent,
+                  staged: frame?.rows[(mine: mine, row: row)],
+                  strengthRoll: frame?.counters[(kind: StageCounter.rowScore, mine: mine, row: row)],
+                  flashes: frame?.flashes ?? const {},
+                  onTap: () => _tapRow(row, mine: mine, field: field),
+                  canDrop: (card) => _canDrop(card, row: row, mine: mine),
+                  onDrop: (card) => _drop(card, row: row, mine: mine),
+                  onCardTap: (card) => _tapFieldCard(card, row, mine: mine, field: field),
+                  onCardLongPress: (card, strength) => _showDetail(
+                    card,
+                    power: strength,
+                    frosted: (mine ? me : opponent).rows[row]?.weather == true && row == Row.melee,
+                  ),
+                ),
+            Positioned.fromRect(
+              rect: geometry.strip,
+              child: DragTarget<CardInstance>(
+                onWillAcceptWithDetails: (details) => PlayTargets.forCard(view, details.data, _catalog).highlightsStrip,
+                onAcceptWithDetails: (details) {
+                  if (PlayTargets.forCard(view, details.data, _catalog).atStrip() case final intent?) _play(intent);
+                },
+                builder: (context, _, _) => _strip(l10n, field, targets, frame),
+              ),
+            ),
+            if (isTargeting) TargetScrim(area: geometry.scrimArea, holes: _holes(geometry, targets, choiceRows)),
+            Positioned.fromRect(
+              rect: geometry.opponentBar,
+              child: hint != null
+                  ? TargetHintBar(
+                      face: hint.face,
+                      title: hint.title,
+                      subtitle: hint.subtitle,
+                      cancelLabel: l10n.dialogCancel,
+                      onCancel: hint.cancellable ? _cubit.clearSelected : null,
+                    )
+                  : _bar(l10n, mine: false, frame: frame),
+            ),
+            Positioned.fromRect(
+              rect: geometry.myBar,
+              child: _bar(l10n, mine: true, frame: frame),
+            ),
+            Positioned.fromRect(
+              rect: geometry.hand,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF17120E), GwentColors.bg],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: HandView(
+                        geometry: geometry,
+                        cards: [
+                          for (final card in me.hand ?? const <CardInstance>[])
+                            (instance: card, face: _fieldContent.face(card), enabled: me.playable.contains(card.id)),
+                        ],
+                        selected: field.selected,
+                        onTap: _tapHandCard,
+                        onLongPress: (card) => _showDetail(card.instance),
+                        onDragStarted: _startDrag,
+                        hidden: frame?.handHidden ?? const {},
+                      ),
+                    ),
+                    if (frame != null && frame.handVeil > 0)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: ColoredBox(color: GwentColors.bg.withValues(alpha: 0.5 * frame.handVeil)),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-          Positioned.fromRect(
-            rect: geometry.strip,
-            child: DragTarget<CardInstance>(
-              onWillAcceptWithDetails: (details) => PlayTargets.forCard(view, details.data, _catalog).highlightsStrip,
-              onAcceptWithDetails: (details) {
-                if (PlayTargets.forCard(view, details.data, _catalog).atStrip() case final intent?) _play(intent);
-              },
-              builder: (context, _, _) => _strip(l10n, field, targets),
             ),
-          ),
-          if (isTargeting) TargetScrim(area: geometry.scrimArea, holes: _holes(geometry, targets, choiceRows)),
-          Positioned.fromRect(
-            rect: geometry.opponentBar,
-            child: hint != null
-                ? TargetHintBar(
-                    face: hint.face,
-                    title: hint.title,
-                    subtitle: hint.subtitle,
-                    cancelLabel: l10n.dialogCancel,
-                    onCancel: hint.cancellable ? _cubit.clearSelected : null,
-                  )
-                : _bar(l10n, mine: false),
-          ),
-          Positioned.fromRect(rect: geometry.myBar, child: _bar(l10n, mine: true)),
-          Positioned.fromRect(
-            rect: geometry.hand,
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF17120E), GwentColors.bg],
-                ),
+            if (frame != null && script != null) ...[
+              Positioned.fill(child: _stageLayer(geometry, script, frame)),
+              Positioned.fill(
+                child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: speedUp),
               ),
-              child: HandView(
-                geometry: geometry,
-                cards: [
-                  for (final card in me.hand ?? const <CardInstance>[])
-                    (instance: card, face: _fieldContent.face(card), enabled: me.playable.contains(card.id)),
-                ],
-                selected: field.selected,
-                onTap: _tapHandCard,
-                onLongPress: (card) => _showDetail(card.instance),
-                onDragStarted: _startDrag,
-              ),
-            ),
-          ),
-          Positioned(
-            left: geometry.width - 47,
-            top: geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
-            width: PauseButton.hitSize,
-            height: PauseButton.hitSize,
-            child: PauseButton(onPressed: _cubit.openPause, semanticsLabel: l10n.pauseButtonSemantics),
-          ),
-          if (field.summary == null && field.pause == PauseLayer.none)
-            Positioned.fill(
-              child: BannerLayer(
-                banner: field.banners.firstOrNull,
-                roster: widget.roster,
-                onDismissed: _cubit.dismissBanner,
-              ),
-            ),
-          if (field.toast case final toast?)
+            ],
             Positioned(
-              left: 16,
-              right: 16,
-              top: FieldGeometry.barHeight + 8,
-              child: _ToastHost(
-                key: ValueKey(toast.id),
-                onExpired: () => _cubit.clearToast(toast.id),
-                child: GameToast(
-                  message: _toastText(l10n, toast.message),
-                  icon: toast.isError ? GwentIcon.iconLifeGemLost : GwentIcon.iconHand,
-                  isError: toast.isError,
+              left: geometry.width - 47,
+              top: geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
+              width: PauseButton.hitSize,
+              height: PauseButton.hitSize,
+              child: PauseButton(onPressed: _cubit.openPause, semanticsLabel: l10n.pauseButtonSemantics),
+            ),
+            if (field.summary == null && field.pause == PauseLayer.none && field.stage == null)
+              Positioned.fill(
+                child: BannerLayer(
+                  banner: field.banners.firstOrNull,
+                  roster: widget.roster,
+                  onDismissed: _cubit.dismissBanner,
                 ),
               ),
-            ),
-        ],
+            if (field.toast case final toast?)
+              Positioned(
+                left: 16,
+                right: 16,
+                top: FieldGeometry.barHeight + 8,
+                child: _ToastHost(
+                  key: ValueKey(toast.id),
+                  onExpired: () => _cubit.clearToast(toast.id),
+                  child: GameToast(
+                    message: _toastText(l10n, toast.message),
+                    icon: toast.isError ? GwentIcon.iconLifeGemLost : GwentIcon.iconHand,
+                    isError: toast.isError,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _strip(AppLocalizations l10n, FieldState field, PlayTargets targets) {
+  Widget _strip(AppLocalizations l10n, FieldState field, PlayTargets targets, StageFrame? frame) {
     final view = _view;
     final (status, active) = switch (view) {
       PlayerView(phase: MatchPhase.finished) => (l10n.fieldStatusMatchOver, false),
@@ -435,7 +519,9 @@ class _FieldViewState extends State<FieldView> {
         for (final row in Row.values)
           (
             rowIcon: FieldContent.rowIcon(row),
-            weather: view.me.rows[row]?.weather == true ? FieldContent.weatherOf(row) : null,
+            weather: (frame?.weatherSlots[row] ?? view.me.rows[row]?.weather == true)
+                ? FieldContent.weatherOf(row)
+                : null,
           ),
       ],
       status: status,
@@ -447,26 +533,35 @@ class _FieldViewState extends State<FieldView> {
     );
   }
 
-  Widget _bar(AppLocalizations l10n, {required bool mine}) {
+  Widget _bar(AppLocalizations l10n, {required bool mine, StageFrame? frame}) {
     final view = _view;
     final side = mine ? view.me : view.opponent;
     final other = mine ? view.opponent : view.me;
-    final discardTop = side.discard.lastOrNull;
+    final discardTop = frame != null && frame.discardTops.containsKey(mine)
+        ? frame.discardTops[mine]
+        : side.discard.lastOrNull;
+    RollValue? roll(StageCounter kind) => frame?.counters[(kind: kind, mine: mine, row: null)];
+    int? otherScore(StageFrame? frame) => frame?.counters[(kind: StageCounter.total, mine: !mine, row: null)]?.nearest;
     final cubit = _cubit;
     final canPass = _isMyTurn(view) && !_blocked;
     return PlayerBar(
       mine: mine,
       name: widget.roster.name(mine ? view.viewer : view.viewer.opponent, l10n),
       faction: _fieldContent.faction(side.faction),
-      leader: _fieldContent.leaderFace(side.leader, used: side.leaderUsed),
+      leader: _fieldContent.leaderFace(side.leader, used: frame?.leaderUsed[mine] ?? side.leaderUsed),
       leaderAvailable: mine && side.leaderAvailable && canPass,
       lifeRemaining: side.crystals,
       handCount: side.handCount,
       score: side.score,
-      leading: side.score > other.score,
+      leading: (roll(StageCounter.total)?.nearest ?? side.score) > (otherScore(frame) ?? other.score),
       deckCount: side.deckCount,
       discardCount: side.discard.length,
       discardTop: discardTop == null ? null : _fieldContent.face(discardTop),
+      scoreRoll: roll(StageCounter.total),
+      handRoll: roll(StageCounter.hand),
+      deckRoll: roll(StageCounter.deck),
+      discardRoll: roll(StageCounter.discard),
+      anchors: _anchors[mine],
       // Пока движок ждёт выбора, листы игрока не открываются: они остались бы под листом выбора.
       onLeaderTap: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
       onLeaderLongPress: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
@@ -547,6 +642,8 @@ class _FieldViewState extends State<FieldView> {
   // Листы поверх поля.
 
   Widget? _sheet(BuildContext context, FieldState field) {
+    // Листы выбора ждут конца показа: иначе они закрыли бы карту, которая ещё летит.
+    if (field.stage != null) return null;
     final l10n = context.l10n;
     final choice = _view.choice;
     if (choice != null) {

@@ -30,6 +30,7 @@ class HandView extends StatefulWidget {
     required this.onTap,
     required this.onLongPress,
     required this.onDragStarted,
+    this.hidden = const {},
   });
 
   /// Размеры зон поля.
@@ -49,6 +50,9 @@ class HandView extends StatefulWidget {
 
   /// Карту начали тащить.
   final void Function(HandCard card) onDragStarted;
+
+  /// Карты, которые ещё летят в руку (анимации карт): место занято, карты не видно.
+  final Set<CardInstanceId> hidden;
 
   /// Смещение точки касания от левого верхнего угла перетаскиваемой карты: палец на 96 pt ниже верха карты.
   static const Offset dragAnchor = Offset(38.5, 96);
@@ -156,6 +160,12 @@ class _HandViewState extends State<HandView> {
   }
 
   Widget _draggable(HandCard card, {required Axis? axis}) {
+    final child = _card(card, axis: axis);
+    if (!widget.hidden.contains(card.instance.id)) return child;
+    return IgnorePointer(child: Opacity(opacity: 0, child: child));
+  }
+
+  Widget _card(HandCard card, {required Axis? axis}) {
     final selected = card.instance.id == widget.selected;
     final face = GwentCard(
       face: card.face,

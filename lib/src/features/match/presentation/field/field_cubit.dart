@@ -1,8 +1,12 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Держатель того, что на поле решает сам игрок или что объявляют события: выбранная карта руки, листы сброса и
@@ -15,8 +19,13 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// В hot-seat события каждого места копятся, пока телефон у другого, поэтому раунд, ход и итог раунда
 /// объявляются один раз, а не заново каждому месту.
 ///
-/// Показ занимает время (баннеры, итог раунда, пауза, последний ход партии): пока он идёт, [FieldState.isBusy] верно.
-/// Экран партии в это время откладывает следующие состояния партии, а поле не принимает ходов.
+/// Показ занимает время (баннеры, итог раунда, пауза, последний ход партии, розыгрыш карт): пока он идёт,
+/// [FieldState.isBusy] верно. Экран партии в это время откладывает следующие состояния партии, а поле не принимает
+/// ходов.
+///
+/// Розыгрыш карт и эффекты (макет 12, ADR 0017) строятся здесь же из событий и двух проекций, до и после
+/// обновления: сценарий собирается сразу, поэтому поле занято с первого кадра. Сценарий одинаков для своего хода,
+/// хода бота и хода соперника по сети.
 final class FieldCubit extends Cubit<FieldState> {
   /// Создаёт держатель с пустым состоянием; [finishHold] — сколько поле держит конец партии (последний ход и счёт),
   /// прежде чем открыть итог матча.
@@ -28,7 +37,13 @@ final class FieldCubit extends Cubit<FieldState> {
   /// Сколько поле держит конец партии.
   final Duration finishHold;
 
+  /// Запас времени сверх длительности сценария: если поле его не отыграло (экран ушёл), сценарий снимается сам.
+  static const Duration stageGrace = Duration(milliseconds: 1500);
+
   Timer? _finishTimer;
+  Timer? _stageTimer;
+  int _stageCount = 0;
+  final Map<Seat, PlayerView> _seen = {};
   int _toastCount = 0;
   final Set<int> _announcedRounds = {};
   final Set<int> _summarizedRounds = {};
@@ -75,6 +90,13 @@ final class FieldCubit extends Cubit<FieldState> {
     if (state.summary != null) emit(state.copyWith(clearSummary: true));
   }
 
+  /// Сценарий [id] отыгран: поле свободно, экран партии выпускает следующее состояние.
+  void endStage(int id) {
+    if (state.stage?.id != id) return;
+    _stageTimer?.cancel();
+    emit(state.copyWith(clearStage: true));
+  }
+
   /// Открывает меню паузы; пока поле держит конец партии, пауза не нужна.
   void openPause() {
     if (!state.finishing) emit(state.copyWith(pause: PauseLayer.menu, clearSelected: true));
@@ -103,11 +125,11 @@ final class FieldCubit extends Cubit<FieldState> {
     if (state.toast?.id == id) emit(state.copyWith(clearToast: true));
   }
 
-  /// Принимает новое состояние партии от экрана.
-  void onMatchState(MatchScreenState match) {
+  /// Принимает новое состояние партии от экрана; [style] — скорость и «Уменьшить движение» для анимаций карт.
+  void onMatchState(MatchScreenState match, {StageStyle style = StageStyle.normal}) {
     switch (match) {
-      case MatchInProgress(:final view, :final events, :final refusal):
-        _onProgress(view, events, refusal);
+      case MatchInProgress(:final view, :final events, :final refusal, :final content):
+        _onProgress(view, events, refusal, content, style);
       case MatchIdle() ||
           MatchStarting() ||
           MatchStartFailed() ||
@@ -118,6 +140,7 @@ final class FieldCubit extends Cubit<FieldState> {
           MatchCrashed():
         // Телефон ушёл другому игроку или партия закончилась: чужие выбор, листы, тосты и баннеры не переносятся.
         _finishTimer?.cancel();
+        _stageTimer?.cancel();
         if (!state.isClean) emit(const FieldState());
         if (match is MatchIntro || match is MatchStarting) _forget();
     }
@@ -127,11 +150,18 @@ final class FieldCubit extends Cubit<FieldState> {
   void _forget() {
     _announcedRounds.clear();
     _summarizedRounds.clear();
+    _seen.clear();
     _lastTurn = null;
   }
 
-  void _onProgress(PlayerView view, List<GameEvent> events, Reject? refusal) {
+  void _onProgress(PlayerView view, List<GameEvent> events, Reject? refusal, GameContent content, StageStyle style) {
     var next = state;
+    final script = _stageFor(view, events, content, style);
+    if (script != null) {
+      next = next.copyWith(stage: script);
+      _stageTimer?.cancel();
+      _stageTimer = Timer(Duration(milliseconds: script.duration.ceil()) + stageGrace, () => endStage(script.id));
+    }
     if (next.selected case final selected? when !view.me.playable.contains(selected)) {
       next = next.copyWith(clearSelected: true);
     }
@@ -164,6 +194,21 @@ final class FieldCubit extends Cubit<FieldState> {
     if (!identical(next, state)) emit(next);
   }
 
+  /// Сценарий показа розыгрыша карт и эффектов; `null`, если показывать нечего или нет проекции «до».
+  ///
+  /// Проекцию «до» держим по местам: в hot-seat каждый игрок сравнивает с тем, что видел сам.
+  StageScript? _stageFor(PlayerView view, List<GameEvent> events, GameContent content, StageStyle style) {
+    final prev = _seen[view.viewer];
+    _seen[view.viewer] = view;
+    if (prev == null || events.isEmpty) return null;
+    return StageScriptBuilder(
+      prev: prev,
+      next: view,
+      catalog: content.catalog,
+      style: style,
+    ).build(++_stageCount, events);
+  }
+
   /// Партию закончил последний раунд; сдача держать поле не должна.
   static bool _endsByCrystals(List<GameEvent> events) =>
       events.any((event) => event is MatchEnded && event.outcome.reason == MatchEndReason.crystals);
@@ -175,6 +220,7 @@ final class FieldCubit extends Cubit<FieldState> {
   @override
   Future<void> close() {
     _finishTimer?.cancel();
+    _stageTimer?.cancel();
     return super.close();
   }
 

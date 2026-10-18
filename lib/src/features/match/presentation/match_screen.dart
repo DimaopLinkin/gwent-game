@@ -14,6 +14,7 @@ import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/match_stages.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/setup/match_setup_stage.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 import 'package:gwent/src/features/match/presentation/start/first_player_view.dart';
 import 'package:gwent/src/features/match/presentation/start/handover_view.dart';
 import 'package:gwent/src/features/match/presentation/start/match_intro_view.dart';
@@ -32,8 +33,14 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// чем идут анимации, но игрок видит ходы по порядку. Тот же порядок будет у анимаций карт (ADR 0013).
 class MatchScreen extends StatefulWidget {
   /// Создаёт экран; [onExit] уводит из партии в меню, [onEditDeck] открывает колоду в конструкторе, [confirmPass]
-  /// включает диалог подтверждения паса.
-  const MatchScreen({super.key, required this.onExit, required this.onEditDeck, this.confirmPass = false});
+  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт.
+  const MatchScreen({
+    super.key,
+    required this.onExit,
+    required this.onEditDeck,
+    this.confirmPass = false,
+    this.animationScale = 1,
+  });
 
   /// Выход из партии.
   final VoidCallback onExit;
@@ -43,6 +50,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Спрашивать подтверждение паса диалогом; иначе пас нужно держать 1 с.
   final bool confirmPass;
+
+  /// Доля обычных длительностей анимаций карт: 1 или `StageTokens.fastFactor` для быстрой скорости (ADR 0017).
+  final double animationScale;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -110,9 +120,15 @@ class _MatchScreenState extends State<MatchScreen> {
     bloc.add(MatchIntentSubmitted(intent));
   }
 
+  /// Скорость из настроек и «Уменьшить движение» из системы: длительности анимаций считаются при сборке сценария.
+  StageStyle get _stageStyle => StageStyle(
+    scale: widget.animationScale,
+    reduceMotion: MediaQuery.disableAnimationsOf(context),
+  );
+
   void _show(MatchScreenState state) {
     setState(() => _shown = state);
-    context.read<FieldCubit>().onMatchState(state);
+    context.read<FieldCubit>().onMatchState(state, style: _stageStyle);
   }
 
   @override
