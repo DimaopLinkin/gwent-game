@@ -48,6 +48,9 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   /// События, которых место ещё не видело.
   final Map<Seat, List<GameEvent>> _unseen = {};
 
+  /// Проекция каждого места перед обновлением, которым закончился раунд: поле раунда для подсчёта и ухода карт.
+  final Map<Seat, PlayerView> _roundFields = {};
+
   /// Чьими глазами экран показывает партию; `null`, пока партия не на экране.
   Seat? _shown;
 
@@ -144,6 +147,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     _session = null;
     _views.clear();
     _unseen.clear();
+    _roundFields.clear();
     _shown = null;
     _roster = null;
     _introDone = false;
@@ -159,10 +163,13 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     if (_session == null) return;
     switch (event.update) {
       case ViewsChanged(:final views, :final events):
-        _views.addAll(views);
         for (final MapEntry(key: seat, value: seatEvents) in events.entries) {
+          if (seatEvents.any((event) => event is RoundEnded)) {
+            if (_views[seat] case final before?) _roundFields[seat] = before;
+          }
           (_unseen[seat] ??= []).addAll(seatEvents);
         }
+        _views.addAll(views);
         await _present(emit);
       case IntentRefused(:final seat, :final reject):
         if (seat == _shown && state is MatchInProgress) {
@@ -251,9 +258,22 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     _shown = seat;
     final view = _views[seat]!;
     if (view.phase == MatchPhase.playing) _boardShown = true;
+    final events = _takeUnseen(seat);
     emit(
-      MatchInProgress(view: view, content: _session!.content, roster: _roster!, events: _takeUnseen(seat)),
+      MatchInProgress(
+        view: view,
+        content: _session!.content,
+        roster: _roster!,
+        events: events,
+        closing: _takeClosing(seat, events),
+      ),
     );
+  }
+
+  /// Поле закончившегося раунда, если оно относится к [events].
+  PlayerView? _takeClosing(Seat seat, List<GameEvent> events) {
+    final closing = _roundFields.remove(seat);
+    return events.any((event) => event is RoundEnded) ? closing : null;
   }
 
   List<GameEvent> _takeUnseen(Seat seat) {
@@ -266,12 +286,13 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     _shown = seat;
     final view = _views[seat]!;
     final events = _takeUnseen(seat);
+    final closing = _takeClosing(seat, events);
     final roster = _roster ??= MatchRoster.of(_session!, _views);
     final canRematch = _request != null;
     final session = _session!;
     // Сначала поле с последним ходом и счётом: игрок видит, чем кончилась партия, а итог матча экран открывает после.
     if (_boardShown && events.any((event) => event is MatchEnded && event.outcome.reason == MatchEndReason.crystals)) {
-      emit(MatchInProgress(view: view, content: session.content, roster: roster, events: events));
+      emit(MatchInProgress(view: view, content: session.content, roster: roster, events: events, closing: closing));
     }
     emit(MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch));
     try {

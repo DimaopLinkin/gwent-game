@@ -4,6 +4,7 @@ import 'dart:ui' show Color, lerpDouble;
 import 'package:flutter/animation.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/components/rolling_number.dart';
+import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
@@ -43,6 +44,12 @@ final class StageFrameBuilder {
   /// Слоты погоды на этот момент.
   final Map<Row, bool> weatherSlots = {};
 
+  /// Камни жизни на этот момент.
+  final Map<bool, GemFrame> gems = {};
+
+  /// Дрожь полос игроков.
+  final Map<bool, double> shakes = {};
+
   final List<(int, StageItem)> _items = [];
 
   /// Добавляет эффект на слой [layer]; слои выше рисуются позже.
@@ -75,6 +82,9 @@ abstract final class StageLayers {
 
   /// Сгорающая цель Казни: выше затемнения.
   static const int target = 62;
+
+  /// Плашки итога и подсчёт.
+  static const int plaque = 70;
 
   /// Подпись.
   static const int caption = 80;
@@ -595,4 +605,209 @@ final class WeatherSlotBeat extends StageBeat {
 
   @override
   void apply(StageFrameBuilder frame) => frame.weatherSlots[row] = frame.time >= start ? after : before;
+}
+
+/// Подсчёт рядов: числа «мой : соперника» растут по шагам до итоговых.
+///
+/// [stepsAt] — моменты, когда числа меняются; [mine] и [theirs] — суммы после каждого шага. [roll] — длительность
+/// прокрутки цифр; 0 меняет числа сразу. С [start] подпись появляется, к [end] гаснет.
+final class CountBeat extends StageBeat {
+  /// Создаёт отрезок.
+  const CountBeat({
+    required super.start,
+    required super.end,
+    required this.stepsAt,
+    required this.mine,
+    required this.theirs,
+    required this.roll,
+    required this.winner,
+    required this.winnerAt,
+    this.fade = 150,
+  }) : assert(stepsAt.length == mine.length && stepsAt.length == theirs.length, 'шагов и сумм поровну');
+
+  /// Моменты шагов.
+  final List<double> stepsAt;
+
+  /// Мои суммы после шагов.
+  final List<int> mine;
+
+  /// Суммы соперника после шагов.
+  final List<int> theirs;
+
+  /// Длительность прокрутки.
+  final double roll;
+
+  /// Исход для игрока: подсветка победителя.
+  final RoundOutcome winner;
+
+  /// С какого момента подсвечен победитель.
+  final double winnerAt;
+
+  /// Длительность появления и ухода.
+  final double fade;
+
+  RollValue _valueOf(List<int> sums, double time) {
+    var from = 0;
+    var to = 0;
+    var at = start;
+    for (var i = 0; i < stepsAt.length; i++) {
+      if (time < stepsAt[i]) break;
+      from = i == 0 ? 0 : sums[i - 1];
+      to = sums[i];
+      at = stepsAt[i];
+    }
+    final progress = roll <= 0 ? 1.0 : StageTokens.out.transform(_unit(time, at, at + roll));
+    return RollValue(from, to, progress: progress);
+  }
+
+  @override
+  void apply(StageFrameBuilder frame) {
+    final time = frame.time;
+    if (time < start || time >= end) return;
+    final alpha = window(time, start, start + fade, end - fade, end);
+    frame.add(
+      StageLayers.plaque,
+      CountItem(
+        mine: _valueOf(mine, time),
+        theirs: _valueOf(theirs, time),
+        alpha: alpha,
+        winner: time >= winnerAt ? winner : null,
+      ),
+    );
+  }
+}
+
+/// Плашка итога раунда: растёт по высоте за [rise], держится, гаснет к [end]; строки фракций выходят по очереди.
+final class PlaqueBeat extends StageBeat {
+  /// Создаёт отрезок.
+  const PlaqueBeat({
+    required this.summary,
+    required super.start,
+    required super.end,
+    required this.rise,
+    required this.markStarts,
+    this.fade = 200,
+    this.scales = true,
+  });
+
+  /// Итог раунда.
+  final RoundSummary summary;
+
+  /// Длительность появления.
+  final double rise;
+
+  /// Моменты появления строк способностей фракций.
+  final List<double> markStarts;
+
+  /// Длительность ухода и появления строки.
+  final double fade;
+
+  /// Плашка вырастает по высоте; при «Уменьшить движение» только проявляется.
+  final bool scales;
+
+  @override
+  void apply(StageFrameBuilder frame) {
+    final time = frame.time;
+    if (time < start || time >= end) return;
+    final alpha = window(time, start, start + rise, end - fade, end);
+    final scale = scales ? 0.7 + 0.3 * StageTokens.out.transform(_unit(time, start, start + rise)) : 1.0;
+    final out = 1 - _unit(time, end - fade, end);
+    frame.add(
+      StageLayers.plaque,
+      PlaqueItem(
+        summary: summary,
+        scaleY: scale,
+        alpha: alpha,
+        marks: [for (final at in markStarts) _unit(time, at, at + fade) * out],
+      ),
+    );
+  }
+}
+
+/// Плашка исхода матча.
+final class MatchBannerBeat extends StageBeat {
+  /// Создаёт отрезок.
+  const MatchBannerBeat({
+    required this.outcome,
+    required this.roundsMine,
+    required this.roundsTheirs,
+    required super.start,
+    required super.end,
+    required this.rise,
+    this.fade = 200,
+    this.scales = true,
+  });
+
+  /// Исход для игрока.
+  final RoundOutcome outcome;
+
+  /// Раундов выиграл игрок.
+  final int roundsMine;
+
+  /// Раундов выиграл соперник.
+  final int roundsTheirs;
+
+  /// Длительность появления.
+  final double rise;
+
+  /// Длительность ухода.
+  final double fade;
+
+  /// Вырастает по высоте.
+  final bool scales;
+
+  @override
+  void apply(StageFrameBuilder frame) {
+    final time = frame.time;
+    if (time < start || time >= end) return;
+    final alpha = window(time, start, start + rise, end - fade, end);
+    final scale = scales ? 0.7 + 0.3 * StageTokens.out.transform(_unit(time, start, start + rise)) : 1.0;
+    frame.add(
+      StageLayers.plaque,
+      MatchBannerItem(
+        outcome: outcome,
+        roundsMine: roundsMine,
+        roundsTheirs: roundsTheirs,
+        scaleY: scale,
+        alpha: alpha,
+      ),
+    );
+  }
+}
+
+/// Потеря камня жизни: вспышка, трещина, затухание; полоса игрока вздрагивает.
+///
+/// До [start] камень цел, после [end] это пустое гнездо. [remaining] — сколько камней перед потерянным остаётся целыми.
+final class GemBeat extends StageBeat {
+  /// Создаёт отрезок длиной [duration].
+  const GemBeat({
+    required this.mine,
+    required this.remaining,
+    required super.start,
+    required double duration,
+    this.shake = 250,
+    this.shakes = true,
+  }) : super(end: start + duration);
+
+  /// Чей камень.
+  final bool mine;
+
+  /// Сколько камней перед потерянным.
+  final int remaining;
+
+  /// Длительность дрожи.
+  final double shake;
+
+  /// Полоса вздрагивает; при «Уменьшить движение» нет.
+  final bool shakes;
+
+  @override
+  void apply(StageFrameBuilder frame) {
+    final time = frame.time;
+    frame.gems[mine] = GemFrame(remaining: remaining, progress: _unit(time, start, end));
+    if (shakes && time >= start && time < start + shake) {
+      final t = _unit(time, start, start + shake);
+      frame.shakes[mine] = 1.6 * math.sin(t * math.pi * 6) * (1 - t);
+    }
+  }
 }

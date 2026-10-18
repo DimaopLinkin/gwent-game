@@ -201,6 +201,18 @@ final class MiniCenterPlace extends StagePlace {
   int get hashCode => 0x9;
 }
 
+/// Центральная полоса с погодой: по ней идёт подсчёт раунда, и по её середине встают плашки.
+final class StripPlace extends StagePlace {
+  /// Создаёт место.
+  const StripPlace();
+
+  @override
+  bool operator ==(Object other) => other is StripPlace;
+
+  @override
+  int get hashCode => 0xC;
+}
+
 /// Всё поле: затемнение.
 final class FieldPlace extends StagePlace {
   /// Создаёт место.

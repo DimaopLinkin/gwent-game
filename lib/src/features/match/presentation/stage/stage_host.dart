@@ -6,8 +6,10 @@ import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 
-/// Строит поле для кадра сценария; [speedUp] ускоряет текущий сценарий (тап по полю).
-typedef StageBuilderFn = Widget Function(BuildContext context, StageFrame? frame, VoidCallback speedUp);
+/// Строит поле для кадра сценария; [speedUp] ускоряет текущий сценарий (тап по полю), [skip] переходит к следующему
+/// шагу (кнопка «Пропустить»).
+typedef StageBuilderFn =
+    Widget Function(BuildContext context, StageFrame? frame, VoidCallback speedUp, VoidCallback skip);
 
 /// Часы сценария: гоняют время от нуля до конца [script] и отдают поле кадр за кадром.
 ///
@@ -72,7 +74,16 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     }
   }
 
-  void _speedUp() => _speed = StageTokens.tapSpeedUp;
+  void _speedUp() {
+    final script = widget.script;
+    if (script == null || script.tapSpeedsUp(_time)) _speed = StageTokens.tapSpeedUp;
+  }
+
+  void _skip() {
+    final script = widget.script;
+    if (script == null) return;
+    setState(() => _time = script.nextStep(_time));
+  }
 
   @override
   void dispose() {
@@ -85,6 +96,6 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     final script = widget.script;
     StageFrame? frame;
     if (script != null) frame = script.frameAt(_time.clamp(0, script.duration));
-    return widget.builder(context, frame, _speedUp);
+    return widget.builder(context, frame, _speedUp, _skip);
   }
 }

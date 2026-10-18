@@ -61,6 +61,7 @@ final class StageGeometry {
       width: miniSize.width,
       height: miniSize.height,
     ),
+    StripPlace() => field.strip,
     FieldPlace() => Rect.fromLTWH(0, 0, field.width, field.height),
   };
 

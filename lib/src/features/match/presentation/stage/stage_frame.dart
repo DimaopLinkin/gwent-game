@@ -2,6 +2,7 @@ import 'dart:ui' show Color;
 
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/components/rolling_number.dart';
+import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:meta/meta.dart';
@@ -91,6 +92,9 @@ enum CaptionKind {
 
   /// «Нет подходящих целей».
   noTargets,
+
+  /// «Скеллиге: две карты вернулись»: способность фракции после раунда.
+  perkReturn,
 }
 
 /// Вид подсветки места.
@@ -285,6 +289,82 @@ final class MorphItem extends StageItem {
   final double progress;
 }
 
+/// Подсчёт раунда в центральной полосе: «58 : 41», пока считаются ряды.
+final class CountItem extends StageItem {
+  /// Создаёт предмет; [winner] выделяет золотом счёт победителя после подсчёта.
+  const CountItem({required this.mine, required this.theirs, required this.alpha, this.winner});
+
+  /// Мой счёт.
+  final RollValue mine;
+
+  /// Счёт соперника.
+  final RollValue theirs;
+
+  /// Непрозрачность.
+  final double alpha;
+
+  /// Чей счёт выше; `null`, пока идёт подсчёт.
+  final RoundOutcome? winner;
+}
+
+/// Плашка итога раунда: полоса поверх поля и строки сработавших способностей фракций.
+final class PlaqueItem extends StageItem {
+  /// Создаёт предмет.
+  const PlaqueItem({required this.summary, required this.scaleY, required this.alpha, required this.marks});
+
+  /// Итог раунда.
+  final RoundSummary summary;
+
+  /// Масштаб по высоте: 0,7 → 1 при появлении.
+  final double scaleY;
+
+  /// Непрозрачность полосы.
+  final double alpha;
+
+  /// Непрозрачность каждой строки способности фракции по порядку.
+  final List<double> marks;
+}
+
+/// Плашка исхода матча: «Победа», «Поражение» или «Ничья» с числом выигранных раундов.
+final class MatchBannerItem extends StageItem {
+  /// Создаёт предмет.
+  const MatchBannerItem({
+    required this.outcome,
+    required this.roundsMine,
+    required this.roundsTheirs,
+    required this.scaleY,
+    required this.alpha,
+  });
+
+  /// Исход для игрока, который смотрит на экран.
+  final RoundOutcome outcome;
+
+  /// Раундов выиграл игрок.
+  final int roundsMine;
+
+  /// Раундов выиграл соперник.
+  final int roundsTheirs;
+
+  /// Масштаб по высоте.
+  final double scaleY;
+
+  /// Непрозрачность.
+  final double alpha;
+}
+
+/// Камни жизни игрока в момент показа: целы [remaining], следующий теряется, [progress] от 0 до 1.
+@immutable
+final class GemFrame {
+  /// Создаёт состояние.
+  const GemFrame({required this.remaining, required this.progress});
+
+  /// Сколько камней целы и не затронуты.
+  final int remaining;
+
+  /// Как далеко зашла потеря камня номер [remaining]: 0 целый, 1 пустое гнездо.
+  final double progress;
+}
+
 /// Подсветка силы на карте в ряду.
 @immutable
 final class CardFlash {
@@ -345,6 +425,8 @@ final class StageFrame {
     this.handHidden = const {},
     this.leaderUsed = const {},
     this.weatherSlots = const {},
+    this.gems = const {},
+    this.shakes = const {},
     this.handVeil = 0,
     this.items = const [],
   });
@@ -372,6 +454,12 @@ final class StageFrame {
 
   /// Слоты погоды, которые горят на этот момент: ряды, над которыми лежит погода.
   final Map<Row, bool> weatherSlots;
+
+  /// Камни жизни, которые сценарий показывает по-своему (потеря камня); у остальных камни по проекции.
+  final Map<bool, GemFrame> gems;
+
+  /// Смещение полосы игрока по горизонтали, pt: дрожь при потере камня.
+  final Map<bool, double> shakes;
 
   /// Вуаль на руке: ввод заблокирован, рука приглушена; от 0 до 1.
   final double handVeil;

@@ -8,9 +8,11 @@ import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
+import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_geometry.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_round_views.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Слой эффектов поверх поля (макет 12): затемнение, подсветки, летящие карты, волны погоды, сгорание, пепел,
@@ -24,6 +26,8 @@ class StageLayer extends StatelessWidget {
     required this.faceOf,
     required this.backOf,
     required this.leaderOf,
+    required this.roster,
+    required this.content,
   });
 
   /// Кадр сценария.
@@ -40,6 +44,12 @@ class StageLayer extends StatelessWidget {
 
   /// Мини-карта лидера: моя или соперника.
   final CardFace Function({required bool mine}) leaderOf;
+
+  /// Участники партии: плашки конца раунда называют победителя в hot-seat.
+  final MatchRoster roster;
+
+  /// Названия и гербы фракций для плашки итога.
+  final FieldContent content;
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
@@ -58,7 +68,43 @@ class StageLayer extends StatelessWidget {
     final BurnItem burn => _burn(burn),
     final AshItem ash => _ash(ash),
     final MorphItem morph => _morph(morph),
+    final CountItem count => _count(count),
+    final PlaqueItem plaque => _plaque(plaque),
+    final MatchBannerItem banner => _matchBanner(banner),
   };
+
+  /// Подсчёт стоит в середине центральной полосы.
+  Widget? _count(CountItem item) {
+    final rect = geometry.rectOf(const StripPlace(), frame);
+    if (rect == null) return null;
+    return Positioned.fromRect(
+      rect: rect,
+      child: Center(child: CountLabel(item: item)),
+    );
+  }
+
+  /// Плашка итога раунда: полоса 176 pt по центру поля, строки способностей под ней.
+  Widget? _plaque(PlaqueItem item) {
+    final rect = geometry.rectOf(const StripPlace(), frame);
+    if (rect == null) return null;
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: rect.center.dy - 88,
+      child: RoundPlaqueView(item: item, roster: roster, content: content),
+    );
+  }
+
+  Widget? _matchBanner(MatchBannerItem item) {
+    final rect = geometry.rectOf(const StripPlace(), frame);
+    if (rect == null) return null;
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: rect.center.dy - 88,
+      child: MatchBannerView(item: item),
+    );
+  }
 
   Widget? _glow(GlowItem glow) {
     final rect = geometry.rectOf(glow.place, frame);
@@ -146,6 +192,7 @@ class StageLayer extends StatelessWidget {
     final text = switch (item.kind) {
       CaptionKind.opponentPlays => l10n.stageOpponentPlays(item.card == null ? '' : faceOf(item.card!).name),
       CaptionKind.noTargets => l10n.stageNoTargets,
+      CaptionKind.perkReturn => l10n.stagePerkReturn,
     };
     return Positioned(
       left: 16,
