@@ -65,7 +65,7 @@ void main() {
   });
 
   group('стартовая колода', () {
-    test('все отряды фракции и по копии специальных карт фракции, затем нейтральных', () {
+    test('все отряды фракции и нейтральные, по копии специальных карт фракции, затем нейтральных', () {
       final deck = rules.starterDeck(Small.skellige, id: 'starter', updatedAt: updatedAt);
 
       expect(deck.id, 'starter');
@@ -77,13 +77,14 @@ void main() {
         Small.warrior: 3,
         Small.cerys: 1,
         Small.geralt: 1,
+        Small.vesemir: 2,
         Small.mardroeme: 1,
         Small.frost: 1,
       });
       expect(rules.check(deck), isEmpty);
     });
 
-    test('нейтральные отряды добирают минимум', () {
+    test('нейтральные отряды входят в колоду, даже когда отрядов фракции хватает на минимум', () {
       final deck = rules.starterDeck(Small.monsters, id: 'starter', updatedAt: updatedAt);
 
       expect(deck.leaderId, Small.eredin);
