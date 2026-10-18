@@ -18,12 +18,85 @@ void main() {
   setUpAll(() async => content = await loadBaseContent());
   setUp(() {
     cards = TestCards(content);
-    cubit = FieldCubit();
+    cubit = FieldCubit(finishHold: const Duration(milliseconds: 30));
     addTearDown(cubit.close);
   });
 
   MatchInProgress progress(PlayerView view, {List<GameEvent> events = const [], Reject? refusal}) =>
       MatchInProgress(view: view, content: content, roster: rosterOf(cards), events: events, refusal: refusal);
+
+  group('занятость поля', () {
+    test('поле свободно, пока нет баннеров, итога раунда, паузы и конца партии', () {
+      expect(cubit.state.isBusy, isFalse);
+      cubit.onMatchState(progress(viewOf(cards), events: const [TurnStarted(Seat.one)]));
+      expect(cubit.state.isBusy, isTrue, reason: 'идёт баннер хода');
+      cubit.dismissBanner();
+      expect(cubit.state.isBusy, isFalse);
+      cubit.openPause();
+      expect(cubit.state.isBusy, isTrue, reason: 'пауза держит следующие состояния партии');
+      cubit.closePause();
+      expect(cubit.state.isBusy, isFalse);
+    });
+
+    test('итог раунда держит поле занятым, пока игрок его не закроет', () {
+      const result = RoundResult(round: 1, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+      cubit.onMatchState(progress(viewOf(cards), events: const [RoundEnded(result)]));
+      expect(cubit.state.summary, isNotNull);
+      expect(cubit.state.isBusy, isTrue);
+      cubit.dismissSummary();
+      expect(cubit.state.isBusy, isFalse);
+    });
+
+    test('конец партии по кристаллам: поле держит последний ход, затем отпускает', () async {
+      const result = RoundResult(round: 3, scores: {Seat.one: 17, Seat.two: 9}, winner: Seat.one);
+      cubit.onMatchState(
+        progress(
+          viewOf(cards, phase: MatchPhase.finished, turn: null),
+          events: const [
+            RoundEnded(result),
+            MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.crystals)),
+          ],
+        ),
+      );
+      expect(cubit.state.finishing, isTrue);
+      expect(cubit.state.isBusy, isTrue);
+      cubit.openPause();
+      expect(cubit.state.pause, PauseLayer.none, reason: 'пока поле держит конец партии, пауза не нужна');
+
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(cubit.state.finishing, isFalse);
+      expect(cubit.state.isBusy, isFalse);
+    });
+
+    test('сдача поле не держит: итог матча открывается сразу', () {
+      cubit.onMatchState(
+        progress(
+          viewOf(cards, phase: MatchPhase.finished, turn: null),
+          events: const [MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.resignation))],
+        ),
+      );
+      expect(cubit.state.finishing, isFalse);
+    });
+
+    test('итог матча или передача телефона сбрасывают удержание конца партии', () {
+      cubit.onMatchState(
+        progress(
+          viewOf(cards, phase: MatchPhase.finished, turn: null),
+          events: const [MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.crystals))],
+        ),
+      );
+      expect(cubit.state.finishing, isTrue);
+      cubit.onMatchState(
+        MatchFinished(
+          view: viewOf(cards, phase: MatchPhase.finished, turn: null),
+          roster: rosterOf(cards),
+          events: const [],
+        ),
+      );
+      expect(cubit.state.finishing, isFalse);
+      expect(cubit.state.isClean, isTrue);
+    });
+  });
 
   test('выбор карты переключается повторным нажатием и снимается', () {
     cubit.toggleSelected(const CardInstanceId(1));

@@ -109,6 +109,10 @@ class _FieldViewState extends State<FieldView> {
 
   FieldContent get _fieldContent => _content!;
 
+  /// Поле что-то показывает (баннер хода, итог раунда, конец партии): начинать ход пока нельзя. Просмотр листов,
+  /// пауза и ответы на выбор движка этим не закрываются.
+  bool get _blocked => _cubit.state.isBusy;
+
   CardCatalog get _catalog => widget.content.catalog;
 
   PlayTargets _targets(FieldState field) {
@@ -128,6 +132,7 @@ class _FieldViewState extends State<FieldView> {
   }
 
   void _play(Intent intent) {
+    if (_blocked) return;
     _cubit.clearSelected();
     widget.onIntent(intent);
   }
@@ -155,7 +160,7 @@ class _FieldViewState extends State<FieldView> {
 
   void _tapHandCard(HandCard card) {
     final view = _view;
-    if (view.choice != null) return;
+    if (view.choice != null || _blocked) return;
     final cubit = _cubit;
     if (view.me.passed) {
       cubit.say(FieldMessage.alreadyPassed);
@@ -169,6 +174,7 @@ class _FieldViewState extends State<FieldView> {
   }
 
   void _startDrag(HandCard card) {
+    if (_blocked) return;
     if (!PlayTargets.forCard(_view, card.instance, _catalog).isEmpty) _cubit.select(card.instance.id);
   }
 
@@ -177,6 +183,7 @@ class _FieldViewState extends State<FieldView> {
   }
 
   Future<void> _pass() async {
+    if (_blocked) return;
     _cubit.clearSelected();
     if (!widget.confirmPass) {
       widget.onIntent(const Pass());
@@ -234,21 +241,25 @@ class _FieldViewState extends State<FieldView> {
         },
         child: Stack(
           children: [
+            // Слои идут на весь экран, включая зоны под вырезом и жестом «домой»; поле лежит в безопасной области.
+            const Positioned.fill(child: _FieldBackdrop()),
             Positioned.fill(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final scale = math.min(1.0, constraints.maxHeight / FieldGeometry.budgetHeight);
-                  final width = constraints.maxWidth / scale;
-                  final height = constraints.maxHeight / scale;
-                  final geometry = FieldGeometry(
-                    width: width,
-                    handHeight: height - (FieldGeometry.budgetHeight - FieldGeometry.minHandHeight),
-                  );
-                  return FittedBox(
-                    alignment: Alignment.topLeft,
-                    child: SizedBox(width: width, height: height, child: _canvas(context, geometry, field)),
-                  );
-                },
+              child: SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final scale = math.min(1.0, constraints.maxHeight / FieldGeometry.budgetHeight);
+                    final width = constraints.maxWidth / scale;
+                    final height = constraints.maxHeight / scale;
+                    final geometry = FieldGeometry(
+                      width: width,
+                      handHeight: height - (FieldGeometry.budgetHeight - FieldGeometry.minHandHeight),
+                    );
+                    return FittedBox(
+                      alignment: Alignment.topLeft,
+                      child: SizedBox(width: width, height: height, child: _canvas(context, geometry, field)),
+                    );
+                  },
+                ),
               ),
             ),
             ?sheet,
@@ -411,6 +422,7 @@ class _FieldViewState extends State<FieldView> {
   Widget _strip(AppLocalizations l10n, FieldState field, PlayTargets targets) {
     final view = _view;
     final (status, active) = switch (view) {
+      PlayerView(phase: MatchPhase.finished) => (l10n.fieldStatusMatchOver, false),
       PlayerView(choice: != null) => (l10n.fieldStatusYourChoice, true),
       PlayerView(opponentChoosing: != null) => (l10n.fieldStatusOpponentChoosing, false),
       PlayerView(me: SideView(passed: true)) => (l10n.fieldStatusYouPassed, false),
@@ -441,7 +453,7 @@ class _FieldViewState extends State<FieldView> {
     final other = mine ? view.opponent : view.me;
     final discardTop = side.discard.lastOrNull;
     final cubit = _cubit;
-    final canPass = _isMyTurn(view);
+    final canPass = _isMyTurn(view) && !_blocked;
     return PlayerBar(
       mine: mine,
       name: widget.roster.name(mine ? view.viewer : view.viewer.opponent, l10n),
@@ -636,7 +648,7 @@ class _FieldViewState extends State<FieldView> {
     final view = _view;
     final side = mine ? view.me : view.opponent;
     final cubit = _cubit;
-    final canUse = mine && side.leaderAvailable && _isMyTurn(view);
+    final canUse = mine && side.leaderAvailable && _isMyTurn(view) && !_blocked;
     // Пассивная способность действует постоянно: использовать её нельзя, кнопки нет.
     final passive = _catalog.leader(side.leader)?.ability.isPassive ?? false;
     final note = passive
@@ -668,6 +680,28 @@ class _FieldViewState extends State<FieldView> {
       onClose: cubit.closeOverlay,
     );
   }
+}
+
+/// Фон за полем на весь экран: под вырезом он продолжает полосу соперника, под жестом «домой» — руку, поэтому в
+/// безопасных зонах нет швов.
+class _FieldBackdrop extends StatelessWidget {
+  const _FieldBackdrop();
+
+  /// Верхний цвет полосы соперника (`PlayerBar`).
+  static const Color topColor = Color(0xFF1B1612);
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: GwentColors.bg,
+    child: Align(
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        height: MediaQuery.paddingOf(context).top,
+        width: double.infinity,
+        child: const ColoredBox(color: topColor),
+      ),
+    ),
+  );
 }
 
 class _Hint {

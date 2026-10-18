@@ -8,7 +8,8 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
 // Общие части экранов старта партии и передачи телефона (макет 4).
 
-/// Фон экранов старта: тёмная подложка и свечения цветов фракций сверху и снизу (или одно в [centerGlow]).
+/// Фон экранов старта: тёмная подложка и свечения цветов фракций сверху и снизу (или одно в [centerGlow]). Фон идёт
+/// на весь экран, включая зоны под вырезом и системными панелями, а содержимое лежит в безопасной области.
 class StartBackdrop extends StatelessWidget {
   /// Создаёт фон; [child] ложится поверх.
   const StartBackdrop({
@@ -44,7 +45,7 @@ class StartBackdrop extends StatelessWidget {
         if (topGlow case final glow?) _Glow(color: glow, alignment: Alignment.topCenter, height: 0.38),
         if (bottomGlow case final glow?) _Glow(color: glow, alignment: Alignment.bottomCenter, height: 0.38),
         if (centerGlow case final glow?) _Glow(color: glow, alignment: const Alignment(0, -0.1), height: 0.4),
-        child,
+        SafeArea(child: child),
       ],
     ),
   );

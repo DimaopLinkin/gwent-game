@@ -821,16 +821,21 @@ void main() {
       expect(find.byType(MatchBannerStrip), findsNothing);
     });
 
-    testWidgets('нажатия проходят сквозь баннер', (tester) async {
+    testWidgets('пока идёт баннер, ход начать нельзя: карта не выбирается, а после баннера выбирается', (tester) async {
       final unit = cards.unit(Row.melee);
       final view = viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit]));
       final harness = await pumpField(tester, view);
       feed(harness, view, const [RoundStarted(1, Seat.one)]);
       await tester.pump(const Duration(milliseconds: 300));
+      expect(harness.cubit.state.isBusy, isTrue);
       await tester.tap(handCards().first, warnIfMissed: false);
       await tester.pump(const Duration(milliseconds: 250));
-      expect(harness.cubit.state.selected, unit.id);
+      expect(harness.cubit.state.selected, isNull);
       await endBanners(tester);
+      expect(harness.cubit.state.isBusy, isFalse);
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.selected, unit.id);
     });
   });
 
@@ -1055,6 +1060,39 @@ void main() {
       final box = tester.renderObject<RenderBox>(selected);
       expect(box.localToGlobal(box.size.center(Offset.zero)).dx, closeTo(195, 40));
       await endBanners(tester);
+    });
+
+    testWidgets('рука в одну линию прокручивается жестом по самим картам, а не только по фону между ними', (
+      tester,
+    ) async {
+      final hand = [for (var i = 0; i < 12; i++) cards.unit(Row.values[i % 3])];
+      await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: hand)));
+      await endBanners(tester);
+      final scrollable = find.descendant(of: find.byType(HandView), matching: find.byType(Scrollable));
+      double offset() => tester.state<ScrollableState>(scrollable).position.pixels;
+      expect(offset(), 0);
+
+      await tester.drag(handCards().at(2), const Offset(-120, 0));
+      await tester.pumpAndSettle();
+      expect(offset(), greaterThan(60), reason: 'горизонтальный сдвиг за карту должен листать руку');
+    });
+
+    testWidgets('рука в одну линию: сдвиг вверх по карте по-прежнему тянет её на цель, а не листает', (tester) async {
+      final unit = cards.unit(Row.melee);
+      final hand = [unit, for (var i = 0; i < 11; i++) cards.unit(Row.values[i % 3])];
+      final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: hand)));
+      await endBanners(tester);
+      final scrollable = find.descendant(of: find.byType(HandView), matching: find.byType(Scrollable));
+
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -40));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, -60));
+      await tester.pump();
+      expect(harness.cubit.state.selected, unit.id, reason: 'вертикальный сдвиг начинает перетаскивание');
+      expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
+      await gesture.up();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('низкий экран: поле уменьшается целиком без переполнения', (tester) async {

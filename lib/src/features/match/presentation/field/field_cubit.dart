@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
@@ -12,10 +14,21 @@ import 'package:gwent_engine/gwent_engine.dart';
 ///
 /// В hot-seat события каждого места копятся, пока телефон у другого, поэтому раунд, ход и итог раунда
 /// объявляются один раз, а не заново каждому месту.
+///
+/// Показ занимает время (баннеры, итог раунда, пауза, последний ход партии): пока он идёт, [FieldState.isBusy] верно.
+/// Экран партии в это время откладывает следующие состояния партии, а поле не принимает ходов.
 final class FieldCubit extends Cubit<FieldState> {
-  /// Создаёт держатель с пустым состоянием.
-  FieldCubit() : super(const FieldState());
+  /// Создаёт держатель с пустым состоянием; [finishHold] — сколько поле держит конец партии (последний ход и счёт),
+  /// прежде чем открыть итог матча.
+  FieldCubit({this.finishHold = defaultFinishHold}) : super(const FieldState());
 
+  /// Сколько поле держит конец партии по умолчанию.
+  static const Duration defaultFinishHold = Duration(milliseconds: 2200);
+
+  /// Сколько поле держит конец партии.
+  final Duration finishHold;
+
+  Timer? _finishTimer;
   int _toastCount = 0;
   final Set<int> _announcedRounds = {};
   final Set<int> _summarizedRounds = {};
@@ -62,8 +75,10 @@ final class FieldCubit extends Cubit<FieldState> {
     if (state.summary != null) emit(state.copyWith(clearSummary: true));
   }
 
-  /// Открывает меню паузы.
-  void openPause() => emit(state.copyWith(pause: PauseLayer.menu, clearSelected: true));
+  /// Открывает меню паузы; пока поле держит конец партии, пауза не нужна.
+  void openPause() {
+    if (!state.finishing) emit(state.copyWith(pause: PauseLayer.menu, clearSelected: true));
+  }
 
   /// Закрывает слой паузы и возвращается к игре.
   void closePause() {
@@ -102,6 +117,7 @@ final class FieldCubit extends Cubit<FieldState> {
           MatchFinished() ||
           MatchCrashed():
         // Телефон ушёл другому игроку или партия закончилась: чужие выбор, листы, тосты и баннеры не переносятся.
+        _finishTimer?.cancel();
         if (!state.isClean) emit(const FieldState());
         if (match is MatchIntro || match is MatchStarting) _forget();
     }
@@ -139,7 +155,27 @@ final class FieldCubit extends Cubit<FieldState> {
       if (_summaryFrom(view, events) case final summary?) next = next.copyWith(summary: summary);
     }
     if (refusal != null) next = next.copyWith(toast: FieldToast(++_toastCount, FieldMessage.refused));
+    if (_endsByCrystals(events) && view.phase == MatchPhase.finished && finishHold > Duration.zero) {
+      // Игрок должен увидеть, чем и со счётом сколько закончилась партия, прежде чем откроется итог матча.
+      next = next.copyWith(finishing: true);
+      _finishTimer?.cancel();
+      _finishTimer = Timer(finishHold, _endFinishing);
+    }
     if (!identical(next, state)) emit(next);
+  }
+
+  /// Партию закончил последний раунд; сдача держать поле не должна.
+  static bool _endsByCrystals(List<GameEvent> events) =>
+      events.any((event) => event is MatchEnded && event.outcome.reason == MatchEndReason.crystals);
+
+  void _endFinishing() {
+    if (!isClosed && state.finishing) emit(state.copyWith(finishing: false));
+  }
+
+  @override
+  Future<void> close() {
+    _finishTimer?.cancel();
+    return super.close();
   }
 
   /// Баннеры по порядку показа: раунд, пас, ход. Ход объявляется, только когда он перешёл к другому месту:

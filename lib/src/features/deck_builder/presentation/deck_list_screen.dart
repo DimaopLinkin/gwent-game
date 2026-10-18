@@ -42,49 +42,47 @@ class DeckListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return ScreenBackdrop(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                spacing: 12,
-                children: [
-                  ChevronButton(label: l10n.setupBack, onPressed: onBack),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: 5,
-                      children: [
-                        Eyebrow(l10n.deckListEyebrow),
-                        ScreenTitle(l10n.deckListTitle, size: 34, color: GwentColors.goldHighlight),
-                      ],
-                    ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              spacing: 12,
+              children: [
+                ChevronButton(label: l10n.setupBack, onPressed: onBack),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 5,
+                    children: [
+                      Eyebrow(l10n.deckListEyebrow),
+                      ScreenTitle(l10n.deckListTitle, size: 34, color: GwentColors.goldHighlight),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: BlocBuilder<DeckListCubit, DeckListState>(
-                  builder: (context, state) => switch (state) {
-                    DeckListLoading() => const GameLoader(),
-                    DeckListFailed() => _Message(l10n.deckListLoadFailed),
-                    DeckListLoaded(:final decks, :final rules) => _Decks(
-                      decks: decks,
-                      rules: rules,
-                      onOpen: onOpen,
-                      onNew: onNew,
-                      onDelete: (deck) async {
-                        final cubit = context.read<DeckListCubit>();
-                        if (await showDeleteDeckSheet(context, deck.name)) await cubit.delete(deck.id);
-                      },
-                    ),
-                  },
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: BlocBuilder<DeckListCubit, DeckListState>(
+                builder: (context, state) => switch (state) {
+                  DeckListLoading() => const GameLoader(),
+                  DeckListFailed() => _Message(l10n.deckListLoadFailed),
+                  DeckListLoaded(:final decks, :final rules) => _Decks(
+                    decks: decks,
+                    rules: rules,
+                    onOpen: onOpen,
+                    onNew: onNew,
+                    onDelete: (deck) async {
+                      final cubit = context.read<DeckListCubit>();
+                      if (await showDeleteDeckSheet(context, deck.name)) await cubit.delete(deck.id);
+                    },
+                  ),
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

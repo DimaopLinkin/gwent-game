@@ -66,7 +66,8 @@ class RoundSummaryView extends StatelessWidget {
         child: DecoratedBox(
           decoration: const BoxDecoration(color: Color(0xD60A0806)),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 60, 22, 24),
+            // Слой на весь экран: затемнение доходит до краёв, содержимое отступает от выреза и жеста «домой».
+            padding: const EdgeInsets.fromLTRB(22, 60, 22, 24) + MediaQuery.paddingOf(context),
             child: Column(
               children: [
                 Eyebrow(l10n.summaryEyebrow(summary.round), size: 14, align: TextAlign.center),

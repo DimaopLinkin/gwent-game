@@ -247,6 +247,7 @@ final class FieldState {
     this.pause = PauseLayer.none,
     this.recent = const {},
     this.sort = DiscardSort.byStrength,
+    this.finishing = false,
   });
 
   /// Выбранная карта руки.
@@ -273,6 +274,14 @@ final class FieldState {
   /// Порядок карт в листе сброса.
   final DiscardSort sort;
 
+  /// Партия закончена, и поле ещё держит последний ход и счёт на экране, прежде чем открыть итог матча.
+  final bool finishing;
+
+  /// Поле что-то показывает или ждёт игрока и не принимает ходов: идут баннеры, открыт итог раунда или пауза, поле
+  /// держит конец партии. Пока это так, экран партии откладывает следующие состояния партии и не пускает ходы игрока.
+  /// Сюда же встанут анимации карт.
+  bool get isBusy => banners.isNotEmpty || summary != null || pause != PauseLayer.none || finishing;
+
   /// Ничего не выбрано, не открыто и не показывается: состояние равно начальному.
   bool get isClean =>
       selected == null &&
@@ -282,7 +291,8 @@ final class FieldState {
       summary == null &&
       pause == PauseLayer.none &&
       recent.isEmpty &&
-      sort == DiscardSort.byStrength;
+      sort == DiscardSort.byStrength &&
+      !finishing;
 
   /// Копия с заменёнными полями; [clearSelected], [clearToast] и [clearSummary] обнуляют выбор, тост и итог раунда.
   FieldState copyWith({
@@ -297,6 +307,7 @@ final class FieldState {
     PauseLayer? pause,
     Set<CardInstanceId>? recent,
     DiscardSort? sort,
+    bool? finishing,
   }) => FieldState(
     selected: clearSelected ? null : selected ?? this.selected,
     overlay: overlay ?? this.overlay,
@@ -306,5 +317,6 @@ final class FieldState {
     pause: pause ?? this.pause,
     recent: recent ?? this.recent,
     sort: sort ?? this.sort,
+    finishing: finishing ?? this.finishing,
   );
 }
