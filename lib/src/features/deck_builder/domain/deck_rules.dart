@@ -178,9 +178,9 @@ final class DeckRules {
 
   /// Стартовая колода фракции [factionId]: годная колода, с которой можно сразу идти в партию.
   ///
-  /// Собирается однозначно из пакета, в порядке карт в нём: первый лидер фракции; все копии карт отрядов фракции,
-  /// а если их меньше минимума, то нейтральные отряды со всеми копиями, пока минимум не набран; по одной копии
-  /// специальных карт фракции, затем нейтральных, пока не набран максимум. Называется по фракции.
+  /// Собирается однозначно из пакета, в порядке карт в нём: первый лидер фракции; все копии карт отрядов фракции
+  /// и все копии нейтральных отрядов; по одной копии специальных карт фракции, затем нейтральных, пока не набран
+  /// максимум. Называется по фракции.
   ///
   /// Бросает [NotADeckFactionException], если из фракции нельзя собрать колоду.
   Deck starterDeck(String factionId, {required String id, required DateTime updatedAt}) {
@@ -192,15 +192,8 @@ final class DeckRules {
     bool isNeutral(String fractionId) => !(rules.fractionsById[fractionId]?.isDeck ?? true);
 
     final cards = <String, int>{};
-    var units = 0;
-    for (final card in rules.squadCards.where((card) => card.count > 0 && card.fractionId == factionId)) {
-      cards[card.id] = card.count;
-      units += card.count;
-    }
-    for (final card in rules.squadCards.where((card) => card.count > 0 && isNeutral(card.fractionId))) {
-      if (units >= gameRules.minUnitCards) break;
-      cards[card.id] = card.count;
-      units += card.count;
+    for (final card in rules.squadCards.where((card) => card.fractionId == factionId || isNeutral(card.fractionId))) {
+      if (card.count > 0) cards[card.id] = card.count;
     }
     final specials = [
       ...rules.specialCards.where((card) => card.count > 0 && card.fractionId == factionId),
