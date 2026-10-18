@@ -24,7 +24,7 @@ void main() {
     await tester.pumpWidget(localizedApp(Column(children: [header])));
   }
 
-  testWidgets('стрелка у левого края с полем 16 pt, по высоте посередине шапки, зона нажатия 44 pt', (tester) async {
+  testWidgets('стрелка у левого края с полем 16 pt и у верха шапки, зона нажатия 44 pt', (tester) async {
     await pumpHeader(
       tester,
       ScreenHeader(eyebrow: 'Шаг 2 из 2', title: 'Выбор лидера', subtitle: 'Скеллиге', onBack: () {}),
@@ -32,12 +32,20 @@ void main() {
 
     final back = tester.getRect(find.byType(ChevronButton));
     expect(back.left, ScreenHeader.inset);
+    expect(back.top, ScreenHeader.topMargin);
     expect(back.size, const Size.square(44));
-    final header = tester.getRect(find.byType(ScreenHeader));
-    expect(
-      back.center.dy,
-      closeTo(header.top + ScreenHeader.topMargin + (header.height - ScreenHeader.topMargin) / 2, 0.5),
+  });
+
+  testWidgets('надпись в две строки не сдвигает стрелку: она остаётся у верха шапки', (tester) async {
+    await pumpHeader(
+      tester,
+      ScreenHeader(eyebrow: 'Игрок 1 · шаг 2 из 2, выбор фракции для партии', title: 'Выбор', onBack: () {}),
+      size: const Size(320, 640),
     );
+
+    expect(tester.getSize(find.byType(ScreenHeader)).height, greaterThan(ScreenHeader.topMargin + 44));
+    expect(tester.getTopLeft(find.byType(ChevronButton)), const Offset(ScreenHeader.inset, ScreenHeader.topMargin));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('поле стрелки не зависит от длины заголовка и ширины экрана', (tester) async {

@@ -8,8 +8,8 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
 /// Шапка экрана с кнопкой «назад»: одна на все экраны, где есть стрелка «Назад».
 ///
-/// Стрелка стоит у левого края безопасной области с полем [GwentSpace.space4] и по высоте посередине шапки, как
-/// ведущая кнопка навигации в платформенных гайдлайнах. Она не часть ряда: поле шапки не зависит от отступов
+/// Стрелка стоит у левого края безопасной области с полем [GwentSpace.space4] и у верха шапки, как ведущая кнопка
+/// навигации в платформенных гайдлайнах: её положение не зависит от числа строк надписи. Она не часть ряда: поле шапки не зависит от отступов
 /// содержимого экрана, поэтому шапку кладут над ними, а не внутрь. Надпись, заголовок и подпись стоят по центру
 /// между стрелкой и [trailing]; слева и справа для них отведено одинаково, чтобы центр не смещался.
 class ScreenHeader extends StatelessWidget {
@@ -37,7 +37,7 @@ class ScreenHeader extends StatelessWidget {
   /// Подпись под заголовком, например название фракции.
   final String? subtitle;
 
-  /// Что стоит у правого края, например герб фракции. Занимает зону [slot].
+  /// Что стоит у правого края, например герб фракции. Занимает зону [slot], шире 40 pt не бывает.
   final Widget? trailing;
 
   /// Размер заголовка.
@@ -103,14 +103,12 @@ class ScreenHeader extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: inset),
-                  child: ChevronButton(label: backLabel ?? context.l10n.setupBack, onPressed: onBack),
-                ),
-              ),
+            // Стрелка прикреплена к верху шапки, а не к её середине: надпись может перенестись на вторую строку,
+            // и стрелка не должна от этого уезжать. В шапке минимальной высоты (44 pt) верх и середина совпадают.
+            Positioned(
+              left: inset,
+              top: 0,
+              child: ChevronButton(label: backLabel ?? context.l10n.setupBack, onPressed: onBack),
             ),
             if (trailing != null)
               Positioned.fill(

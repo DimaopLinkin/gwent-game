@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 ///
 /// Это корень экранов без `Scaffold`, поэтому он же даёт им `Material`. Экран маршрута сам по себе `Material` не
 /// получает: `MaterialApp` оставляет под ним отладочный стиль текста (жёлтое двойное подчёркивание), а `TextField` и
-/// `InkWell` без `Material` падают. Прозрачный `Material` берёт стиль текста из темы и ничего не рисует.
+/// `InkWell` без `Material` падают. Прозрачный `Material` лежит над фоном вокруг содержимого, берёт стиль текста из темы и ничего не рисует.
 class ScreenBackdrop extends StatelessWidget {
   /// Создаёт фон.
   const ScreenBackdrop({super.key, required this.child, this.safeArea = true});
@@ -18,39 +18,40 @@ class ScreenBackdrop extends StatelessWidget {
   final bool safeArea;
 
   @override
-  Widget build(BuildContext context) => Material(
-    type: MaterialType.transparency,
-    child: Stack(
-      fit: StackFit.expand,
-      children: [
-        const DecoratedBox(
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2A1D12), Color(0xFF1A120B), Color(0xFF120C07)],
+            stops: [0, 0.6, 1],
+          ),
+        ),
+      ),
+      const IgnorePointer(
+        child: CustomPaint(painter: _StripesPainter(), size: Size.infinite),
+      ),
+      const IgnorePointer(
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF2A1D12), Color(0xFF1A120B), Color(0xFF120C07)],
-              stops: [0, 0.6, 1],
+            gradient: RadialGradient(
+              center: Alignment(0, -0.2),
+              radius: 1.15,
+              colors: [Color(0x00050302), Color(0x00050302), Color(0xD9050302)],
+              stops: [0, 0.3, 1],
             ),
           ),
         ),
-        const IgnorePointer(
-          child: CustomPaint(painter: _StripesPainter(), size: Size.infinite),
-        ),
-        const IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0, -0.2),
-                radius: 1.15,
-                colors: [Color(0x00050302), Color(0x00050302), Color(0xD9050302)],
-                stops: [0, 0.3, 1],
-              ),
-            ),
-          ),
-        ),
-        if (safeArea) SafeArea(child: child) else child,
-      ],
-    ),
+      ),
+      // Material над фоном: чернила `InkWell` рисуются на нём и остаются видны, а не уходят под градиент.
+      Material(
+        type: MaterialType.transparency,
+        child: safeArea ? SafeArea(child: child) : child,
+      ),
+    ],
   );
 }
 
