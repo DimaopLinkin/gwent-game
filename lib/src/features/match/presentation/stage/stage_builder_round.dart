@@ -92,13 +92,15 @@ extension _RoundScenes on StageScriptBuilder {
   double _plaque(RoundSummary summary, {required double at}) {
     final end = _ms(2900);
     final first = _ms(1950);
+    // Строки способностей успевают появиться до ухода плашки, даже если их больше трёх.
+    final gap = math.min(_ms(StageTokens.markGap), (end - _ms(250) - first) / math.max(1, summary.marks.length));
     _beats.add(
       PlaqueBeat(
         summary: summary,
         start: at,
         end: end,
         rise: _rm ? _ms(StageTokens.fade) : _ms(StageTokens.plaqueIn),
-        markStarts: [for (var k = 0; k < summary.marks.length; k++) first + k * _ms(StageTokens.markGap)],
+        markStarts: [for (var k = 0; k < summary.marks.length; k++) first + k * gap],
         fade: _ms(200),
         scales: !_rm,
       ),
@@ -260,6 +262,17 @@ extension _RoundScenes on StageScriptBuilder {
       _cursor = math.max(_cursor, at + _ms(100));
     }
     _walk(after);
+    // Приманка и Берсерк превращаются при уборке поля: новая карта встаёт на место после ухода остальных, а не с нуля.
+    for (final event in after) {
+      switch (event) {
+        case CreatedCardPlaced():
+          _cursor = math.max(_cursor, _created(event, at));
+        case BerserkTransformed():
+          _cursor = math.max(_cursor, _morph(event, at));
+        default:
+          break;
+      }
+    }
     _requestSettle(_cursor, stagger: _ms(70));
   }
 
@@ -280,6 +293,7 @@ extension _RoundScenes on StageScriptBuilder {
         outcome: outcome,
         roundsMine: wins[viewer] ?? 0,
         roundsTheirs: wins[viewer.opponent] ?? 0,
+        winner: winner,
         start: at,
         end: end,
         rise: _rm ? _ms(StageTokens.fade) : _ms(StageTokens.plaqueIn),

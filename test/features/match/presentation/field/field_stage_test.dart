@@ -8,7 +8,9 @@ import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
+import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_layer.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_round_views.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
@@ -282,6 +284,39 @@ void main() {
         expect(find.text('Пропустить'), findsNothing);
         expect(tester.takeException(), isNull);
         await tester.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('тап по подсчёту не сокращает плашку итога: она стоит больше секунды', (tester) async {
+        await startRoundEnd(tester);
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tapAt(const Offset(195, 300));
+        var visible = 0;
+        for (var step = 0; step < 30; step++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          if (find.byType(RoundPlaqueView).evaluate().isNotEmpty) visible++;
+        }
+        expect(visible, greaterThanOrEqualTo(7), reason: 'плашка 1,2 с, тап её не ускоряет');
+        await tester.pump(const Duration(seconds: 6));
+      });
+
+      testWidgets('плашка исхода матча в hot-seat называет победителя', (tester) async {
+        await tester.pumpWidget(
+          localizedApp(
+            MatchBannerView(
+              item: const MatchBannerItem(
+                outcome: RoundOutcome.loss,
+                roundsMine: 0,
+                roundsTheirs: 2,
+                winner: Seat.two,
+                scaleY: 1,
+                alpha: 1,
+              ),
+              roster: rosterOf(cards, hotSeat: true),
+            ),
+          ),
+        );
+        expect(find.text('Победил Игрок 2'), findsOneWidget);
+        expect(find.text('Поражение'), findsNothing);
       });
     });
   });

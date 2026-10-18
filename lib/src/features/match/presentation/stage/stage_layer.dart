@@ -102,7 +102,7 @@ class StageLayer extends StatelessWidget {
       left: 0,
       right: 0,
       top: rect.center.dy - 88,
-      child: MatchBannerView(item: item),
+      child: MatchBannerView(item: item, roster: roster),
     );
   }
 

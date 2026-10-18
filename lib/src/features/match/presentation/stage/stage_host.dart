@@ -67,7 +67,9 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     if (script == null) return;
     final delta = (elapsed - _last).inMicroseconds / 1000;
     _last = elapsed;
-    setState(() => _time += delta * _speed);
+    // Плашки итога тап не ускоряет, даже если игрок тапнул раньше: внутри окна время идёт как обычно.
+    final speed = script.tapSpeedsUp(_time) ? _speed : 1;
+    setState(() => _time += delta * speed);
     if (_time >= script.duration) {
       _ticker.stop();
       widget.onDone(script.id);

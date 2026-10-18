@@ -210,6 +210,65 @@ void main() {
       expect(frame.gems.keys, containsAll([true, false]));
     });
 
+    test('Приманка при уборке поля: созданная карта встаёт после ухода остальных, а не с первого кадра', () {
+      final game = round();
+      final created = cards.unit(Row.melee);
+      final next = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: game.closing.me.hand,
+          discard: game.mine,
+          rows: {
+            Row.melee: rowOf([created], cards),
+          },
+        ),
+        opponent: game.next.opponent,
+        round: 2,
+      );
+      final script = StageScriptBuilder(prev: game.closing, next: next, catalog: content.catalog).buildRound(
+        1,
+        [
+          ...roundEvents(game.mineScore, game.theirScore).take(2),
+          CreatedCardPlaced(Seat.one, Row.melee, created),
+          const RoundStarted(2, Seat.two),
+          const TurnStarted(Seat.two),
+        ],
+        summary: summaryOf(mine: game.mineScore, theirs: game.theirScore),
+      )!;
+      bool shown(double time) =>
+          script.frameAt(time).rows[mineMelee]?.cards.any((card) => card.view.card == created && !card.hidden) ?? false;
+      expect(shown(1000), isFalse, reason: 'на подсчёте новой карты ещё нет');
+      expect(shown(2500), isFalse, reason: 'и под плашкой её нет');
+      expect(shown(script.duration), isTrue);
+    });
+
+    test('строки способностей успевают появиться до ухода плашки, даже если их четыре', () {
+      final game = round();
+      const mark = FactionMark(seat: Seat.one, mine: true, faction: Faction.skellige, kind: FactionMarkKind.extraCard);
+      final script = build(
+        game,
+        roundEvents(game.mineScore, game.theirScore),
+        summaryOf(mine: game.mineScore, theirs: game.theirScore, marks: const [mark, mark, mark, mark]),
+      );
+      final plaque = script.beats.whereType<PlaqueBeat>().single;
+      expect(plaque.markStarts, hasLength(4));
+      expect(plaque.markStarts.last, lessThan(plaque.end - 200));
+    });
+
+    test('раунд без карт на поле: счёт нулевой, плашка всё равно показывается', () {
+      final closing = viewOf(cards, opponent: sideOf(cards, Seat.two, handCount: 5));
+      final next = viewOf(cards, opponent: sideOf(cards, Seat.two, handCount: 5, crystals: 1), round: 2);
+      final script = StageScriptBuilder(prev: closing, next: next, catalog: content.catalog).buildRound(
+        1,
+        roundEvents(0, 0, winner: null),
+        summary: summaryOf(outcome: RoundOutcome.draw),
+      )!;
+      expect(script.frameAt(1000).items.whereType<CountItem>().single.mine.to, 0);
+      expect(script.frameAt(2200).items.whereType<PlaqueItem>(), isNotEmpty);
+    });
+
     test('сброс: карты летят волной в сбросы владельцев, не дольше секунды, и ряды освобождаются', () {
       final game = round();
       final script = build(
@@ -432,6 +491,7 @@ void main() {
       expect(banner.outcome, RoundOutcome.win);
       expect(banner.roundsMine, 2);
       expect(banner.roundsTheirs, 0);
+      expect(banner.winner, Seat.one);
       expect(script.frameAt(3200).gems[false]!.remaining, 0);
       expect(script.frameAt(script.duration).gems[false]!.progress, 1);
       expect(script.beats.whereType<FlightBeat>(), isEmpty, reason: 'карты остаются на поле: сброса нет');

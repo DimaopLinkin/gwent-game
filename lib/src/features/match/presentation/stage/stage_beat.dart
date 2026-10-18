@@ -731,6 +731,7 @@ final class MatchBannerBeat extends StageBeat {
     required this.outcome,
     required this.roundsMine,
     required this.roundsTheirs,
+    required this.winner,
     required super.start,
     required super.end,
     required this.rise,
@@ -746,6 +747,9 @@ final class MatchBannerBeat extends StageBeat {
 
   /// Раундов выиграл соперник.
   final int roundsTheirs;
+
+  /// Победитель матча; `null` при ничьей. В hot-seat плашка называет его по имени.
+  final Seat? winner;
 
   /// Длительность появления.
   final double rise;
@@ -768,6 +772,7 @@ final class MatchBannerBeat extends StageBeat {
         outcome: outcome,
         roundsMine: roundsMine,
         roundsTheirs: roundsTheirs,
+        winner: winner,
         scaleY: scale,
         alpha: alpha,
       ),

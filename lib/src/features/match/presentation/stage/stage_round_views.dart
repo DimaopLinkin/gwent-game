@@ -146,15 +146,24 @@ class _MarkRow extends StatelessWidget {
 /// Плашка исхода матча (макет 13, конец матча): «Победа», «Поражение» или «Ничья» и счёт выигранных раундов.
 class MatchBannerView extends StatelessWidget {
   /// Создаёт плашку для [item].
-  const MatchBannerView({super.key, required this.item});
+  const MatchBannerView({super.key, required this.item, required this.roster});
 
   /// Кадр плашки.
   final MatchBannerItem item;
 
+  /// Участники партии: в hot-seat победителя называют по имени, потому что телефон держат двое.
+  final MatchRoster roster;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final winner = item.winner;
     final (title, titleColor, ruleColor) = switch (item.outcome) {
+      _ when roster.hotSeat && winner != null => (
+        l10n.matchResultWinnerHot(roster.name(winner, l10n)),
+        GwentColors.goldHighlight,
+        GwentColors.gold,
+      ),
       RoundOutcome.win => (l10n.matchFinishedWin, GwentColors.goldHighlight, GwentColors.gold),
       RoundOutcome.loss => (l10n.matchFinishedLose, GwentColors.debuff, GwentColors.brass),
       RoundOutcome.draw => (l10n.matchFinishedDraw, GwentColors.textPrimary, GwentColors.brass),

@@ -332,6 +332,7 @@ final class MatchBannerItem extends StageItem {
     required this.outcome,
     required this.roundsMine,
     required this.roundsTheirs,
+    required this.winner,
     required this.scaleY,
     required this.alpha,
   });
@@ -344,6 +345,9 @@ final class MatchBannerItem extends StageItem {
 
   /// Раундов выиграл соперник.
   final int roundsTheirs;
+
+  /// Победитель матча; `null` при ничьей.
+  final Seat? winner;
 
   /// Масштаб по высоте.
   final double scaleY;
