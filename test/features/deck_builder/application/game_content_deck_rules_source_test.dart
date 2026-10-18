@@ -4,9 +4,7 @@ import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
-import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent_content/gwent_content.dart';
-import 'package:gwent_engine/gwent_engine.dart' show WrongFaction;
 
 /// Правила колод на настоящем пакете контента из ассетов (`docs/hand`) и настоящем адаптере движка.
 void main() {
@@ -49,31 +47,25 @@ void main() {
       }
     });
 
-    test('Шторм со Скеллиге есть в наборе карт и в стартовой колоде только у Скеллиге', () async {
+    test('Шторм со Скеллиге нейтральный: есть в наборе карт и в стартовой колоде каждой фракции', () async {
       final rules = await source.load();
 
       for (final faction in rules.deckFactions) {
-        final isSkellige = faction.key == 'skellige';
         final deck = rules.starterDeck(faction.id, id: faction.key, updatedAt: DateTime.utc(2026, 10, 18));
         final collection = rules.collectionFor(faction.id).map((card) => card.id);
 
-        expect(collection.contains(skelligeStorm), isSkellige, reason: 'набор карт ${faction.key}');
-        expect(deck.cards.containsKey(skelligeStorm), isSkellige, reason: 'стартовая колода ${faction.key}');
+        expect(collection, contains(skelligeStorm), reason: 'набор карт ${faction.key}');
+        expect(deck.cards, contains(skelligeStorm), reason: 'стартовая колода ${faction.key}');
       }
     });
 
-    test('колода другой фракции со Штормом со Скеллиге не проходит проверку', () async {
+    test('колода другой фракции со Штормом со Скеллиге проходит проверку', () async {
       final rules = await source.load();
       final northern = rules.deckFactions.firstWhere((faction) => faction.key == 'northern_realms');
       final starter = rules.starterDeck(northern.id, id: 'north', updatedAt: DateTime.utc(2026, 10, 18));
-      final deck = starter.copyWith(cards: {...starter.cards, skelligeStorm: 1});
+      final deck = starter.copyWith(cards: {...starter.cards, skelligeStorm: 3});
 
-      expect(
-        rules.check(deck),
-        contains(
-          isA<DeckRuleViolation>().having((issue) => issue.violation, 'violation', isA<WrongFaction>()),
-        ),
-      );
+      expect(rules.check(deck), isEmpty);
     });
   });
 
