@@ -149,6 +149,7 @@ class _Settings extends StatelessWidget {
               slider: GwentSlider(
                 value: settings.musicVolume,
                 semanticLabel: l10n.settingsMusic,
+                semanticValue: l10n.settingsVolumeValue(settings.musicVolume),
                 onChanged: cubit.changeMusicVolume,
                 onChangeEnd: cubit.saveVolumes,
               ),
@@ -159,6 +160,7 @@ class _Settings extends StatelessWidget {
               slider: GwentSlider(
                 value: settings.effectsVolume,
                 semanticLabel: l10n.settingsEffects,
+                semanticValue: l10n.settingsVolumeValue(settings.effectsVolume),
                 onChanged: cubit.changeEffectsVolume,
                 onChangeEnd: cubit.saveVolumes,
               ),
@@ -272,23 +274,26 @@ class _PlayerNameFieldState extends State<_PlayerNameField> {
         spacing: 6,
         children: [
           Text(l10n.settingsPlayerName, style: textStyle.copyWith(height: 1.2)),
-          SizedBox(
-            height: 44,
-            child: TextField(
-              controller: _controller,
-              onChanged: widget.onChanged,
-              inputFormatters: [LengthLimitingTextInputFormatter(_maxLength)],
-              textInputAction: TextInputAction.done,
-              style: textStyle,
-              cursorColor: GwentColors.gold,
-              decoration: InputDecoration(
-                hintText: l10n.settingsPlayerNameHint,
-                hintStyle: textStyle.copyWith(color: GwentColors.muted),
-                filled: true,
-                fillColor: const Color(0xFF0B0907),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                enabledBorder: border(GwentColors.muted),
-                focusedBorder: border(GwentColors.gold, 1.5),
+          Semantics(
+            label: l10n.settingsPlayerName,
+            child: SizedBox(
+              height: 44,
+              child: TextField(
+                controller: _controller,
+                onChanged: widget.onChanged,
+                inputFormatters: [LengthLimitingTextInputFormatter(_maxLength)],
+                textInputAction: TextInputAction.done,
+                style: textStyle,
+                cursorColor: GwentColors.gold,
+                decoration: InputDecoration(
+                  hintText: l10n.settingsPlayerNameHint,
+                  hintStyle: textStyle.copyWith(color: GwentColors.muted),
+                  filled: true,
+                  fillColor: const Color(0xFF0B0907),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  enabledBorder: border(GwentColors.muted),
+                  focusedBorder: border(GwentColors.gold, 1.5),
+                ),
               ),
             ),
           ),

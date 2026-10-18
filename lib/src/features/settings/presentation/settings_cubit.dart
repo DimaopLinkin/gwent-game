@@ -44,7 +44,8 @@ final class SettingsCubit extends Cubit<SettingsState> {
 
   Future<void> _load() async {
     try {
-      final (settings, about) = await (_watchSettings().first, _loadAboutInfo()).wait;
+      final settings = await _watchSettings().first;
+      final about = await _loadAboutInfo();
       if (!isClosed) emit(SettingsLoaded(settings: settings, about: about));
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);

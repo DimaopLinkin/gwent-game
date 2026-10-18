@@ -165,6 +165,22 @@ void main() {
     expect(repository.saved.contentCheckedAt, DateTime.utc(2026, 10, 13, 12));
   });
 
+  testWidgets('диктор: переключатель называется один раз, у поля имени и ползунка есть подпись', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpSettings(tester);
+
+    final row = find.ancestor(of: find.byType(Switch).first, matching: find.byType(MergeSemantics)).first;
+    expect(l10n.settingsConfirmPass.allMatches(tester.getSemantics(row).label), hasLength(1));
+    expect(tester.getSemantics(find.byType(TextField)).label, contains(l10n.settingsPlayerName));
+    final music = tester.getSemantics(
+      find.ancestor(of: find.byType(Slider).first, matching: find.byType(MergeSemantics)).first,
+    );
+    expect(music.label, contains(l10n.settingsMusic));
+    semantics.dispose();
+  });
+
   testWidgets('«назад» и лицензии отдают переходы наружу', (tester) async {
     await pumpSettings(tester);
 

@@ -147,10 +147,7 @@ class SettingsSwitchRow extends StatelessWidget {
             spacing: 12,
             children: [
               Expanded(child: Text(label, style: _labelStyle)),
-              Semantics(
-                label: label,
-                child: Switch(value: value, onChanged: onChanged),
-              ),
+              Switch(value: value, onChanged: onChanged),
             ],
           ),
         ),

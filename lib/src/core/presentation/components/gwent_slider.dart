@@ -12,6 +12,7 @@ class GwentSlider extends StatelessWidget {
     required this.value,
     required this.onChanged,
     required this.semanticLabel,
+    required this.semanticValue,
     this.onChangeEnd,
     this.min = 0,
     this.max = 100,
@@ -35,29 +36,34 @@ class GwentSlider extends StatelessWidget {
   /// Название для экранного диктора.
   final String semanticLabel;
 
+  /// Значение для экранного диктора, например «70%».
+  final String semanticValue;
+
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: semanticLabel,
-    child: SizedBox(
-      height: 44,
-      child: SliderTheme(
-        data: SliderThemeData(
-          trackHeight: 4,
-          activeTrackColor: GwentColors.brass,
-          inactiveTrackColor: GwentColors.surfaceRaised,
-          thumbShape: const _GoldThumb(),
-          overlayShape: SliderComponentShape.noOverlay,
-          trackShape: const RoundedRectSliderTrackShape(),
-          tickMarkShape: SliderTickMarkShape.noTickMark,
-          showValueIndicator: ShowValueIndicator.never,
-        ),
-        child: Slider(
-          value: value.toDouble(),
-          min: min.toDouble(),
-          max: max.toDouble(),
-          semanticFormatterCallback: (_) => '$value',
-          onChanged: (v) => onChanged(v.round()),
-          onChangeEnd: onChangeEnd == null ? null : (_) => onChangeEnd!(),
+  Widget build(BuildContext context) => MergeSemantics(
+    child: Semantics(
+      label: semanticLabel,
+      child: SizedBox(
+        height: 44,
+        child: SliderTheme(
+          data: SliderThemeData(
+            trackHeight: 4,
+            activeTrackColor: GwentColors.brass,
+            inactiveTrackColor: GwentColors.surfaceRaised,
+            thumbShape: const _GoldThumb(),
+            overlayShape: SliderComponentShape.noOverlay,
+            trackShape: const RoundedRectSliderTrackShape(),
+            tickMarkShape: SliderTickMarkShape.noTickMark,
+            showValueIndicator: ShowValueIndicator.never,
+          ),
+          child: Slider(
+            value: value.toDouble(),
+            min: min.toDouble(),
+            max: max.toDouble(),
+            semanticFormatterCallback: (_) => semanticValue,
+            onChanged: (v) => onChanged(v.round()),
+            onChangeEnd: onChangeEnd == null ? null : (_) => onChangeEnd!(),
+          ),
         ),
       ),
     ),
