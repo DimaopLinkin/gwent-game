@@ -1295,6 +1295,180 @@
   "@settingsTitle": {
     "description": "Заголовок экрана настроек."
   },
+  "settingsBack": "Назад",
+  "@settingsBack": {
+    "description": "Подпись кнопки «назад» в шапке экрана настроек."
+  },
+  "settingsLoadFailed": "Не удалось прочитать настройки",
+  "@settingsLoadFailed": {
+    "description": "Сообщение, если настройки не прочитались."
+  },
+  "settingsGroupGame": "Игра",
+  "@settingsGroupGame": {
+    "description": "Заголовок группы настроек игры."
+  },
+  "settingsGroupSound": "Звук",
+  "@settingsGroupSound": {
+    "description": "Заголовок группы настроек звука."
+  },
+  "settingsGroupLanguage": "Язык",
+  "@settingsGroupLanguage": {
+    "description": "Заголовок группы выбора языка."
+  },
+  "settingsGroupContent": "Данные карт",
+  "@settingsGroupContent": {
+    "description": "Заголовок группы набора карт."
+  },
+  "settingsGroupAbout": "О приложении",
+  "@settingsGroupAbout": {
+    "description": "Заголовок группы сведений о приложении."
+  },
+  "settingsPlayerName": "Имя игрока",
+  "@settingsPlayerName": {
+    "description": "Подпись поля имени игрока."
+  },
+  "settingsPlayerNameHint": "Игрок",
+  "@settingsPlayerNameHint": {
+    "description": "Подсказка в пустом поле имени игрока."
+  },
+  "settingsPlayerNameNote": "Видно сопернику в сетевой игре",
+  "@settingsPlayerNameNote": {
+    "description": "Пояснение под полем имени игрока."
+  },
+  "settingsConfirmPass": "Подтверждать пас",
+  "@settingsConfirmPass": {
+    "description": "Подпись переключателя подтверждения паса."
+  },
+  "settingsAnimationSpeed": "Скорость анимаций",
+  "@settingsAnimationSpeed": {
+    "description": "Подпись выбора скорости анимаций."
+  },
+  "settingsSpeedNormal": "Обычная",
+  "@settingsSpeedNormal": {
+    "description": "Подпись обычной скорости анимаций."
+  },
+  "settingsSpeedFast": "Быстрая",
+  "@settingsSpeedFast": {
+    "description": "Подпись быстрой скорости анимаций."
+  },
+  "settingsHints": "Подсказки для новичка",
+  "@settingsHints": {
+    "description": "Подпись переключателя подсказок."
+  },
+  "settingsMusic": "Музыка",
+  "@settingsMusic": {
+    "description": "Подпись ползунка громкости музыки."
+  },
+  "settingsEffects": "Эффекты",
+  "@settingsEffects": {
+    "description": "Подпись ползунка громкости эффектов."
+  },
+  "settingsVolumeValue": "{percent}%",
+  "@settingsVolumeValue": {
+    "description": "Значение громкости рядом с ползунком.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsLanguageRussian": "Русский",
+  "@settingsLanguageRussian": {
+    "description": "Название русского языка в списке языков."
+  },
+  "settingsLanguageEnglish": "English",
+  "@settingsLanguageEnglish": {
+    "description": "Название английского языка в списке языков."
+  },
+  "settingsLanguagePolish": "Polski",
+  "@settingsLanguagePolish": {
+    "description": "Название польского языка в списке языков."
+  },
+  "settingsSoon": "скоро",
+  "@settingsSoon": {
+    "description": "Пометка недоступного пункта."
+  },
+  "settingsContentSource": "Источник",
+  "@settingsContentSource": {
+    "description": "Подпись выбора источника набора карт."
+  },
+  "settingsSourceBuiltIn": "Встроенный",
+  "@settingsSourceBuiltIn": {
+    "description": "Короткая подпись встроенного набора карт на кнопке выбора источника."
+  },
+  "settingsSourceBuiltInFull": "Встроенный набор",
+  "@settingsSourceBuiltInFull": {
+    "description": "Полная подпись встроенного набора карт для экранного диктора."
+  },
+  "settingsSourceServer": "Сервер · скоро",
+  "@settingsSourceServer": {
+    "description": "Подпись недоступного источника набора карт с сервера."
+  },
+  "settingsPackVersion": "Версия набора карт",
+  "@settingsPackVersion": {
+    "description": "Подпись версии набора карт."
+  },
+  "settingsUpdatedAt": "Дата обновления",
+  "@settingsUpdatedAt": {
+    "description": "Подпись даты последней проверки набора карт."
+  },
+  "settingsValueUnknown": "—",
+  "@settingsValueUnknown": {
+    "description": "Значение, которое узнать не удалось или которого ещё нет."
+  },
+  "settingsCheckUpdate": "Проверить обновление",
+  "@settingsCheckUpdate": {
+    "description": "Кнопка проверки обновления набора карт."
+  },
+  "settingsChecking": "Проверка обновления…",
+  "@settingsChecking": {
+    "description": "Строка под кнопкой, пока идёт проверка."
+  },
+  "settingsUpToDate": "Набор карт актуален",
+  "@settingsUpToDate": {
+    "description": "Строка под кнопкой, когда проверка закончилась."
+  },
+  "settingsCheckFailed": "Не удалось проверить набор карт",
+  "@settingsCheckFailed": {
+    "description": "Строка под кнопкой, если проверка не удалась."
+  },
+  "settingsAppVersion": "Версия приложения",
+  "@settingsAppVersion": {
+    "description": "Подпись версии приложения."
+  },
+  "settingsAppVersionBuild": "{version} (сборка {build})",
+  "@settingsAppVersionBuild": {
+    "description": "Версия приложения с номером сборки.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsProtocol": "Сетевой протокол",
+  "@settingsProtocol": {
+    "description": "Подпись версии сетевого протокола."
+  },
+  "settingsProtocolValue": "v{version}",
+  "@settingsProtocolValue": {
+    "description": "Версия сетевого протокола.",
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsLicenses": "Лицензии шрифтов и библиотек",
+  "@settingsLicenses": {
+    "description": "Пункт, открывающий экран лицензий."
+  },
+  "settingsFanProject": "Фанатский проект, не связан с CD PROJEKT RED",
+  "@settingsFanProject": {
+    "description": "Отметка внизу группы «О приложении»."
+  },
   "setupStep": "Шаг {step} из {total}",
   "@setupStep": {
     "description": "Надпись над заголовком шага выбора фракции и лидера.",

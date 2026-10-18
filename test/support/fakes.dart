@@ -14,12 +14,16 @@ import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 
 /// Версия приложения, заданная тестом.
 final class FakeAppInfo implements AppInfo {
-  const FakeAppInfo([this.current = '1.0.0']);
+  const FakeAppInfo([this.current = '1.0.0', this.build = '1']);
 
   final String current;
+  final String build;
 
   @override
   Future<String> version() async => current;
+
+  @override
+  Future<String> buildNumber() async => build;
 }
 
 /// Часы, которые показывают заданное время.

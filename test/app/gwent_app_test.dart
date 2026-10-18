@@ -7,6 +7,7 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
+import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../support/factories.dart';
@@ -75,6 +76,17 @@ void main() {
     expect(find.byType(GwentLogo), findsOneWidget);
   }
 
+  /// Настройки: у экрана своя шапка, «назад» — круглая кнопка с подписью для диктора.
+  Future<void> openSettingsAndReturn(WidgetTester tester) async {
+    await tester.tap(find.text(l10n.menuSettings));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.settingsBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
+  }
+
   testWidgets('приложение открывается на главном меню на русском', (tester) async {
     await pumpApp(tester);
 
@@ -109,7 +121,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(l10n.setupBack), findsNothing);
 
-    await openAndReturn(tester, l10n.menuSettings, l10n.settingsTitle);
+    await openSettingsAndReturn(tester);
   });
 
   testWidgets('из меню открываются партии, лобби, колоды и настройки, «назад» возвращает в меню', (tester) async {
@@ -129,7 +141,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await openAndReturn(tester, l10n.menuNetworkGame, l10n.lobbyTitle);
-    await openAndReturn(tester, l10n.menuSettings, l10n.settingsTitle);
+    await openSettingsAndReturn(tester);
   });
 
   testWidgets('колоды: список, новая колода в конструкторе, возврат по шагам в меню', (tester) async {

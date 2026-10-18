@@ -25,6 +25,8 @@ import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/application/watch_match_history.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/menu/application/load_menu.dart';
+import 'package:gwent/src/features/settings/application/check_content_update.dart';
+import 'package:gwent/src/features/settings/application/load_about_info.dart';
 import 'package:gwent/src/features/settings/application/save_settings.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
@@ -92,6 +94,8 @@ final class AppDependencies {
        ensureStarterDecks = EnsureStarterDecks(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
        watchSettings = WatchSettings(settingsRepository),
        saveSettings = SaveSettings(settingsRepository),
+       loadAboutInfo = LoadAboutInfo(appInfo, loadGameContent),
+       checkContentUpdate = CheckContentUpdate(loadGameContent, clock),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator) {
     chooseOpponentDeck = ChooseOpponentDeck(deckRules, getActiveDeck);
@@ -138,6 +142,12 @@ final class AppDependencies {
 
   /// Сохранение настроек.
   final SaveSettings saveSettings;
+
+  /// Версии приложения, набора карт и сетевого протокола для экрана настроек.
+  final LoadAboutInfo loadAboutInfo;
+
+  /// Проверка обновления набора карт.
+  final CheckContentUpdate checkContentUpdate;
 
   /// История партий.
   final WatchMatchHistory watchMatchHistory;

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show showLicensePage;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +16,7 @@ import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/menu/presentation/menu_screen.dart';
+import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 
 /// Навигация приложения.
@@ -58,7 +60,21 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
           ],
         ),
         GoRoute(path: _child(AppRoutes.lobby), builder: (context, state) => const LobbyScreen()),
-        GoRoute(path: _child(AppRoutes.settings), builder: (context, state) => const SettingsScreen()),
+        GoRoute(
+          path: _child(AppRoutes.settings),
+          builder: (context, state) => BlocProvider(
+            create: (_) => SettingsCubit(
+              watchSettings: dependencies.watchSettings,
+              saveSettings: dependencies.saveSettings,
+              loadAboutInfo: dependencies.loadAboutInfo,
+              checkContentUpdate: dependencies.checkContentUpdate,
+            ),
+            child: SettingsScreen(
+              onBack: () => context.go(AppRoutes.menu),
+              onLicenses: () => showLicensePage(context: context, applicationName: context.l10n.appTitle),
+            ),
+          ),
+        ),
         GoRoute(
           path: _child(AppRoutes.match),
           builder: (context, state) => MultiBlocProvider(
