@@ -7,13 +7,14 @@ import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/card/leader_name.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
 import 'package:gwent/src/core/presentation/components/info_panel.dart';
+import 'package:gwent/src/core/presentation/components/screen_backdrop.dart';
+import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/components/status_tag.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
-import 'package:gwent/src/features/match/presentation/setup/setup_parts.dart';
 
 /// Выбор лидера выбранной фракции (макет 7, шаг 2): выбранный лидер крупно с описанием способности и сетка карт.
 ///
@@ -101,53 +102,59 @@ class LeaderSelectView extends StatelessWidget {
     final compact = media.size.height - media.padding.vertical < _minHeightForFixedGrid;
     final available = selected?.available ?? false;
     final canConfirm = available && !busy;
-    return SetupScaffold(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 0, 22, 12),
-        child: Column(
-          children: [
-            SetupHeader(
-              eyebrow: eyebrow,
-              title: l10n.leaderSelectTitle,
-              subtitle: faction.name,
-              onBack: onBack,
-              trailing: gwent.crest == null ? null : GwentIconView(gwent.crest!, size: 40),
-            ),
-            if (compact)
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      if (selected != null) ..._selectedBlock(l10n, selected),
-                      const SizedBox(height: 14),
-                      _LeaderGrid(
-                        faction: faction,
-                        selectedId: selectedId,
-                        faceOf: faceOf,
-                        onSelect: onSelect,
-                        scrollable: false,
+    return ScreenBackdrop(
+      child: Column(
+        children: [
+          ScreenHeader(
+            eyebrow: eyebrow,
+            title: l10n.leaderSelectTitle,
+            subtitle: faction.name,
+            onBack: onBack,
+            trailing: gwent.crest == null ? null : GwentIconView(gwent.crest!, size: 40),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 12),
+              child: Column(
+                children: [
+                  if (compact)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            if (selected != null) ..._selectedBlock(l10n, selected),
+                            const SizedBox(height: 14),
+                            _LeaderGrid(
+                              faction: faction,
+                              selectedId: selectedId,
+                              faceOf: faceOf,
+                              onSelect: onSelect,
+                              scrollable: false,
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                    )
+                  else ...[
+                    if (selected != null) ..._selectedBlock(l10n, selected),
+                    const SizedBox(height: 14),
+                    Expanded(
+                      child: _LeaderGrid(faction: faction, selectedId: selectedId, faceOf: faceOf, onSelect: onSelect),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: GwentButton(
+                      label: available ? l10n.leaderSelectConfirm : l10n.leaderSelectUnavailable,
+                      onPressed: canConfirm ? onConfirm : null,
+                    ),
                   ),
-                ),
-              )
-            else ...[
-              if (selected != null) ..._selectedBlock(l10n, selected),
-              const SizedBox(height: 14),
-              Expanded(
-                child: _LeaderGrid(faction: faction, selectedId: selectedId, faceOf: faceOf, onSelect: onSelect),
-              ),
-            ],
-            const SizedBox(height: 4),
-            SizedBox(
-              width: double.infinity,
-              child: GwentButton(
-                label: available ? l10n.leaderSelectConfirm : l10n.leaderSelectUnavailable,
-                onPressed: canConfirm ? onConfirm : null,
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

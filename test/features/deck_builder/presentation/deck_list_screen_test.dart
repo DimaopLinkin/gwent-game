@@ -22,6 +22,7 @@ import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
 import '../../../support/match_fixtures.dart';
+import '../../../support/screen_guards.dart';
 
 final class _BrokenRulesSource implements DeckRulesSource {
   @override
@@ -72,7 +73,7 @@ void main() {
     );
     addTearDown(cubit.close);
     await tester.pumpWidget(
-      localizedApp(
+      localizedScreen(
         BlocProvider.value(
           value: cubit,
           child: DeckListScreen(onOpen: opened.add, onNew: () => created++, onBack: () => backs++),
@@ -81,6 +82,8 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+    expectNoFallbackTextStyle(tester);
+    expectBackButtonAtEdge(tester);
   }
 
   testWidgets('колоды со счётчиками по правилам; нарушающая правила помечена', (tester) async {

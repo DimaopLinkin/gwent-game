@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/card_content_mapper.dart';
-import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/core/presentation/components/game_loader.dart';
 import 'package:gwent/src/core/presentation/components/screen_backdrop.dart';
-import 'package:gwent/src/core/presentation/components/screen_labels.dart';
+import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
@@ -41,73 +40,28 @@ class DeckEditorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Material(
-      type: MaterialType.transparency,
-      child: ScreenBackdrop(
-        child: BlocConsumer<DeckEditorCubit, DeckEditorState>(
-          listenWhen: (previous, current) => current is DeckEditorSaved,
-          listener: (context, state) => onExit(),
-          builder: (context, state) => Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 6, 18, 0),
-                child: _TopBar(onBack: onExit),
-              ),
-              Expanded(
-                child: switch (state) {
-                  DeckEditorLoading() || DeckEditorSaved() => const GameLoader(),
-                  DeckEditorFailed() => _Message(l10n.editorLoadFailed),
-                  DeckEditorNotFound() => _Message(l10n.editorNotFound),
-                  final DeckEditorReady ready => _EditorBody(
-                    state: ready,
-                    banner: banner,
-                    actionsBuilder: actionsBuilder,
-                  ),
-                },
-              ),
-            ],
-          ),
+    return ScreenBackdrop(
+      child: BlocConsumer<DeckEditorCubit, DeckEditorState>(
+        listenWhen: (previous, current) => current is DeckEditorSaved,
+        listener: (context, state) => onExit(),
+        builder: (context, state) => Column(
+          children: [
+            ScreenHeader(eyebrow: l10n.editorEyebrow, onBack: onExit, backLabel: l10n.editorBack),
+            Expanded(
+              child: switch (state) {
+                DeckEditorLoading() || DeckEditorSaved() => const GameLoader(),
+                DeckEditorFailed() => _Message(l10n.editorLoadFailed),
+                DeckEditorNotFound() => _Message(l10n.editorNotFound),
+                final DeckEditorReady ready => _EditorBody(
+                  state: ready,
+                  banner: banner,
+                  actionsBuilder: actionsBuilder,
+                ),
+              },
+            ),
+          ],
         ),
       ),
-    );
-  }
-}
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return Row(
-      children: [
-        ChevronButton(label: l10n.editorBack, onPressed: onBack),
-        // Слово «Колоды» входит в зону нажатия, как в «‹ Колоды» из макета; диктору хватает подписи кнопки.
-        ExcludeSemantics(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onBack,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(6, 12, 12, 12),
-              child: Text(
-                l10n.editorBack,
-                textScaler: TextScaler.noScaling,
-                style: const TextStyle(
-                  fontFamily: GwentText.cormorant,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                  height: 1,
-                  letterSpacing: 18 * 0.04,
-                  color: GwentColors.goldHighlight,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Expanded(child: Eyebrow(l10n.editorEyebrow, align: TextAlign.end)),
-      ],
     );
   }
 }

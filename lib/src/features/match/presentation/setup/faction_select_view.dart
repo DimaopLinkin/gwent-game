@@ -5,12 +5,12 @@ import 'package:gwent/src/core/presentation/components/diamond_marker.dart';
 import 'package:gwent/src/core/presentation/components/faction_medallion.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
 import 'package:gwent/src/core/presentation/components/info_panel.dart';
-import 'package:gwent/src/core/presentation/components/screen_labels.dart';
+import 'package:gwent/src/core/presentation/components/screen_backdrop.dart';
+import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
-import 'package:gwent/src/features/match/presentation/setup/setup_parts.dart';
 
 /// Выбор фракции (макет 7, шаг 1): карусель из страниц с гербом, названием и способностью фракции.
 ///
@@ -99,33 +99,10 @@ class _FactionSelectViewState extends State<FactionSelectView> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final last = widget.factions.length - 1;
-    return SetupScaffold(
+    return ScreenBackdrop(
       child: Column(
         children: [
-          Stack(
-            alignment: Alignment.topCenter,
-            children: [
-              // Слева кнопка «Назад» (16 + 44 pt): заголовок держится правее неё и сжимается, а не заходит под неё.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(64, 2, 64, 0),
-                child: Column(
-                  spacing: 4,
-                  children: [
-                    Eyebrow(widget.eyebrow, size: 14, align: TextAlign.center),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: ScreenTitle(l10n.factionSelectTitle, size: 34, color: GwentColors.goldHighlight),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: 16,
-                top: 0,
-                child: ChevronButton(label: l10n.setupBack, onPressed: widget.onBack),
-              ),
-            ],
-          ),
+          ScreenHeader(eyebrow: widget.eyebrow, title: l10n.factionSelectTitle, titleSize: 34, onBack: widget.onBack),
           const SizedBox(height: 12),
           Expanded(
             child: Stack(

@@ -22,6 +22,7 @@ import 'package:gwent_content/gwent_content.dart';
 import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
+import '../../../support/screen_guards.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -72,7 +73,7 @@ void main() {
     await tester.pumpWidget(
       BlocProvider.value(
         value: cubit,
-        child: localizedApp(
+        child: localizedScreen(
           MenuScreen(
             onHotSeat: () => taps.add('hotSeat'),
             onBot: () => taps.add('bot'),
@@ -89,6 +90,7 @@ void main() {
         await tester.pump(const Duration(seconds: 2));
       }
     }
+    expectNoFallbackTextStyle(tester);
     return cubit;
   }
 

@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/core/presentation/components/chevron_button.dart';
+import 'package:gwent/src/core/presentation/components/faction_medallion.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
@@ -22,6 +24,7 @@ import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
 import '../../../support/match_fixtures.dart';
+import '../../../support/screen_guards.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +68,7 @@ void main() {
     );
     addTearDown(cubit.close);
     await tester.pumpWidget(
-      localizedApp(
+      localizedScreen(
         BlocProvider.value(
           value: cubit,
           child: DeckEditorScreen(onExit: () => exits++, banner: banner),
@@ -74,6 +77,8 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+    expectNoFallbackTextStyle(tester);
+    expectBackButtonAtEdge(tester);
   }
 
   int minUnits() => rules.gameRules.minUnitCards;
@@ -91,6 +96,32 @@ void main() {
       expect(find.text(l10n.editorHintValid), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    for (final faction in Faction.values.where((faction) => faction != Faction.neutral)) {
+      testWidgets('${faction.name}: герб и название стоят по центру между стрелками, название без многоточия', (
+        tester,
+      ) async {
+        final deck = realDeck(content, faction, id: 'deck-1');
+        await repository.save(deck);
+        await pumpEditor(tester, deckId: 'deck-1');
+        final name = rules.factionInfos.firstWhere((info) => info.id == deck.factionId).name;
+
+        final chevrons = find.byType(ChevronButton);
+        final previous = tester.getRect(chevrons.at(1));
+        final next = tester.getRect(chevrons.at(2));
+        final crest = tester.getRect(find.byType(FactionMedallion));
+        final text = tester.getRect(find.text(name));
+        expect(
+          crest.left - previous.right,
+          closeTo(next.left - text.right, 1),
+          reason: 'группа «герб и название» сдвинута к одной из стрелок',
+        );
+        final label = tester.widget<Text>(find.text(name));
+        expect(label.textAlign, TextAlign.center);
+        expect(label.overflow, isNot(TextOverflow.ellipsis));
+        expect(tester.takeException(), isNull);
+      });
+    }
 
     testWidgets('«Сохранить» сохраняет колоду и закрывает конструктор', (tester) async {
       await repository.save(skelligeDeck());
