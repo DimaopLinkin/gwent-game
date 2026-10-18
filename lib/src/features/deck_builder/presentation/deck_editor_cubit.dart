@@ -5,6 +5,7 @@ import 'package:gwent/src/features/deck_builder/application/get_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/load_deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_state.dart';
 
 /// Держатель конструктора колоды (макет 8): состав колоды, вкладки, фильтры и сохранение.
@@ -47,7 +48,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
       if (rules.factionInfos.isEmpty) throw StateError('в пакете нет фракций с колодой');
       final draft = deck == null
           ? DeckDraft(name: _fallbackName, factionId: rules.factionInfos.first.id)
-          : DeckDraft.of(deck);
+          : _withoutUnknownCards(DeckDraft.of(deck), rules);
       final index = rules.factionInfos.indexWhere((faction) => faction.id == draft.factionId);
       if (index < 0) throw StateError('фракции колоды нет среди фракций с колодой: ${draft.factionId}');
       emit(
@@ -67,6 +68,14 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
       if (!isClosed) emit(DeckEditorFailed(error));
     }
   }
+
+  /// Карты, которых нет в пакете (пакет обновился), уходят из состава: показать и убрать их иначе нечем.
+  DeckDraft _withoutUnknownCards(DeckDraft draft, DeckRules rules) => draft.copyWith(
+    cards: {
+      for (final MapEntry(key: id, value: copies) in draft.cards.entries)
+        if (rules.cardsById.containsKey(id)) id: copies,
+    },
+  );
 
   DeckEditorReady? get _ready => switch (state) {
     final DeckEditorReady ready when !ready.saving => ready,
@@ -173,7 +182,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
   /// Колода, нарушающая правила, сохраняется черновиком: играть ей нельзя, но работа не пропадает.
   Future<void> save() async {
     final ready = _ready;
-    final leaderId = ready?.draft.leaderId;
+    final leaderId = ready?.leader?.id;
     if (ready == null || leaderId == null) return;
     _messageTimer?.cancel();
     emit(_copy(ready, saving: true, clearMessage: true));
@@ -190,7 +199,8 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
       emit(const DeckEditorSaved());
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
-      if (!isClosed) emit(DeckEditorFailed(error));
+      // Собранная колода остаётся на экране: игрок может нажать «Сохранить» ещё раз.
+      if (!isClosed) emit(_copy(ready, saving: false, saveFailed: true));
     }
   }
 
@@ -223,6 +233,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
     bool? saving,
     EditorMessage? message,
     bool clearMessage = false,
+    bool? saveFailed,
     String? lastMoved,
     int? moveSerial,
   }) => DeckEditorReady(
@@ -234,6 +245,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
     factionIndex: ready.factionIndex,
     saving: saving ?? ready.saving,
     message: clearMessage ? null : message ?? ready.message,
+    saveFailed: !clearMessage && (saveFailed ?? ready.saveFailed),
     lastMoved: lastMoved ?? ready.lastMoved,
     moveSerial: moveSerial ?? ready.moveSerial,
   );

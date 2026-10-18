@@ -5,6 +5,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_state.dart';
+import 'package:gwent/src/features/deck_builder/presentation/deck_issue_text.dart';
 
 /// Пять счётчиков колоды (макет 8): всего, отряды `N/мин`, особые `N/макс`, сила, герои.
 ///
@@ -123,10 +124,16 @@ class EditorHint extends StatelessWidget {
         },
         true,
       ),
+      null when state.saveFailed => (l10n.editorSaveFailed, true),
       null when state.leader == null => (l10n.editorHintPickLeader, true),
       null when state.tooFewUnits => (l10n.editorHintNeedUnits(rules.minUnitCards - state.stats.units), true),
       null when state.tooManySpecials => (
         l10n.editorHintTooManySpecials(rules.maxSpecialCards, state.stats.specials - rules.maxSpecialCards),
+        true,
+      ),
+      // Колода из хранилища может нарушать правила иначе (чужая фракция, лишние копии после обновления пакета).
+      null when state.issues.isNotEmpty => (
+        DeckIssueText(pack: state.rules.pack, l10n: l10n).describe(state.issues.first),
         true,
       ),
       null => (l10n.editorHintValid, false),

@@ -202,7 +202,18 @@ class _DeckRow extends StatelessWidget {
             Expanded(
               child: Semantics(
                 button: true,
-                label: l10n.deckListOpen(deck.name),
+                // Подпись несёт то, что зрячий видит на карточке: фракцию, счётчики и нарушение правил.
+                label: [
+                  l10n.deckListOpen(deck.name),
+                  if (faction != null && leader != null)
+                    '${faction.name} · ${splitLeaderName(rules!.pack.text(leader.nameKey)).$1}',
+                  if (stats != null) ...[
+                    l10n.deckListTotal(stats.total),
+                    l10n.deckListUnits(stats.units, minUnits),
+                    l10n.deckListSpecials(stats.specials, maxSpecials),
+                  ],
+                  if (invalid) l10n.deckListInvalid,
+                ].join('. '),
                 onTap: onOpen,
                 excludeSemantics: true,
                 child: GestureDetector(
@@ -287,7 +298,7 @@ class _DeckRow extends StatelessWidget {
             ),
             Semantics(
               button: true,
-              label: l10n.deckListDelete,
+              label: '${l10n.deckListDelete}: ${deck.name}',
               onTap: onDelete,
               excludeSemantics: true,
               child: GestureDetector(

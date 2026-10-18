@@ -84,18 +84,28 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return Row(
-      spacing: 6,
       children: [
         ChevronButton(label: l10n.editorBack, onPressed: onBack),
-        Text(
-          l10n.editorBack,
-          textScaler: TextScaler.noScaling,
-          style: const TextStyle(
-            fontFamily: GwentText.cormorant,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            letterSpacing: 18 * 0.04,
-            color: GwentColors.goldHighlight,
+        // Слово «Колоды» входит в зону нажатия, как в «‹ Колоды» из макета; диктору хватает подписи кнопки.
+        ExcludeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onBack,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(6, 12, 12, 12),
+              child: Text(
+                l10n.editorBack,
+                textScaler: TextScaler.noScaling,
+                style: const TextStyle(
+                  fontFamily: GwentText.cormorant,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  height: 1,
+                  letterSpacing: 18 * 0.04,
+                  color: GwentColors.goldHighlight,
+                ),
+              ),
+            ),
           ),
         ),
         Expanded(child: Eyebrow(l10n.editorEyebrow, align: TextAlign.end)),
@@ -125,8 +135,8 @@ class _Message extends StatelessWidget {
 class _EditorBody extends StatelessWidget {
   const _EditorBody({required this.state, required this.banner, required this.actionsBuilder});
 
-  /// Ниже этой высоты область под нижними кнопками прокручивается целиком, вместе со шапкой и счётчиками.
-  static const double _compactHeight = 520;
+  /// Ниже этой высоты (вместе с кнопками) шапка и счётчики прокручиваются вместе с картами.
+  static const double _compactHeight = 610;
 
   final DeckEditorReady state;
   final Widget? banner;
@@ -137,7 +147,7 @@ class _EditorBody extends StatelessWidget {
     final cubit = context.read<DeckEditorCubit>();
     final mapper = CardContentMapper(pack: state.rules.pack, l10n: context.l10n);
 
-    Widget top() => Column(
+    Widget top({bool withHint = true}) => Column(
       children: [
         if (banner case final banner?) Padding(padding: const EdgeInsets.fromLTRB(14, 6, 14, 0), child: banner),
         Padding(
@@ -155,10 +165,11 @@ class _EditorBody extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
           child: EditorStats(state: state),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: EditorHint(state: state),
-        ),
+        if (withHint)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: EditorHint(state: state),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
           child: EditorTabs(state: state, onSelected: cubit.selectTab),
@@ -182,25 +193,38 @@ class _EditorBody extends StatelessWidget {
       onLongPressCard: (id) => _preview(context, mapper, id),
     );
 
-    return Column(
-      children: [
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) => constraints.maxHeight < _compactHeight
-                ? SingleChildScrollView(child: Column(children: [top(), grid(shrinkWrap: true)]))
-                : Column(
-                    children: [
-                      top(),
-                      Expanded(child: grid()),
-                    ],
-                  ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-          child: actionsBuilder?.call(context, state) ?? EditorActions(state: state, onSave: cubit.save),
-        ),
-      ],
+    final actions = Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+      child: actionsBuilder?.call(context, state) ?? EditorActions(state: state, onSave: cubit.save),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxHeight >= _compactHeight) {
+          return Column(
+            children: [
+              top(),
+              Expanded(child: grid()),
+              actions,
+            ],
+          );
+        }
+        // Шапка и счётчики прокручиваются вместе с картами, поэтому подсказка закреплена над кнопками: причина отказа
+        // видна, где бы ни была прокрутка.
+        return Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(children: [top(withHint: false), grid(shrinkWrap: true)]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: EditorHint(state: state),
+            ),
+            actions,
+          ],
+        );
+      },
     );
   }
 

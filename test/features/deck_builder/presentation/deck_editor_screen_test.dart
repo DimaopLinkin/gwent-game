@@ -250,6 +250,30 @@ void main() {
       });
     }
 
+    testWidgets('на маленьком экране подсказка закреплена над кнопками и видна при любой прокрутке', (tester) async {
+      await pumpEditor(tester, size: const Size(320, 568));
+
+      await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -400));
+      await tester.pump();
+
+      final hint = tester.getRect(find.text(l10n.editorHintPickLeader));
+      final save = tester.getRect(find.text(l10n.editorSave));
+      expect(hint.bottom, lessThanOrEqualTo(save.top));
+      expect(hint.top, greaterThan(0));
+    });
+
+    testWidgets('колода с чужой картой: подсказка называет причину, а не «соответствует правилам»', (tester) async {
+      final base = skelligeDeck();
+      final foreign = rules.pack.rules.squadCards.firstWhere(
+        (card) => content.factions[card.fractionId] == Faction.monsters && card.count > 0,
+      );
+      await repository.save(base.copyWith(cards: {...base.cards, foreign.id: 1}));
+      await pumpEditor(tester, deckId: 'deck-1');
+
+      expect(find.text(l10n.editorHintValid), findsNothing);
+      expect(find.text(l10n.editorSave), findsOneWidget);
+    });
+
     testWidgets('на маленьком экране кнопки сохранения остаются видны, а карты прокручиваются', (tester) async {
       await repository.save(skelligeDeck());
       await pumpEditor(tester, deckId: 'deck-1', size: const Size(320, 568));

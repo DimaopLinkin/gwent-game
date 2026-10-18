@@ -277,7 +277,7 @@ void main() {
       expect(saved.name, 'Новая колода');
     });
 
-    test('сбой хранилища — состояние ошибки', () async {
+    test('сбой хранилища: собранная колода остаётся, сохранить можно ещё раз', () async {
       repository.saveError = StateError('диск полон');
       final cubit = await open();
       cubit
@@ -286,7 +286,36 @@ void main() {
 
       await cubit.save();
 
-      expect(cubit.state, isA<DeckEditorFailed>());
+      final state = ready(cubit);
+      expect(state.saveFailed, isTrue);
+      expect(state.saving, isFalse);
+      expect(state.draft.cards, {Small.warrior: 1});
+
+      repository.saveError = null;
+      await cubit.save();
+      expect(cubit.state, isA<DeckEditorSaved>());
+    });
+  });
+
+  group('колода из хранилища с устаревшим составом', () {
+    test('карты, которых нет в пакете, при открытии уходят из состава', () async {
+      await repository.save(smallSkelligeDeck(cards: const {Small.warrior: 3, 'нет-такой-карты': 2}));
+
+      final state = ready(await open(deckId: 'deck-skellige'));
+
+      expect(state.draft.cards, {Small.warrior: 3});
+    });
+
+    test('карта чужой фракции видна на вкладке «Колода» и убирается', () async {
+      await repository.save(smallSkelligeDeck(cards: const {Small.warrior: 3, Small.ghoul: 1}));
+      final cubit = await open(deckId: 'deck-skellige');
+
+      expect(ready(cubit).visible.map((entry) => entry.card.id), contains(Small.ghoul));
+      expect(ready(cubit).issues, isNotEmpty);
+
+      cubit.removeCard(Small.ghoul);
+
+      expect(ready(cubit).draft.cards, {Small.warrior: 3});
     });
   });
 }

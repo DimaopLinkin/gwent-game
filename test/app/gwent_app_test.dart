@@ -160,7 +160,7 @@ void main() {
 
     await tester.tap(find.text(l10n.menuDecks));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel(l10n.deckListOpen(saved.name)));
+    await tester.tap(find.bySemanticsLabel(RegExp('^${RegExp.escape(l10n.deckListOpen(saved.name))}')));
     await tester.pumpAndSettle();
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, saved.name);
 

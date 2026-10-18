@@ -148,6 +148,7 @@ final class DeckEditorReady extends DeckEditorState {
     required this.factionIndex,
     required this.saving,
     this.message,
+    this.saveFailed = false,
     this.lastMoved,
     this.moveSerial = 0,
   });
@@ -175,6 +176,9 @@ final class DeckEditorReady extends DeckEditorState {
 
   /// Сообщение об отказе в строке подсказки.
   final EditorMessage? message;
+
+  /// Колоду не удалось сохранить: собранное осталось на экране, можно нажать «Сохранить» ещё раз.
+  final bool saveFailed;
 
   /// Последняя перемещённая карта (для анимации).
   final String? lastMoved;
@@ -220,13 +224,18 @@ final class DeckEditorReady extends DeckEditorState {
   int get availableCount => collection.where((entry) => !entry.blocked).length;
 
   /// Карты открытой вкладки под фильтром.
-  List<EditorCard> get visible => List.unmodifiable([
-    for (final entry in collection)
-      if (filter.accepts(entry.card) &&
-          switch (tab) {
-            DeckEditorTab.collection => !onlyAvailable || !entry.blocked,
-            DeckEditorTab.deck => entry.copies > 0,
-          })
-        entry,
-  ]);
+  ///
+  /// Вкладка «Колода» строится по составу колоды, а не по коллекции фракции: карту, которой нет в коллекции (чужая
+  /// фракция после обновления пакета), видно и можно убрать.
+  List<EditorCard> get visible => List.unmodifiable(switch (tab) {
+    DeckEditorTab.collection => [
+      for (final entry in collection)
+        if (filter.accepts(entry.card) && (!onlyAvailable || !entry.blocked)) entry,
+    ],
+    DeckEditorTab.deck => [
+      for (final card in rules.allCards)
+        if (filter.accepts(card) && draft.copiesOf(card.id) > 0)
+          EditorCard(card: card, copies: draft.copiesOf(card.id), blocked: rules.refusalToAdd(draft, card) != null),
+    ],
+  });
 }

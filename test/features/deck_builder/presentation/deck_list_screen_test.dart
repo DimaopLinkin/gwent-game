@@ -92,6 +92,13 @@ void main() {
     expect(find.text('Заготовка'), findsOneWidget);
     expect(find.text(l10n.deckListInvalid), findsOneWidget, reason: 'отметка только у колоды, нарушающей правила');
     expect(find.text(l10n.deckListUnits(1, rules.gameRules.minUnitCards)), findsOneWidget);
+    final handle = tester.ensureSemantics();
+    expect(
+      find.bySemanticsLabel(RegExp('Заготовка.*${l10n.deckListInvalid}')),
+      findsOneWidget,
+      reason: 'диктор слышит и счётчики, и нарушение правил',
+    );
+    handle.dispose();
     expect(tester.takeException(), isNull);
   });
 
@@ -100,7 +107,7 @@ void main() {
     await repository.save(valid('a', 'Драккары'));
     await pumpList(tester);
 
-    await tester.tap(find.bySemanticsLabel(l10n.deckListOpen('Драккары')));
+    await tester.tap(find.bySemanticsLabel(RegExp('^${l10n.deckListOpen('Драккары')}')));
     await tester.tap(find.text(l10n.deckListNew));
     await tester.tap(find.bySemanticsLabel(l10n.setupBack));
 
@@ -115,14 +122,14 @@ void main() {
     await repository.save(valid('a', 'Драккары'));
     await pumpList(tester);
 
-    await tester.tap(find.bySemanticsLabel(l10n.deckListDelete));
+    await tester.tap(find.bySemanticsLabel(RegExp('^${l10n.deckListDelete}')));
     await tester.pumpAndSettle();
     expect(find.text(l10n.deckDeleteTitle), findsOneWidget);
     await tester.tapAt(const Offset(195, 60));
     await tester.pumpAndSettle();
     expect(find.text('Драккары'), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel(l10n.deckListDelete));
+    await tester.tap(find.bySemanticsLabel(RegExp('^${l10n.deckListDelete}')));
     await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.deckDeleteConfirm));
     await tester.pumpAndSettle();
