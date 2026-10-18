@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/life_gems.dart';
+import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
@@ -8,7 +9,6 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
-import 'package:gwent/src/features/match/presentation/start/start_parts.dart';
 
 /// Итог раунда поверх поля (макет 5, раздел 2): счёт, камни жизни и сработавшие способности фракций.
 ///
@@ -71,7 +71,7 @@ class RoundSummaryView extends StatelessWidget {
               children: [
                 Eyebrow(l10n.summaryEyebrow(summary.round), size: 14, align: TextAlign.center),
                 const SizedBox(height: 12),
-                StartTitle(title, size: 40, color: titleColor, align: TextAlign.center),
+                ScreenTitle(title, size: 40, color: titleColor, align: TextAlign.center),
                 const SizedBox(height: 16),
                 const SizedBox(width: 200, child: _Ornament()),
                 const SizedBox(height: 26),

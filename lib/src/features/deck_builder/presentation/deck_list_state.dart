@@ -1,11 +1,12 @@
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 
 /// Состояние списка колод.
 sealed class DeckListState {
   const DeckListState();
 }
 
-/// Колоды ещё читаются.
+/// Колоды читаются.
 final class DeckListLoading extends DeckListState {
   /// Создаёт состояние.
   const DeckListLoading();
@@ -13,18 +14,22 @@ final class DeckListLoading extends DeckListState {
 
 /// Колоды прочитаны.
 final class DeckListLoaded extends DeckListState {
-  /// Создаёт состояние со списком [decks].
-  const DeckListLoaded(this.decks);
+  /// Создаёт состояние: [decks] в порядке хранилища, [rules] — правила набора карт.
+  const DeckListLoaded(this.decks, {this.rules});
 
-  /// Колоды, сначала недавно изменённые.
+  /// Сохранённые колоды.
   final List<Deck> decks;
+
+  /// Правила по набору карт: фракции, лидеры, счётчики. `null`, если набор карт не загрузился; тогда у колод видны
+  /// только название и число карт.
+  final DeckRules? rules;
 }
 
-/// Колоды прочитать не удалось.
+/// Не удалось прочитать колоды.
 final class DeckListFailed extends DeckListState {
-  /// Создаёт состояние с причиной [error].
+  /// Создаёт состояние с ошибкой [error].
   const DeckListFailed(this.error);
 
-  /// Причина для журнала; игроку показывается общее сообщение.
+  /// Что пошло не так.
   final Object error;
 }

@@ -4,7 +4,10 @@ import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/core/presentation/card/leader_name.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/core/presentation/components/info_panel.dart';
+import 'package:gwent/src/core/presentation/components/status_tag.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
@@ -62,13 +65,13 @@ class LeaderSelectView extends StatelessWidget {
     const SizedBox(height: 16),
     _SelectedLeader(leader: selected, face: faceOf(selected.id)),
     const SizedBox(height: 14),
-    SetupPanel(
+    InfoPanel(
       minHeight: 84,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 6,
         children: [
-          SetupPanelLabel(l10n.leaderSelectAbility),
+          InfoPanelLabel(l10n.leaderSelectAbility),
           SizedBox(
             width: double.infinity,
             child: Text(
@@ -209,7 +212,7 @@ class _SelectedLeader extends StatelessWidget {
                     color: GwentColors.textSecondary,
                   ),
                 ),
-              SetupTag(
+              StatusTag(
                 leader.available ? l10n.leaderStatusAvailable : l10n.leaderStatusLocked,
                 background: leader.available ? GwentColors.gold : GwentColors.surfaceRaised,
                 color: leader.available ? GwentColors.onGold : GwentColors.textSecondary,

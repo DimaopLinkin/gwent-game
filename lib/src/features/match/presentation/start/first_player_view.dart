@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart' hide Intent;
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
@@ -47,7 +48,7 @@ class MatchFirstPlayerView extends StatelessWidget {
                 children: [
                   const GwentIconView(GwentIcon.crestScoiatael, size: 112),
                   Eyebrow(hotSeat ? l10n.matchFirstPlayerEyebrowHot(name) : scoiatael, size: 14),
-                  StartTitle(
+                  ScreenTitle(
                     waiting ? l10n.matchFirstPlayerOpponentDecides : l10n.matchFirstPlayerTitle,
                     size: 44,
                     align: TextAlign.center,

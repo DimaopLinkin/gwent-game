@@ -3,7 +3,10 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/core/presentation/card/leader_name.dart';
+import 'package:gwent/src/core/presentation/components/diamond_marker.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/core/presentation/components/status_tag.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
@@ -220,11 +223,11 @@ class _DeckRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (choice.ready)
-                  SetupTag(l10n.deckSelectReady, background: const Color(0xFF2A2416), color: GwentColors.gold)
+                  StatusTag(l10n.deckSelectReady, background: GwentColors.goldSurface, color: GwentColors.gold)
                 else
-                  SetupTag(
+                  StatusTag(
                     l10n.deckSelectNotReady,
-                    background: const Color(0xFF2E1511),
+                    background: GwentColors.errorSurface,
                     color: GwentColors.errorText,
                     ring: GwentColors.debuff,
                   ),
@@ -252,7 +255,7 @@ class _DeckRow extends StatelessWidget {
         onTap: onTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: selected ? const Color(0xF5221C16) : const Color(0xE614110E),
+            color: selected ? GwentColors.rowSelected : GwentColors.rowSurface,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: selected ? GwentColors.gold : GwentColors.line, width: selected ? 1.5 : 1),
           ),

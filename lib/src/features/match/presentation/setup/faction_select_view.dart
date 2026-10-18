@@ -1,13 +1,16 @@
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/core/presentation/components/chevron_button.dart';
+import 'package:gwent/src/core/presentation/components/diamond_marker.dart';
 import 'package:gwent/src/core/presentation/components/faction_medallion.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/core/presentation/components/info_panel.dart';
+import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
 import 'package:gwent/src/features/match/presentation/setup/setup_parts.dart';
-import 'package:gwent/src/features/match/presentation/start/start_parts.dart';
 
 /// Выбор фракции (макет 7, шаг 1): карусель из страниц с гербом, названием и способностью фракции.
 ///
@@ -111,7 +114,7 @@ class _FactionSelectViewState extends State<FactionSelectView> {
                     Eyebrow(widget.eyebrow, size: 14, align: TextAlign.center),
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: StartTitle(l10n.factionSelectTitle, size: 34, color: GwentColors.goldHighlight),
+                      child: ScreenTitle(l10n.factionSelectTitle, size: 34, color: GwentColors.goldHighlight),
                     ),
                   ],
                 ),
@@ -119,7 +122,7 @@ class _FactionSelectViewState extends State<FactionSelectView> {
               Positioned(
                 left: 16,
                 top: 0,
-                child: SetupChevronButton(label: l10n.setupBack, onPressed: widget.onBack),
+                child: ChevronButton(label: l10n.setupBack, onPressed: widget.onBack),
               ),
             ],
           ),
@@ -136,7 +139,7 @@ class _FactionSelectViewState extends State<FactionSelectView> {
                 Positioned(
                   left: 10,
                   top: 104,
-                  child: SetupChevronButton(
+                  child: ChevronButton(
                     label: l10n.factionSelectPrevious,
                     ring: GwentColors.brass,
                     onPressed: widget.index > 0 ? () => widget.onIndexChanged(widget.index - 1) : null,
@@ -145,7 +148,7 @@ class _FactionSelectViewState extends State<FactionSelectView> {
                 Positioned(
                   right: 10,
                   top: 104,
-                  child: SetupChevronButton(
+                  child: ChevronButton(
                     label: l10n.factionSelectNext,
                     ring: GwentColors.brass,
                     forward: true,
@@ -245,7 +248,7 @@ class _PerkLabel extends StatelessWidget {
   const _PerkLabel();
 
   @override
-  Widget build(BuildContext context) => SetupPanelLabel(context.l10n.factionSelectPerk);
+  Widget build(BuildContext context) => InfoPanelLabel(context.l10n.factionSelectPerk);
 }
 
 /// Точка-ромб под каруселью; зона нажатия 44×44 pt.

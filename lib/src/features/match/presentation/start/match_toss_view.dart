@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
@@ -207,7 +208,7 @@ class _MatchTossViewState extends State<MatchTossView> with SingleTickerProvider
                         child: Column(
                           spacing: 8,
                           children: [
-                            StartTitle(result, size: 38, color: GwentColors.goldHighlight, align: TextAlign.center),
+                            ScreenTitle(result, size: 38, color: GwentColors.goldHighlight, align: TextAlign.center),
                             StartBody(note, size: 14.5, italic: true),
                           ],
                         ),

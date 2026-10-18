@@ -6,6 +6,7 @@ import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
@@ -101,7 +102,7 @@ class MatchHandoverView extends StatelessWidget {
                       color: GwentColors.textSecondary,
                     ),
                   ),
-                  StartTitle(name, size: 60, color: GwentColors.goldHighlight, align: TextAlign.center),
+                  ScreenTitle(name, size: 60, color: GwentColors.goldHighlight, align: TextAlign.center),
                   FactionLine(faction: faction, name: content.factionName(player.faction), size: 16),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 290),

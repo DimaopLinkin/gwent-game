@@ -31,6 +31,7 @@ class GwentButton extends StatefulWidget {
     this.solid = false,
     this.labelColor,
     this.semanticsLabel,
+    this.maxLines = 1,
   }) : assert(height >= GwentSpace.minTapTarget, 'зона нажатия не меньше 44 pt');
 
   /// Подпись.
@@ -56,6 +57,9 @@ class GwentButton extends StatefulWidget {
 
   /// Подпись для экранного диктора, если она отличается от видимой.
   final String? semanticsLabel;
+
+  /// Сколько строк занимает подпись; длинная подпись узкой кнопки переносится, а не обрезается.
+  final int maxLines;
 
   @override
   State<GwentButton> createState() => _GwentButtonState();
@@ -106,7 +110,7 @@ class _GwentButtonState extends State<GwentButton> {
     final enabled = _enabled;
     final text = Text(
       widget.label,
-      maxLines: 1,
+      maxLines: widget.maxLines,
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
       textScaler: TextScaler.noScaling,

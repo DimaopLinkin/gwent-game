@@ -9,6 +9,7 @@ import 'package:gwent/src/features/deck_builder/application/delete_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/ensure_starter_decks.dart';
 import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
 import 'package:gwent/src/features/deck_builder/application/get_active_deck.dart';
+import 'package:gwent/src/features/deck_builder/application/get_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/load_deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/set_active_deck.dart';
@@ -82,6 +83,7 @@ final class AppDependencies {
   }) : watchDecks = WatchDecks(deckRepository),
        saveDeck = SaveDeck(deckRepository, clock, idGenerator),
        deleteDeck = DeleteDeck(deckRepository),
+       getDeck = GetDeck(deckRepository),
        loadDeckRules = LoadDeckRules(deckRules),
        validateDeck = ValidateDeck(deckRules),
        watchActiveDecks = WatchActiveDecks(deckRepository),
@@ -109,6 +111,9 @@ final class AppDependencies {
 
   /// Удаление колоды.
   final DeleteDeck deleteDeck;
+
+  /// Открывает сохранённую колоду для правки.
+  final GetDeck getDeck;
 
   /// Правила сборки колод: фракции, лидеры, проверка.
   final LoadDeckRules loadDeckRules;

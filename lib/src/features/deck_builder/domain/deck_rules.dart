@@ -1,10 +1,23 @@
+import 'dart:math' as math;
+
+import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
-import 'package:gwent_content/gwent_content.dart' show ContentPack, Fraction;
-import 'package:gwent_engine/gwent_engine.dart' show CardCatalog, DeckValidator, GameRules;
+import 'package:gwent_content/gwent_content.dart' show ContentPack, Fraction, SpecialCard, SquadCard;
+import 'package:gwent_engine/gwent_engine.dart'
+    show
+        CardCatalog,
+        CardId,
+        ClearWeatherAbility,
+        DeckValidator,
+        GameRules,
+        SpecialCardDefinition,
+        UnitCardDefinition,
+        UnitPlacement,
+        WeatherAbility;
 
 /// Правила сборки колод по активному пакету контента: какие фракции доступны, годна ли колода, стартовая колода.
 ///
@@ -12,11 +25,14 @@ import 'package:gwent_engine/gwent_engine.dart' show CardCatalog, DeckValidator,
 /// и хост партии судят колоду одинаково. [catalog] и [gameRules] должны быть построены по тому же [pack].
 final class DeckRules {
   /// Создаёт правила по пакету [pack] и построенным по нему справочнику движка [catalog] и параметрам [gameRules].
-  DeckRules({required this.pack, required CardCatalog catalog, required this.gameRules})
+  DeckRules({required this.pack, required this.catalog, required this.gameRules})
     : _validator = DeckValidator(catalog, gameRules);
 
   /// Пакет контента: карты, лидеры, фракции и их названия.
   final ContentPack pack;
+
+  /// Справочник карт движка, построенный по [pack].
+  final CardCatalog catalog;
 
   /// Параметры колоды в виде, понятном движку.
   final GameRules gameRules;
@@ -51,6 +67,101 @@ final class DeckRules {
         ],
       ),
   ]);
+
+  /// Сколько экземпляров героя можно положить в колоду (раздел 2.2 `docs/hand/main.md`): в наборе карт у героев
+  /// и так одна копия, но правило не зависит от данных.
+  static const int heroCopies = 1;
+
+  /// Все карты коллекции в порядке пакета: сначала отряды, потом особые; созданные карты (`count` = 0) не входят.
+  late final List<CollectionCard> allCards = List.unmodifiable([
+    for (final card in pack.rules.squadCards) ?_unit(card),
+    for (final card in pack.rules.specialCards) ?_special(card),
+  ]);
+
+  /// Карты коллекции по UUID.
+  late final Map<String, CollectionCard> cardsById = Map.unmodifiable({for (final card in allCards) card.id: card});
+
+  /// Карты, из которых собирают колоду фракции [factionId]: её карты и нейтральные, в порядке пакета.
+  List<CollectionCard> collectionFor(String factionId) => List.unmodifiable(
+    allCards.where((card) => card.isNeutral || card.fractionId == factionId),
+  );
+
+  CollectionCard? _unit(SquadCard card) {
+    final definition = catalog.card(CardId(card.id));
+    if (card.count < 1 || definition is! UnitCardDefinition) return null;
+    return CollectionCard(
+      id: card.id,
+      fractionId: card.fractionId,
+      isNeutral: !isDeckFaction(card.fractionId),
+      kind: definition.isHero ? CollectionKind.hero : CollectionKind.unit,
+      maxCopies: definition.isHero ? math.min(card.count, heroCopies) : card.count,
+      placement: switch (definition.placement) {
+        UnitPlacement.melee => CollectionPlacement.melee,
+        UnitPlacement.ranged => CollectionPlacement.ranged,
+        UnitPlacement.siege => CollectionPlacement.siege,
+        UnitPlacement.agile => CollectionPlacement.agile,
+      },
+      strength: card.strength,
+    );
+  }
+
+  CollectionCard? _special(SpecialCard card) {
+    final definition = catalog.card(CardId(card.id));
+    if (card.count < 1 || definition is! SpecialCardDefinition) return null;
+    return CollectionCard(
+      id: card.id,
+      fractionId: card.fractionId,
+      isNeutral: !isDeckFaction(card.fractionId),
+      kind: switch (definition.ability) {
+        WeatherAbility() || ClearWeatherAbility() => CollectionKind.weather,
+        _ => CollectionKind.special,
+      },
+      maxCopies: card.count,
+    );
+  }
+
+  /// Счётчики черновика [draft]; карты, которых нет в пакете, в счётчики не входят.
+  DeckStats statsOf(DeckDraft draft) {
+    var total = 0;
+    var units = 0;
+    var specials = 0;
+    var power = 0;
+    var heroes = 0;
+    for (final MapEntry(key: id, value: copies) in draft.cards.entries) {
+      final card = cardsById[id];
+      if (card == null) continue;
+      total += copies;
+      if (card.isUnit) {
+        units += copies;
+        power += copies * card.strength;
+      } else {
+        specials += copies;
+      }
+      if (card.kind == CollectionKind.hero) heroes += copies;
+    }
+    return DeckStats(total: total, units: units, specials: specials, power: power, heroes: heroes);
+  }
+
+  /// Почему карту [card] нельзя добавить в черновик [draft]; `null`, если можно.
+  AddRefusal? refusalToAdd(DeckDraft draft, CollectionCard card) {
+    if (draft.copiesOf(card.id) >= card.maxCopies) {
+      return card.kind == CollectionKind.hero ? AddRefusal.heroLimit : AddRefusal.allCopiesInDeck;
+    }
+    if (card.isSpecial && statsOf(draft).specials >= gameRules.maxSpecialCards) return AddRefusal.specialLimit;
+    return null;
+  }
+
+  /// Проблемы черновика: те же правила, что у сохранённой колоды. Пока лидер не выбран, проблема — лидер.
+  List<DeckIssue> checkDraft(DeckDraft draft) => check(
+    Deck(
+      id: draft.id ?? '',
+      name: draft.name,
+      factionId: draft.factionId,
+      leaderId: draft.leaderId ?? '',
+      cards: draft.cards,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+    ),
+  );
 
   /// Можно ли собрать колоду фракции [factionId].
   bool isDeckFaction(String factionId) => pack.rules.fractionsById[factionId]?.isDeck ?? false;

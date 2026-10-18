@@ -176,4 +176,16 @@ abstract final class GwentColors {
 
   /// Подпись, которая светлее вторичного текста, но слабее основного (надписи на тёмных панелях).
   static const Color textTertiary = Color(0xFFCFC3A8);
+
+  /// Подложка метки ошибки: «Колода не готова», пол листа предупреждения.
+  static const Color errorSurface = Color(0xFF2E1511);
+
+  /// Подложка выбранной или готовой метки в золотой гамме.
+  static const Color goldSurface = Color(0xFF2A2416);
+
+  /// Подложка выбранной строки списка.
+  static const Color rowSelected = Color(0xF5221C16);
+
+  /// Подложка строки списка и панелей поверх стола.
+  static const Color rowSurface = Color(0xE614110E);
 }
