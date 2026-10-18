@@ -21,6 +21,7 @@ import 'package:gwent_engine/gwent_engine.dart' show Faction;
 import '../../../../support/fonts.dart';
 import '../../../../support/localized_app.dart';
 import '../../../../support/match_fixtures.dart';
+import '../../../../support/screen_guards.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +43,10 @@ void main() {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(localizedApp(view));
+    await tester.pumpWidget(localizedScreen(view));
     await tester.pump();
+    expectNoFallbackTextStyle(tester);
+    expectBackButtonAtEdge(tester);
   }
 
   group('FactionSelectView', () {

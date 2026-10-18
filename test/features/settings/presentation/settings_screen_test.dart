@@ -21,6 +21,7 @@ import 'package:gwent/src/features/settings/presentation/settings_state.dart';
 import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
+import '../../../support/screen_guards.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -58,12 +59,14 @@ void main() {
     await tester.pumpWidget(
       BlocProvider.value(
         value: cubit,
-        child: localizedApp(
+        child: localizedScreen(
           SettingsScreen(onBack: () => taps.add('back'), onLicenses: () => taps.add('licenses')),
         ),
       ),
     );
     await tester.pump();
+    expectNoFallbackTextStyle(tester);
+    expectBackButtonAtEdge(tester);
   }
 
   testWidgets('пять групп и версии: приложение, сборка, протокол, набор карт', (tester) async {

@@ -1,8 +1,12 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// Фон экранов выбора фракции, лидера, колоды и конструктора (макеты 7 и 8): тёмное дерево стола с едва заметными
 /// горизонтальными полосами и виньеткой по краям. Фон идёт на весь экран, включая зоны под вырезом и системными
 /// панелями, а содержимое [child] лежит поверх него в безопасной области (если не отключено [safeArea]).
+///
+/// Это корень экранов без `Scaffold`, поэтому он же даёт им `Material`. Экран маршрута сам по себе `Material` не
+/// получает: `MaterialApp` оставляет под ним отладочный стиль текста (жёлтое двойное подчёркивание), а `TextField` и
+/// `InkWell` без `Material` падают. Прозрачный `Material` лежит над фоном вокруг содержимого, берёт стиль текста из темы и ничего не рисует.
 class ScreenBackdrop extends StatelessWidget {
   /// Создаёт фон.
   const ScreenBackdrop({super.key, required this.child, this.safeArea = true});
@@ -42,7 +46,11 @@ class ScreenBackdrop extends StatelessWidget {
           ),
         ),
       ),
-      if (safeArea) SafeArea(child: child) else child,
+      // Material над фоном: чернила `InkWell` рисуются на нём и остаются видны, а не уходят под градиент.
+      Material(
+        type: MaterialType.transparency,
+        child: safeArea ? SafeArea(child: child) : child,
+      ),
     ],
   );
 }

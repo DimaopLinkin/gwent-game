@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
-import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/core/presentation/components/diamond_marker.dart';
 import 'package:gwent/src/core/presentation/components/game_loader.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
 import 'package:gwent/src/core/presentation/components/gwent_slider.dart';
 import 'package:gwent/src/core/presentation/components/screen_backdrop.dart';
+import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/settings/domain/about_info.dart';
@@ -40,34 +40,8 @@ class SettingsScreen extends StatelessWidget {
       body: ScreenBackdrop(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-              child: Row(
-                spacing: 8,
-                children: [
-                  ChevronButton(label: l10n.settingsBack, onPressed: onBack),
-                  Expanded(
-                    child: Semantics(
-                      header: true,
-                      child: Text(
-                        l10n.settingsTitle,
-                        textAlign: TextAlign.center,
-                        textScaler: TextScaler.noScaling,
-                        style: const TextStyle(
-                          fontFamily: GwentText.cormorant,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 30,
-                          height: 1,
-                          letterSpacing: 30 * 0.06,
-                          color: GwentColors.goldHighlight,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 44),
-                ],
-              ),
-            ),
+            ScreenHeader(title: l10n.settingsTitle, onBack: onBack, backLabel: l10n.settingsBack),
+            const SizedBox(height: 10),
             Expanded(
               child: BlocBuilder<SettingsCubit, SettingsState>(
                 builder: (context, state) => switch (state) {

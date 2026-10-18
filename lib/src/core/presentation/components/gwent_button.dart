@@ -17,7 +17,8 @@ enum GwentButtonStyle {
 
 /// Большая кнопка-«пилюля» экранов старта, итогов, паузы и главного меню (макеты 4–6).
 ///
-/// Без [onPressed] кнопка недоступна: тусклая рамка и текст, нажатие не принимается. Высота не меньше
+/// Без [onPressed] кнопка недоступна: тусклая рамка и текст, нажатие не принимается. Доступная второстепенная кнопка
+/// отличается от недоступной латунной рамкой (серо-коричневая рамка макета читалась как погашенная). Высота не меньше
 /// [GwentSpace.minTapTarget]. Текст не следует масштабу системы: размеры заданы макетом.
 class GwentButton extends StatefulWidget {
   /// Создаёт кнопку.
@@ -133,7 +134,7 @@ class _GwentButtonState extends State<GwentButton> {
       GwentButtonStyle.secondary when enabled => _flat(
         padded,
         fill: widget.solid ? const Color(0xE614110E) : null,
-        ring: GwentColors.muted,
+        ring: GwentColors.brass,
         width: 1,
       ),
       GwentButtonStyle.secondary => _flat(padded, fill: const Color(0xCC14110E), ring: GwentColors.panelLine, width: 1),

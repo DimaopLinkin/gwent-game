@@ -72,28 +72,33 @@ class EditorHeader extends StatelessWidget {
                     children: [
                       ChevronButton(label: l10n.factionSelectPrevious, onPressed: state.saving ? null : onPrevFaction),
                       Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 8,
-                          children: [
-                            // На узком экране названию нужнее место, чем гербу: герб виден и на карте лидера.
-                            if (!narrow) FactionMedallion(faction: look, size: 38, crestSize: 26),
-                            Flexible(
-                              child: Text(
-                                state.faction.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textScaler: TextScaler.noScaling,
-                                style: const TextStyle(
-                                  fontFamily: GwentText.cormorant,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 19,
-                                  height: 1.05,
-                                  color: GwentColors.textPrimary,
+                        // Герб и название стоят одной группой по центру между стрелками, а не растягиваются на всю ширину.
+                        child: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 8,
+                            children: [
+                              // На узком экране названию нужнее место, чем гербу: герб виден и на карте лидера.
+                              if (!narrow) FactionMedallion(faction: look, size: 38, crestSize: 26),
+                              Flexible(
+                                child: Text(
+                                  state.faction.name,
+                                  // Длинное название переносится на вторую строку, обе строки по центру, без многоточия.
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                  textWidthBasis: TextWidthBasis.longestLine,
+                                  textScaler: TextScaler.noScaling,
+                                  style: const TextStyle(
+                                    fontFamily: GwentText.cormorant,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 19,
+                                    height: 1.05,
+                                    color: GwentColors.textPrimary,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       ChevronButton(

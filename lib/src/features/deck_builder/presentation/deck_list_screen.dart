@@ -5,11 +5,10 @@ import 'package:gwent/src/core/presentation/card/card_content_mapper.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/card/leader_name.dart';
-import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/core/presentation/components/diamond_marker.dart';
 import 'package:gwent/src/core/presentation/components/game_loader.dart';
 import 'package:gwent/src/core/presentation/components/screen_backdrop.dart';
-import 'package:gwent/src/core/presentation/components/screen_labels.dart';
+import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/components/status_tag.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
@@ -42,29 +41,12 @@ class DeckListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return ScreenBackdrop(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              spacing: 12,
-              children: [
-                ChevronButton(label: l10n.setupBack, onPressed: onBack),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 5,
-                    children: [
-                      Eyebrow(l10n.deckListEyebrow),
-                      ScreenTitle(l10n.deckListTitle, size: 34, color: GwentColors.goldHighlight),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
+      child: Column(
+        children: [
+          ScreenHeader(eyebrow: l10n.deckListEyebrow, title: l10n.deckListTitle, titleSize: 34, onBack: onBack),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 16, 22, 18),
               child: BlocBuilder<DeckListCubit, DeckListState>(
                 builder: (context, state) => switch (state) {
                   DeckListLoading() => const GameLoader(),
@@ -82,8 +64,8 @@ class DeckListScreen extends StatelessWidget {
                 },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
