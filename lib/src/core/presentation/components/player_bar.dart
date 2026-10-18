@@ -5,11 +5,35 @@ import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/card_pile.dart';
+import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
+
+/// Метки частей полосы: по ним анимации карт находят, куда лететь и откуда (макет 12).
+///
+/// Ключи долгоживущие, поэтому объект создаёт тот, кто держит поле, и отдаёт его полосе.
+class PlayerBarAnchors {
+  /// Создаёт набор меток.
+  PlayerBarAnchors();
+
+  /// Мини-карта лидера.
+  final GlobalKey leader = GlobalKey();
+
+  /// Число карт в руке.
+  final GlobalKey hand = GlobalKey();
+
+  /// Колода.
+  final GlobalKey deck = GlobalKey();
+
+  /// Сброс.
+  final GlobalKey discard = GlobalKey();
+
+  /// Круг общего счёта.
+  final GlobalKey score = GlobalKey();
+}
 
 /// Полоса игрока на поле (макет поля, «Панель игрока»): высота 48 pt, поля 8, промежуток 8.
 ///
@@ -37,6 +61,11 @@ class PlayerBar extends StatelessWidget {
     this.onLeaderTap,
     this.onLeaderLongPress,
     this.onDiscardTap,
+    this.scoreRoll,
+    this.handRoll,
+    this.deckRoll,
+    this.discardRoll,
+    this.anchors,
   });
 
   /// Высота полосы.
@@ -93,6 +122,21 @@ class PlayerBar extends StatelessWidget {
   /// Тап по сбросу.
   final VoidCallback? onDiscardTap;
 
+  /// Прокрутка общего счёта, числа карт в руке, в колоде и в сбросе (анимации карт); `null` — число стоит.
+  final RollValue? scoreRoll;
+
+  /// См. [scoreRoll].
+  final RollValue? handRoll;
+
+  /// См. [scoreRoll].
+  final RollValue? deckRoll;
+
+  /// См. [scoreRoll].
+  final RollValue? discardRoll;
+
+  /// Метки частей полосы для анимаций карт.
+  final PlayerBarAnchors? anchors;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -115,11 +159,14 @@ class PlayerBar extends StatelessWidget {
       child: Row(
         spacing: 8,
         children: [
-          _LeaderSlot(
-            face: leader,
-            available: leaderAvailable,
-            onTap: onLeaderTap,
-            onLongPress: onLeaderLongPress,
+          KeyedSubtree(
+            key: anchors?.leader,
+            child: _LeaderSlot(
+              face: leader,
+              available: leaderAvailable,
+              onTap: onLeaderTap,
+              onLongPress: onLeaderLongPress,
+            ),
           ),
           Expanded(
             child: Column(
@@ -152,25 +199,19 @@ class PlayerBar extends StatelessWidget {
                   spacing: 8,
                   children: [
                     _Gems(remaining: lifeRemaining, total: lifeTotal),
-                    Semantics(
-                      label: l10n.playerPlateHandCount(handCount),
-                      excludeSemantics: true,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: 3,
-                        children: [
-                          const GwentIconView(GwentIcon.iconHand, size: 13, color: GwentColors.textSecondary),
-                          Text(
-                            '$handCount',
-                            textScaler: TextScaler.noScaling,
-                            style: GwentText.caption.copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12.5,
-                              height: 1,
-                              fontFeatures: GwentText.numbers,
-                            ),
-                          ),
-                        ],
+                    KeyedSubtree(
+                      key: anchors?.hand,
+                      child: Semantics(
+                        label: l10n.playerPlateHandCount(handCount),
+                        excludeSemantics: true,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          spacing: 3,
+                          children: [
+                            const GwentIconView(GwentIcon.iconHand, size: 13, color: GwentColors.textSecondary),
+                            _handLabel(),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -178,22 +219,48 @@ class PlayerBar extends StatelessWidget {
               ],
             ),
           ),
-          _ScoreDisc(score: score, leading: leading),
-          CardPile(
-            top: CardBackFace(faction: faction),
-            count: deckCount,
-            semanticsLabel: l10n.fieldDeckSemantics(deckCount),
+          KeyedSubtree(
+            key: anchors?.score,
+            child: _ScoreDisc(score: score, leading: leading, roll: scoreRoll),
           ),
-          CardPile(
-            top: discardTop,
-            count: discardCount,
-            semanticsLabel: l10n.fieldDiscardSemantics(discardCount),
-            onTap: onDiscardTap,
+          KeyedSubtree(
+            key: anchors?.deck,
+            child: CardPile(
+              top: CardBackFace(faction: faction),
+              count: deckCount,
+              roll: deckRoll,
+              semanticsLabel: l10n.fieldDeckSemantics(deckCount),
+            ),
+          ),
+          KeyedSubtree(
+            key: anchors?.discard,
+            child: CardPile(
+              top: discardTop,
+              count: discardCount,
+              roll: discardRoll,
+              semanticsLabel: l10n.fieldDiscardSemantics(discardCount),
+              onTap: onDiscardTap,
+            ),
           ),
           if (trailing != null) SizedBox(width: 70, child: Center(child: trailing)),
         ],
       ),
     );
+  }
+}
+
+extension on PlayerBar {
+  Widget _handLabel() {
+    final style = GwentText.caption.copyWith(
+      fontWeight: FontWeight.w700,
+      fontSize: 12.5,
+      height: 1,
+      fontFeatures: GwentText.numbers,
+    );
+    final roll = handRoll;
+    return roll == null
+        ? Text('$handCount', textScaler: TextScaler.noScaling, style: style)
+        : RollingNumber(roll, style: style);
   }
 }
 
@@ -252,10 +319,11 @@ class _Gems extends StatelessWidget {
 }
 
 class _ScoreDisc extends StatelessWidget {
-  const _ScoreDisc({required this.score, required this.leading});
+  const _ScoreDisc({required this.score, required this.leading, this.roll});
 
   final int score;
   final bool leading;
+  final RollValue? roll;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -286,11 +354,9 @@ class _ScoreDisc extends StatelessWidget {
               BoxShadow(color: leading ? GwentColors.gold : GwentColors.brass, spreadRadius: 1.5),
             ],
           ),
-          child: Text(
-            '$score',
-            textScaler: TextScaler.noScaling,
-            style: GwentText.scoreTotal.copyWith(fontSize: 19),
-          ),
+          child: roll == null
+              ? Text('$score', textScaler: TextScaler.noScaling, style: GwentText.scoreTotal.copyWith(fontSize: 19))
+              : RollingNumber(roll!, style: GwentText.scoreTotal.copyWith(fontSize: 19)),
         ),
         if (leading)
           Positioned(

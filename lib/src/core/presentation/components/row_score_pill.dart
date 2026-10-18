@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
@@ -21,7 +22,7 @@ enum RowScoreTone {
 /// 32 pt вместе со слотом рога в 80 pt высоты ряда не помещается.
 class RowScorePill extends StatelessWidget {
   /// Создаёт пилюлю силы ряда [score].
-  const RowScorePill({super.key, required this.score, this.tone = RowScoreTone.neutral});
+  const RowScorePill({super.key, required this.score, this.tone = RowScoreTone.neutral, this.roll});
 
   /// Высота.
   static const double height = 24;
@@ -35,6 +36,9 @@ class RowScorePill extends StatelessWidget {
   /// Сравнение с базовой силой.
   final RowScoreTone tone;
 
+  /// Сила прокручивается (анимации карт): вместо [score] показывается она.
+  final RollValue? roll;
+
   @override
   Widget build(BuildContext context) {
     final ring = switch (tone) {
@@ -42,6 +46,7 @@ class RowScorePill extends StatelessWidget {
       RowScoreTone.boosted => GwentColors.buff,
       RowScoreTone.weakened => GwentColors.debuff,
     };
+    final style = GwentText.powerCard.copyWith(fontSize: score >= 100 || (roll?.to ?? 0) >= 100 ? 12 : 14);
     return Semantics(
       label: context.l10n.rowScoreSemantics(score),
       excludeSemantics: true,
@@ -62,11 +67,9 @@ class RowScorePill extends StatelessWidget {
         // Без alignment у контейнера: он растянулся бы на всю колонку, а пилюля должна быть по цифре.
         child: Center(
           widthFactor: 1,
-          child: Text(
-            '$score',
-            textScaler: TextScaler.noScaling,
-            style: GwentText.powerCard.copyWith(fontSize: score >= 100 ? 12 : 14),
-          ),
+          child: roll == null
+              ? Text('$score', textScaler: TextScaler.noScaling, style: style)
+              : RollingNumber(roll!, style: style),
         ),
       ),
     );

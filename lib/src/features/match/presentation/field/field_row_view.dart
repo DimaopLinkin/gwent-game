@@ -4,6 +4,7 @@ import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/horn_slot.dart';
+import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/core/presentation/components/row_score_pill.dart';
 import 'package:gwent/src/core/presentation/components/row_weather_overlay.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
@@ -12,6 +13,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Один ряд на поле (макет поля, «Z-порядок слоёв»): фон, погодный слой, водяной знак, колонка (сила ряда и слот
@@ -32,6 +34,9 @@ class FieldRowView extends StatelessWidget {
     this.hornTarget = false,
     this.decoyTargets = const {},
     this.recent = const {},
+    this.staged,
+    this.strengthRoll,
+    this.flashes = const {},
     this.onTap,
     this.canDrop,
     this.onDrop,
@@ -66,6 +71,15 @@ class FieldRowView extends StatelessWidget {
   /// Карты, которые только что легли на стол.
   final Set<CardInstanceId> recent;
 
+  /// Ряд на этот момент показа розыгрыша: карты в пути, прячущиеся и проявляющиеся; `null` — ряд как в проекции.
+  final StagedRow? staged;
+
+  /// Сила ряда прокручивается (анимации карт).
+  final RollValue? strengthRoll;
+
+  /// Подсветка силы карт ряда во время показа.
+  final Map<CardInstanceId, CardFlash> flashes;
+
   /// Нажатие по ряду.
   final VoidCallback? onTap;
 
@@ -84,12 +98,18 @@ class FieldRowView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rect = geometry.rowRect(row, mine: mine);
-    final weather = data.weather ? FieldContent.weatherOf(row) : null;
-    final cards = data.cards;
-    final base = cards.fold(0, (sum, view) => sum + content.baseStrength(view.card));
-    final tone = data.strength > base
+    final stage = staged;
+    final hasWeather = stage?.weather ?? data.weather;
+    final slot = stage == null ? data.slot : stage.slot;
+    final weather = hasWeather ? FieldContent.weatherOf(row) : null;
+    final staging = stage?.cards;
+    final cards = staging == null ? data.cards : [for (final staged in staging) staged.view];
+    // Цвет кольца берётся из итога обновления: пока карты едут и числа крутятся, он не мигает.
+    final base = data.cards.fold(0, (sum, view) => sum + content.baseStrength(view.card));
+    final shown = data.strength;
+    final tone = shown > base
         ? RowScoreTone.boosted
-        : data.strength < base
+        : shown < base
         ? RowScoreTone.weakened
         : RowScoreTone.neutral;
     final area = geometry.cardsArea(row, mine: mine).shift(-rect.topLeft);
@@ -136,13 +156,13 @@ class FieldRowView extends StatelessWidget {
                     width: FieldGeometry.columnWidth,
                     top: 4,
                     child: Center(
-                      child: RowScorePill(score: data.strength, tone: tone),
+                      child: RowScorePill(score: data.strength, tone: tone, roll: strengthRoll),
                     ),
                   ),
                   Positioned(
                     left: FieldGeometry.columnLeft + 1.5,
                     top: 32,
-                    child: _HornSlotView(slot: data.slot, content: content, target: hornTarget && mine),
+                    child: _HornSlotView(slot: slot, content: content, target: hornTarget && mine),
                   ),
                   for (var i = 0; i < cards.length; i++)
                     _FieldCard(
@@ -150,7 +170,10 @@ class FieldRowView extends StatelessWidget {
                       view: cards[i],
                       content: content,
                       rect: geometry.cardRect(row, i, cards.length, mine: mine).shift(-rect.topLeft),
-                      frosted: data.weather && row == Row.melee,
+                      frosted: hasWeather && row == Row.melee,
+                      hidden: staging?[i].hidden ?? false,
+                      opacity: staging?[i].opacity ?? 1,
+                      flash: flashes[cards[i].card.id],
                       isDecoyTarget: decoyTargets.contains(cards[i].card.id),
                       justPlayed: recent.contains(cards[i].card.id),
                       onTap: onCardTap,
@@ -259,6 +282,9 @@ class _FieldCard extends StatelessWidget {
     required this.content,
     required this.rect,
     required this.frosted,
+    required this.hidden,
+    required this.opacity,
+    required this.flash,
     required this.isDecoyTarget,
     required this.justPlayed,
     required this.onTap,
@@ -269,6 +295,9 @@ class _FieldCard extends StatelessWidget {
   final FieldContent content;
   final Rect rect;
   final bool frosted;
+  final bool hidden;
+  final double opacity;
+  final CardFlash? flash;
   final bool isDecoyTarget;
   final bool justPlayed;
   final void Function(CardInstance card)? onTap;
@@ -285,22 +314,36 @@ class _FieldCard extends StatelessWidget {
       top: rect.top,
       width: rect.width,
       height: rect.height,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(3),
-          boxShadow: isDecoyTarget
-              ? const [
+      child: IgnorePointer(
+        ignoring: hidden,
+        child: Opacity(
+          opacity: hidden ? 0 : opacity.clamp(0.0, 1.0),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(3),
+              boxShadow: [
+                if (isDecoyTarget) ...const [
                   BoxShadow(color: Color(0x8CC8A35B), blurRadius: 10),
                   BoxShadow(color: GwentColors.gold, spreadRadius: 1.5),
-                ]
-              : null,
-        ),
-        child: GwentCard(
-          face: detail.face,
-          size: CardSize.row,
-          highlight: justPlayed ? CardHighlight.justPlayed : CardHighlight.normal,
-          onTap: onTap == null ? null : () => onTap!(card),
-          onLongPress: onLongPress == null ? null : () => onLongPress!(card, view.strength),
+                ],
+                if (flash case final flash? when flash.tone != RollTone.none)
+                  BoxShadow(
+                    color: (flash.tone == RollTone.gain ? GwentColors.buff : GwentColors.debuff).withValues(
+                      alpha: 0.85 * flash.alpha,
+                    ),
+                    blurRadius: 10,
+                    spreadRadius: 1.5,
+                  ),
+              ],
+            ),
+            child: GwentCard(
+              face: detail.face,
+              size: CardSize.row,
+              highlight: justPlayed ? CardHighlight.justPlayed : CardHighlight.normal,
+              onTap: onTap == null ? null : () => onTap!(card),
+              onLongPress: onLongPress == null ? null : () => onLongPress!(card, view.strength),
+            ),
+          ),
         ),
       ),
     );

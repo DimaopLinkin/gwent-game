@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
@@ -12,7 +13,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 /// Колода показывает рубашку, сброс — верхнюю карту или пустой пунктирный слот. Тап по сбросу открывает его лист.
 class CardPile extends StatelessWidget {
   /// Создаёт стопку из [count] карт; [top] — верхняя карта (рубашка колоды или последняя карта сброса).
-  const CardPile({super.key, required this.top, required this.count, this.semanticsLabel, this.onTap});
+  const CardPile({super.key, required this.top, required this.count, this.roll, this.semanticsLabel, this.onTap});
 
   /// Ширина.
   static const double width = 31;
@@ -25,6 +26,9 @@ class CardPile extends StatelessWidget {
 
   /// Сколько карт в стопке.
   final int count;
+
+  /// Число карт прокручивается (анимации карт): вместо [count] показывается оно.
+  final RollValue? roll;
 
   /// Подпись для экранного диктора.
   final String? semanticsLabel;
@@ -52,7 +56,9 @@ class CardPile extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 2,
-            child: Center(child: _CountPill(count: count)),
+            child: Center(
+              child: _CountPill(count: count, roll: roll),
+            ),
           ),
         ],
       ),
@@ -83,9 +89,10 @@ class _EmptySlot extends StatelessWidget {
 }
 
 class _CountPill extends StatelessWidget {
-  const _CountPill({required this.count});
+  const _CountPill({required this.count, this.roll});
 
   final int count;
+  final RollValue? roll;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -98,10 +105,13 @@ class _CountPill extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
       boxShadow: const [BoxShadow(color: GwentColors.brass, spreadRadius: 1)],
     ),
-    child: Text(
-      '$count',
-      textScaler: TextScaler.noScaling,
-      style: GwentText.powerCard.copyWith(fontSize: 11, fontWeight: FontWeight.w700),
-    ),
+    child: _label(GwentText.powerCard.copyWith(fontSize: 11, fontWeight: FontWeight.w700)),
   );
+
+  Widget _label(TextStyle style) {
+    final roll = this.roll;
+    return roll == null
+        ? Text('$count', textScaler: TextScaler.noScaling, style: style)
+        : RollingNumber(roll, style: style);
+  }
 }

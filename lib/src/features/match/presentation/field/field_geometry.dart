@@ -147,4 +147,30 @@ final class FieldGeometry {
 
   /// Для [count] карт на руке нужна горизонтальная прокрутка, а не веер.
   bool handScrolls(int count) => count > 1 && fanStep(count) < minFanStep;
+
+  /// Карта номер [index] из [count] в руке 77×111 без поворота: туда карты прилетают, отсюда вылетают.
+  ///
+  /// Повторяет раскладку `HandView`: веер, а при прокрутке карты подряд с шагом 83 pt от левого поля.
+  Rect handCardRect(int index, int count) {
+    const cardWidth = 77.0;
+    const cardHeight = 111.0;
+    if (handScrolls(count)) {
+      return Rect.fromLTWH(10 + index * (cardWidth + 6), handTop + 16, cardWidth, cardHeight);
+    }
+    final step = fanStep(count);
+    final left = fanInset + (width - 2 * fanInset - (cardWidth + (count - 1) * step)) / 2;
+    final extra = (handHeight - minHandHeight) / 2;
+    final center = (count - 1) / 2;
+    final distance = center == 0 ? 0.0 : (index - center) / center;
+    const fanTop = 16.0;
+    const arcDepth = 8.0;
+    final top = extra + fanTop + (center == 0 ? arcDepth : arcDepth * (1 - distance * distance));
+    return Rect.fromLTWH((left + index * step).roundToDouble(), handTop + top, cardWidth, cardHeight);
+  }
+
+  /// Крупная карта по центру поля 103×148: так показывают сыгранные особые карты и ходы соперника.
+  Rect get centerCardRect => Rect.fromCenter(center: strip.center, width: 103, height: 148);
+
+  /// Слот погоды в центральной полосе: круг ⌀28 слева, по одному на тип ряда.
+  Rect weatherSlotRect(Row row) => Rect.fromLTWH(10.0 + row.index * 32, stripTop + (stripHeight - 28) / 2, 28, 28);
 }
