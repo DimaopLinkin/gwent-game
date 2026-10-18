@@ -1,9 +1,12 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart' hide Intent;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/game_loader.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
+import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
@@ -23,7 +26,11 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// Показывает то, что говорит `MatchBloc`: знакомство, жребий, выбор Скоя'таэлей, передачу телефона, пересдачу, поле
 /// и итог матча. Выбор игрока на поле, баннеры, итог раунда и паузу держит `FieldCubit`, он получает состояние
 /// партии отсюда же. Выбор фракции, лидера и колоды перед партией (макет 7) держит `MatchSetupCubit`.
-class MatchScreen extends StatelessWidget {
+///
+/// Пока поле показывает баннер, итог раунда, паузу или конец партии (`FieldState.isBusy`), следующие состояния партии
+/// ждут в очереди и выходят на экран по одному, когда показ закончился: бот и сетевой соперник могут ходить быстрее,
+/// чем идут анимации, но игрок видит ходы по порядку. Тот же порядок будет у анимаций карт (ADR 0013).
+class MatchScreen extends StatefulWidget {
   /// Создаёт экран; [onExit] уводит из партии в меню, [onEditDeck] открывает колоду в конструкторе, [confirmPass]
   /// включает диалог подтверждения паса.
   const MatchScreen({super.key, required this.onExit, required this.onEditDeck, this.confirmPass = false});
@@ -38,15 +45,17 @@ class MatchScreen extends StatelessWidget {
   final bool confirmPass;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: GwentColors.bg,
-    body: SafeArea(
-      child: BlocConsumer<MatchBloc, MatchScreenState>(
-        listener: (context, state) => context.read<FieldCubit>().onMatchState(state),
-        builder: (context, state) => PopScope(canPop: _canLeave(state), child: _stage(context, state)),
-      ),
-    ),
-  );
+  State<MatchScreen> createState() => _MatchScreenState();
+}
+
+class _MatchScreenState extends State<MatchScreen> {
+  /// Состояния партии, которые ждут, пока поле закончит показ.
+  final Queue<MatchScreenState> _waiting = Queue();
+
+  /// Что сейчас на экране.
+  late MatchScreenState _shown = context.read<MatchBloc>().state;
+
+  bool _releasing = false;
 
   /// Системное «назад» уводит из партии только до её начала и после конца. Посреди партии оно не выходит молча:
   /// на поле его перехватывает пауза (`FieldView`), на остальных экранах старта выхода нет, чтобы не потерять партию.
@@ -55,6 +64,61 @@ class MatchScreen extends StatelessWidget {
     MatchIntro() || MatchToss() || MatchHandover() || MatchInProgress() => false,
   };
 
+  /// Поле на экране и показывает что-то: следующее состояние партии подождёт. Остальные экраны очередь не держат.
+  bool get _fieldIsBusy =>
+      switch (_shown) {
+        MatchInProgress(:final view) => view.phase == MatchPhase.playing || view.phase == MatchPhase.finished,
+        _ => false,
+      } &&
+      context.read<FieldCubit>().state.isBusy;
+
+  void _onMatchState(MatchScreenState state) {
+    if (state is MatchCrashed || (state is MatchFinished && state.events.any(_isResignation))) {
+      // Партия сломалась или игрок сдался: ждать анимаций незачем, а то, что в очереди, уже не покажешь.
+      _waiting.clear();
+      _show(state);
+    } else if (_waiting.isEmpty && !_fieldIsBusy) {
+      _show(state);
+    } else {
+      _waiting.add(state);
+    }
+  }
+
+  static bool _isResignation(GameEvent event) =>
+      event is MatchEnded && event.outcome.reason == MatchEndReason.resignation;
+
+  void _release() {
+    if (_releasing) return;
+    _releasing = true;
+    try {
+      while (_waiting.isNotEmpty && mounted && !_fieldIsBusy) {
+        _show(_waiting.removeFirst());
+      }
+    } finally {
+      _releasing = false;
+    }
+  }
+
+  void _show(MatchScreenState state) {
+    setState(() => _shown = state);
+    context.read<FieldCubit>().onMatchState(state);
+  }
+
+  @override
+  Widget build(BuildContext context) => MultiBlocListener(
+    listeners: [
+      BlocListener<MatchBloc, MatchScreenState>(listener: (context, state) => _onMatchState(state)),
+      BlocListener<FieldCubit, FieldState>(
+        listenWhen: (previous, current) => previous.isBusy && !current.isBusy,
+        listener: (context, state) => _release(),
+      ),
+    ],
+    child: Scaffold(
+      backgroundColor: GwentColors.bg,
+      body: PopScope(canPop: _canLeave(_shown), child: _stage(context, _shown)),
+    ),
+  );
+
   Widget _stage(BuildContext context, MatchScreenState state) {
     final l10n = context.l10n;
     final bloc = context.read<MatchBloc>();
@@ -62,13 +126,15 @@ class MatchScreen extends StatelessWidget {
     return switch (state) {
       MatchIdle() => MatchSetupStage(
         onStart: (request) => bloc.add(MatchStartRequested(request)),
-        onEditDeck: onEditDeck,
-        onExit: onExit,
+        onEditDeck: widget.onEditDeck,
+        onExit: widget.onExit,
       ),
-      MatchStarting() => const GameLoader(),
-      MatchStartFailed() => MatchPanel(
-        title: l10n.matchStartFailed,
-        actions: [(label: l10n.matchExit, onPressed: onExit, primary: true)],
+      MatchStarting() => const SafeArea(child: Center(child: GameLoader())),
+      MatchStartFailed() => SafeArea(
+        child: MatchPanel(
+          title: l10n.matchStartFailed,
+          actions: [(label: l10n.matchExit, onPressed: widget.onExit, primary: true)],
+        ),
       ),
       MatchIntro(:final roster) => MatchIntroView(
         roster: roster,
@@ -97,17 +163,19 @@ class MatchScreen extends StatelessWidget {
           roster: roster,
         ),
         PlayerView(phase: MatchPhase.redraw) => MatchRedrawView(view: view, roster: roster, onIntent: submit),
-        _ => FieldView(view: view, content: content, roster: roster, onIntent: submit, confirmPass: confirmPass),
+        _ => FieldView(view: view, content: content, roster: roster, onIntent: submit, confirmPass: widget.confirmPass),
       },
       MatchFinished(:final view, :final roster, :final canRematch) => MatchResultView(
         view: view,
         roster: roster,
-        onExit: onExit,
+        onExit: widget.onExit,
         onRematch: canRematch ? () => bloc.add(const MatchRematchRequested()) : null,
       ),
-      MatchCrashed() => MatchPanel(
-        title: l10n.matchCrashed,
-        actions: [(label: l10n.matchExit, onPressed: onExit, primary: true)],
+      MatchCrashed() => SafeArea(
+        child: MatchPanel(
+          title: l10n.matchCrashed,
+          actions: [(label: l10n.matchExit, onPressed: widget.onExit, primary: true)],
+        ),
       ),
     };
   }

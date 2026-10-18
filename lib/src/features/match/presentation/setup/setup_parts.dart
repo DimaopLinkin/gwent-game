@@ -18,9 +18,7 @@ class SetupScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ScreenBackdrop(
-    child: SafeArea(
-      child: Padding(padding: const EdgeInsets.only(top: 14), child: child),
-    ),
+    child: Padding(padding: const EdgeInsets.only(top: 14), child: child),
   );
 }
 

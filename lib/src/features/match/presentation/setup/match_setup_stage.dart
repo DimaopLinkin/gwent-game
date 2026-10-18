@@ -40,10 +40,12 @@ class MatchSetupStage extends StatelessWidget {
       if (state is MatchSetupDone) onStart(state.request);
     },
     builder: (context, state) => switch (state) {
-      MatchSetupLoading() || MatchSetupDone() => const GameLoader(),
-      MatchSetupFailed() => MatchPanel(
-        title: context.l10n.matchSetupLoadFailed,
-        actions: [(label: context.l10n.matchExit, onPressed: onExit, primary: true)],
+      MatchSetupLoading() || MatchSetupDone() => const SafeArea(child: Center(child: GameLoader())),
+      MatchSetupFailed() => SafeArea(
+        child: MatchPanel(
+          title: context.l10n.matchSetupLoadFailed,
+          actions: [(label: context.l10n.matchExit, onPressed: onExit, primary: true)],
+        ),
       ),
       final MatchSetupReady ready => _Step(ready: ready, onEditDeck: onEditDeck, onExit: onExit),
     },
@@ -112,7 +114,7 @@ class _Step extends StatelessWidget {
           busy: ready.busy,
         ),
         // На шаге колоды лидер всегда выбран; без него держатель не доходит до этого шага.
-        SetupStep.deck => const GameLoader(),
+        SetupStep.deck => const SafeArea(child: Center(child: GameLoader())),
       },
     );
   }

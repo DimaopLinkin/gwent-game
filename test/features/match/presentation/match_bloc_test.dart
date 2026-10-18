@@ -87,6 +87,15 @@ void main() {
     expect(matches.records.single.mode, history.MatchMode.ai);
     expect(matches.records.single.outcome, history.MatchOutcome.defeat);
     expect(result.record, matches.records.single);
+
+    // Прежде чем открыть итог матча, партия показывает поле с последним ходом и счётом.
+    final firstFinished = states.indexWhere((state) => state is MatchFinished);
+    expect(
+      states[firstFinished - 1],
+      isA<MatchInProgress>()
+          .having((state) => state.view.phase, 'phase', MatchPhase.finished)
+          .having((state) => state.events.whereType<MatchEnded>(), 'MatchEnded', isNotEmpty),
+    );
   });
 
   test('hot-seat: телефон переходит к тому, кто должен действовать, события копятся для каждого места', () async {
@@ -244,6 +253,11 @@ void main() {
     final finished = await bloc.stream.firstWhere((state) => state is MatchFinished && state.record != null);
     expect((finished as MatchFinished).outcome.winner, Seat.two);
     expect(matches.records.single.outcome, history.MatchOutcome.defeat);
+    expect(
+      states.whereType<MatchInProgress>().any((state) => state.view.phase == MatchPhase.finished),
+      isFalse,
+      reason: 'после сдачи поле с последним ходом не держат',
+    );
   });
 
   test('реванш: та же партия с теми же колодами начинается заново со знакомства', () async {

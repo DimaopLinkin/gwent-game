@@ -55,56 +55,63 @@ class SheetFrame extends StatelessWidget {
   final double maxHeightFactor;
 
   @override
-  Widget build(BuildContext context) => Stack(
-    children: [
-      Positioned.fill(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onClose,
-          child: const ColoredBox(color: Color(0xB80A0806)),
+  Widget build(BuildContext context) {
+    // Лист идёт на весь экран: затемнение и панель доходят до краёв, содержимое панели отступает от жеста «домой».
+    final insets = MediaQuery.paddingOf(context);
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onClose,
+            child: const ColoredBox(color: Color(0xB80A0806)),
+          ),
         ),
-      ),
-      // Панель прижата к низу и не выше доли высоты поля: Positioned.fill даёт LayoutBuilder настоящую высоту поля.
-      Positioned.fill(
-        child: LayoutBuilder(
-          builder: (context, constraints) => Align(
-            alignment: Alignment.bottomCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: constraints.maxWidth,
-                maxWidth: constraints.maxWidth,
-                maxHeight: constraints.maxHeight * maxHeightFactor,
-              ),
-              // Тап по самой панели не закрывает лист.
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {},
-                child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [GwentColors.surfaceRaised, GwentColors.surface],
-                    ),
-                    boxShadow: [
-                      BoxShadow(color: Color(0x99000000), offset: Offset(0, -10), blurRadius: 30),
-                      BoxShadow(color: GwentColors.brass, spreadRadius: 1),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      spacing: 12,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(color: GwentColors.muted, borderRadius: BorderRadius.circular(2)),
-                        ),
-                        Flexible(child: child),
+        // Панель прижата к низу и не выше доли высоты поля: Positioned.fill даёт LayoutBuilder настоящую высоту поля.
+        Positioned.fill(
+          child: LayoutBuilder(
+            builder: (context, constraints) => Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: constraints.maxWidth,
+                  maxWidth: constraints.maxWidth,
+                  maxHeight: (constraints.maxHeight - insets.vertical) * maxHeightFactor + insets.bottom,
+                ),
+                // Тап по самой панели не закрывает лист.
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [GwentColors.surfaceRaised, GwentColors.surface],
+                      ),
+                      boxShadow: [
+                        BoxShadow(color: Color(0x99000000), offset: Offset(0, -10), blurRadius: 30),
+                        BoxShadow(color: GwentColors.brass, spreadRadius: 1),
                       ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14) + EdgeInsets.only(bottom: insets.bottom),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: 12,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: GwentColors.muted,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          Flexible(child: child),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -112,9 +119,9 @@ class SheetFrame extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 /// Лист с сеткой карт 103×148 (макет оверлеев): сброс, медик, выбор из колоды, рука соперника.
