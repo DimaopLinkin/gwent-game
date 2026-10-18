@@ -54,10 +54,18 @@ final class StageGeometry {
     RowCardPlace(:final mine, :final row, :final card) => _rowCard(mine, row, card, frame),
     RowPlace(:final mine, :final row) => field.rowRect(row, mine: mine),
     HornPlace(:final mine, :final row) => field.hornSlotRect(row, mine: mine),
-    WeatherSlotPlace(:final row) => field.weatherSlotRect(row),
+    WeatherSlotPlace(:final row) => _weatherCard(field.weatherSlotRect(row)),
     CenterPlace() => field.centerCardRect,
+    MiniCenterPlace() => Rect.fromCenter(
+      center: field.centerCardRect.center,
+      width: miniSize.width,
+      height: miniSize.height,
+    ),
     FieldPlace() => Rect.fromLTWH(0, 0, field.width, field.height),
   };
+
+  /// Карта влетает в круг слота погоды, не теряя пропорций: 20×28,7 внутри круга ⌀28.
+  Rect _weatherCard(Rect slot) => Rect.fromCenter(center: slot.center, width: 20, height: 20 * 148 / 103);
 
   Rect? _rowCard(bool mine, Row row, CardInstanceId card, StageFrame frame) {
     final ids =

@@ -73,8 +73,9 @@ extension _PlayScenes on StageScriptBuilder {
       }
     }
     final end = _effects(related, done, landed, actor: played.seat);
-    _requestSettle(end > landed ? landed + _ms(StageTokens.fan) : landed, stagger: _ms(100));
-    return math.max(end, landed + _ms(StageTokens.roll));
+    final settle = math.max(end, landed);
+    _requestSettle(settle, stagger: _ms(100));
+    return settle + _ms(StageTokens.roll);
   }
 
   /// Моя карта летит из [from] в ряд [target] по дуге и садится в него: возвращает момент посадки.
@@ -325,13 +326,13 @@ extension _PlayScenes on StageScriptBuilder {
     if (!mineSeat) start = _showCentered(played.card, mine: false, at: at, hold: _ms(StageTokens.hold), caption: true);
     final flight = _ms(StageTokens.flight);
     final land = _ms(StageTokens.land);
-    final returned = _draftOf(decoyed.returned.id);
+    final returned = _endLife(decoyed.returned, target);
     final decoy = _ensureDraft(decoyed.decoy, target);
     final returnedPlace = RowCardPlace(mine: target.mine, row: target.row, card: decoyed.returned.id);
     final decoyPlace = RowCardPlace(mine: target.mine, row: target.row, card: decoyed.decoy.id);
     var end = start;
     if (_rm) {
-      returned?.removeAt = start;
+      returned.removeAt = start;
       decoy
         ..reserveAt = start
         ..showAt = start
@@ -339,7 +340,7 @@ extension _PlayScenes on StageScriptBuilder {
       end = start + decoy.fadeIn;
     } else {
       returned
-        ?..hideAt = start
+        ..hideAt = start
         ..removeAt = start + flight;
       decoy
         ..reserveAt = start + flight
@@ -484,6 +485,11 @@ extension _PlayScenes on StageScriptBuilder {
     _requestSettle(pulse + _ms(60), stagger: _ms(70));
     return math.max(last, pulse + _ms(60) + _ms(StageTokens.roll));
   }
+
+  bool _isCreated(CardInstance card) => switch (catalog.card(card.cardId)) {
+    UnitCardDefinition(:final isCreated) => isCreated,
+    _ => false,
+  };
 
   bool _isHero(CardInstance card) => switch (catalog.card(card.cardId)) {
     UnitCardDefinition(:final isHero) => isHero,

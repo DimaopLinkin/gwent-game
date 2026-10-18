@@ -189,6 +189,18 @@ final class CenterPlace extends StagePlace {
   int get hashCode => 0x8;
 }
 
+/// Центр поля, размер мини-карты 31×44: сюда выходит лидер, увеличенный втрое (около 93×132).
+final class MiniCenterPlace extends StagePlace {
+  /// Создаёт место.
+  const MiniCenterPlace();
+
+  @override
+  bool operator ==(Object other) => other is MiniCenterPlace;
+
+  @override
+  int get hashCode => 0x9;
+}
+
 /// Всё поле: затемнение.
 final class FieldPlace extends StagePlace {
   /// Создаёт место.

@@ -15,7 +15,9 @@ import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 import 'package:gwent/src/features/menu/presentation/menu_screen.dart';
+import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
@@ -102,7 +104,10 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   onExit: () => context.go(AppRoutes.menu),
                   // Конструктор открывается поверх выбора, а не вместо него: после правки игрок возвращается к тому же шагу.
                   onEditDeck: (deckId) => context.push(AppRoutes.deckEdit(deckId)),
-                  animationSpeed: (snapshot.data ?? const AppSettings()).animationSpeed,
+                  animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
+                    AnimationSpeed.normal => 1,
+                    AnimationSpeed.fast => StageTokens.fastFactor,
+                  },
                 ),
               ),
             );

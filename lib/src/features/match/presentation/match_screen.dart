@@ -20,7 +20,6 @@ import 'package:gwent/src/features/match/presentation/start/handover_view.dart';
 import 'package:gwent/src/features/match/presentation/start/match_intro_view.dart';
 import 'package:gwent/src/features/match/presentation/start/match_toss_view.dart';
 import 'package:gwent/src/features/match/presentation/start/redraw_view.dart';
-import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent_engine/gwent_engine.dart' hide Row;
 
 /// Экран партии: от выбора фракции и колоды до итога.
@@ -34,13 +33,13 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// чем идут анимации, но игрок видит ходы по порядку. Тот же порядок будет у анимаций карт (ADR 0013).
 class MatchScreen extends StatefulWidget {
   /// Создаёт экран; [onExit] уводит из партии в меню, [onEditDeck] открывает колоду в конструкторе, [confirmPass]
-  /// включает диалог подтверждения паса, [animationSpeed] задаёт скорость анимаций карт.
+  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт.
   const MatchScreen({
     super.key,
     required this.onExit,
     required this.onEditDeck,
     this.confirmPass = false,
-    this.animationSpeed = AnimationSpeed.normal,
+    this.animationScale = 1,
   });
 
   /// Выход из партии.
@@ -52,8 +51,8 @@ class MatchScreen extends StatefulWidget {
   /// Спрашивать подтверждение паса диалогом; иначе пас нужно держать 1 с.
   final bool confirmPass;
 
-  /// Скорость анимаций карт: быстрая сокращает показ до 0,55 обычного (ADR 0017).
-  final AnimationSpeed animationSpeed;
+  /// Доля обычных длительностей анимаций карт: 1 или `StageTokens.fastFactor` для быстрой скорости (ADR 0017).
+  final double animationScale;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -123,10 +122,7 @@ class _MatchScreenState extends State<MatchScreen> {
 
   /// Скорость из настроек и «Уменьшить движение» из системы: длительности анимаций считаются при сборке сценария.
   StageStyle get _stageStyle => StageStyle(
-    scale: switch (widget.animationSpeed) {
-      AnimationSpeed.normal => 1,
-      AnimationSpeed.fast => StageTokens.fastFactor,
-    },
+    scale: widget.animationScale,
     reduceMotion: MediaQuery.disableAnimationsOf(context),
   );
 

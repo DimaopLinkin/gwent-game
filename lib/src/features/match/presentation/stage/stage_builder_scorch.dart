@@ -58,8 +58,8 @@ extension _ScorchScenes on StageScriptBuilder {
     var discardAt = at;
     if (_rm) {
       for (final unit in units) {
-        _ensureDraft(unit.card, (mine: _mine(unit.side), row: unit.row)).removeAt = at;
-        _discardLands(unit.card, at + _ms(StageTokens.fade), mine: _mine(unit.side));
+        _endLife(unit.card, (mine: _mine(unit.side), row: unit.row)).removeAt = at;
+        if (!_isCreated(unit.card)) _discardLands(unit.card, at + _ms(StageTokens.fade), mine: _mine(unit.side));
         _beats.add(
           GlowBeat(
             place: RowPlace(mine: _mine(unit.side), row: unit.row),
@@ -92,15 +92,16 @@ extension _ScorchScenes on StageScriptBuilder {
       for (final unit in units) {
         final mine = _mine(unit.side);
         final place = RowCardPlace(mine: mine, row: unit.row, card: unit.card.id);
-        _ensureDraft(unit.card, (mine: mine, row: unit.row))
+        _endLife(unit.card, (mine: mine, row: unit.row))
           ..hideAt = at
           ..removeAt = burnEnd;
         _beats
           ..add(
             BurnBeat(place: place, card: unit.card, start: at, target: target, burnStart: burnStart, end: burnEnd),
           )
-          ..add(AshBeat(place: place, start: burnStart + burn * 0.4, duration: ash, seed: unit.card.id.value))
-          ..add(
+          ..add(AshBeat(place: place, start: burnStart + burn * 0.4, duration: ash, seed: unit.card.id.value));
+        if (!_isCreated(unit.card)) {
+          _beats.add(
             FlightBeat(
               ref: CardFaceRef(unit.card, mine: mine),
               from: place,
@@ -113,7 +114,8 @@ extension _ScorchScenes on StageScriptBuilder {
               shadowTo: 0,
             ),
           );
-        _discardLands(unit.card, burnEnd + ghost, mine: mine);
+        }
+        if (!_isCreated(unit.card)) _discardLands(unit.card, burnEnd + ghost, mine: mine);
         end = math.max(end, math.max(burnEnd + ghost, burnStart + burn * 0.4 + ash));
       }
       end = math.max(end, burnEnd + _ms(StageTokens.fade));

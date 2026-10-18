@@ -20,10 +20,10 @@ extension _EffectScenes on StageScriptBuilder {
           done.add(i);
           if (source.isMuster) {
             if (musterAt < 0) musterAt = end;
-            end = math.max(end, _enterFromZone(event, musterAt + musterStep * _ms(StageTokens.twin)));
+            end = math.max(end, _enterFromZone(event, musterAt + musterStep * _ms(StageTokens.twin), actor));
             musterStep++;
           } else {
-            end = math.max(end, _enterFromZone(event, end));
+            end = math.max(end, _enterFromZone(event, end, actor));
           }
         case BerserkTransformed():
           done.add(i);
@@ -43,15 +43,16 @@ extension _EffectScenes on StageScriptBuilder {
     return end;
   }
 
-  /// Карта выходит на поле не из руки: из колоды, руки (Двойник) или сброса (Медик).
-  double _enterFromZone(UnitPlaced placed, double start) {
+  /// Карта выходит на поле не из руки: из колоды, руки (Двойник) или сброса (Медик). Карту из сброса берёт [actor]:
+  /// шпиона, возвращённого Медиком, он кладёт на сторону соперника, но достаёт из своего сброса.
+  double _enterFromZone(UnitPlaced placed, double start, Seat actor) {
     final card = placed.card;
     final mine = _mine(placed.side);
     final target = (mine: mine, row: placed.row);
     final from = switch (placed.source) {
       EntrySource.musterFromDeck => DeckPlace(mine: mine),
       EntrySource.musterFromHand => mine ? _handPlace(card) : BarHandPlace(mine: mine),
-      EntrySource.medic || EntrySource.perk => DiscardPlace(mine: mine),
+      EntrySource.medic || EntrySource.perk => DiscardPlace(mine: _mine(actor)),
       EntrySource.hand => _sourceOf(card, mine: mine),
     };
     switch (placed.source) {
@@ -60,7 +61,7 @@ extension _EffectScenes on StageScriptBuilder {
       case EntrySource.musterFromHand:
         _bump(StageCounter.hand, -1, start, mine: mine);
       case EntrySource.medic || EntrySource.perk:
-        _discardLeaves(card, start, mine: mine);
+        _discardLeaves(card, start, mine: _mine(actor));
       case EntrySource.hand:
         break;
     }
@@ -200,7 +201,7 @@ extension _EffectScenes on StageScriptBuilder {
     if (!mine) at = _think(at);
     final hold = _ms(StageTokens.leader);
     final fly = _ms(StageTokens.flightShort);
-    const center = CenterPlace();
+    const center = MiniCenterPlace();
     final ref = LeaderRef(mine: mine);
     const zoom = 3.0;
     var effectAt = at + hold;

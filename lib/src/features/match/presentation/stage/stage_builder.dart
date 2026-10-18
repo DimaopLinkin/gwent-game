@@ -87,7 +87,15 @@ final class _RowDraft {
   bool get changed =>
       slotBefore != slotAfter ||
       weatherBefore != weatherAfter ||
-      order.any((draft) => draft.before == null || draft.after == null || draft.before != draft.after);
+      order.any(
+        (draft) =>
+            draft.before == null ||
+            draft.after == null ||
+            draft.before != draft.after ||
+            draft.reserveAt != _always ||
+            draft.hideAt != _never ||
+            draft.removeAt != _never,
+      );
 
   RowSpec freeze() => RowSpec(
     phases: [for (final draft in order) draft.freeze()],
@@ -214,13 +222,39 @@ final class StageScriptBuilder {
     return order;
   }
 
+  /// Последняя жизнь карты в сценарии: у карты, ушедшей и вернувшейся, их две.
   _Draft? _draftOf(CardInstanceId id) {
+    _Draft? found;
     for (final row in _rows.values) {
       for (final draft in row.order) {
-        if (draft.card.id == id) return draft;
+        if (draft.card.id == id) found = draft;
       }
     }
-    return null;
+    return found;
+  }
+
+  /// Жизнь, которая кончается: карту сжигают или уносят в руку.
+  ///
+  /// Если к концу сценария карта снова стоит в том же ряду (Казнь, потом Медик в обновлении с несколькими ходами),
+  /// прежняя жизнь отделяется и встаёт перед ней, а возвращённая карта ждёт своего события. Одна жизнь на всё не
+  /// годится: она не могла бы одновременно сгореть и снова занять место.
+  _Draft _endLife(CardInstance card, RowRef ref) {
+    final draft = _ensureDraft(card, ref);
+    if (draft.before == null || draft.after == null) return draft;
+    for (final row in _rows.values) {
+      final index = row.order.indexOf(draft);
+      if (index < 0) continue;
+      final earlier = _Draft(card, before: draft.before)
+        ..reserveAt = draft.reserveAt
+        ..showAt = draft.showAt;
+      row.order.insert(index, earlier);
+      draft
+        ..before = null
+        ..reserveAt = _never
+        ..showAt = _never;
+      return earlier;
+    }
+    return draft;
   }
 
   /// Находит жизнь карты или заводит её в ряду [ref]: карта могла появиться и исчезнуть за один ход.
@@ -295,12 +329,15 @@ final class StageScriptBuilder {
     final flash = _ms(StageTokens.highlight);
     for (final entry in _rows.entries) {
       final ref = entry.key;
+      final changing = entry.value.order.where((d) => d.before != null && d.after != null && d.before != d.after);
+      // Волна по ряду не длиннее 600 мс, сколько бы карт ни менялось.
+      final stagger = math.min(_settleStagger, _ms(600) / math.max(changing.length, 1));
       var step = 0;
       for (final draft in entry.value.order) {
         final before = draft.before;
         final after = draft.after;
         if (before == null || after == null || before == after) continue;
-        draft.strengthAt = at + step * _settleStagger;
+        draft.strengthAt = at + step * stagger;
         _beats.add(
           FlashBeat(
             card: draft.card.id,
@@ -360,6 +397,12 @@ final class StageScriptBuilder {
     if (_beats.isEmpty) return null;
     _applySettle();
     _reconcile();
+    for (final row in _rows.values) {
+      for (final draft in row.order) {
+        // Карта, которой к концу сценария быть в ряду, но ни одно событие её не вернуло: встаёт в конце.
+        if (draft.after != null && draft.reserveAt == _never) draft.reserveAt = draft.showAt = _cursor;
+      }
+    }
     final rows = {
       for (final entry in _rows.entries)
         if (entry.value.changed) entry.key: entry.value.freeze(),

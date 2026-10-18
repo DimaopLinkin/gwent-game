@@ -175,7 +175,7 @@ class FieldRowView extends StatelessWidget {
                       opacity: staging?[i].opacity ?? 1,
                       flash: flashes[cards[i].card.id],
                       isDecoyTarget: decoyTargets.contains(cards[i].card.id),
-                      justPlayed: recent.contains(cards[i].card.id),
+                      justPlayed: recent.contains(cards[i].card.id) && !(staging?[i].hidden ?? false),
                       onTap: onCardTap,
                       onLongPress: onCardLongPress,
                     ),
