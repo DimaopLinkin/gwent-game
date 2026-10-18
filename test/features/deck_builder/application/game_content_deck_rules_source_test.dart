@@ -4,7 +4,9 @@ import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent_content/gwent_content.dart';
+import 'package:gwent_engine/gwent_engine.dart' show WrongFaction;
 
 /// Правила колод на настоящем пакете контента из ассетов (`docs/hand`) и настоящем адаптере движка.
 void main() {
@@ -66,7 +68,12 @@ void main() {
       final starter = rules.starterDeck(northern.id, id: 'north', updatedAt: DateTime.utc(2026, 10, 18));
       final deck = starter.copyWith(cards: {...starter.cards, skelligeStorm: 1});
 
-      expect(rules.check(deck), isNotEmpty);
+      expect(
+        rules.check(deck),
+        contains(
+          isA<DeckRuleViolation>().having((issue) => issue.violation, 'violation', isA<WrongFaction>()),
+        ),
+      );
     });
   });
 
