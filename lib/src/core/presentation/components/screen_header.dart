@@ -80,9 +80,12 @@ class ScreenHeader extends StatelessWidget {
                     ?(eyebrow == null ? null : Eyebrow(eyebrow, size: 14, align: TextAlign.center)),
                     ?(title == null
                         ? null
-                        : FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: ScreenTitle(title, size: titleSize, color: GwentColors.goldHighlight),
+                        : Semantics(
+                            header: true,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: ScreenTitle(title, size: titleSize, color: GwentColors.goldHighlight),
+                            ),
                           )),
                     ?(subtitle == null
                         ? null

@@ -80,4 +80,7 @@ void main() {
 final class _BrokenAppInfo implements AppInfo {
   @override
   Future<String> version() => Future.error(StateError('нет платформы'));
+
+  @override
+  Future<String> buildNumber() => Future.error(StateError('нет платформы'));
 }
