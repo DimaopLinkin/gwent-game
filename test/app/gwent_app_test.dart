@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/app/gwent_app.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
 import 'package:gwent_content/gwent_content.dart';
@@ -128,8 +129,67 @@ void main() {
     await tester.pumpAndSettle();
 
     await openAndReturn(tester, l10n.menuNetworkGame, l10n.lobbyTitle);
-    await openAndReturn(tester, l10n.menuDecks, l10n.deckBuilderTitle);
     await openAndReturn(tester, l10n.menuSettings, l10n.settingsTitle);
+  });
+
+  testWidgets('колоды: список, новая колода в конструкторе, возврат по шагам в меню', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text(l10n.menuDecks));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckListTitle), findsOneWidget);
+    expect(find.text(l10n.deckListNew), findsOneWidget, reason: 'есть кнопка «Новая колода»');
+
+    await tester.tap(find.text(l10n.deckListNew));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.editorEyebrow.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.editorHintPickLeader), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.editorBack).first);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckListTitle), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
+  });
+
+  testWidgets('колоды: открытая колода показывает своё название, сохранение возвращает в список', (tester) async {
+    await pumpApp(tester);
+    final saved = (await tester.runAsync(() => decks.watchAll().first))!.first;
+
+    await tester.tap(find.text(l10n.menuDecks));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel(RegExp('^${RegExp.escape(l10n.deckListOpen(saved.name))}')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, saved.name);
+
+    await tester.tap(find.text(l10n.editorSave));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckListTitle), findsOneWidget);
+  });
+
+  testWidgets('«Изменить» на шаге колоды открывает конструктор этой колоды; «назад» возвращает на тот же шаг', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text(l10n.menuVsBot));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.factionSelectConfirm));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.leaderSelectConfirm));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckSelectTitle), findsOneWidget);
+
+    await tester.tap(find.text(l10n.deckSelectEdit));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.editorEyebrow.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.deckSelectTitle), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.editorBack).first);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckSelectTitle), findsOneWidget);
   });
 
   testWidgets('режим из меню попадает на выбор фракции: вдвоём шаг называет игрока', (tester) async {
@@ -164,14 +224,14 @@ void main() {
     await tester.tap(find.text(l10n.menuDecks));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
-    await tester.tap(find.byType(BackButton));
+    await tester.tap(find.byType(ChevronButton));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     expect(find.text(l10n.menuHotSeat), findsOneWidget);
     expect(find.text(l10n.menuSplashLoading), findsNothing);
   });
 
-  testWidgets('конструктор колоды показывает пустой список, когда колод нет', (tester) async {
+  testWidgets('список колод пуст, когда колод нет', (tester) async {
     await pumpApp(tester, source: InMemoryContentSource(const {}));
 
     await tester.tap(find.text(l10n.menuDecks));
@@ -180,7 +240,7 @@ void main() {
     expect(find.text(l10n.deckListEmpty), findsOneWidget);
   });
 
-  testWidgets('конструктор колоды показывает сохранённые колоды и число карт', (tester) async {
+  testWidgets('список колод показывает сохранённые колоды и число карт, пока набор карт не загрузился', (tester) async {
     await decks.save(testDeck(name: 'Ан Крайт', cards: const {'a': 20, 'b': 2}));
     await pumpApp(tester, source: InMemoryContentSource(const {}));
 

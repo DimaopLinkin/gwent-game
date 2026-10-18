@@ -16,10 +16,6 @@
   "@menuDecks": {
     "description": "Кнопка главного меню: конструктор колоды."
   },
-  "deckBuilderTitle": "Конструктор колоды",
-  "@deckBuilderTitle": {
-    "description": "Заголовок экрана конструктора колоды."
-  },
   "deckListEmpty": "Колод пока нет",
   "@deckListEmpty": {
     "description": "Пустой список сохранённых колод."
@@ -1488,5 +1484,345 @@
         "type": "String"
       }
     }
+  },
+  "deckListEyebrow": "Меню",
+  "@deckListEyebrow": {
+    "description": "Надпись над заголовком списка колод."
+  },
+  "deckListTitle": "Колоды",
+  "@deckListTitle": {
+    "description": "Заголовок списка колод."
+  },
+  "deckListNew": "Новая колода",
+  "@deckListNew": {
+    "description": "Кнопка создания новой колоды в списке колод."
+  },
+  "deckListOpen": "Открыть {name}",
+  "@deckListOpen": {
+    "description": "Подпись для скринридера: открыть колоду в конструкторе.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deckListDelete": "Удалить колоду",
+  "@deckListDelete": {
+    "description": "Подпись для скринридера: кнопка удаления колоды в списке."
+  },
+  "deckListTotal": "Всего {count}",
+  "@deckListTotal": {
+    "description": "Сколько карт в колоде, в строке колоды в списке.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckListUnits": "Отряды {count}/{min}",
+  "@deckListUnits": {
+    "description": "Отряды в колоде и сколько их нужно, в строке колоды в списке.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "deckListSpecials": "Особые {count}/{max}",
+  "@deckListSpecials": {
+    "description": "Особые карты в колоде и сколько можно, в строке колоды в списке.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "deckListInvalid": "Колода нарушает правила",
+  "@deckListInvalid": {
+    "description": "Метка колоды, с которой нельзя играть."
+  },
+  "deckDeleteTitle": "Удалить колоду?",
+  "@deckDeleteTitle": {
+    "description": "Заголовок подтверждения удаления колоды."
+  },
+  "deckDeleteBody": "Колода «{name}» будет удалена без возможности восстановления. Карты останутся в коллекции.",
+  "@deckDeleteBody": {
+    "description": "Текст подтверждения удаления колоды.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deckDeleteConfirm": "Удалить",
+  "@deckDeleteConfirm": {
+    "description": "Кнопка подтверждения удаления колоды."
+  },
+  "editorBack": "Колоды",
+  "@editorBack": {
+    "description": "Кнопка возврата из конструктора к списку колод."
+  },
+  "editorEyebrow": "Конструктор",
+  "@editorEyebrow": {
+    "description": "Надпись в шапке конструктора колоды."
+  },
+  "editorNameLabel": "Название колоды",
+  "@editorNameLabel": {
+    "description": "Подпись поля названия колоды для скринридера."
+  },
+  "editorLeaderLabel": "Лидер",
+  "@editorLeaderLabel": {
+    "description": "Подпись под плашкой лидера в конструкторе."
+  },
+  "editorPickLeader": "Выбрать лидера",
+  "@editorPickLeader": {
+    "description": "Подпись для скринридера: открыть выбор лидера."
+  },
+  "editorStatTotal": "Всего",
+  "@editorStatTotal": {
+    "description": "Счётчик конструктора: все карты колоды."
+  },
+  "editorStatUnits": "Отряды",
+  "@editorStatUnits": {
+    "description": "Счётчик конструктора: отряды."
+  },
+  "editorStatSpecials": "Особые",
+  "@editorStatSpecials": {
+    "description": "Счётчик конструктора: особые карты."
+  },
+  "editorStatPower": "Сила",
+  "@editorStatPower": {
+    "description": "Счётчик конструктора: суммарная сила отрядов."
+  },
+  "editorStatHeroes": "Герои",
+  "@editorStatHeroes": {
+    "description": "Счётчик конструктора: герои."
+  },
+  "editorHintPickLeader": "Выберите лидера фракции",
+  "@editorHintPickLeader": {
+    "description": "Подсказка конструктора: лидер не выбран."
+  },
+  "editorHintNeedUnits": "Нужно ещё {count, plural, one{{count} отряд} few{{count} отряда} many{{count} отрядов} other{{count} отряда}}",
+  "@editorHintNeedUnits": {
+    "description": "Подсказка конструктора: не хватает отрядов.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorHintTooManySpecials": "Не больше {max} особых карт: уберите {extra}",
+  "@editorHintTooManySpecials": {
+    "description": "Подсказка конструктора: особых карт больше максимума.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      },
+      "extra": {
+        "type": "int"
+      }
+    }
+  },
+  "editorHintValid": "Колода соответствует правилам",
+  "@editorHintValid": {
+    "description": "Подсказка конструктора: колода годна."
+  },
+  "editorMsgAllCopies": "Все копии уже в колоде",
+  "@editorMsgAllCopies": {
+    "description": "Сообщение конструктора: больше копий этой карты нет."
+  },
+  "editorMsgHero": "Герой может быть в колоде только в одном экземпляре",
+  "@editorMsgHero": {
+    "description": "Сообщение конструктора: герой уже в колоде."
+  },
+  "editorMsgSpecial": "Не больше {max} особых карт",
+  "@editorMsgSpecial": {
+    "description": "Сообщение конструктора: особых карт уже максимум.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "editorTabCollection": "Коллекция",
+  "@editorTabCollection": {
+    "description": "Вкладка конструктора со всеми картами фракции."
+  },
+  "editorTabDeck": "Колода",
+  "@editorTabDeck": {
+    "description": "Вкладка конструктора с картами колоды."
+  },
+  "editorFilterAll": "Все",
+  "@editorFilterAll": {
+    "description": "Фильтр конструктора: все карты."
+  },
+  "editorFilterMelee": "Ближний",
+  "@editorFilterMelee": {
+    "description": "Фильтр конструктора: ближний бой."
+  },
+  "editorFilterRanged": "Дальний",
+  "@editorFilterRanged": {
+    "description": "Фильтр конструктора: дальний бой."
+  },
+  "editorFilterSiege": "Осадные",
+  "@editorFilterSiege": {
+    "description": "Фильтр конструктора: осадные отряды."
+  },
+  "editorFilterHero": "Герои",
+  "@editorFilterHero": {
+    "description": "Фильтр конструктора: герои."
+  },
+  "editorFilterWeather": "Погода",
+  "@editorFilterWeather": {
+    "description": "Фильтр конструктора: погода."
+  },
+  "editorFilterSpecial": "Особые",
+  "@editorFilterSpecial": {
+    "description": "Фильтр конструктора: особые карты."
+  },
+  "editorNeutralLegend": "общая карта",
+  "@editorNeutralLegend": {
+    "description": "Легенда конструктора: ромб на нейтральных картах."
+  },
+  "editorOnlyAvailable": "Только доступные",
+  "@editorOnlyAvailable": {
+    "description": "Переключатель конструктора: скрыть карты, которые нельзя добавить."
+  },
+  "editorCopiesOf": "{count} из {max}",
+  "@editorCopiesOf": {
+    "description": "Метка карты на вкладке коллекции: сколько копий в колоде из скольких можно.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "editorCopiesIn": "× {count}",
+  "@editorCopiesIn": {
+    "description": "Метка карты на вкладке колоды: сколько копий в колоде.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorEmptyTitle": "Пусто",
+  "@editorEmptyTitle": {
+    "description": "Заголовок пустого списка коллекции."
+  },
+  "editorEmptyText": "В коллекции нет карт для фильтра «{filter}».",
+  "@editorEmptyText": {
+    "description": "Пустой список коллекции под фильтром.",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "editorEmptyAvailableTitle": "Свободных карт нет",
+  "@editorEmptyAvailableTitle": {
+    "description": "Заголовок пустого списка при включённом «Только доступные»."
+  },
+  "editorEmptyAvailableText": "Все доступные карты фильтра «{filter}» уже в колоде. Отключите «Только доступные», чтобы увидеть всю коллекцию.",
+  "@editorEmptyAvailableText": {
+    "description": "Пустой список при включённом «Только доступные».",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "editorEmptyDeckTitle": "В колоде нет таких карт",
+  "@editorEmptyDeckTitle": {
+    "description": "Заголовок пустого списка на вкладке колоды."
+  },
+  "editorEmptyDeckText": "Фильтр «{filter}»: добавьте карты из коллекции.",
+  "@editorEmptyDeckText": {
+    "description": "Пустой список на вкладке колоды под фильтром.",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "editorSave": "Сохранить",
+  "@editorSave": {
+    "description": "Кнопка сохранения готовой колоды."
+  },
+  "editorSaveDraft": "Сохранить как черновик",
+  "@editorSaveDraft": {
+    "description": "Кнопка сохранения колоды, которая нарушает правила."
+  },
+  "editorFactionEyebrow": "Смена фракции",
+  "@editorFactionEyebrow": {
+    "description": "Надпись листа подтверждения смены фракции."
+  },
+  "editorFactionRemoved": "Карты фракции «{faction}» уйдут из колоды: {count}",
+  "@editorFactionRemoved": {
+    "description": "Предупреждение при смене фракции: сколько карт прежней фракции уйдёт.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorFactionKept": "Нейтральные карты останутся. Лидера нужно выбрать заново.",
+  "@editorFactionKept": {
+    "description": "Пояснение при смене фракции."
+  },
+  "editorFactionChange": "Сменить",
+  "@editorFactionChange": {
+    "description": "Кнопка подтверждения смены фракции."
+  },
+  "editorPreviewAdd": "Добавить в колоду",
+  "@editorPreviewAdd": {
+    "description": "Кнопка просмотра карты: добавить карту."
+  },
+  "editorPreviewRemove": "Убрать из колоды",
+  "@editorPreviewRemove": {
+    "description": "Кнопка просмотра карты: убрать карту."
+  },
+  "editorPreviewMeta": "{faction} · в колоде {count} из {max}",
+  "@editorPreviewMeta": {
+    "description": "Строка под картой при просмотре в конструкторе.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "editorNeutralName": "Общая карта",
+  "@editorNeutralName": {
+    "description": "Название нейтральной фракции в просмотре карты конструктора."
+  },
+  "editorLoadFailed": "Не удалось открыть конструктор",
+  "@editorLoadFailed": {
+    "description": "Сообщение, когда конструктор колоды не открылся."
+  },
+  "editorNotFound": "Колода не найдена: возможно, её удалили",
+  "@editorNotFound": {
+    "description": "Сообщение, когда колоды для правки нет."
+  },
+  "editorSaveFailed": "Не удалось сохранить колоду. Нажмите «Сохранить» ещё раз",
+  "@editorSaveFailed": {
+    "description": "Подсказка конструктора: запись колоды не удалась, собранное осталось на экране"
   }
 }

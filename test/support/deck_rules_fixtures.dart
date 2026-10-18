@@ -111,7 +111,7 @@ DeckRules deckRulesFor(content.ContentPack pack, {engine.GameRules gameRules = c
 /// Справочник движка по маленькому пакету [pack] для проверки колод.
 ///
 /// Проверке колоды нужны только фракция, число копий и вид карты, поэтому способности здесь заглушки: у карт
-/// маленького пакета нет способностей. Настоящий пакет переводит `mapContentToEngine`, его проверяет
+/// маленького пакета нет способностей. Герой здесь Керис, погода — мороз, остальные особые карты — чучела. Настоящий пакет переводит `mapContentToEngine`, его проверяет
 /// `game_content_deck_rules_source_test.dart`.
 engine.CardCatalog testCatalogFor(content.ContentPack pack) {
   final rules = pack.rules;
@@ -139,7 +139,9 @@ engine.CardCatalog testCatalogFor(content.ContentPack pack) {
           id: engine.CardId(card.id),
           faction: faction(card.fractionId),
           copies: card.count,
-          ability: const engine.DecoyAbility(),
+          ability: card.id == Small.frost
+              ? const engine.WeatherAbility({engine.Row.melee})
+              : const engine.DecoyAbility(),
         ),
     ],
     leaders: [
@@ -172,7 +174,7 @@ content.SquadCard _squad(String id, String fractionId, int count) => content.Squ
   fractionId: fractionId,
   zoneId: 'z-melee',
   strength: 5,
-  isHero: false,
+  isHero: id == Small.cerys,
   count: count,
   abilityId: null,
   abilityParams: const {},

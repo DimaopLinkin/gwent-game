@@ -3,8 +3,17 @@ abstract final class AppRoutes {
   /// Главное меню.
   static const String menu = '/';
 
-  /// Конструктор колоды.
+  /// Список колод.
   static const String decks = '/decks';
+
+  /// Конструктор новой колоды.
+  static const String deckNew = '$decks/new';
+
+  /// Параметр пути конструктора: идентификатор колоды.
+  static const String deckIdParam = 'id';
+
+  /// Конструктор колоды с идентификатором [deckId].
+  static String deckEdit(String deckId) => '$decks/${Uri.encodeComponent(deckId)}';
 
   /// Лобби сетевой игры.
   static const String lobby = '/lobby';

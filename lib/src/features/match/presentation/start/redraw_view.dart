@@ -8,6 +8,7 @@ import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
@@ -94,7 +95,7 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     spacing: 10,
                     children: [
-                      Flexible(child: StartTitle(l10n.matchRedrawTitle, size: 34)),
+                      Flexible(child: ScreenTitle(l10n.matchRedrawTitle, size: 34)),
                       _LeftPill(left: left, limit: limit, label: l10n.matchRedrawLeft(left)),
                     ],
                   ),
@@ -282,7 +283,7 @@ class MatchRedrawWaitView extends StatelessWidget {
               Column(
                 spacing: 8,
                 children: [
-                  StartTitle(l10n.matchRedrawOpponentBusy, size: 32, align: TextAlign.center),
+                  ScreenTitle(l10n.matchRedrawOpponentBusy, size: 32, align: TextAlign.center),
                   StartBody(l10n.matchRedrawReplaced(replaced)),
                 ],
               ),

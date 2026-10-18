@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
@@ -195,7 +196,7 @@ class _Side extends StatelessWidget {
         spacing: 7,
         children: [
           Eyebrow(content.leaderFace(player.leader).name, align: align),
-          StartTitle(roster.name(seat, l10n), size: 36, align: align),
+          ScreenTitle(roster.name(seat, l10n), size: 36, align: align),
           FactionLine(
             faction: faction,
             name: content.factionName(player.faction),

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gwent/src/features/match/presentation/setup/setup_parts.dart';
+import 'package:gwent/src/core/presentation/card/leader_name.dart';
 
 void main() {
   test('имя лидера делится по двоеточию на персонажа и прозвище', () {
