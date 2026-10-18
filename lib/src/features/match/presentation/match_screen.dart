@@ -99,6 +99,17 @@ class _MatchScreenState extends State<MatchScreen> {
     }
   }
 
+  /// Сдача не ждёт очереди: сначала на экран выходит то, что партия показывает сейчас, потом уходит намерение. Иначе
+  /// оно улетело бы в состояние, которое уже не принимает намерений (передача телефона, конец партии).
+  void _submit(Intent intent) {
+    final bloc = context.read<MatchBloc>();
+    if (intent is Resign && _waiting.isNotEmpty) {
+      _waiting.clear();
+      _show(bloc.state);
+    }
+    bloc.add(MatchIntentSubmitted(intent));
+  }
+
   void _show(MatchScreenState state) {
     setState(() => _shown = state);
     context.read<FieldCubit>().onMatchState(state);
@@ -122,7 +133,7 @@ class _MatchScreenState extends State<MatchScreen> {
   Widget _stage(BuildContext context, MatchScreenState state) {
     final l10n = context.l10n;
     final bloc = context.read<MatchBloc>();
-    void submit(Intent intent) => bloc.add(MatchIntentSubmitted(intent));
+    final submit = _submit;
     return switch (state) {
       MatchIdle() => MatchSetupStage(
         onStart: (request) => bloc.add(MatchStartRequested(request)),

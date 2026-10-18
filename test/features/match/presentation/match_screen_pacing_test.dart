@@ -21,6 +21,7 @@ import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
+import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' as history;
 import 'package:gwent_ai/gwent_ai.dart';
@@ -239,6 +240,48 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(handCards(), findsNWidgets(2));
+    });
+
+    testWidgets('последний ход бота во время баннера: итог открывается после баннера и паузы на поле', (tester) async {
+      await pumpField(tester, withHand(2));
+      await push(tester, withHand(2, turn: Seat.two), const [TurnStarted(Seat.two)]);
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await push(tester, withHand(0, turn: null, phase: MatchPhase.finished), const [
+        MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.crystals)),
+      ]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(MatchResultView), findsNothing);
+      expect(handCards(), findsNWidgets(2), reason: 'баннер ещё идёт, поле прежнее');
+
+      await endBanners(tester);
+      expect(find.byType(MatchResultView), findsNothing, reason: 'после баннера поле держит конец партии');
+      expect(find.text('Партия окончена'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 2300));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+      await tester.pump();
+      expect(find.byType(MatchResultView), findsOneWidget);
+    });
+
+    testWidgets('сдача под паузой, пока в очереди конец партии: открывается итог', (tester) async {
+      await pumpField(tester, withHand(2));
+      field
+        ..openPause()
+        ..askSurrender();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      await push(tester, withHand(0, turn: null, phase: MatchPhase.finished), const [
+        MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.crystals)),
+      ]);
+      expect(find.byType(SurrenderConfirmLayer), findsOneWidget, reason: 'под паузой экран не меняется');
+
+      await tester.tap(find.descendant(of: find.byType(SurrenderConfirmLayer), matching: find.text('Сдаться')));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(const Duration(milliseconds: 2300));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+      await tester.pump();
+      expect(find.byType(MatchResultView), findsOneWidget);
     });
   });
 }
