@@ -79,6 +79,8 @@ class RulesView extends StatelessWidget {
         ],
       ),
     ];
+    // Слой идёт на весь экран: шапка и свиток доходят до краёв, а их содержимое отступает от выреза и жеста «домой».
+    final insets = MediaQuery.paddingOf(context);
     return DecoratedBox(
       decoration: const BoxDecoration(color: Color(0xFF0F0C09)),
       child: Column(
@@ -93,7 +95,7 @@ class RulesView extends StatelessWidget {
               border: Border(bottom: BorderSide(color: GwentColors.brass, width: 1.5)),
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12) + EdgeInsets.only(top: insets.top),
               child: Row(
                 spacing: 14,
                 children: [
@@ -123,7 +125,7 @@ class RulesView extends StatelessWidget {
                 ),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(22, 22, 22, 60),
+                padding: const EdgeInsets.fromLTRB(22, 22, 22, 60) + EdgeInsets.only(bottom: insets.bottom),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: 24,

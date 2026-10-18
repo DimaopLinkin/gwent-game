@@ -425,6 +425,10 @@
   "@fieldStatusOpponentTurn": {
     "description": "Статус центральной полосы в ход соперника."
   },
+  "fieldStatusMatchOver": "Партия окончена",
+  "@fieldStatusMatchOver": {
+    "description": "Статус центральной полосы, пока поле держит последний ход и счёт перед итогом матча."
+  },
   "fieldToastOpponentTurn": "Сейчас ходит соперник",
   "@fieldToastOpponentTurn": {
     "description": "Тост при нажатии на карту руки в ход соперника."

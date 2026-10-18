@@ -44,30 +44,28 @@ class DeckEditorScreen extends StatelessWidget {
     return Material(
       type: MaterialType.transparency,
       child: ScreenBackdrop(
-        child: SafeArea(
-          child: BlocConsumer<DeckEditorCubit, DeckEditorState>(
-            listenWhen: (previous, current) => current is DeckEditorSaved,
-            listener: (context, state) => onExit(),
-            builder: (context, state) => Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 6, 18, 0),
-                  child: _TopBar(onBack: onExit),
-                ),
-                Expanded(
-                  child: switch (state) {
-                    DeckEditorLoading() || DeckEditorSaved() => const GameLoader(),
-                    DeckEditorFailed() => _Message(l10n.editorLoadFailed),
-                    DeckEditorNotFound() => _Message(l10n.editorNotFound),
-                    final DeckEditorReady ready => _EditorBody(
-                      state: ready,
-                      banner: banner,
-                      actionsBuilder: actionsBuilder,
-                    ),
-                  },
-                ),
-              ],
-            ),
+        child: BlocConsumer<DeckEditorCubit, DeckEditorState>(
+          listenWhen: (previous, current) => current is DeckEditorSaved,
+          listener: (context, state) => onExit(),
+          builder: (context, state) => Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 6, 18, 0),
+                child: _TopBar(onBack: onExit),
+              ),
+              Expanded(
+                child: switch (state) {
+                  DeckEditorLoading() || DeckEditorSaved() => const GameLoader(),
+                  DeckEditorFailed() => _Message(l10n.editorLoadFailed),
+                  DeckEditorNotFound() => _Message(l10n.editorNotFound),
+                  final DeckEditorReady ready => _EditorBody(
+                    state: ready,
+                    banner: banner,
+                    actionsBuilder: actionsBuilder,
+                  ),
+                },
+              ),
+            ],
           ),
         ),
       ),

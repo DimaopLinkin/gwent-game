@@ -1,13 +1,17 @@
 import 'package:flutter/widgets.dart';
 
 /// Фон экранов выбора фракции, лидера, колоды и конструктора (макеты 7 и 8): тёмное дерево стола с едва заметными
-/// горизонтальными полосами и виньеткой по краям. Содержимое [child] ложится поверх.
+/// горизонтальными полосами и виньеткой по краям. Фон идёт на весь экран, включая зоны под вырезом и системными
+/// панелями, а содержимое [child] лежит поверх него в безопасной области (если не отключено [safeArea]).
 class ScreenBackdrop extends StatelessWidget {
   /// Создаёт фон.
-  const ScreenBackdrop({super.key, required this.child});
+  const ScreenBackdrop({super.key, required this.child, this.safeArea = true});
 
   /// Содержимое экрана.
   final Widget child;
+
+  /// Класть содержимое в `SafeArea`; `false` — экран сам решает, что заходит под вырез.
+  final bool safeArea;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -38,7 +42,7 @@ class ScreenBackdrop extends StatelessWidget {
           ),
         ),
       ),
-      child,
+      if (safeArea) SafeArea(child: child) else child,
     ],
   );
 }

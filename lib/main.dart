@@ -3,10 +3,12 @@ import 'package:flutter/widgets.dart';
 import 'package:gwent/src/app/composition_root.dart';
 import 'package:gwent/src/app/font_licenses.dart';
 import 'package:gwent/src/app/gwent_app.dart';
+import 'package:gwent/src/app/system_ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   registerFontLicenses();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await hideSystemOverlays();
   runApp(GwentApp(dependencies: createAppDependencies()));
 }
