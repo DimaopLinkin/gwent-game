@@ -8,4 +8,7 @@ final class PackageAppInfo implements AppInfo {
 
   @override
   Future<String> version() async => (await PackageInfo.fromPlatform()).version;
+
+  @override
+  Future<String> buildNumber() async => (await PackageInfo.fromPlatform()).buildNumber;
 }

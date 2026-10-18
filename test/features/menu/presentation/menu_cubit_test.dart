@@ -150,4 +150,7 @@ void main() {
 final class _ThrowingAppInfo implements AppInfo {
   @override
   Future<String> version() => Future.error(StateError('нет данных'));
+
+  @override
+  Future<String> buildNumber() => Future.error(StateError('нет данных'));
 }

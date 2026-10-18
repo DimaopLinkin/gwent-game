@@ -1,0 +1,55 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/features/settings/domain/animation_speed.dart';
+import 'package:gwent/src/features/settings/domain/app_settings.dart';
+
+void main() {
+  test('значения по умолчанию', () {
+    const settings = AppSettings();
+
+    expect(settings.playerName, isNull);
+    expect(settings.confirmPass, isTrue);
+    expect(settings.animationSpeed, AnimationSpeed.normal);
+    expect(settings.hints, isTrue);
+    expect(settings.musicVolume, 70);
+    expect(settings.effectsVolume, 85);
+    expect(settings.contentCheckedAt, isNull);
+  });
+
+  test('copyWith меняет названные поля и оставляет имя игрока', () {
+    final checked = DateTime.utc(2026, 10, 18);
+    final settings = const AppSettings(
+      playerName: 'Геральт',
+    ).copyWith(confirmPass: false, animationSpeed: AnimationSpeed.fast, musicVolume: 10, contentCheckedAt: checked);
+
+    expect(settings.playerName, 'Геральт');
+    expect(settings.confirmPass, isFalse);
+    expect(settings.animationSpeed, AnimationSpeed.fast);
+    expect(settings.hints, isTrue);
+    expect(settings.musicVolume, 10);
+    expect(settings.effectsVolume, 85);
+    expect(settings.contentCheckedAt, checked);
+  });
+
+  test('withPlayerName меняет только имя, null стирает его', () {
+    final settings = const AppSettings(hints: false, effectsVolume: 5).withPlayerName('Йеннифэр');
+    expect(settings.playerName, 'Йеннифэр');
+    expect(settings.hints, isFalse);
+    expect(settings.effectsVolume, 5);
+
+    expect(settings.withPlayerName(null).playerName, isNull);
+  });
+
+  test('равенство учитывает все поля', () {
+    const base = AppSettings(playerName: 'А');
+
+    expect(base, const AppSettings(playerName: 'А'));
+    expect(base.hashCode, const AppSettings(playerName: 'А').hashCode);
+    expect(base, isNot(base.copyWith(confirmPass: false)));
+    expect(base, isNot(base.copyWith(animationSpeed: AnimationSpeed.fast)));
+    expect(base, isNot(base.copyWith(hints: false)));
+    expect(base, isNot(base.copyWith(musicVolume: 0)));
+    expect(base, isNot(base.copyWith(effectsVolume: 0)));
+    expect(base, isNot(base.copyWith(contentCheckedAt: DateTime.utc(2026))));
+    expect(base, isNot(base.withPlayerName('Б')));
+  });
+}
