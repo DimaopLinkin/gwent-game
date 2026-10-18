@@ -38,54 +38,52 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: GwentColors.bg,
       body: ScreenBackdrop(
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                child: Row(
-                  spacing: 8,
-                  children: [
-                    ChevronButton(label: l10n.settingsBack, onPressed: onBack),
-                    Expanded(
-                      child: Semantics(
-                        header: true,
-                        child: Text(
-                          l10n.settingsTitle,
-                          textAlign: TextAlign.center,
-                          textScaler: TextScaler.noScaling,
-                          style: const TextStyle(
-                            fontFamily: GwentText.cormorant,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 30,
-                            height: 1,
-                            letterSpacing: 30 * 0.06,
-                            color: GwentColors.goldHighlight,
-                          ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: Row(
+                spacing: 8,
+                children: [
+                  ChevronButton(label: l10n.settingsBack, onPressed: onBack),
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Text(
+                        l10n.settingsTitle,
+                        textAlign: TextAlign.center,
+                        textScaler: TextScaler.noScaling,
+                        style: const TextStyle(
+                          fontFamily: GwentText.cormorant,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 30,
+                          height: 1,
+                          letterSpacing: 30 * 0.06,
+                          color: GwentColors.goldHighlight,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 44),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 44),
+                ],
               ),
-              Expanded(
-                child: BlocBuilder<SettingsCubit, SettingsState>(
-                  builder: (context, state) => switch (state) {
-                    SettingsLoading() => const GameLoader(),
-                    SettingsFailed() => Center(
-                      child: Text(
-                        l10n.settingsLoadFailed,
-                        textAlign: TextAlign.center,
-                        style: GwentText.body.copyWith(fontSize: 17, color: GwentColors.textSecondary),
-                      ),
+            ),
+            Expanded(
+              child: BlocBuilder<SettingsCubit, SettingsState>(
+                builder: (context, state) => switch (state) {
+                  SettingsLoading() => const GameLoader(),
+                  SettingsFailed() => Center(
+                    child: Text(
+                      l10n.settingsLoadFailed,
+                      textAlign: TextAlign.center,
+                      style: GwentText.body.copyWith(fontSize: 17, color: GwentColors.textSecondary),
                     ),
-                    final SettingsLoaded loaded => _Settings(state: loaded, onLicenses: onLicenses),
-                  },
-                ),
+                  ),
+                  final SettingsLoaded loaded => _Settings(state: loaded, onLicenses: onLicenses),
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
