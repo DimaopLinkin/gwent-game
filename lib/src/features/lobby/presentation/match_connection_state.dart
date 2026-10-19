@@ -31,6 +31,12 @@ final class MatchConnectionState {
   /// Игрок закрыл окно кнопкой «Ждать»: ожидание идёт дальше, в углу остаётся плашка.
   final bool dismissed;
 
+  /// Остаток ожидания часами «м:сс».
+  String get leftClock {
+    final seconds = left.inSeconds < 0 ? 0 : left.inSeconds;
+    return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+  }
+
   /// Копия с заменёнными полями.
   MatchConnectionState copyWith({bool? lost, bool? unstable, bool? away, Duration? left, bool? dismissed}) =>
       MatchConnectionState(

@@ -43,6 +43,7 @@ class MatchScreen extends StatefulWidget {
     this.animationScale = 1,
     this.onSettings,
     this.overlay,
+    this.opponentStatus,
   });
 
   /// Выход из партии.
@@ -62,6 +63,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Слой поверх поля, пока партия идёт (связь в сетевой партии, ADR 0019); `null` — слоя нет.
   final Widget? overlay;
+
+  /// Индикатор в полосе соперника на поле (связь в сетевой партии, ADR 0019); `null` — индикатора нет.
+  final Widget? opponentStatus;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -229,6 +233,7 @@ class _MatchScreenState extends State<MatchScreen> {
           onIntent: submit,
           confirmPass: widget.confirmPass,
           onSettings: widget.onSettings,
+          opponentStatus: widget.opponentStatus,
         ),
       },
       MatchFinished(:final view, :final roster, :final canRematch) => MatchResultView(

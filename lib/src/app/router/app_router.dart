@@ -21,6 +21,7 @@ import 'package:gwent/src/features/lobby/presentation/host_qr_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_builder_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_deck_picker_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_indicator.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_layer.dart';
 import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/qr_scan_screen.dart';
@@ -314,6 +315,7 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
           AnimationSpeed.normal => 1,
           AnimationSpeed.fast => StageTokens.fastFactor,
         },
+        opponentStatus: game == null ? null : const MatchConnectionIndicator(),
         overlay: game == null
             ? null
             : Builder(

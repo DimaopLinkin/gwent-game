@@ -10,11 +10,12 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_state.dart';
 
-/// Связь поверх поля сетевой партии (макет 9, экраны 5 и 6): точка связи сверху, окно обрыва с отсчётом и окно
-/// «Хост свернул приложение» у гостя.
+/// Окна связи поверх поля сетевой партии (макет 9, экран 6): окно обрыва с отсчётом и окно «Хост свернул приложение»
+/// у гостя.
 ///
 /// Ждёт `MatchConnectionCubit` выше по дереву. Пока связь потеряна или хост свернул приложение, окно закрывает поле;
-/// «Ждать» убирает его, и остаётся точка. [onEnd] заканчивает матч: хост засчитывает себе поражение, гость уходит.
+/// «Ждать» убирает его, и остаётся индикатор в полосе соперника (`MatchConnectionIndicator`). [onEnd] заканчивает
+/// матч: хост засчитывает себе поражение, гость уходит.
 class MatchConnectionLayer extends StatelessWidget {
   /// Создаёт слой.
   const MatchConnectionLayer({super.key, required this.onEnd});
@@ -27,14 +28,6 @@ class MatchConnectionLayer extends StatelessWidget {
     builder: (context, state) => Stack(
       fit: StackFit.expand,
       children: [
-        Positioned(
-          top: MediaQuery.paddingOf(context).top + 7,
-          left: 0,
-          right: 0,
-          child: IgnorePointer(
-            child: Center(child: _Chip(state: state)),
-          ),
-        ),
         if (state.lost && !state.dismissed)
           _LostWindow(state: state, onWait: context.read<MatchConnectionCubit>().wait, onEnd: onEnd),
         if (state.away && !state.dismissed)
@@ -42,72 +35,6 @@ class MatchConnectionLayer extends StatelessWidget {
       ],
     ),
   );
-}
-
-String _clock(Duration time) {
-  final seconds = time.inSeconds < 0 ? 0 : time.inSeconds;
-  return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.state});
-
-  final MatchConnectionState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final lost = state.lost;
-    final warn = state.unstable || state.away;
-    final tone = lost ? GwentColors.debuff : (warn ? GwentColors.amber : GwentColors.gold);
-    final ring = lost ? GwentColors.dangerRing : (warn ? GwentColors.amberRing : GwentColors.brass);
-    final label = lost
-        ? '${l10n.netLinkLost} · ${_clock(state.left)}'
-        : state.away
-        ? l10n.netAwayTitle
-        : state.unstable
-        ? l10n.netLinkUnstable
-        : l10n.netLinkOk;
-    return Semantics(
-      label: label,
-      excludeSemantics: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xEB0E0B09),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: ring),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 8,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: tone,
-                  boxShadow: [BoxShadow(color: tone, blurRadius: 6)],
-                ),
-                child: const SizedBox.square(dimension: 8),
-              ),
-              Text(
-                label,
-                textScaler: TextScaler.noScaling,
-                style: TextStyle(
-                  fontFamily: GwentText.alegreya,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.5,
-                  letterSpacing: 0.5,
-                  color: lost ? GwentColors.errorText : (warn ? GwentColors.amber : GwentColors.textTertiary),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _LostWindow extends StatelessWidget {
@@ -190,10 +117,10 @@ class _LostWindow extends StatelessWidget {
                     ),
                     Semantics(
                       liveRegion: false,
-                      label: _clock(state.left),
+                      label: state.leftClock,
                       excludeSemantics: true,
                       child: Text(
-                        _clock(state.left),
+                        state.leftClock,
                         textAlign: TextAlign.center,
                         textScaler: TextScaler.noScaling,
                         style: TextStyle(
