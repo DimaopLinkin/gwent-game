@@ -188,4 +188,10 @@ abstract final class GwentColors {
 
   /// Подложка строки списка и панелей поверх стола.
   static const Color rowSurface = Color(0xE614110E);
+
+  /// Янтарный: связь нестабильна, но не потеряна.
+  static const Color amber = Color(0xFFE3B25A);
+
+  /// Янтарная обводка плашки связи.
+  static const Color amberRing = Color(0xFF8A6A2E);
 }

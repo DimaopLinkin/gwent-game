@@ -142,7 +142,7 @@ final class InMemoryDeckRepository implements DeckRepository {
 }
 
 /// Настройки в памяти. Поток сразу выдаёт текущие настройки и новые после каждого сохранения.
-final class InMemorySettingsRepository implements SettingsRepository {
+base class InMemorySettingsRepository implements SettingsRepository {
   final StreamController<void> _changes = StreamController.broadcast();
 
   AppSettings saved = const AppSettings();

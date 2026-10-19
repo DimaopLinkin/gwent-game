@@ -42,6 +42,7 @@ void main() {
       effectsVolume: 100,
       contentCheckedAt: DateTime.utc(2026, 10, 18, 9, 30),
       botDifficulty: BotDifficulty.deathMatch,
+      localNetworkExplained: true,
     );
 
     await repository.save(settings);

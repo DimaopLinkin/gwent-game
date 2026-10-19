@@ -23,8 +23,22 @@ class GwentApp extends StatefulWidget {
 class _GwentAppState extends State<GwentApp> {
   late final GoRouter _router = createAppRouter(widget.dependencies);
 
+  // Хост сообщает, что свернул приложение, пока оно ещё отвечает: гость видит «партия на паузе», а не обрыв. Если ОС
+  // заморозит процесс хоста надолго, обрыв засчитывается как обычно (ADR 0020).
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onHide: () => widget.dependencies.activeNetworkGame.current?.setAway(away: true),
+      onShow: () => widget.dependencies.activeNetworkGame.current?.setAway(away: false),
+    );
+  }
+
   @override
   void dispose() {
+    _lifecycle.dispose();
     _router.dispose();
     super.dispose();
   }

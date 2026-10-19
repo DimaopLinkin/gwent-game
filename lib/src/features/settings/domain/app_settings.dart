@@ -19,6 +19,7 @@ final class AppSettings {
     this.effectsVolume = defaultEffectsVolume,
     this.contentCheckedAt,
     this.botDifficulty = BotDifficulty.normal,
+    this.localNetworkExplained = false,
   }) : assert(musicVolume >= 0 && musicVolume <= maxVolume, 'громкость музыки от 0 до $maxVolume'),
        assert(effectsVolume >= 0 && effectsVolume <= maxVolume, 'громкость эффектов от 0 до $maxVolume');
 
@@ -55,6 +56,9 @@ final class AppSettings {
   /// Уровень сложности бота, выбранный в прошлый раз: в следующей партии против бота он выбран заранее.
   final BotDifficulty botDifficulty;
 
+  /// Игрок уже видел пояснение перед системным запросом доступа к локальной сети (iOS, ADR 0020).
+  final bool localNetworkExplained;
+
   /// Копия с другим именем игрока; `null` стирает имя.
   AppSettings withPlayerName(String? playerName) => AppSettings(
     playerName: playerName,
@@ -65,6 +69,7 @@ final class AppSettings {
     effectsVolume: effectsVolume,
     contentCheckedAt: contentCheckedAt,
     botDifficulty: botDifficulty,
+    localNetworkExplained: localNetworkExplained,
   );
 
   /// Копия с другими значениями; не названные поля остаются прежними. Имя игрока меняет [withPlayerName].
@@ -76,6 +81,7 @@ final class AppSettings {
     int? effectsVolume,
     DateTime? contentCheckedAt,
     BotDifficulty? botDifficulty,
+    bool? localNetworkExplained,
   }) => AppSettings(
     playerName: playerName,
     confirmPass: confirmPass ?? this.confirmPass,
@@ -85,6 +91,7 @@ final class AppSettings {
     effectsVolume: effectsVolume ?? this.effectsVolume,
     contentCheckedAt: contentCheckedAt ?? this.contentCheckedAt,
     botDifficulty: botDifficulty ?? this.botDifficulty,
+    localNetworkExplained: localNetworkExplained ?? this.localNetworkExplained,
   );
 
   @override
@@ -97,7 +104,8 @@ final class AppSettings {
       other.musicVolume == musicVolume &&
       other.effectsVolume == effectsVolume &&
       other.contentCheckedAt == contentCheckedAt &&
-      other.botDifficulty == botDifficulty;
+      other.botDifficulty == botDifficulty &&
+      other.localNetworkExplained == localNetworkExplained;
 
   @override
   int get hashCode => Object.hash(
@@ -109,11 +117,13 @@ final class AppSettings {
     effectsVolume,
     contentCheckedAt,
     botDifficulty,
+    localNetworkExplained,
   );
 
   @override
   String toString() =>
       'AppSettings(playerName: $playerName, confirmPass: $confirmPass, animationSpeed: $animationSpeed, '
       'hints: $hints, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt, '
-      'botDifficulty: $botDifficulty)';
+      'botDifficulty: $botDifficulty, '
+      'localNetworkExplained: $localNetworkExplained)';
 }

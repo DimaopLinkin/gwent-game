@@ -15,6 +15,7 @@ void main() {
     expect(settings.effectsVolume, 85);
     expect(settings.contentCheckedAt, isNull);
     expect(settings.botDifficulty, BotDifficulty.normal);
+    expect(settings.localNetworkExplained, isFalse);
   });
 
   test('copyWith меняет названные поля и оставляет имя игрока', () {
@@ -39,6 +40,7 @@ void main() {
     expect(settings.effectsVolume, 5);
 
     expect(settings.withPlayerName(null).playerName, isNull);
+    expect(const AppSettings(localNetworkExplained: true).withPlayerName('Ласка').localNetworkExplained, isTrue);
   });
 
   test('равенство учитывает все поля', () {
@@ -49,6 +51,7 @@ void main() {
     expect(base, isNot(base.copyWith(confirmPass: false)));
     expect(base, isNot(base.copyWith(animationSpeed: AnimationSpeed.fast)));
     expect(base, isNot(base.copyWith(hints: false)));
+    expect(base, isNot(base.copyWith(localNetworkExplained: true)));
     expect(base, isNot(base.copyWith(musicVolume: 0)));
     expect(base, isNot(base.copyWith(botDifficulty: BotDifficulty.hard)));
     expect(base, isNot(base.copyWith(effectsVolume: 0)));

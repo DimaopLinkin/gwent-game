@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import 'package:gwent_ai/src/bot_difficulty.dart';
 import 'package:gwent_ai/src/card_values.dart';
 import 'package:gwent_ai/src/greedy_bot_settings.dart';
@@ -143,7 +145,7 @@ final class GreedyBot implements MatchBot {
 
   /// Ход, который бот играет вместо лучшего [best]: самый дешёвый из не хуже лучшего больше чем на допуск экономии.
   _Move _frugal(List<_Move> moves, _Move best) {
-    final slack = _settings.frugalSlack + best.gain.abs() * _settings.frugalShare / 100;
+    final slack = _settings.frugalSlack + max(best.gain, 0) * _settings.frugalShare / 100;
     if (slack == 0) return best;
     var pick = best;
     for (final move in moves) {

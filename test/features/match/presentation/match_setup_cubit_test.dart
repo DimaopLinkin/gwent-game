@@ -16,6 +16,7 @@ import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
 import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart';
+import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_engine/gwent_engine.dart' show Seat, TooFewUnitCards;
 
@@ -321,6 +322,32 @@ void main() {
       expect(cubit.back(), isFalse);
     });
 
+    test('пока уровень сохраняется, другой выбрать нельзя', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit, pastDifficulty: false);
+      cubit.selectDifficulty(BotDifficulty.hard);
+
+      final confirming = cubit.confirmDifficulty();
+      cubit.selectDifficulty(BotDifficulty.easy);
+      await confirming;
+
+      expect(now(cubit).difficulty, BotDifficulty.hard);
+      expect(settings.saved.botDifficulty, BotDifficulty.hard);
+    });
+
+    test('сбой хранилища настроек не мешает выбору: уровень «Нормальный», выбор идёт дальше', () async {
+      settings = _BrokenSettingsRepository();
+      final cubit = build(LocalMatchMode.vsBot);
+      final state = await ready(cubit, pastDifficulty: false);
+      expect(state.difficulty, BotDifficulty.normal);
+
+      cubit.selectDifficulty(BotDifficulty.hard);
+      await cubit.confirmDifficulty();
+
+      expect(now(cubit).step, SetupStep.faction);
+      expect(now(cubit).difficulty, BotDifficulty.hard);
+    });
+
     test('уровень можно выбирать только на шаге сложности', () async {
       final cubit = build(LocalMatchMode.vsBot);
       await ready(cubit);
@@ -577,4 +604,13 @@ final class _RulesOnce implements DeckRulesSource {
     _served = true;
     return _rules;
   }
+}
+
+/// Хранилище настроек, которое не читается и не пишется.
+final class _BrokenSettingsRepository extends InMemorySettingsRepository {
+  @override
+  Stream<AppSettings> watch() => Stream.error(StateError('настройки недоступны'));
+
+  @override
+  Future<void> save(AppSettings settings) => Future.error(StateError('настройки недоступны'));
 }

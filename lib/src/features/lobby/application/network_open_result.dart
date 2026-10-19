@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/lobby/application/network_game.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent_net/gwent_net.dart' show JoinRefusal;
 
 /// Итог попытки создать сетевую игру или подключиться к ней.
@@ -23,8 +24,11 @@ final class NetworkContentUnavailable extends NetworkOpenResult {
 
 /// Служба сети не работает: Wi-Fi выключен или ОС не дала доступ к локальной сети.
 final class NetworkUnavailable extends NetworkOpenResult {
-  /// Создаёт итог.
-  const NetworkUnavailable();
+  /// Создаёт итог. [problem] — причина, если её удалось определить.
+  const NetworkUnavailable({this.problem});
+
+  /// Что именно мешает; `null`, если известно только, что сеть не работает.
+  final NetworkProblem? problem;
 }
 
 /// К хосту подключиться не удалось: он ушёл из сети, закрыл партию или сеть не пропускает соединение.

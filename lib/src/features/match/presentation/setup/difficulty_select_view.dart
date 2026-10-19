@@ -62,7 +62,7 @@ class DifficultySelectView extends StatelessWidget {
                       itemBuilder: (context, i) => _DifficultyRow(
                         difficulty: BotDifficulty.values[i],
                         selected: BotDifficulty.values[i] == selected,
-                        onTap: () => onSelect(BotDifficulty.values[i]),
+                        onTap: busy ? null : () => onSelect(BotDifficulty.values[i]),
                       ),
                     ),
                   ),
@@ -86,7 +86,7 @@ class _DifficultyRow extends StatelessWidget {
 
   final BotDifficulty difficulty;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

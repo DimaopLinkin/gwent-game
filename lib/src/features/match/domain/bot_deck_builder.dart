@@ -25,6 +25,7 @@ import 'package:gwent_engine/gwent_engine.dart'
 /// уровень задаёт силу набора, а не список карт. Карты берутся по убыванию ключа, пока не наберётся нужное число.
 final class BotDeckBuilder {
   /// Создаёт сборщика по правилам [rules].
+  // Оценки карт берутся с настройками по умолчанию: пока вес карты не зависит от уровня, они совпадают с ботовыми.
   BotDeckBuilder(this._rules) : _values = CardValues(_rules.catalog, const GreedyBotSettings());
 
   final DeckRules _rules;
@@ -38,7 +39,11 @@ final class BotDeckBuilder {
     final cards = _rules.collectionFor(factionId);
     final units = cards.where((card) => card.isUnit).toList();
     final specials = cards.where((card) => card.isSpecial).toList();
-    final leaders = _rules.factionInfos.firstWhere((faction) => faction.id == factionId).leaders;
+    final leaders = _rules.factionInfos
+        .firstWhere((faction) => faction.id == factionId)
+        .leaders
+        .where((leader) => leader.available)
+        .toList();
 
     var generator = rng;
     double roll() {

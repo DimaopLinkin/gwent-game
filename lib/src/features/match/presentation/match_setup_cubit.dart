@@ -73,7 +73,7 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
 
   /// Выбирает уровень сложности бота [difficulty] на шаге сложности.
   void selectDifficulty(BotDifficulty difficulty) {
-    if (_step != SetupStep.difficulty || difficulty == _difficulty) return;
+    if (_step != SetupStep.difficulty || difficulty == _difficulty || _busy) return;
     _difficulty = difficulty;
     _emit();
   }
@@ -85,14 +85,13 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     _emit();
     try {
       await _saveBotDifficulty(_difficulty);
-      if (isClosed) return;
-      _step = SetupStep.faction;
     } on Object catch (error, stackTrace) {
-      _fail(error, stackTrace);
-      return;
-    } finally {
-      _busy = false;
+      // Запомнить уровень на следующий раз не вышло: партия от этого не страдает, выбор идёт дальше.
+      addError(error, stackTrace);
     }
+    _busy = false;
+    if (isClosed) return;
+    _step = SetupStep.faction;
     _emit();
   }
 
@@ -263,8 +262,10 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
   Future<void> _loadRules(LoadDeckRules loadDeckRules, LoadBotDifficulty loadBotDifficulty) async {
     try {
       final rules = await loadDeckRules();
-      // Уровень нужен только против бота.
-      final difficulty = _mode == LocalMatchMode.vsBot ? await loadBotDifficulty() : BotDifficulty.normal;
+      // Уровень нужен только против бота; не прочитался, значит «Нормальный».
+      final difficulty = _mode == LocalMatchMode.vsBot
+          ? await _rememberedDifficulty(loadBotDifficulty)
+          : BotDifficulty.normal;
       if (isClosed) return;
       if (rules.factionInfos.isEmpty) throw StateError('в пакете нет фракций с колодой');
       _rules = rules;
@@ -272,6 +273,15 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
       _emit();
     } on Object catch (error, stackTrace) {
       _fail(error, stackTrace);
+    }
+  }
+
+  Future<BotDifficulty> _rememberedDifficulty(LoadBotDifficulty loadBotDifficulty) async {
+    try {
+      return await loadBotDifficulty();
+    } on Object catch (error, stackTrace) {
+      addError(error, stackTrace);
+      return BotDifficulty.normal;
     }
   }
 
