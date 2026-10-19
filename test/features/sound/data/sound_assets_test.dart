@@ -26,7 +26,7 @@ void main() {
   test('эффекты, готовящиеся заранее, не повторяются и помещаются в число живых проигрывателей', () {
     const core = AudioplayersSoundOutput.coreEffects;
     expect(core.toSet(), hasLength(core.length));
-    expect(core.length, lessThanOrEqualTo(AudioplayersSoundOutput.defaultMaxPlayers));
+    expect(core.length, lessThanOrEqualTo(AudioplayersSoundOutput.defaultMaxEffects));
   });
 
   test('у каждой композиции есть свой файл в assets/music, и других файлов там нет', () {

@@ -23,10 +23,12 @@ final class RecentSlots<K, V> {
     return value;
   }
 
-  /// Кладёт [value] по [key] самым свежим. Если набор переполнился, возвращает вытесненную пару.
+  /// Кладёт [value] по [key] самым свежим. Возвращает пару, которой пришлось уйти: прежнее значение этого ключа или,
+  /// если набор переполнился, самое давнее значение. Если уходить некому, `null`.
   MapEntry<K, V>? put(K key, V value) {
-    _entries.remove(key);
+    final replaced = _entries.remove(key);
     _entries[key] = value;
+    if (replaced != null) return MapEntry(key, replaced);
     if (_entries.length <= capacity) return null;
     final oldest = _entries.entries.first;
     _entries.remove(oldest.key);

@@ -7,10 +7,10 @@ import 'package:flutter/foundation.dart';
 /// Контекст ставится один раз за процесс; все вызовы ждут одного и того же результата. Неудача не запоминается: следующее
 /// обращение пробует ещё раз.
 Future<void> configureGameAudioContext() async {
-  // В отладочной сборке плагин пишет в консоль, что делает с каждым проигрывателем: так видно, почему звук молчит.
-  if (kDebugMode) AudioLogger.logLevel = AudioLogLevel.info;
   final pending = _configured;
   if (pending != null) return pending;
+  // В отладочной сборке плагин пишет в консоль, что делает с каждым проигрывателем: так видно, почему звук молчит.
+  if (kDebugMode) AudioLogger.logLevel = AudioLogLevel.info;
   final run = _configured = AudioPlayer.global.setAudioContext(
     AudioContext(
       android: const AudioContextAndroid(
