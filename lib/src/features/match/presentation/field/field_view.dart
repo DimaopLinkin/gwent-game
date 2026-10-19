@@ -57,6 +57,7 @@ class FieldView extends StatefulWidget {
     required this.onIntent,
     this.confirmPass = false,
     this.onSettings,
+    this.readOnly = false,
   });
 
   /// Проекция партии.
@@ -76,6 +77,9 @@ class FieldView extends StatefulWidget {
 
   /// Открыть настройки поверх партии из меню паузы; `null` — кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
+
+  /// Поле только смотрят (за листом итога матча): системная «назад» не открывает паузу, а уходит дальше.
+  final bool readOnly;
 
   @override
   State<FieldView> createState() => _FieldViewState();
@@ -252,7 +256,7 @@ class _FieldViewState extends State<FieldView> {
     builder: (context, field) {
       final sheet = _sheet(context, field);
       return PopScope(
-        canPop: false,
+        canPop: widget.readOnly,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _onBack(field);
         },

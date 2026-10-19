@@ -183,21 +183,25 @@ void main() {
       bool hotSeat = false,
       VoidCallback? onExit,
       VoidCallback? onRematch,
-    }) => pumpView(
-      tester,
-      MatchResultView(
-        view: view,
-        roster: rosterOf(cards, hotSeat: hotSeat),
-        onExit: onExit ?? () {},
-        onRematch: onRematch,
-      ),
-    );
+    }) async {
+      await pumpView(
+        tester,
+        MatchResultView(
+          view: view,
+          roster: rosterOf(cards, hotSeat: hotSeat),
+          onExit: onExit ?? () {},
+          onRematch: onRematch,
+        ),
+      );
+      // Лист выезжает из-под экрана.
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+    }
 
     testWidgets('победа: «Победа», счёт раундов и таблица по раундам', (tester) async {
       await pumpResult(tester, finished(winner: Seat.one));
-      expect(find.text('МАТЧ ОКОНЧЕН'), findsOneWidget);
       expect(find.text('Победа'), findsOneWidget);
-      expect(find.text('Раунды 1 : 1'), findsOneWidget);
+      expect(find.text('· 1 : 1'), findsOneWidget);
       expect(find.text('РАУНД'), findsOneWidget);
       expect(find.text('ПОБЕДИТЕЛЬ'), findsOneWidget);
       expect(find.text('Раунд 1'), findsOneWidget);
@@ -225,7 +229,7 @@ void main() {
       );
       expect(find.text('Раунд 2'), findsOneWidget);
       expect(find.text('Раунд 3'), findsOneWidget);
-      expect(find.text('Раунды 1 : 0'), findsOneWidget);
+      expect(find.text('· 1 : 0'), findsOneWidget);
     });
 
     testWidgets('в hot-seat назван победитель, а заголовок победный', (tester) async {
@@ -238,7 +242,7 @@ void main() {
 
     testWidgets('экран итога глазами второго места считает раунды с его стороны', (tester) async {
       await pumpResult(tester, finished(winner: Seat.two, viewer: Seat.two));
-      expect(find.text('Раунды 1 : 1'), findsOneWidget);
+      expect(find.text('· 1 : 1'), findsOneWidget);
       expect(find.text('Победа'), findsOneWidget);
     });
 
@@ -263,7 +267,7 @@ void main() {
       expect(find.text('В меню'), findsOneWidget);
     });
 
-    testWidgets('на низком экране содержимое прокручивается без переполнения', (tester) async {
+    testWidgets('на низком экране середина листа прокручивается без переполнения', (tester) async {
       await pumpView(
         tester,
         MatchResultView(
@@ -274,8 +278,113 @@ void main() {
         ),
         size: const Size(320, 568),
       );
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
       expect(tester.takeException(), isNull);
-      await tester.scrollUntilVisible(find.text('В меню'), 100, scrollable: find.byType(Scrollable));
+      expect(tester.getBottomLeft(find.text('В меню')).dy, lessThanOrEqualTo(568));
+      await tester.scrollUntilVisible(find.text('Раунд 3'), 100, scrollable: find.byType(Scrollable));
+    });
+
+    testWidgets('лист выезжает снизу, а поле за ним затемняется на 62 %', (tester) async {
+      await pumpView(
+        tester,
+        MatchResultView(
+          view: finished(winner: Seat.one),
+          roster: rosterOf(cards),
+          onExit: () {},
+          field: const Text('поле партии'),
+        ),
+      );
+      expect(tester.getTopLeft(find.text('Победа')).dy, greaterThan(844), reason: 'до первого кадра лист под экраном');
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      expect(tester.getTopLeft(find.text('Победа')).dy, lessThan(844 - 400));
+      expect(find.text('поле партии'), findsOneWidget);
+      expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 0.62);
+    });
+
+    testWidgets('«Показать поле» опускает лист до полосы 64 pt и снимает затемнение, «К итогам» возвращает', (
+      tester,
+    ) async {
+      await pumpView(
+        tester,
+        MatchResultView(
+          view: finished(winner: Seat.one),
+          roster: rosterOf(cards),
+          onExit: () {},
+          onRematch: () {},
+        ),
+      );
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      final expandedTop = tester.getTopLeft(find.text('Победа')).dy;
+
+      await tester.tap(find.text('Показать поле'));
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      expect(find.text('К итогам'), findsOneWidget);
+      expect(find.text('Показать поле'), findsNothing);
+      expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 0);
+      expect(tester.getBottomLeft(find.text('Победа')).dy, lessThanOrEqualTo(844), reason: 'шапка остаётся на экране');
+      expect(tester.getTopLeft(find.text('Реванш')).dy, greaterThan(844), reason: 'кнопки уходят вниз');
+      expect(tester.getTopLeft(find.text('Победа')).dy, greaterThan(expandedTop));
+
+      await tester.tap(find.text('К итогам'));
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      expect(find.text('Показать поле'), findsOneWidget);
+      expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 0.62);
+      expect(tester.getTopLeft(find.text('Победа')).dy, expandedTop);
+    });
+
+    testWidgets('жест вниз по шапке сворачивает лист, жест вверх разворачивает; короткий жест ничего не делает', (
+      tester,
+    ) async {
+      await pumpView(
+        tester,
+        MatchResultView(
+          view: finished(winner: Seat.one),
+          roster: rosterOf(cards),
+          onExit: () {},
+          onRematch: () {},
+        ),
+      );
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+
+      await tester.drag(find.text('Победа'), const Offset(0, 20));
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      expect(find.text('Показать поле'), findsOneWidget, reason: 'до 40 pt лист остаётся');
+
+      await tester.drag(find.text('Победа'), const Offset(0, 80));
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      expect(find.text('К итогам'), findsOneWidget);
+
+      await tester.drag(find.text('Победа'), const Offset(0, -80));
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      expect(find.text('Показать поле'), findsOneWidget);
+    });
+
+    testWidgets('за листом поле не принимает касаний', (tester) async {
+      var taps = 0;
+      await pumpView(
+        tester,
+        MatchResultView(
+          view: finished(winner: Seat.one),
+          roster: rosterOf(cards),
+          onExit: () {},
+          field: Center(
+            child: GestureDetector(onTap: () => taps++, child: const Text('поле партии')),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(MatchResultView.sheetSlide);
+      await tester.tap(find.text('поле партии'), warnIfMissed: false);
+      expect(taps, 0);
     });
   });
 

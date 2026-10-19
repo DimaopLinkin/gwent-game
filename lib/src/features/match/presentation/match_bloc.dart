@@ -227,10 +227,31 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     final next = _actor(local) ?? shown ?? session.perspective;
     if (local.length > 1 && next != shown) {
       // Hot-seat: телефон уходит другому игроку, в том числе в начале партии; руку видит только он.
+      if (shown != null && _endsRoundFor(shown)) {
+        // Раунд кончил тот, у кого телефон: поле, подсчёт и плашки остаются у него, а экран передачи ждёт в очереди
+        // экрана партии до конца плашки хода (макет 13). Следующему игроку конец раунда не повторяется.
+        _show(shown, emit);
+        _forgetRoundEnd(next);
+      }
       emit(MatchHandover(next, kind: _handoverKind(_views[next]!), roster: roster));
       return;
     }
     _show(next, emit);
+  }
+
+  /// Последнее действие [seat] закончило раунд, а партия продолжается: конец раунда этот игрок ещё не видел.
+  bool _endsRoundFor(Seat seat) =>
+      _views[seat]!.phase == MatchPhase.playing && (_unseen[seat] ?? const []).any((event) => event is RoundEnded);
+
+  /// Конец раунда для [seat] уже показан другому игроку: из его непросмотренных событий уходит всё до начала нового
+  /// раунда, поле раунда не нужно. Что сыграли после, остаётся.
+  void _forgetRoundEnd(Seat seat) {
+    final events = _unseen[seat];
+    if (events != null) {
+      final end = events.lastIndexWhere((event) => event is RoundEnded);
+      if (end >= 0) _unseen[seat] = events.sublist(end + 1);
+    }
+    _roundFields.remove(seat);
   }
 
   /// Решение о первом игроке, которое ещё не показано жребием, или `null`.

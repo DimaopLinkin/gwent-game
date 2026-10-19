@@ -168,6 +168,32 @@ void main() {
         if (state.closing case final closing?) expect(closing.viewer, state.view.viewer);
       }
     });
+
+    test('hot-seat: конец раунда видит тот, у кого телефон, передача идёт после него и без повтора', () async {
+      final states = await playOut(LocalMatchMode.hotSeat);
+      var handedAfterRoundEnd = 0;
+      for (var i = 0; i < states.length - 1; i++) {
+        final state = states[i];
+        if (state is! MatchInProgress || state.view.phase != MatchPhase.playing) continue;
+        if (!state.events.any((event) => event is RoundEnded)) continue;
+        final following = states[i + 1];
+        if (following is! MatchHandover) continue;
+        handedAfterRoundEnd++;
+        expect(state.closing, isNotNull, reason: 'у того, кто кончил раунд, конец раунда с полем перед ним');
+        expect(state.closing!.viewer, state.view.viewer);
+        expect(following.next, state.view.viewer.opponent, reason: 'телефон уходит другому');
+        final received = states.skip(i + 2).whereType<MatchInProgress>().first;
+        expect(received.view.viewer, following.next);
+        expect(
+          received.events.any((event) => event is RoundEnded),
+          isFalse,
+          reason: 'второй игрок конец не пересматривает',
+        );
+        expect(received.closing, isNull);
+        expect(received.events.whereType<RoundStarted>(), isNotEmpty, reason: 'новый раунд ему остаётся');
+      }
+      expect(handedAfterRoundEnd, greaterThan(0), reason: 'в партии есть раунд, после которого ходит другой игрок');
+    });
   });
 
   /// Виды передач телефона в партии вдвоём с заданным сидом (сид решает, кто ходит первым).

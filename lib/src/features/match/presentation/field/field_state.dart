@@ -73,14 +73,21 @@ final class RoundStartBanner extends FieldBanner {
 
 /// Ход перешёл к [seat]; [mine] — это место игрока, который держит телефон.
 final class TurnStartBanner extends FieldBanner {
-  /// Создаёт баннер.
-  const TurnStartBanner({required this.seat, required this.mine});
+  /// Создаёт баннер; [chosenBy] — у первого хода партии: кто из Скоя'таэлей выбрал, кто ходит первым.
+  const TurnStartBanner({required this.seat, required this.mine, this.chosenBy, this.chosenByMine = false});
 
   /// Чей ход.
   final Seat seat;
 
   /// Ход того, кто смотрит на экран.
   final bool mine;
+
+  /// Место Скоя'таэлей, выбравших первого игрока (макет 13); `null` — первого игрока определил жребий или это не
+  /// первый ход партии.
+  final Seat? chosenBy;
+
+  /// Первого игрока выбрал тот, кто смотрит на экран.
+  final bool chosenByMine;
 }
 
 /// [seat] спасовал; [mine] — это место игрока, который держит телефон.
