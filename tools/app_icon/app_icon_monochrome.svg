@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" color="#000000">
+<defs>
+<linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#E0BC72"></stop><stop offset=".5" style="stop-color:#C8A35B"></stop><stop offset="1" style="stop-color:#8C6A3F"></stop></linearGradient>
+<linearGradient id="gBrass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#A98450"></stop><stop offset=".5" style="stop-color:#8C6A3F"></stop><stop offset="1" style="stop-color:#5E4527"></stop></linearGradient>
+<linearGradient id="gCard" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#2D2319"></stop><stop offset="1" style="stop-color:#1A140E"></stop></linearGradient>
+<linearGradient id="gFlame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#D9C9A3"></stop><stop offset=".5" style="stop-color:#C8A35B"></stop><stop offset="1" style="stop-color:#8C6A3F"></stop></linearGradient>
+<radialGradient id="gGem" cx=".38" cy=".35" r=".75"><stop offset="0" style="stop-color:#D9473F"></stop><stop offset=".55" style="stop-color:#B3261E"></stop><stop offset="1" style="stop-color:#5E100C"></stop></radialGradient>
+<radialGradient id="gGlow" cx=".5" cy=".5" r=".6"><stop offset="0" style="stop-color:#3B2B1B"></stop><stop offset=".6" style="stop-color:#1E1711"></stop><stop offset="1" style="stop-color:#14110E"></stop></radialGradient>
+<radialGradient id="gHalo" cx=".5" cy=".5" r=".5"><stop offset="0" style="stop-color:#C8A35B;stop-opacity:.35"></stop><stop offset="1" style="stop-color:#C8A35B;stop-opacity:0"></stop></radialGradient>
+<pattern id="lat" width="44" height="44" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0H44M0 0V44" style="stroke:#8C6A3F;stroke-width:3;fill:none;opacity:.4"></path></pattern>
+<filter id="wood" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.008 0.16" numOctaves="3" seed="4"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .55  0 0 0 0 .4  0 0 0 0 .22  0 0 0 .22 -.06"></feColorMatrix></filter>
+<clipPath id="cCircle"><circle cx="512" cy="512" r="341"></circle></clipPath>
+<clipPath id="cSquare"><rect x="170" y="170" width="683" height="683" rx="170"></rect></clipPath>
+<clipPath id="cDrop"><path d="M170 512A341 341 0 0 1 512 170L793 170Q853 170 853 230L853 512A341 341 0 0 1 512 853A341 341 0 0 1 170 512Z"></path></clipPath>
+<clipPath id="cIos"><rect width="1024" height="1024" rx="229"></rect></clipPath>
+<mask id="mkA" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><rect width="1024" height="1024" fill="#fff"></rect><circle cx="512" cy="512" r="121" style="fill:none;stroke:#000;stroke-width:24"></circle></mask>
+
+<g id="none"></g>
+<g id="bgL"><rect width="1024" height="1024" fill="#14110E"></rect><rect width="1024" height="1024" fill="url(#gGlow)"></rect><rect width="1024" height="1024" filter="url(#wood)"></rect></g>
+
+<g id="signA">
+<rect x="342" y="272" width="340" height="480" rx="30" fill="url(#gCard)" style="stroke:#C8A35B;stroke-width:18"></rect>
+<rect x="366" y="296" width="292" height="432" rx="14" fill="url(#lat)" style="stroke:#8C6A3F;stroke-width:6"></rect>
+<circle cx="512" cy="512" r="132" fill="url(#gGold)"></circle>
+<circle cx="512" cy="512" r="100" fill="url(#gBrass)"></circle>
+<circle cx="512" cy="512" r="82" fill="url(#gGem)"></circle>
+<ellipse cx="486" cy="482" rx="26" ry="16" fill="#D9C9A3" opacity=".3" transform="rotate(-35 486 482)"></ellipse>
+</g>
+
+<g id="signB">
+<g transform="rotate(-24 512 640)"><rect x="412" y="350" width="200" height="290" rx="22" fill="url(#gCard)" style="stroke:#8C6A3F;stroke-width:16"></rect></g>
+<g transform="rotate(24 512 640)"><rect x="412" y="350" width="200" height="290" rx="22" fill="url(#gCard)" style="stroke:#8C6A3F;stroke-width:16"></rect></g>
+<rect x="412" y="350" width="200" height="290" rx="22" fill="url(#gCard)" style="stroke:#C8A35B;stroke-width:18"></rect>
+<path d="M452 545L440 450L482 490L512 435L542 490L584 450L572 545Z" fill="url(#gGold)"></path>
+<rect x="452" y="554" width="120" height="24" rx="5" fill="url(#gGold)"></rect>
+<circle cx="512" cy="470" r="14" fill="url(#gGem)"></circle>
+</g>
+
+<g id="signC">
+<ellipse cx="512" cy="340" rx="190" ry="190" fill="url(#gHalo)"></ellipse>
+<path d="M512 205C562 275 596 322 596 372C596 418 560 442 512 442C464 442 428 418 428 372C428 322 462 275 512 205Z" fill="url(#gFlame)"></path>
+<path d="M512 320C536 352 550 372 550 396C550 418 534 430 512 430C490 430 474 418 474 396C474 372 488 352 512 320Z" fill="#D9C9A3"></path>
+<g transform="rotate(-6 512 640)"><rect x="382" y="478" width="260" height="330" rx="26" fill="url(#gCard)" style="stroke:#C8A35B;stroke-width:18"></rect>
+<path d="M512 548L582 643L512 738L442 643Z" fill="none" style="stroke:#8C6A3F;stroke-width:12"></path>
+<circle cx="512" cy="643" r="34" fill="url(#gGem)"></circle></g>
+</g>
+
+<g id="monoA" mask="url(#mkA)" fill="currentColor"><rect x="342" y="272" width="340" height="480" rx="30"></rect><circle cx="512" cy="512" r="132"></circle></g>
+
+<g id="iosA"><use href="#bgL"></use><g transform="translate(512 512) scale(1.3) translate(-512 -512)"><use href="#signA"></use></g></g>
+<g id="iosB"><use href="#bgL"></use><g transform="translate(512 512) scale(1.3) translate(-512 -512)"><use href="#signB"></use></g></g>
+<g id="iosC"><use href="#bgL"></use><g transform="translate(512 512) scale(1.3) translate(-512 -512)"><use href="#signC"></use></g></g>
+</defs>
+<use href="#monoA"/>
+</svg>

@@ -1,0 +1,2443 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Гвинт",
+  "@appTitle": {
+    "description": "Название приложения в заголовке окна и главном меню."
+  },
+  "menuHotSeat": "Играть на одном телефоне",
+  "@menuHotSeat": {
+    "description": "Кнопка главного меню: партия двух игроков на одном устройстве."
+  },
+  "menuNetworkGame": "Сетевая игра",
+  "@menuNetworkGame": {
+    "description": "Кнопка главного меню: партия по Wi-Fi, Bluetooth или через сервер."
+  },
+  "menuDecks": "Колоды",
+  "@menuDecks": {
+    "description": "Кнопка главного меню: конструктор колоды."
+  },
+  "deckListEmpty": "Колод пока нет",
+  "@deckListEmpty": {
+    "description": "Пустой список сохранённых колод."
+  },
+  "deckListLoadFailed": "Не удалось загрузить колоды",
+  "@deckListLoadFailed": {
+    "description": "Ошибка чтения сохранённых колод."
+  },
+  "deckCardCount": "{count, plural, one{{count} карта} few{{count} карты} many{{count} карт} other{{count} карты}}",
+  "@deckCardCount": {
+    "description": "Число карт в колоде в списке колод.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "screenPendingDesign": "Экран появится по макетам",
+  "@screenPendingDesign": {
+    "description": "Заглушка экрана, который ещё не свёрстан по макетам."
+  },
+  "cardLeaderAbilityReady": "Доступна",
+  "@cardLeaderAbilityReady": {
+    "description": "Метка на полной карте лидера: способность лидера ещё не использована."
+  },
+  "cardLeaderAbilityUsed": "Использована",
+  "@cardLeaderAbilityUsed": {
+    "description": "Метка на полной карте лидера: способность лидера уже использована."
+  },
+  "cardSemanticsUnit": "{name}, сила {power}",
+  "@cardSemanticsUnit": {
+    "description": "Подпись карты отряда для скринридера.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "power": {
+        "type": "int"
+      }
+    }
+  },
+  "cardSemanticsBack": "Рубашка карты",
+  "@cardSemanticsBack": {
+    "description": "Подпись закрытой карты для скринридера."
+  },
+  "cardDetailCloseHint": "Свайп вниз или тап вне карты — закрыть",
+  "@cardDetailCloseHint": {
+    "description": "Подсказка под полным просмотром карты."
+  },
+  "cardKindUnit": "Отряд",
+  "@cardKindUnit": {
+    "description": "Тип карты в полном просмотре: обычный отряд."
+  },
+  "cardKindHero": "Герой",
+  "@cardKindHero": {
+    "description": "Тип карты в полном просмотре: герой."
+  },
+  "cardKindSpecial": "Особая карта",
+  "@cardKindSpecial": {
+    "description": "Тип карты в полном просмотре: особая карта."
+  },
+  "cardKindWeather": "Погода",
+  "@cardKindWeather": {
+    "description": "Тип карты в полном просмотре: карта погоды."
+  },
+  "cardKindLeader": "Лидер",
+  "@cardKindLeader": {
+    "description": "Тип карты в полном просмотре: карта лидера."
+  },
+  "cardFactionNeutral": "Нейтральная",
+  "@cardFactionNeutral": {
+    "description": "Фракция нейтральной карты в полном просмотре."
+  },
+  "cardLeaderAbilityTitle": "Способность лидера",
+  "@cardLeaderAbilityTitle": {
+    "description": "Заголовок способности в полном просмотре карты лидера."
+  },
+  "cardHeroAbilityTitle": "Герой",
+  "@cardHeroAbilityTitle": {
+    "description": "Заголовок пункта о герое в полном просмотре."
+  },
+  "cardHeroAbilityDescription": "На героя не действуют погода, Командирский рог и способности других карт.",
+  "@cardHeroAbilityDescription": {
+    "description": "Описание свойства героя в полном просмотре."
+  },
+  "cardMetaUnit": "{faction} · {zone} · {kind}",
+  "@cardMetaUnit": {
+    "description": "Строка под названием отряда в полном просмотре: фракция, ряд и тип (Отряд или Герой).",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "zone": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMetaSpecial": "{kind} · {faction}",
+  "@cardMetaSpecial": {
+    "description": "Строка под названием особой карты или погоды в полном просмотре: тип и фракция.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "faction": {
+        "type": "String"
+      }
+    }
+  },
+  "cardMetaLeader": "{faction} · {kind} · {status}",
+  "@cardMetaLeader": {
+    "description": "Строка под названием лидера в полном просмотре: фракция, тип и состояние способности.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "cardFactionCommon": "Общая",
+  "@cardFactionCommon": {
+    "description": "Принадлежность нейтральной особой карты или погоды в полном просмотре."
+  },
+  "cardLeaderStatusReady": "способность доступна",
+  "@cardLeaderStatusReady": {
+    "description": "Состояние способности лидера в строке полного просмотра."
+  },
+  "cardLeaderStatusUsed": "способность использована",
+  "@cardLeaderStatusUsed": {
+    "description": "Состояние способности лидера в строке полного просмотра."
+  },
+  "lifeGemsSemantics": "Кристаллов: {remaining} из {total}",
+  "@lifeGemsSemantics": {
+    "description": "Подпись камней-жизней игрока для скринридера.",
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "playerPlateYou": "Вы",
+  "@playerPlateYou": {
+    "description": "Имя игрока на его плашке, когда это владелец телефона."
+  },
+  "playerPlateYourTurn": "Ваш ход",
+  "@playerPlateYourTurn": {
+    "description": "Метка активной плашки игрока."
+  },
+  "playerPlatePassed": "Пас",
+  "@playerPlatePassed": {
+    "description": "Метка плашки игрока, который спасовал."
+  },
+  "playerPlateHandCount": "{count, plural, one{{count} карта в руке} few{{count} карты в руке} many{{count} карт в руке} other{{count} карты в руке}}",
+  "@playerPlateHandCount": {
+    "description": "Подпись числа карт в руке для скринридера.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerPlateScoreSemantics": "Счёт {score}",
+  "@playerPlateScoreSemantics": {
+    "description": "Подпись общего счёта игрока для скринридера.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "passButtonLabel": "Пас",
+  "@passButtonLabel": {
+    "description": "Подпись кнопки паса."
+  },
+  "passButtonHoldHint": "Удерживайте 1 с",
+  "@passButtonHoldHint": {
+    "description": "Подсказка над кнопкой паса, пока её держат."
+  },
+  "passConfirmTitle": "Спасовать?",
+  "@passConfirmTitle": {
+    "description": "Заголовок диалога подтверждения паса."
+  },
+  "passConfirmBody": "До конца раунда вы не сможете разыгрывать карты. {count, plural, one{В руке останется {count} карта.} few{В руке останется {count} карты.} many{В руке останется {count} карт.} other{В руке останется {count} карты.}}",
+  "@passConfirmBody": {
+    "description": "Текст диалога подтверждения паса.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dialogCancel": "Отмена",
+  "@dialogCancel": {
+    "description": "Безопасная кнопка диалога подтверждения."
+  },
+  "hornSlotEmpty": "Слот рога: пусто",
+  "@hornSlotEmpty": {
+    "description": "Подпись пустого слота рога у ряда для скринридера."
+  },
+  "hornSlotFilled": "Слот рога: {effect}",
+  "@hornSlotFilled": {
+    "description": "Подпись занятого слота рога у ряда для скринридера; effect — название карты в слоте.",
+    "placeholders": {
+      "effect": {
+        "type": "String"
+      }
+    }
+  },
+  "hornSlotTargetSemantics": "Положить Командирский рог в этот ряд",
+  "@hornSlotTargetSemantics": {
+    "description": "Подпись слота рога, пока выбрана карта рога."
+  },
+  "bannerYourTurn": "Ваш ход",
+  "@bannerYourTurn": {
+    "description": "Баннер начала хода игрока."
+  },
+  "bannerRound": "Раунд {round}",
+  "@bannerRound": {
+    "description": "Заголовок баннера начала раунда.",
+    "placeholders": {
+      "round": {
+        "type": "int"
+      }
+    }
+  },
+  "bannerRoundScore": "Счёт по раундам {mine} : {theirs}",
+  "@bannerRoundScore": {
+    "description": "Подзаголовок баннера раунда.",
+    "placeholders": {
+      "mine": {
+        "type": "int"
+      },
+      "theirs": {
+        "type": "int"
+      }
+    }
+  },
+  "bannerOpponentPassed": "Противник спасовал",
+  "@bannerOpponentPassed": {
+    "description": "Заголовок баннера: соперник спасовал."
+  },
+  "bannerOpponentPassedHint": "Разыграйте карту или спасуйте",
+  "@bannerOpponentPassedHint": {
+    "description": "Подзаголовок баннера: соперник спасовал."
+  },
+  "loaderSpinnerSemantics": "Загрузка",
+  "@loaderSpinnerSemantics": {
+    "description": "Подпись встроенного индикатора загрузки для скринридера."
+  },
+  "rowScoreSemantics": "Сила ряда {score}",
+  "@rowScoreSemantics": {
+    "description": "Подпись силы ряда для скринридера.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "totalScoreSemantics": "Общий счёт {score}",
+  "@totalScoreSemantics": {
+    "description": "Подпись общего счёта игрока для скринридера.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "deckCounterSemantics": "{label}: {count} из {target}",
+  "@deckCounterSemantics": {
+    "description": "Подпись счётчика колоды для скринридера.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "loaderShuffling": "Тасуем колоду…",
+  "@loaderShuffling": {
+    "description": "Подпись загрузки при тасовании колоды."
+  },
+  "deckCounterShortfall": "{count, plural, one{Нужно ещё {count} карта} few{Нужно ещё {count} карты} many{Нужно ещё {count} карт} other{Нужно ещё {count} карты}}",
+  "@deckCounterShortfall": {
+    "description": "Подпись счётчика колоды, в которой не хватает карт.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterTabCount": "{label}, {count}",
+  "@filterTabCount": {
+    "description": "Подпись вкладки-фильтра с числом карт для скринридера.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fieldDeckSemantics": "Колода: {count, plural, one{{count} карта} few{{count} карты} many{{count} карт} other{{count} карты}}",
+  "@fieldDeckSemantics": {
+    "description": "Подпись колоды на полосе игрока для скринридера.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fieldDiscardSemantics": "Сброс: {count, plural, one{{count} карта} few{{count} карты} many{{count} карт} other{{count} карты}}",
+  "@fieldDiscardSemantics": {
+    "description": "Подпись сброса на полосе игрока для скринридера.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fieldWeatherSlotSemantics": "Погода на ряду",
+  "@fieldWeatherSlotSemantics": {
+    "description": "Подпись занятого слота погоды в центральной полосе."
+  },
+  "fieldRowSemantics": "{row}, сила {score}",
+  "@fieldRowSemantics": {
+    "description": "Подпись ряда на поле для скринридера.",
+    "placeholders": {
+      "row": {
+        "type": "String"
+      },
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "fieldRowMelee": "Ближний ряд",
+  "@fieldRowMelee": {
+    "description": "Название ближнего ряда."
+  },
+  "fieldRowRanged": "Дальний ряд",
+  "@fieldRowRanged": {
+    "description": "Название дальнего ряда."
+  },
+  "fieldRowSiege": "Осадный ряд",
+  "@fieldRowSiege": {
+    "description": "Название осадного ряда."
+  },
+  "fieldOpponentRow": "{name} соперника",
+  "@fieldOpponentRow": {
+    "description": "Название ряда соперника для скринридера; [name] — «Ближний ряд» и т. п.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldLeaderHorn": "Рог лидера",
+  "@fieldLeaderHorn": {
+    "description": "Подпись слота рога, занятого способностью лидера."
+  },
+  "fieldPlayerOpponent": "Соперник",
+  "@fieldPlayerOpponent": {
+    "description": "Имя соперника на полосе игрока."
+  },
+  "fieldPassedTag": "Спасовал",
+  "@fieldPassedTag": {
+    "description": "Метка на полосе соперника, пока он спасовал."
+  },
+  "fieldStatusYourChoice": "Ваш выбор",
+  "@fieldStatusYourChoice": {
+    "description": "Статус центральной полосы, пока игрок должен сделать выбор."
+  },
+  "fieldStatusOpponentChoosing": "Соперник выбирает",
+  "@fieldStatusOpponentChoosing": {
+    "description": "Статус центральной полосы, пока выбирает соперник."
+  },
+  "fieldStatusYouPassed": "Вы спасовали",
+  "@fieldStatusYouPassed": {
+    "description": "Статус центральной полосы после своего паса."
+  },
+  "fieldStatusTapStrip": "Коснитесь полосы",
+  "@fieldStatusTapStrip": {
+    "description": "Статус центральной полосы, когда выбранная карта играется на неё."
+  },
+  "fieldStatusOpponentTurn": "Ход соперника",
+  "@fieldStatusOpponentTurn": {
+    "description": "Статус центральной полосы в ход соперника."
+  },
+  "fieldStatusMatchOver": "Партия окончена",
+  "@fieldStatusMatchOver": {
+    "description": "Статус центральной полосы, пока поле держит последний ход и счёт перед итогом матча."
+  },
+  "fieldToastOpponentTurn": "Сейчас ходит соперник",
+  "@fieldToastOpponentTurn": {
+    "description": "Тост при нажатии на карту руки в ход соперника."
+  },
+  "fieldToastAlreadyPassed": "Вы уже спасовали в этом раунде",
+  "@fieldToastAlreadyPassed": {
+    "description": "Тост при нажатии на карту руки после паса."
+  },
+  "fieldToastCardNotPlayable": "Эту карту сейчас некуда сыграть",
+  "@fieldToastCardNotPlayable": {
+    "description": "Тост при нажатии на карту, которую нельзя сыграть."
+  },
+  "fieldToastRefused": "Ход не принят: положение на столе изменилось",
+  "@fieldToastRefused": {
+    "description": "Тост об ошибке, когда движок отклонил ход."
+  },
+  "fieldHintUnitRowTitle": "Выберите ряд",
+  "@fieldHintUnitRowTitle": {
+    "description": "Заголовок подсказки при выборе ряда для отряда по требованию способности."
+  },
+  "fieldHintUnitRowSubtitle": "Куда положить: {name}",
+  "@fieldHintUnitRowSubtitle": {
+    "description": "Пояснение подсказки выбора ряда; [name] — название карты.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldHintSingleRow": "Коснитесь подсвеченного ряда",
+  "@fieldHintSingleRow": {
+    "description": "Пояснение подсказки, когда ряд один."
+  },
+  "fieldHintOwnRowTitle": "Выберите ряд",
+  "@fieldHintOwnRowTitle": {
+    "description": "Заголовок подсказки при розыгрыше отряда."
+  },
+  "fieldHintAgile": "Проворный отряд: ближний или дальний ряд",
+  "@fieldHintAgile": {
+    "description": "Пояснение подсказки для проворного отряда."
+  },
+  "fieldHintSpyTitle": "Выберите ряд соперника",
+  "@fieldHintSpyTitle": {
+    "description": "Заголовок подсказки при розыгрыше шпиона."
+  },
+  "fieldHintSpySubtitle": "Шпион уйдёт к нему, а вы возьмёте карты",
+  "@fieldHintSpySubtitle": {
+    "description": "Пояснение подсказки для шпиона."
+  },
+  "fieldHintHornTitle": "Выберите слот рога",
+  "@fieldHintHornTitle": {
+    "description": "Заголовок подсказки при розыгрыше Командирского рога."
+  },
+  "fieldHintHornSubtitle": "Слот ряда должен быть свободен",
+  "@fieldHintHornSubtitle": {
+    "description": "Пояснение подсказки для рога."
+  },
+  "fieldHintStripTitle": "Коснитесь центральной полосы",
+  "@fieldHintStripTitle": {
+    "description": "Заголовок подсказки для погоды и особых карт без цели."
+  },
+  "fieldHintStripSubtitle": "Карта подействует на поле целиком",
+  "@fieldHintStripSubtitle": {
+    "description": "Пояснение подсказки для погоды и особых карт без цели."
+  },
+  "fieldHintDecoyTitle": "Выберите отряд",
+  "@fieldHintDecoyTitle": {
+    "description": "Заголовок подсказки при розыгрыше Чучела."
+  },
+  "fieldHintDecoySubtitle": "Он вернётся в руку, Чучело займёт его место",
+  "@fieldHintDecoySubtitle": {
+    "description": "Пояснение подсказки для Чучела."
+  },
+  "fieldChoiceMedic": "Медик: вернуть отряд",
+  "@fieldChoiceMedic": {
+    "description": "Заголовок листа выбора цели медика."
+  },
+  "fieldChoiceOpponentDiscard": "Взять из сброса соперника",
+  "@fieldChoiceOpponentDiscard": {
+    "description": "Заголовок листа выбора карты из сброса соперника."
+  },
+  "fieldChoiceOwnDiscard": "Взять из своего сброса",
+  "@fieldChoiceOwnDiscard": {
+    "description": "Заголовок листа выбора карты из своего сброса."
+  },
+  "fieldChoiceHandDiscard": "Сбросьте карту из руки",
+  "@fieldChoiceHandDiscard": {
+    "description": "Заголовок листа выбора карты руки для сброса."
+  },
+  "fieldChoiceDeckCard": "Выберите карту из колоды",
+  "@fieldChoiceDeckCard": {
+    "description": "Заголовок листа выбора карты из колоды."
+  },
+  "fieldChoiceDeckWeather": "Выберите погоду из колоды",
+  "@fieldChoiceDeckWeather": {
+    "description": "Заголовок листа выбора погоды из колоды."
+  },
+  "fieldChoiceSubtitle": "Коснитесь карты, чтобы выбрать её",
+  "@fieldChoiceSubtitle": {
+    "description": "Пояснение листов выбора."
+  },
+  "fieldChoiceNoCancel": "Отменить выбор нельзя: способность уже сработала",
+  "@fieldChoiceNoCancel": {
+    "description": "Заметка под сеткой листов выбора."
+  },
+  "fieldDiscardMine": "Мой сброс",
+  "@fieldDiscardMine": {
+    "description": "Заголовок листа своего сброса."
+  },
+  "fieldDiscardOpponent": "Сброс соперника",
+  "@fieldDiscardOpponent": {
+    "description": "Заголовок листа сброса соперника."
+  },
+  "fieldDiscardSubtitle": "Карт в сбросе: {count}. Удерживайте карту, чтобы рассмотреть её",
+  "@fieldDiscardSubtitle": {
+    "description": "Пояснение листа сброса.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fieldSortStrength": "По силе",
+  "@fieldSortStrength": {
+    "description": "Вкладка сортировки сброса по силе."
+  },
+  "fieldSortOrder": "По порядку",
+  "@fieldSortOrder": {
+    "description": "Вкладка сортировки сброса по порядку."
+  },
+  "fieldDiscardEmptyTitle": "Сброс пуст",
+  "@fieldDiscardEmptyTitle": {
+    "description": "Заголовок пустого листа сброса."
+  },
+  "fieldDiscardEmptyText": "Сыгранные и погибшие карты появятся здесь",
+  "@fieldDiscardEmptyText": {
+    "description": "Пояснение пустого листа сброса."
+  },
+  "fieldClose": "Закрыть",
+  "@fieldClose": {
+    "description": "Кнопка закрытия листа."
+  },
+  "fieldLeaderUse": "Использовать",
+  "@fieldLeaderUse": {
+    "description": "Кнопка листа лидера."
+  },
+  "fieldLeaderUsedNote": "Способность уже использована",
+  "@fieldLeaderUsedNote": {
+    "description": "Заметка листа лидера после применения способности."
+  },
+  "fieldLeaderDisabledNote": "Способность отключена",
+  "@fieldLeaderDisabledNote": {
+    "description": "Заметка листа лидера, когда способность отключена."
+  },
+  "fieldLeaderWaitNote": "Её можно применить в свой ход",
+  "@fieldLeaderWaitNote": {
+    "description": "Заметка листа лидера, когда способность сейчас недоступна."
+  },
+  "fieldLeaderPassiveNote": "Действует постоянно",
+  "@fieldLeaderPassiveNote": {
+    "description": "Заметка листа лидера с пассивной способностью: применять её не нужно."
+  },
+  "fieldRevealTitle": "Рука противника",
+  "@fieldRevealTitle": {
+    "description": "Заголовок листа с показанными картами руки соперника."
+  },
+  "fieldRevealSubtitle": "Лидер показал три карты",
+  "@fieldRevealSubtitle": {
+    "description": "Пояснение листа с показанными картами."
+  },
+  "fieldRevealDone": "Готово",
+  "@fieldRevealDone": {
+    "description": "Кнопка листа с показанными картами."
+  },
+  "matchSetupLoadFailed": "Не удалось загрузить колоды",
+  "@matchSetupLoadFailed": {
+    "description": "Сообщение, когда колоды не прочитались."
+  },
+  "matchStartFailed": "Не удалось начать партию: проверьте колоды",
+  "@matchStartFailed": {
+    "description": "Сообщение, когда партия не началась."
+  },
+  "matchCrashed": "Партия прервалась из-за ошибки",
+  "@matchCrashed": {
+    "description": "Сообщение, когда партия прервалась."
+  },
+  "matchExit": "В меню",
+  "@matchExit": {
+    "description": "Кнопка выхода из партии."
+  },
+  "matchHandoverReady": "Я готов",
+  "@matchHandoverReady": {
+    "description": "Кнопка экрана передачи телефона."
+  },
+  "matchRedrawTitle": "Пересдача",
+  "@matchRedrawTitle": {
+    "description": "Заголовок экрана пересдачи."
+  },
+  "matchRedrawDone": "Готово",
+  "@matchRedrawDone": {
+    "description": "Кнопка завершения пересдачи."
+  },
+  "matchFirstPlayerMe": "Я",
+  "@matchFirstPlayerMe": {
+    "description": "Кнопка выбора себя первым игроком."
+  },
+  "matchFinishedWin": "Победа",
+  "@matchFinishedWin": {
+    "description": "Заголовок итога партии при победе."
+  },
+  "matchFinishedLose": "Поражение",
+  "@matchFinishedLose": {
+    "description": "Заголовок итога партии при поражении."
+  },
+  "matchFinishedDraw": "Ничья",
+  "@matchFinishedDraw": {
+    "description": "Заголовок итога партии при ничьей."
+  },
+  "playerNumbered": "Игрок {number}",
+  "@playerNumbered": {
+    "description": "Имя игрока по номеру места в партии на одном телефоне.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "matchPlayerOpponent": "Противник",
+  "@matchPlayerOpponent": {
+    "description": "Имя соперника в партии против бота или по сети."
+  },
+  "bannerDecisiveRound": "Решающий раунд",
+  "@bannerDecisiveRound": {
+    "description": "Заголовок баннера раунда, когда у каждого по одному кристаллу."
+  },
+  "bannerDecisiveRoundHint": "У каждого по одному камню",
+  "@bannerDecisiveRoundHint": {
+    "description": "Подпись баннера решающего раунда."
+  },
+  "bannerTurnOf": "Ход: {name}",
+  "@bannerTurnOf": {
+    "description": "Баннер хода в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerFirstChoiceYou": "Скоя'таэли: вы выбрали, кто ходит первым",
+  "@bannerFirstChoiceYou": {
+    "description": "Подпись баннера первого хода: первого игрока выбрал сам игрок (фракция Скоя'таэли)."
+  },
+  "bannerFirstChoiceOpponent": "Скоя'таэли: соперник выбрал, кто ходит первым",
+  "@bannerFirstChoiceOpponent": {
+    "description": "Подпись баннера первого хода: первого игрока выбрал соперник (фракция Скоя'таэли)."
+  },
+  "bannerFirstChoiceBy": "Скоя'таэли: {name} выбрал, кто ходит первым",
+  "@bannerFirstChoiceBy": {
+    "description": "Подпись баннера первого хода на одном телефоне: первого игрока выбрал игрок с именем {name}.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerOpponentTurn": "Ход противника",
+  "@bannerOpponentTurn": {
+    "description": "Баннер хода соперника."
+  },
+  "bannerPassedBy": "{name} спасовал",
+  "@bannerPassedBy": {
+    "description": "Баннер паса в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerYouPassed": "Вы спасовали",
+  "@bannerYouPassed": {
+    "description": "Заголовок баннера: игрок спасовал."
+  },
+  "bannerYouPassedHint": "Ожидание хода противника",
+  "@bannerYouPassedHint": {
+    "description": "Подпись баннера: игрок спасовал."
+  },
+  "matchIntroSkipSemantics": "Пропустить",
+  "@matchIntroSkipSemantics": {
+    "description": "Подпись нажатия на экран знакомства и жребия для скринридера."
+  },
+  "matchIntroVersus": "ПРОТИВ",
+  "@matchIntroVersus": {
+    "description": "Слово между игроками на экране знакомства."
+  },
+  "matchIntroDeck": "Колода",
+  "@matchIntroDeck": {
+    "description": "Слово перед названием колоды на экране знакомства."
+  },
+  "matchIntroDeckName": "«{deck}»",
+  "@matchIntroDeckName": {
+    "description": "Название колоды в кавычках на экране знакомства.",
+    "placeholders": {
+      "deck": {
+        "type": "String"
+      }
+    }
+  },
+  "matchTossTitle": "Жребий",
+  "@matchTossTitle": {
+    "description": "Заголовок экрана жребия."
+  },
+  "matchTossChoiceTitle": "Выбор",
+  "@matchTossChoiceTitle": {
+    "description": "Заголовок экрана, когда первого игрока выбрал игрок Скоя'таэлей."
+  },
+  "matchTossFlipping": "Бросаем монету…",
+  "@matchTossFlipping": {
+    "description": "Подпись, пока летит монета."
+  },
+  "matchTossYouFirst": "Вы ходите первым",
+  "@matchTossYouFirst": {
+    "description": "Результат жребия: первым ходит игрок."
+  },
+  "matchTossOpponentFirst": "Первым ходит противник",
+  "@matchTossOpponentFirst": {
+    "description": "Результат жребия: первым ходит соперник."
+  },
+  "matchTossHotFirst": "Первым ходит {name}",
+  "@matchTossHotFirst": {
+    "description": "Результат жребия в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchTossNoteChoice": "Решение Скоя'таэлей",
+  "@matchTossNoteChoice": {
+    "description": "Пояснение: первого игрока выбрал игрок Скоя'таэлей."
+  },
+  "matchTossNoteBothScoiatael": "Оба игрока — Скоя'таэли, решил жребий",
+  "@matchTossNoteBothScoiatael": {
+    "description": "Пояснение: у обоих Скоя'таэли, выбирать некому."
+  },
+  "matchTossNoteRandom": "Решил жребий",
+  "@matchTossNoteRandom": {
+    "description": "Пояснение жребия."
+  },
+  "matchFirstPlayerFaction": "Скоя'таэли",
+  "@matchFirstPlayerFaction": {
+    "description": "Название фракции на экране выбора первого игрока."
+  },
+  "matchFirstPlayerEyebrowHot": "{name} · Скоя'таэли",
+  "@matchFirstPlayerEyebrowHot": {
+    "description": "Надпись над заголовком выбора первого игрока в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchFirstPlayerTitle": "Кто ходит первым?",
+  "@matchFirstPlayerTitle": {
+    "description": "Заголовок экрана выбора первого игрока."
+  },
+  "matchFirstPlayerOpponentDecides": "Противник решает",
+  "@matchFirstPlayerOpponentDecides": {
+    "description": "Заголовок, пока первого игрока выбирает соперник."
+  },
+  "matchFirstPlayerSubtitle": "Фракция Скоя'таэли: вы сами решаете, кто начнёт партию.",
+  "@matchFirstPlayerSubtitle": {
+    "description": "Пояснение экрана выбора первого игрока."
+  },
+  "matchFirstPlayerSubtitleHot": "{name}: кто ходит первым — вы или соперник? Кнопки относятся к тому, кто держит телефон.",
+  "@matchFirstPlayerSubtitleHot": {
+    "description": "Пояснение выбора первого игрока в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchFirstPlayerSubtitleWaiting": "Фракция Скоя'таэли даёт противнику право выбрать, кто начнёт партию.",
+  "@matchFirstPlayerSubtitleWaiting": {
+    "description": "Пояснение, пока первого игрока выбирает соперник."
+  },
+  "matchFirstPlayerWaitingChoice": "Ожидание выбора…",
+  "@matchFirstPlayerWaitingChoice": {
+    "description": "Пульсирующая надпись, пока соперник выбирает первого игрока."
+  },
+  "matchFirstPlayerOpponent": "Противник",
+  "@matchFirstPlayerOpponent": {
+    "description": "Кнопка выбора соперника первым игроком."
+  },
+  "matchRedrawEyebrowHot": "{name} · {faction}",
+  "@matchRedrawEyebrowHot": {
+    "description": "Надпись над заголовком пересдачи в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "faction": {
+        "type": "String"
+      }
+    }
+  },
+  "matchRedrawLeft": "Можно заменить: {count}",
+  "@matchRedrawLeft": {
+    "description": "Счётчик оставшихся замен карт на экране пересдачи.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "matchRedrawHint": "Нажмите на карту, чтобы заменить её новой.",
+  "@matchRedrawHint": {
+    "description": "Подсказка экрана пересдачи."
+  },
+  "matchRedrawHoldHint": "Удерживайте карту — полный просмотр",
+  "@matchRedrawHoldHint": {
+    "description": "Подсказка под сеткой карт пересдачи."
+  },
+  "matchRedrawOpponentBusy": "Противник меняет карты…",
+  "@matchRedrawOpponentBusy": {
+    "description": "Заголовок ожидания, пока соперник проходит пересдачу."
+  },
+  "matchRedrawReplaced": "Вы заменили карт: {count}",
+  "@matchRedrawReplaced": {
+    "description": "Подпись ожидания пересдачи.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "matchHandoverTitle": "Передайте телефон:",
+  "@matchHandoverTitle": {
+    "description": "Заголовок экрана передачи телефона."
+  },
+  "matchHandoverFirstPlayerChoice": "Сейчас решается, кто ходит первым. Рука скрыта: нажмите «Я готов», когда телефон у вас.",
+  "@matchHandoverFirstPlayerChoice": {
+    "description": "Пояснение передачи телефона перед выбором первого игрока."
+  },
+  "matchHandoverRedraw": "Сейчас — пересдача карт. Рука скрыта: нажмите «Я готов», когда телефон у вас.",
+  "@matchHandoverRedraw": {
+    "description": "Пояснение передачи телефона перед пересдачей."
+  },
+  "matchHandoverFirstMove": "Рука скрыта. Первым ходит {name}. Нажмите «Я готов», когда телефон у вас.",
+  "@matchHandoverFirstMove": {
+    "description": "Пояснение передачи телефона перед первым ходом.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchHandoverTurn": "Рука скрыта. Нажмите «Я готов», когда телефон у вас: {name} увидит свои карты и поле.",
+  "@matchHandoverTurn": {
+    "description": "Пояснение передачи телефона между ходами.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "summaryEyebrow": "Раунд {round} · итог",
+  "@summaryEyebrow": {
+    "description": "Надпись над заголовком итога раунда.",
+    "placeholders": {
+      "round": {
+        "type": "int"
+      }
+    }
+  },
+  "summaryYouWon": "Вы выиграли раунд",
+  "@summaryYouWon": {
+    "description": "Заголовок итога раунда: игрок выиграл."
+  },
+  "summaryOpponentWon": "Противник выиграл раунд",
+  "@summaryOpponentWon": {
+    "description": "Заголовок итога раунда: игрок проиграл."
+  },
+  "summaryDraw": "Ничья",
+  "@summaryDraw": {
+    "description": "Заголовок итога раунда: ничья."
+  },
+  "summaryWinnerHot": "{name} выиграл раунд",
+  "@summaryWinnerHot": {
+    "description": "Заголовок итога раунда в партии на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "summaryContinue": "Нажмите, чтобы продолжить",
+  "@summaryContinue": {
+    "description": "Подсказка итога раунда."
+  },
+  "summaryFactionAbilities": "Способности фракций",
+  "@summaryFactionAbilities": {
+    "description": "Заголовок блока способностей фракций в итоге раунда."
+  },
+  "summaryMarkExtraCard": "+1 карта",
+  "@summaryMarkExtraCard": {
+    "description": "Способность Королевств Севера в итоге раунда."
+  },
+  "summaryMarkUnitStays": "карта остаётся на поле",
+  "@summaryMarkUnitStays": {
+    "description": "Способность Чудовищ в итоге раунда."
+  },
+  "summaryMarkWonTie": "победа при ничьей",
+  "@summaryMarkWonTie": {
+    "description": "Способность Нильфгаарда в итоге раунда."
+  },
+  "matchResultShowField": "Показать поле",
+  "@matchResultShowField": {
+    "description": "Кнопка листа итога матча: опустить лист и открыть поле партии."
+  },
+  "matchResultShowResults": "К итогам",
+  "@matchResultShowResults": {
+    "description": "Кнопка свёрнутого листа итога матча: вернуть лист."
+  },
+  "matchResultWinnerHot": "Победил {name}",
+  "@matchResultWinnerHot": {
+    "description": "Подзаголовок итога матча на одном телефоне.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "matchResultRounds": "Раунды {mine} : {theirs}",
+  "@matchResultRounds": {
+    "description": "Счёт выигранных раундов в итоге матча.",
+    "placeholders": {
+      "mine": {
+        "type": "int"
+      },
+      "theirs": {
+        "type": "int"
+      }
+    }
+  },
+  "matchResultRound": "Раунд {number}",
+  "@matchResultRound": {
+    "description": "Строка таблицы раундов в итоге матча.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "matchResultColumnRound": "Раунд",
+  "@matchResultColumnRound": {
+    "description": "Заголовок столбца таблицы итога матча."
+  },
+  "matchResultColumnWinner": "Победитель",
+  "@matchResultColumnWinner": {
+    "description": "Заголовок столбца таблицы итога матча."
+  },
+  "matchResultRematch": "Реванш",
+  "@matchResultRematch": {
+    "description": "Кнопка итога матча: сыграть заново."
+  },
+  "pauseButtonSemantics": "Пауза",
+  "@pauseButtonSemantics": {
+    "description": "Подпись кнопки паузы для скринридера."
+  },
+  "pauseTitle": "Пауза",
+  "@pauseTitle": {
+    "description": "Заголовок меню паузы."
+  },
+  "pauseResume": "Продолжить",
+  "@pauseResume": {
+    "description": "Кнопка меню паузы."
+  },
+  "pauseRules": "Правила",
+  "@pauseRules": {
+    "description": "Кнопка меню паузы."
+  },
+  "pauseSettings": "Настройки",
+  "@pauseSettings": {
+    "description": "Кнопка меню паузы."
+  },
+  "pauseSurrender": "Сдаться",
+  "@pauseSurrender": {
+    "description": "Кнопка меню паузы и подтверждения сдачи."
+  },
+  "surrenderTitle": "Сдаться?",
+  "@surrenderTitle": {
+    "description": "Заголовок подтверждения сдачи."
+  },
+  "surrenderBody": "Матч будет засчитан как поражение.",
+  "@surrenderBody": {
+    "description": "Пояснение подтверждения сдачи."
+  },
+  "rulesTitle": "Правила",
+  "@rulesTitle": {
+    "description": "Заголовок справочника правил."
+  },
+  "rulesBackSemantics": "Назад",
+  "@rulesBackSemantics": {
+    "description": "Подпись кнопки «назад» справочника правил."
+  },
+  "rulesGoalTitle": "Цель",
+  "@rulesGoalTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesGoalText": "Выиграйте два раунда из трёх. Раунд выигрывает игрок с большей суммой силы на поле, когда оба спасовали. Спасовавший игрок больше не ходит до конца раунда. У каждого два камня жизни: проигравший раунд теряет один, при ничьей теряют оба.",
+  "@rulesGoalText": {
+    "description": "Правила: цель игры."
+  },
+  "rulesRowsTitle": "Ряды",
+  "@rulesRowsTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesRowsText": "Сила считается отдельно в каждом ряду, сумма трёх рядов — счёт раунда.",
+  "@rulesRowsText": {
+    "description": "Правила: ряды."
+  },
+  "rulesRowMeleeName": "Ближний бой",
+  "@rulesRowMeleeName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowMeleeText": "Рукопашные отряды.",
+  "@rulesRowMeleeText": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowRangedName": "Дальний бой",
+  "@rulesRowRangedName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowRangedText": "Лучники и стрелки.",
+  "@rulesRowRangedText": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowSiegeName": "Осадные",
+  "@rulesRowSiegeName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowSiegeText": "Катапульты и другие осадные орудия.",
+  "@rulesRowSiegeText": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowAgileName": "Проворство",
+  "@rulesRowAgileName": {
+    "description": "Правила: ряд."
+  },
+  "rulesRowAgileText": "Отряд можно выложить в ближний или дальний ряд.",
+  "@rulesRowAgileText": {
+    "description": "Правила: ряд."
+  },
+  "rulesWeatherTitle": "Погода",
+  "@rulesWeatherTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesWeatherText": "Погодная карта действует на оба поля. Герои погоде не подвержены.",
+  "@rulesWeatherText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFrostName": "Мороз",
+  "@rulesWeatherFrostName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFrostText": "Снижает силу рукопашных отрядов до 1.",
+  "@rulesWeatherFrostText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFogName": "Мгла",
+  "@rulesWeatherFogName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherFogText": "Снижает силу отрядов дальнего боя до 1.",
+  "@rulesWeatherFogText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherRainName": "Ливень",
+  "@rulesWeatherRainName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherRainText": "Снижает силу осадных отрядов до 1.",
+  "@rulesWeatherRainText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherStormName": "Шторм со Скеллиге",
+  "@rulesWeatherStormName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherStormText": "Снижает силу дальних и осадных отрядов до 1 у обоих игроков.",
+  "@rulesWeatherStormText": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherClearName": "Ясное небо",
+  "@rulesWeatherClearName": {
+    "description": "Правила: погода."
+  },
+  "rulesWeatherClearText": "Снимает все эффекты погодных карт.",
+  "@rulesWeatherClearText": {
+    "description": "Правила: погода."
+  },
+  "rulesAbilitiesTitle": "Способности",
+  "@rulesAbilitiesTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesAbilityBondName": "Прочная связь",
+  "@rulesAbilityBondName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityBondText": "Сила умножается на число карт с тем же названием в ряду.",
+  "@rulesAbilityBondText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMoraleName": "Прилив сил",
+  "@rulesAbilityMoraleName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMoraleText": "Даёт +1 к силе всем отрядам в своём ряду, кроме себя.",
+  "@rulesAbilityMoraleText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMedicName": "Медик",
+  "@rulesAbilityMedicName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMedicText": "Выберите отряд в своём сбросе и сыграйте его немедленно.",
+  "@rulesAbilityMedicText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilitySpyName": "Шпион",
+  "@rulesAbilitySpyName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilitySpyText": "Выкладывается на поле противника, сила карты прибавляется ему. Взамен вы берёте две карты.",
+  "@rulesAbilitySpyText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityBerserkName": "Берсерк",
+  "@rulesAbilityBerserkName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityBerserkText": "Превращается в медведя, если в его ряду сыгран Мардрём.",
+  "@rulesAbilityBerserkText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMardroemeName": "Мардрём",
+  "@rulesAbilityMardroemeName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityMardroemeText": "Превращает Берсерков в ряду.",
+  "@rulesAbilityMardroemeText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityScorchName": "Казнь",
+  "@rulesAbilityScorchName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityScorchText": "Уничтожает самую сильную карту.",
+  "@rulesAbilityScorchText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityTwinName": "Двойник",
+  "@rulesAbilityTwinName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityTwinText": "Вместе с картой выкладываются все связанные с ней.",
+  "@rulesAbilityTwinText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityAvengerName": "Приманка",
+  "@rulesAbilityAvengerName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityAvengerText": "При уходе с поля призывает на своё место сильную карту.",
+  "@rulesAbilityAvengerText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHornName": "Командирский рог",
+  "@rulesAbilityHornName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHornText": "Удваивает силу отрядов в ряду. В ряду может быть один рог.",
+  "@rulesAbilityHornText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityDecoyName": "Чучело",
+  "@rulesAbilityDecoyName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityDecoyText": "Заменяет отряд на поле и возвращает его в руку.",
+  "@rulesAbilityDecoyText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHeroName": "Герой",
+  "@rulesAbilityHeroName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityHeroText": "На героя не действуют погода, рог и способности.",
+  "@rulesAbilityHeroText": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityLeaderName": "Лидер",
+  "@rulesAbilityLeaderName": {
+    "description": "Правила: способность."
+  },
+  "rulesAbilityLeaderText": "Способность лидера используется один раз за матч.",
+  "@rulesAbilityLeaderText": {
+    "description": "Правила: способность."
+  },
+  "rulesFactionsTitle": "Фракции",
+  "@rulesFactionsTitle": {
+    "description": "Раздел правил."
+  },
+  "rulesFactionsText": "Способность фракции срабатывает в конце раунда.",
+  "@rulesFactionsText": {
+    "description": "Правила: фракции."
+  },
+  "rulesFactionNorthernRealms": "После победы в раунде вы берёте дополнительную карту.",
+  "@rulesFactionNorthernRealms": {
+    "description": "Правила: Королевства Севера."
+  },
+  "rulesFactionNilfgaard": "Побеждает при ничьей.",
+  "@rulesFactionNilfgaard": {
+    "description": "Правила: Нильфгаард."
+  },
+  "rulesFactionMonsters": "После раунда одна случайная карта отряда остаётся на поле.",
+  "@rulesFactionMonsters": {
+    "description": "Правила: Чудовища."
+  },
+  "rulesFactionScoiatael": "Сами решают, кто ходит первым.",
+  "@rulesFactionScoiatael": {
+    "description": "Правила: Скоя'таэли."
+  },
+  "rulesFactionSkellige": "В третьем раунде две случайные карты из сброса возвращаются на поле.",
+  "@rulesFactionSkellige": {
+    "description": "Правила: Скеллиге."
+  },
+  "menuVsBot": "Игра с ИИ",
+  "@menuVsBot": {
+    "description": "Кнопка главного меню: партия против бота."
+  },
+  "menuSettings": "Настройки",
+  "@menuSettings": {
+    "description": "Кнопка главного меню: настройки."
+  },
+  "menuNoDeckHint": "Соберите колоду, чтобы начать",
+  "@menuNoDeckHint": {
+    "description": "Подсказка главного меню, пока нет готовой колоды."
+  },
+  "menuContentFailed": "Не удалось загрузить карты",
+  "@menuContentFailed": {
+    "description": "Подсказка главного меню, когда набор карт не загрузился."
+  },
+  "menuToBuilder": "В конструктор",
+  "@menuToBuilder": {
+    "description": "Кнопка подсказки главного меню: открыть конструктор колод."
+  },
+  "menuVersion": "Версия {app} · Набор карт {pack}",
+  "@menuVersion": {
+    "description": "Строка версий внизу главного меню.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "pack": {
+        "type": "int"
+      }
+    }
+  },
+  "menuVersionApp": "Версия {app}",
+  "@menuVersionApp": {
+    "description": "Строка версии внизу главного меню, если набор карт не загружен.",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "menuSplashLoading": "Загрузка данных карт…",
+  "@menuSplashLoading": {
+    "description": "Подпись полосы загрузки на заставке."
+  },
+  "menuSplashReady": "Готово",
+  "@menuSplashReady": {
+    "description": "Подпись заставки, когда данные загружены."
+  },
+  "settingsTitle": "Настройки",
+  "@settingsTitle": {
+    "description": "Заголовок экрана настроек."
+  },
+  "settingsBack": "Назад",
+  "@settingsBack": {
+    "description": "Подпись кнопки «назад» в шапке экрана настроек."
+  },
+  "settingsLoadFailed": "Не удалось прочитать настройки",
+  "@settingsLoadFailed": {
+    "description": "Сообщение, если настройки не прочитались."
+  },
+  "settingsGroupGame": "Игра",
+  "@settingsGroupGame": {
+    "description": "Заголовок группы настроек игры."
+  },
+  "settingsGroupSound": "Звук",
+  "@settingsGroupSound": {
+    "description": "Заголовок группы настроек звука."
+  },
+  "settingsGroupLanguage": "Язык",
+  "@settingsGroupLanguage": {
+    "description": "Заголовок группы выбора языка."
+  },
+  "settingsGroupContent": "Данные карт",
+  "@settingsGroupContent": {
+    "description": "Заголовок группы набора карт."
+  },
+  "settingsGroupAbout": "О приложении",
+  "@settingsGroupAbout": {
+    "description": "Заголовок группы сведений о приложении."
+  },
+  "settingsPlayerName": "Имя игрока",
+  "@settingsPlayerName": {
+    "description": "Подпись поля имени игрока."
+  },
+  "settingsPlayerNameHint": "Игрок",
+  "@settingsPlayerNameHint": {
+    "description": "Подсказка в пустом поле имени игрока."
+  },
+  "settingsPlayerNameNote": "Видно сопернику в сетевой игре",
+  "@settingsPlayerNameNote": {
+    "description": "Пояснение под полем имени игрока."
+  },
+  "settingsConfirmPass": "Подтверждать пас",
+  "@settingsConfirmPass": {
+    "description": "Подпись переключателя подтверждения паса."
+  },
+  "settingsAnimationSpeed": "Скорость анимаций",
+  "@settingsAnimationSpeed": {
+    "description": "Подпись выбора скорости анимаций."
+  },
+  "settingsSpeedNormal": "Обычная",
+  "@settingsSpeedNormal": {
+    "description": "Подпись обычной скорости анимаций."
+  },
+  "settingsSpeedFast": "Быстрая",
+  "@settingsSpeedFast": {
+    "description": "Подпись быстрой скорости анимаций."
+  },
+  "settingsHints": "Подсказки для новичка",
+  "@settingsHints": {
+    "description": "Подпись переключателя подсказок."
+  },
+  "settingsMusic": "Музыка",
+  "@settingsMusic": {
+    "description": "Подпись ползунка громкости музыки."
+  },
+  "settingsEffects": "Эффекты",
+  "@settingsEffects": {
+    "description": "Подпись ползунка громкости эффектов."
+  },
+  "settingsVolumeValue": "{percent}%",
+  "@settingsVolumeValue": {
+    "description": "Значение громкости рядом с ползунком.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsLanguageRussian": "Русский",
+  "@settingsLanguageRussian": {
+    "description": "Название русского языка в списке языков."
+  },
+  "settingsLanguageEnglish": "English",
+  "@settingsLanguageEnglish": {
+    "description": "Название английского языка в списке языков."
+  },
+  "settingsLanguagePolish": "Polski",
+  "@settingsLanguagePolish": {
+    "description": "Название польского языка в списке языков."
+  },
+  "settingsSoon": "скоро",
+  "@settingsSoon": {
+    "description": "Пометка недоступного пункта."
+  },
+  "settingsContentSource": "Источник",
+  "@settingsContentSource": {
+    "description": "Подпись выбора источника набора карт."
+  },
+  "settingsSourceBuiltIn": "Встроенный",
+  "@settingsSourceBuiltIn": {
+    "description": "Короткая подпись встроенного набора карт на кнопке выбора источника."
+  },
+  "settingsSourceBuiltInFull": "Встроенный набор",
+  "@settingsSourceBuiltInFull": {
+    "description": "Полная подпись встроенного набора карт для экранного диктора."
+  },
+  "settingsSourceServer": "Сервер · скоро",
+  "@settingsSourceServer": {
+    "description": "Подпись недоступного источника набора карт с сервера."
+  },
+  "settingsPackVersion": "Версия набора карт",
+  "@settingsPackVersion": {
+    "description": "Подпись версии набора карт."
+  },
+  "settingsUpdatedAt": "Дата обновления",
+  "@settingsUpdatedAt": {
+    "description": "Подпись даты последней проверки набора карт."
+  },
+  "settingsValueUnknown": "—",
+  "@settingsValueUnknown": {
+    "description": "Значение, которое узнать не удалось или которого ещё нет."
+  },
+  "settingsCheckUpdate": "Проверить обновление",
+  "@settingsCheckUpdate": {
+    "description": "Кнопка проверки обновления набора карт."
+  },
+  "settingsChecking": "Проверка обновления…",
+  "@settingsChecking": {
+    "description": "Строка под кнопкой, пока идёт проверка."
+  },
+  "settingsUpToDate": "Набор карт актуален",
+  "@settingsUpToDate": {
+    "description": "Строка под кнопкой, когда проверка закончилась."
+  },
+  "settingsCheckFailed": "Не удалось проверить набор карт",
+  "@settingsCheckFailed": {
+    "description": "Строка под кнопкой, если проверка не удалась."
+  },
+  "settingsAppVersion": "Версия приложения",
+  "@settingsAppVersion": {
+    "description": "Подпись версии приложения."
+  },
+  "settingsAppVersionBuild": "{version} (сборка {build})",
+  "@settingsAppVersionBuild": {
+    "description": "Версия приложения с номером сборки.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsProtocol": "Сетевой протокол",
+  "@settingsProtocol": {
+    "description": "Подпись версии сетевого протокола."
+  },
+  "settingsProtocolValue": "v{version}",
+  "@settingsProtocolValue": {
+    "description": "Версия сетевого протокола.",
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsLicenses": "Лицензии шрифтов и библиотек",
+  "@settingsLicenses": {
+    "description": "Пункт, открывающий экран лицензий."
+  },
+  "settingsFanProject": "Фанатский проект, не связан с CD PROJEKT RED",
+  "@settingsFanProject": {
+    "description": "Отметка внизу группы «О приложении»."
+  },
+  "setupStep": "Шаг {step} из {total}",
+  "@setupStep": {
+    "description": "Надпись над заголовком шага выбора фракции и лидера.",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setupStepSeat": "{player} · шаг {step} из {total}",
+  "@setupStepSeat": {
+    "description": "Надпись над заголовком шага выбора, когда играют вдвоём на одном телефоне: чей шаг.",
+    "placeholders": {
+      "player": {
+        "type": "String"
+      },
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setupBack": "Назад",
+  "@setupBack": {
+    "description": "Подпись кнопки возврата на предыдущий шаг выбора."
+  },
+  "factionSelectTitle": "Выбор фракции",
+  "@factionSelectTitle": {
+    "description": "Заголовок экрана выбора фракции."
+  },
+  "factionSelectPerk": "Способность фракции",
+  "@factionSelectPerk": {
+    "description": "Надпись над описанием способности фракции."
+  },
+  "factionSelectConfirm": "Выбрать фракцию",
+  "@factionSelectConfirm": {
+    "description": "Кнопка подтверждения фракции."
+  },
+  "factionSelectPrevious": "Предыдущая фракция",
+  "@factionSelectPrevious": {
+    "description": "Подпись стрелки карусели фракций для экранного диктора."
+  },
+  "factionSelectNext": "Следующая фракция",
+  "@factionSelectNext": {
+    "description": "Подпись стрелки карусели фракций для экранного диктора."
+  },
+  "leaderSelectTitle": "Выбор лидера",
+  "@leaderSelectTitle": {
+    "description": "Заголовок экрана выбора лидера."
+  },
+  "leaderSelectAbility": "Способность лидера",
+  "@leaderSelectAbility": {
+    "description": "Надпись над описанием способности лидера."
+  },
+  "leaderSelectConfirm": "Подтвердить лидера",
+  "@leaderSelectConfirm": {
+    "description": "Кнопка подтверждения лидера."
+  },
+  "leaderSelectUnavailable": "Лидер недоступен",
+  "@leaderSelectUnavailable": {
+    "description": "Кнопка на недоступном лидере: подтвердить его нельзя."
+  },
+  "leaderStatusAvailable": "Доступен",
+  "@leaderStatusAvailable": {
+    "description": "Метка лидера, который есть в коллекции."
+  },
+  "leaderStatusLocked": "Нет в коллекции",
+  "@leaderStatusLocked": {
+    "description": "Метка лидера, которого ещё нет в коллекции."
+  },
+  "deckSelectEyebrow": "Перед матчем",
+  "@deckSelectEyebrow": {
+    "description": "Надпись над заголовком выбора колоды."
+  },
+  "deckSelectTitle": "Выбор колоды",
+  "@deckSelectTitle": {
+    "description": "Заголовок экрана выбора колоды перед партией."
+  },
+  "deckSelectCards": "Карт: {count}",
+  "@deckSelectCards": {
+    "description": "Число карт в колоде в строке списка колод.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckSelectReady": "Готова",
+  "@deckSelectReady": {
+    "description": "Метка колоды, которая проходит правила сборки."
+  },
+  "deckSelectNotReady": "Колода не готова",
+  "@deckSelectNotReady": {
+    "description": "Метка колоды, которая не проходит правила сборки."
+  },
+  "deckSelectEdit": "Изменить",
+  "@deckSelectEdit": {
+    "description": "Кнопка: открыть выбранную колоду в конструкторе."
+  },
+  "deckSelectPlay": "Играть",
+  "@deckSelectPlay": {
+    "description": "Кнопка: начать партию с выбранной колодой."
+  },
+  "deckSelectNext": "Дальше",
+  "@deckSelectNext": {
+    "description": "Кнопка: перейти к выбору второго игрока."
+  },
+  "deckIssueLeaderUnavailable": "Лидер колоды недоступен: выберите другого.",
+  "@deckIssueLeaderUnavailable": {
+    "description": "Причина, по которой колода не годится: нет лидера."
+  },
+  "deckIssueLeaderOfOtherFaction": "Лидер не из фракции колоды: выберите лидера этой фракции.",
+  "@deckIssueLeaderOfOtherFaction": {
+    "description": "Причина, по которой колода не годится: лидер чужой фракции."
+  },
+  "deckIssueUnknownCard": "В колоде есть карта, которой нет в наборе: откройте колоду и поправьте её.",
+  "@deckIssueUnknownCard": {
+    "description": "Причина, по которой колода не годится: карты нет в наборе."
+  },
+  "deckIssueWrongFaction": "Карта «{card}» чужой фракции.",
+  "@deckIssueWrongFaction": {
+    "description": "Причина, по которой колода не годится: карта не из фракции колоды и не нейтральная.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "deckIssueCreatedCard": "Карту «{card}» нельзя класть в колоду.",
+  "@deckIssueCreatedCard": {
+    "description": "Причина, по которой колода не годится: в неё положена созданная карта.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "deckIssueTooManyCopies": "Карты «{card}» в колоде {count}, а в игре их только {max}.",
+  "@deckIssueTooManyCopies": {
+    "description": "Причина, по которой колода не годится: копий карты больше, чем существует.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "deckIssueTooFewUnits": "Нужно минимум {min} {min, plural, one{карта} few{карты} many{карт} other{карты}} отрядов, сейчас {count}.",
+  "@deckIssueTooFewUnits": {
+    "description": "Причина, по которой колода не годится: мало карт отрядов.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckIssueTooManySpecials": "Не больше {max} особых карт, сейчас {count}.",
+  "@deckIssueTooManySpecials": {
+    "description": "Причина, по которой колода не годится: слишком много особых карт.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckSelectEyebrowSeat": "{player} · перед матчем",
+  "@deckSelectEyebrowSeat": {
+    "description": "Надпись над заголовком выбора колоды, когда играют вдвоём на одном телефоне: чей выбор.",
+    "placeholders": {
+      "player": {
+        "type": "String"
+      }
+    }
+  },
+  "deckListEyebrow": "Меню",
+  "@deckListEyebrow": {
+    "description": "Надпись над заголовком списка колод."
+  },
+  "deckListTitle": "Колоды",
+  "@deckListTitle": {
+    "description": "Заголовок списка колод."
+  },
+  "deckListNew": "Новая колода",
+  "@deckListNew": {
+    "description": "Кнопка создания новой колоды в списке колод."
+  },
+  "deckListOpen": "Открыть {name}",
+  "@deckListOpen": {
+    "description": "Подпись для скринридера: открыть колоду в конструкторе.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deckListDelete": "Удалить колоду",
+  "@deckListDelete": {
+    "description": "Подпись для скринридера: кнопка удаления колоды в списке."
+  },
+  "deckListTotal": "Всего {count}",
+  "@deckListTotal": {
+    "description": "Сколько карт в колоде, в строке колоды в списке.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deckListUnits": "Отряды {count}/{min}",
+  "@deckListUnits": {
+    "description": "Отряды в колоде и сколько их нужно, в строке колоды в списке.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "deckListSpecials": "Особые {count}/{max}",
+  "@deckListSpecials": {
+    "description": "Особые карты в колоде и сколько можно, в строке колоды в списке.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "deckListInvalid": "Колода нарушает правила",
+  "@deckListInvalid": {
+    "description": "Метка колоды, с которой нельзя играть."
+  },
+  "deckDeleteTitle": "Удалить колоду?",
+  "@deckDeleteTitle": {
+    "description": "Заголовок подтверждения удаления колоды."
+  },
+  "deckDeleteBody": "Колода «{name}» будет удалена без возможности восстановления. Карты останутся в коллекции.",
+  "@deckDeleteBody": {
+    "description": "Текст подтверждения удаления колоды.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deckDeleteConfirm": "Удалить",
+  "@deckDeleteConfirm": {
+    "description": "Кнопка подтверждения удаления колоды."
+  },
+  "editorBack": "Колоды",
+  "@editorBack": {
+    "description": "Кнопка возврата из конструктора к списку колод."
+  },
+  "editorEyebrow": "Конструктор",
+  "@editorEyebrow": {
+    "description": "Надпись в шапке конструктора колоды."
+  },
+  "editorNameLabel": "Название колоды",
+  "@editorNameLabel": {
+    "description": "Подпись поля названия колоды для скринридера."
+  },
+  "editorLeaderLabel": "Лидер",
+  "@editorLeaderLabel": {
+    "description": "Подпись под плашкой лидера в конструкторе."
+  },
+  "editorPickLeader": "Выбрать лидера",
+  "@editorPickLeader": {
+    "description": "Подпись для скринридера: открыть выбор лидера."
+  },
+  "editorStatTotal": "Всего",
+  "@editorStatTotal": {
+    "description": "Счётчик конструктора: все карты колоды."
+  },
+  "editorStatUnits": "Отряды",
+  "@editorStatUnits": {
+    "description": "Счётчик конструктора: отряды."
+  },
+  "editorStatSpecials": "Особые",
+  "@editorStatSpecials": {
+    "description": "Счётчик конструктора: особые карты."
+  },
+  "editorStatPower": "Сила",
+  "@editorStatPower": {
+    "description": "Счётчик конструктора: суммарная сила отрядов."
+  },
+  "editorStatHeroes": "Герои",
+  "@editorStatHeroes": {
+    "description": "Счётчик конструктора: герои."
+  },
+  "editorHintPickLeader": "Выберите лидера фракции",
+  "@editorHintPickLeader": {
+    "description": "Подсказка конструктора: лидер не выбран."
+  },
+  "editorHintNeedUnits": "Нужно ещё {count, plural, one{{count} отряд} few{{count} отряда} many{{count} отрядов} other{{count} отряда}}",
+  "@editorHintNeedUnits": {
+    "description": "Подсказка конструктора: не хватает отрядов.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorHintTooManySpecials": "Не больше {max} особых карт: уберите {extra}",
+  "@editorHintTooManySpecials": {
+    "description": "Подсказка конструктора: особых карт больше максимума.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      },
+      "extra": {
+        "type": "int"
+      }
+    }
+  },
+  "editorHintValid": "Колода соответствует правилам",
+  "@editorHintValid": {
+    "description": "Подсказка конструктора: колода годна."
+  },
+  "editorMsgAllCopies": "Все копии уже в колоде",
+  "@editorMsgAllCopies": {
+    "description": "Сообщение конструктора: больше копий этой карты нет."
+  },
+  "editorMsgHero": "Герой может быть в колоде только в одном экземпляре",
+  "@editorMsgHero": {
+    "description": "Сообщение конструктора: герой уже в колоде."
+  },
+  "editorMsgSpecial": "Не больше {max} особых карт",
+  "@editorMsgSpecial": {
+    "description": "Сообщение конструктора: особых карт уже максимум.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "editorTabCollection": "Коллекция",
+  "@editorTabCollection": {
+    "description": "Вкладка конструктора со всеми картами фракции."
+  },
+  "editorTabDeck": "Колода",
+  "@editorTabDeck": {
+    "description": "Вкладка конструктора с картами колоды."
+  },
+  "editorFilterAll": "Все",
+  "@editorFilterAll": {
+    "description": "Фильтр конструктора: все карты."
+  },
+  "editorFilterMelee": "Ближний",
+  "@editorFilterMelee": {
+    "description": "Фильтр конструктора: ближний бой."
+  },
+  "editorFilterRanged": "Дальний",
+  "@editorFilterRanged": {
+    "description": "Фильтр конструктора: дальний бой."
+  },
+  "editorFilterSiege": "Осадные",
+  "@editorFilterSiege": {
+    "description": "Фильтр конструктора: осадные отряды."
+  },
+  "editorFilterHero": "Герои",
+  "@editorFilterHero": {
+    "description": "Фильтр конструктора: герои."
+  },
+  "editorFilterWeather": "Погода",
+  "@editorFilterWeather": {
+    "description": "Фильтр конструктора: погода."
+  },
+  "editorFilterSpecial": "Особые",
+  "@editorFilterSpecial": {
+    "description": "Фильтр конструктора: особые карты."
+  },
+  "editorNeutralLegend": "общая карта",
+  "@editorNeutralLegend": {
+    "description": "Легенда конструктора: ромб на нейтральных картах."
+  },
+  "editorOnlyAvailable": "Только доступные",
+  "@editorOnlyAvailable": {
+    "description": "Переключатель конструктора: скрыть карты, которые нельзя добавить."
+  },
+  "editorCopiesOf": "{count} из {max}",
+  "@editorCopiesOf": {
+    "description": "Метка карты на вкладке коллекции: сколько копий в колоде из скольких можно.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "editorCopiesIn": "× {count}",
+  "@editorCopiesIn": {
+    "description": "Метка карты на вкладке колоды: сколько копий в колоде.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorEmptyTitle": "Пусто",
+  "@editorEmptyTitle": {
+    "description": "Заголовок пустого списка коллекции."
+  },
+  "editorEmptyText": "В коллекции нет карт для фильтра «{filter}».",
+  "@editorEmptyText": {
+    "description": "Пустой список коллекции под фильтром.",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "editorEmptyAvailableTitle": "Свободных карт нет",
+  "@editorEmptyAvailableTitle": {
+    "description": "Заголовок пустого списка при включённом «Только доступные»."
+  },
+  "editorEmptyAvailableText": "Все доступные карты фильтра «{filter}» уже в колоде. Отключите «Только доступные», чтобы увидеть всю коллекцию.",
+  "@editorEmptyAvailableText": {
+    "description": "Пустой список при включённом «Только доступные».",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "editorEmptyDeckTitle": "В колоде нет таких карт",
+  "@editorEmptyDeckTitle": {
+    "description": "Заголовок пустого списка на вкладке колоды."
+  },
+  "editorEmptyDeckText": "Фильтр «{filter}»: добавьте карты из коллекции.",
+  "@editorEmptyDeckText": {
+    "description": "Пустой список на вкладке колоды под фильтром.",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "editorSave": "Сохранить",
+  "@editorSave": {
+    "description": "Кнопка сохранения готовой колоды."
+  },
+  "editorSaveDraft": "Сохранить как черновик",
+  "@editorSaveDraft": {
+    "description": "Кнопка сохранения колоды, которая нарушает правила."
+  },
+  "editorFactionEyebrow": "Смена фракции",
+  "@editorFactionEyebrow": {
+    "description": "Надпись листа подтверждения смены фракции."
+  },
+  "editorFactionRemoved": "Карты фракции «{faction}» уйдут из колоды: {count}",
+  "@editorFactionRemoved": {
+    "description": "Предупреждение при смене фракции: сколько карт прежней фракции уйдёт.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editorFactionKept": "Нейтральные карты останутся. Лидера нужно выбрать заново.",
+  "@editorFactionKept": {
+    "description": "Пояснение при смене фракции."
+  },
+  "editorFactionChange": "Сменить",
+  "@editorFactionChange": {
+    "description": "Кнопка подтверждения смены фракции."
+  },
+  "editorPreviewAdd": "Добавить в колоду",
+  "@editorPreviewAdd": {
+    "description": "Кнопка просмотра карты: добавить карту."
+  },
+  "editorPreviewRemove": "Убрать из колоды",
+  "@editorPreviewRemove": {
+    "description": "Кнопка просмотра карты: убрать карту."
+  },
+  "editorPreviewMeta": "{faction} · в колоде {count} из {max}",
+  "@editorPreviewMeta": {
+    "description": "Строка под картой при просмотре в конструкторе.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "editorNeutralName": "Общая карта",
+  "@editorNeutralName": {
+    "description": "Название нейтральной фракции в просмотре карты конструктора."
+  },
+  "editorLoadFailed": "Не удалось открыть конструктор",
+  "@editorLoadFailed": {
+    "description": "Сообщение, когда конструктор колоды не открылся."
+  },
+  "editorNotFound": "Колода не найдена: возможно, её удалили",
+  "@editorNotFound": {
+    "description": "Сообщение, когда колоды для правки нет."
+  },
+  "editorSaveFailed": "Не удалось сохранить колоду. Нажмите «Сохранить» ещё раз",
+  "@editorSaveFailed": {
+    "description": "Подсказка конструктора: запись колоды не удалась, собранное осталось на экране"
+  },
+  "stageOpponentPlays": "Противник играет: {name}",
+  "@stageOpponentPlays": {
+    "description": "Подпись под картой, которую соперник сыграл и которую показывают крупно (анимации карт).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "stageNoTargets": "Нет подходящих целей",
+  "@stageNoTargets": {
+    "description": "Подпись при Казни, когда сжигать нечего (анимации карт)."
+  },
+  "stagePerkReturn": "Скеллиге: две карты вернулись",
+  "@stagePerkReturn": {
+    "description": "Подпись в центре поля, когда Скеллиге возвращает две карты из сброса после раунда."
+  },
+  "stageSkip": "Пропустить",
+  "@stageSkip": {
+    "description": "Кнопка в углу поля: перейти к следующему шагу показа конца раунда или матча."
+  },
+  "netPlayTitle": "Играть вдвоём",
+  "@netPlayTitle": {
+    "description": "Заголовок экрана выбора способа соединения для игры на двух телефонах."
+  },
+  "netPlayIntro": "Один телефон создаёт партию, второй находит её рядом. Выберите, как соединиться.",
+  "@netPlayIntro": {
+    "description": "Пояснение на экране выбора способа соединения."
+  },
+  "netMethodWifi": "Wi-Fi (одна сеть)",
+  "@netMethodWifi": {
+    "description": "Способ соединения по Wi-Fi."
+  },
+  "netMethodWifiNote": "Оба телефона подключены к одной Wi-Fi сети.",
+  "@netMethodWifiNote": {
+    "description": "Когда подходит соединение по Wi-Fi."
+  },
+  "netMethodBluetooth": "Bluetooth (рядом)",
+  "@netMethodBluetooth": {
+    "description": "Способ соединения по Bluetooth."
+  },
+  "netMethodBluetoothNote": "Телефоны рядом, Wi-Fi не нужен.",
+  "@netMethodBluetoothNote": {
+    "description": "Когда подойдёт соединение по Bluetooth."
+  },
+  "netMethodSoon": "Скоро",
+  "@netMethodSoon": {
+    "description": "Метка недоступного пока способа соединения."
+  },
+  "netCreateGame": "Создать игру",
+  "@netCreateGame": {
+    "description": "Кнопка: создать партию для второго телефона."
+  },
+  "netFindGame": "Найти рядом",
+  "@netFindGame": {
+    "description": "Кнопка: найти партию, которую создал другой телефон."
+  },
+  "netCreateTitle": "Создать игру",
+  "@netCreateTitle": {
+    "description": "Заголовок экрана создания партии и ожидания соперника."
+  },
+  "netCreateNameLabel": "Название партии",
+  "@netCreateNameLabel": {
+    "description": "Подпись поля названия партии."
+  },
+  "netCreateNameHint": "Например, ваше имя",
+  "@netCreateNameHint": {
+    "description": "Подсказка в пустом поле названия партии."
+  },
+  "netCreateNameNote": "По умолчанию — ваше имя. Соперник увидит его в списке найденных партий.",
+  "@netCreateNameNote": {
+    "description": "Пояснение под полем названия партии."
+  },
+  "netCreateDeckNote": "Колоду вы выберете или соберёте в лобби, когда подключится соперник.",
+  "@netCreateDeckNote": {
+    "description": "Пояснение на экране создания партии: колода выбирается позже."
+  },
+  "netCreateSubmit": "Создать",
+  "@netCreateSubmit": {
+    "description": "Кнопка подтверждения создания партии."
+  },
+  "netWifiOneNetwork": "Способ: Wi-Fi, одна сеть",
+  "@netWifiOneNetwork": {
+    "description": "Подпись способа соединения на экране ожидания соперника."
+  },
+  "netWaitTitle": "Ждём соперника…",
+  "@netWaitTitle": {
+    "description": "Заголовок экрана ожидания соперника."
+  },
+  "netWaitYourGame": "Ваша партия",
+  "@netWaitYourGame": {
+    "description": "Подпись над названием партии на экране ожидания."
+  },
+  "netWaitHint": "Соперник открывает «Найти рядом» в той же Wi-Fi сети.",
+  "@netWaitHint": {
+    "description": "Что должен сделать второй игрок, пока хост ждёт."
+  },
+  "netFindTitle": "Найти рядом",
+  "@netFindTitle": {
+    "description": "Заголовок экрана поиска партий рядом."
+  },
+  "netFindSearching": "Поиск идёт, список обновляется сам",
+  "@netFindSearching": {
+    "description": "Подпись над списком найденных партий."
+  },
+  "netFindEmptyTitle": "Ищем игры поблизости…",
+  "@netFindEmptyTitle": {
+    "description": "Заголовок пустого списка найденных партий."
+  },
+  "netFindEmptyNote": "Телефоны должны быть в одной Wi-Fi сети",
+  "@netFindEmptyNote": {
+    "description": "Пояснение пустого списка найденных партий."
+  },
+  "netFindJoin": "Войти",
+  "@netFindJoin": {
+    "description": "Метка найденной партии, к которой можно присоединиться."
+  },
+  "netFindVersionOk": "версия совпадает",
+  "@netFindVersionOk": {
+    "description": "Подпись найденной партии с той же версией игры."
+  },
+  "netFindProtocolMismatch": "другая версия игры",
+  "@netFindProtocolMismatch": {
+    "description": "Подпись найденной партии с другой версией сетевого протокола."
+  },
+  "netFindRulesetMismatch": "другой набор карт",
+  "@netFindRulesetMismatch": {
+    "description": "Подпись найденной партии с другим набором карт."
+  },
+  "netFindFull": "партия занята",
+  "@netFindFull": {
+    "description": "Подпись найденной партии, в которой нет свободного места."
+  },
+  "netFindGameSemantics": "{name}: {status}. Войти",
+  "@netFindGameSemantics": {
+    "description": "Подпись найденной партии для экранного диктора.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "netRoomTitle": "Лобби",
+  "@netRoomTitle": {
+    "description": "Заголовок экрана лобби."
+  },
+  "netRoomSubtitle": "Партия «{name}» · Wi-Fi",
+  "@netRoomSubtitle": {
+    "description": "Подзаголовок лобби: название партии.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "netRoleYouHost": "Вы · хост",
+  "@netRoleYouHost": {
+    "description": "Подпись своего блока в лобби у хоста."
+  },
+  "netRoleYouGuest": "Вы · гость",
+  "@netRoleYouGuest": {
+    "description": "Подпись своего блока в лобби у гостя."
+  },
+  "netRoleHost": "хост",
+  "@netRoleHost": {
+    "description": "Подпись блока соперника, если он хост."
+  },
+  "netRoleGuest": "гость",
+  "@netRoleGuest": {
+    "description": "Подпись блока соперника, если он гость."
+  },
+  "netOpponentName": "Соперник",
+  "@netOpponentName": {
+    "description": "Имя соперника, пока оно не пришло."
+  },
+  "netLinkOk": "Связь в норме",
+  "@netLinkOk": {
+    "description": "Состояние связи с соперником."
+  },
+  "netLinkLost": "Нет связи",
+  "@netLinkLost": {
+    "description": "Состояние связи с соперником: потеряна."
+  },
+  "netStageChoosing": "Выбирает колоду",
+  "@netStageChoosing": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netStageBuilding": "Собирает колоду",
+  "@netStageBuilding": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netStageChosen": "Колода выбрана",
+  "@netStageChosen": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netStageReady": "Готов",
+  "@netStageReady": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netPlayerPending": "Фракция и лидер появятся после выбора",
+  "@netPlayerPending": {
+    "description": "Подпись игрока в лобби, пока он не выбрал колоду."
+  },
+  "netFactionLeader": "{faction} · {leader}",
+  "@netFactionLeader": {
+    "description": "Фракция и лидер колоды игрока в лобби.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "leader": {
+        "type": "String"
+      }
+    }
+  },
+  "netMyDeck": "Моя колода",
+  "@netMyDeck": {
+    "description": "Заголовок блока выбранной колоды в лобби."
+  },
+  "netNoDeck": "Колода не выбрана",
+  "@netNoDeck": {
+    "description": "Блок колоды в лобби, пока колода не выбрана."
+  },
+  "netNoDeckNote": "Выберите сохранённую или соберите новую.",
+  "@netNoDeckNote": {
+    "description": "Пояснение блока колоды в лобби."
+  },
+  "netDeckPick": "Выбрать",
+  "@netDeckPick": {
+    "description": "Кнопка выбора сохранённой колоды в лобби."
+  },
+  "netDeckBuild": "Собрать колоду",
+  "@netDeckBuild": {
+    "description": "Кнопка сборки новой колоды в лобби."
+  },
+  "netDeckChange": "Сменить",
+  "@netDeckChange": {
+    "description": "Кнопка выбора другой колоды в лобби."
+  },
+  "netDeckEdit": "Изменить",
+  "@netDeckEdit": {
+    "description": "Кнопка правки выбранной колоды в лобби."
+  },
+  "netRuleUnits": "Отряды · минимум {min}",
+  "@netRuleUnits": {
+    "description": "Правило колоды в лобби.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "netRuleSpecials": "Особые · максимум {max}",
+  "@netRuleSpecials": {
+    "description": "Правило колоды в лобби.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "netRuleLeader": "Лидер · один",
+  "@netRuleLeader": {
+    "description": "Правило колоды в лобби."
+  },
+  "netReady": "Готов",
+  "@netReady": {
+    "description": "Кнопка: игрок готов начать партию."
+  },
+  "netReadyCancel": "Отменить готовность",
+  "@netReadyCancel": {
+    "description": "Кнопка отмены готовности."
+  },
+  "netDeckRefused": "Хост не принял колоду. Проверьте её или выберите другую.",
+  "@netDeckRefused": {
+    "description": "Подсказка над кнопкой «Готов» в лобби, когда хост отклонил отправленную колоду."
+  },
+  "netLostTitle": "Связь потеряна",
+  "@netLostTitle": {
+    "description": "Заголовок окна у хоста, когда пропал соперник посреди сетевой партии."
+  },
+  "netLostHostText": "Ждём переподключения",
+  "@netLostHostText": {
+    "description": "Пояснение в окне обрыва у хоста."
+  },
+  "netReconnectTitle": "Переподключаемся…",
+  "@netReconnectTitle": {
+    "description": "Заголовок окна у гостя, пока он возвращается к хосту посреди сетевой партии."
+  },
+  "netReconnectText": "Ищем хост в сети",
+  "@netReconnectText": {
+    "description": "Пояснение в окне обрыва у гостя."
+  },
+  "netLostWait": "Ждать",
+  "@netLostWait": {
+    "description": "Кнопка окна обрыва: закрыть окно и ждать дальше, таймер остаётся в углу."
+  },
+  "netLostEnd": "Завершить матч",
+  "@netLostEnd": {
+    "description": "Кнопка окна обрыва: не ждать и закончить матч (у хоста засчитывается поражение)."
+  },
+  "netPickDeckHint": "Выберите колоду, чтобы продолжить",
+  "@netPickDeckHint": {
+    "description": "Подсказка под неактивной кнопкой «Готов»."
+  },
+  "netCountdownTitle": "Оба готовы",
+  "@netCountdownTitle": {
+    "description": "Заголовок отсчёта перед матчем."
+  },
+  "netCountdownStarting": "Матч начинается",
+  "@netCountdownStarting": {
+    "description": "Подпись отсчёта перед матчем."
+  },
+  "netLeaveTitle": "Покинуть лобби?",
+  "@netLeaveTitle": {
+    "description": "Заголовок подтверждения выхода из лобби."
+  },
+  "netLeaveBodyHost": "Партия закроется, соперник вернётся к поиску.",
+  "@netLeaveBodyHost": {
+    "description": "Что будет, если хост покинет лобби."
+  },
+  "netLeaveBodyGuest": "Вы освободите место в партии.",
+  "@netLeaveBodyGuest": {
+    "description": "Что будет, если гость покинет лобби."
+  },
+  "netLeaveConfirm": "Покинуть",
+  "@netLeaveConfirm": {
+    "description": "Подтверждающая кнопка выхода из лобби."
+  },
+  "netPickerTitle": "Мои колоды",
+  "@netPickerTitle": {
+    "description": "Заголовок выбора колоды для лобби."
+  },
+  "netPickerSubtitle": "Выберите одну для матча",
+  "@netPickerSubtitle": {
+    "description": "Подзаголовок выбора колоды для лобби."
+  },
+  "netPickerNew": "Собрать новую",
+  "@netPickerNew": {
+    "description": "Кнопка сборки новой колоды из выбора колоды для лобби."
+  },
+  "netBuilderBanner": "Режим лобби · соперник ждёт",
+  "@netBuilderBanner": {
+    "description": "Плашка над конструктором, открытым из лобби."
+  },
+  "netBuilderDone": "Готово, в лобби",
+  "@netBuilderDone": {
+    "description": "Кнопка сохранения колоды и возврата в лобби."
+  },
+  "netBuilderCancel": "Отмена",
+  "@netBuilderCancel": {
+    "description": "Кнопка возврата в лобби без колоды."
+  },
+  "netNoticeBack": "Назад",
+  "@netNoticeBack": {
+    "description": "Кнопка возврата с экрана сообщения о сети."
+  },
+  "netNoticeRetry": "Повторить",
+  "@netNoticeRetry": {
+    "description": "Кнопка повтора подключения."
+  },
+  "netNoticeIncompatibleTitle": "Несовместимая версия",
+  "@netNoticeIncompatibleTitle": {
+    "description": "Заголовок: игра соперника другой версии."
+  },
+  "netNoticeIncompatibleText": "Обновите приложение, чтобы играть с этим соперником.",
+  "@netNoticeIncompatibleText": {
+    "description": "Пояснение: игра соперника другой версии."
+  },
+  "netNoticeRulesetTitle": "Другой набор карт",
+  "@netNoticeRulesetTitle": {
+    "description": "Заголовок: у соперника другие данные карт."
+  },
+  "netNoticeRulesetText": "Обновите набор карт в настройках, чтобы играть с этим соперником.",
+  "@netNoticeRulesetText": {
+    "description": "Пояснение: у соперника другие данные карт."
+  },
+  "netNoticeFullTitle": "Партия занята",
+  "@netNoticeFullTitle": {
+    "description": "Заголовок: в партии уже есть соперник."
+  },
+  "netNoticeFullText": "В этой партии уже двое игроков.",
+  "@netNoticeFullText": {
+    "description": "Пояснение: в партии уже есть соперник."
+  },
+  "netNoticeFailTitle": "Не удалось подключиться",
+  "@netNoticeFailTitle": {
+    "description": "Заголовок: хост не отвечает."
+  },
+  "netNoticeFailText": "Партия не отвечает. Возможно, хост закрыл её или вышел из сети.",
+  "@netNoticeFailText": {
+    "description": "Пояснение: хост не отвечает."
+  },
+  "netNoticeUnavailableTitle": "Сеть недоступна",
+  "@netNoticeUnavailableTitle": {
+    "description": "Заголовок: поиск и подключение по сети не работают."
+  },
+  "netNoticeUnavailableText": "Включите Wi-Fi и подключитесь к той же сети, что и соперник. Если Wi-Fi включён, разрешите приложению доступ к локальной сети в настройках телефона.",
+  "@netNoticeUnavailableText": {
+    "description": "Пояснение: сеть недоступна."
+  },
+  "netNoticeClosedTitle": "Хост закрыл партию",
+  "@netNoticeClosedTitle": {
+    "description": "Заголовок: хост закрыл лобби."
+  },
+  "netNoticeClosedText": "Вернитесь к поиску и подключитесь к другой партии.",
+  "@netNoticeClosedText": {
+    "description": "Пояснение: хост закрыл лобби."
+  },
+  "netNoticeLostTitle": "Связь потеряна",
+  "@netNoticeLostTitle": {
+    "description": "Заголовок: связь с хостом не удалось вернуть."
+  },
+  "netNoticeLostText": "Не удалось вернуться к хосту. Попробуйте найти партию снова.",
+  "@netNoticeLostText": {
+    "description": "Пояснение: связь с хостом не удалось вернуть."
+  }
+}

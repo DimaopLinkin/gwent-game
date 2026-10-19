@@ -1,5 +1,5 @@
-name: flutter_game_test_21_05_2026
-description: "A new Flutter project."
+name: gwent
+description: "Гвинт из «Ведьмака 3» для Android и iOS."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
@@ -10,57 +10,84 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
+  bloc: ^9.2.1
+  bonsoir: ^7.1.4
+  collection: ^1.19.1
   cupertino_icons: ^1.0.8
+  # drift и drift_dev закреплены точно и меняются только вместе: drift_dev новее 2.34.0 требует analyzer 13+
+  # и meta 1.18, а Flutter 3.41.0 закрепляет meta 1.17.0; drift новее 2.34.0 несовместим с drift_dev 2.34.0.
+  drift: 2.34.0
+  drift_flutter: ^0.3.1
+  flutter_bloc: ^9.1.1
+  # Иконки дизайн-системы — SVG-слоты в assets/icons/ (ADR 0009).
+  flutter_svg: ^2.3.0
+  go_router: ^17.5.0
+  intl: ^0.20.2
+  meta: ^1.17.0
+  # Версия приложения для главного меню.
+  package_info_plus: ^10.2.2
   uuid: ^4.5.3
+
+  gwent_ai:
+    path: packages/gwent_ai
+  gwent_content:
+    path: packages/gwent_content
+  gwent_engine:
+    path: packages/gwent_engine
+  gwent_net:
+    path: packages/gwent_net
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^6.0.0
+  # Для архитектурного теста (разбор import). Версия совместима с drift_dev.
+  analyzer: ^10.0.1
+  build_runner: ^2.15.1
+  drift_dev: 2.34.0
+  flutter_launcher_icons: ^0.14.4
+
 
 flutter:
   uses-material-design: true
+  generate: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
-    # Data assets
-    - docs/hand/data/bait_config/bait_config_data.json
-    - docs/hand/data/fraction_abilities/fraction_abilities_data.json
-    - docs/hand/data/fractions/fractions_data.json
-    - docs/hand/data/leader_card_abilities/leader_card_abilities_data.json
-    - docs/hand/data/leader_cards/leader_cards_data.json
-    - docs/hand/data/mardrem_config/mardrem_config_data.json
-    - docs/hand/data/special_card_abilities/special_card_abilities_data.json
-    - docs/hand/data/special_cards/special_cards_data.json
-    - docs/hand/data/squad_card_abilities/squad_card_abilities_data.json
-    - docs/hand/data/squad_cards/squad_cards_data.json
-    - docs/hand/data/twin_config/twin_config_data.json
-    - docs/hand/data/zones/zones_data.json
+    # Пакет контента: собирается tools/scripts/setup.sh из docs/hand и не коммитится.
+    - assets/content/gwent-w3-base/
+    # Арты карт 309×444, имя файла — UUID карты.
+    - asset/image/cards/
+    # Иконки дизайн-системы: именованные слоты, контракт файла в docs/adr/0009-design-system.md.
+    - assets/icons/
+    # Лицензии шрифтов (OFL 1.1) для экрана лицензий.
+    - assets/fonts/OFL-Alegreya.txt
+    - assets/fonts/OFL-CormorantSC.txt
 
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/to/resolution-aware-images
-
-  # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/to/asset-from-package
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  # Шрифты дизайн-системы (OFL 1.1): статические начертания, подмножество латиница + кириллица.
+  fonts:
+    - family: Alegreya
+      fonts:
+        - asset: assets/fonts/Alegreya-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Alegreya-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Alegreya-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Alegreya-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Alegreya-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Alegreya-Black.ttf
+          weight: 900
+    - family: Cormorant SC
+      fonts:
+        - asset: assets/fonts/CormorantSC-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/CormorantSC-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/CormorantSC-Bold.ttf
+          weight: 700

@@ -1,0 +1,302 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gwent/src/app/app_dependencies.dart';
+import 'package:gwent/src/app/gwent_app.dart';
+import 'package:gwent/src/app/router/app_routes.dart';
+import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/core/presentation/components/chevron_button.dart';
+import 'package:gwent/src/features/content/data/asset_content_source.dart';
+import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
+import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
+import 'package:gwent_content/gwent_content.dart';
+
+import '../features/lobby/support/fake_game_lobby.dart';
+import '../support/factories.dart';
+import '../support/fakes.dart';
+import '../support/fonts.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late InMemoryDeckRepository decks;
+  late AppLocalizations l10n;
+
+  setUpAll(loadDesignFonts);
+
+  setUp(() async {
+    decks = InMemoryDeckRepository();
+    l10n = await AppLocalizations.delegate.load(const Locale('ru'));
+  });
+
+  /// Поднимает приложение. Пакет карт читается из ассетов настоящим временем, поэтому ждём его вне фальшивых часов.
+  /// При «уменьшить движение» заставка исчезает сразу, а свеча не мерцает: `pumpAndSettle` не зависает.
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    ContentSource? source,
+    bool reduceMotion = true,
+    bool settle = true,
+  }) async {
+    if (reduceMotion) {
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    }
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      GwentApp(
+        dependencies: AppDependencies(
+          contentSource: source ?? AssetContentSource.basePack(rootBundle),
+          appInfo: const FakeAppInfo('1.2.3'),
+          deckRepository: decks,
+          settingsRepository: InMemorySettingsRepository(),
+          matchHistoryRepository: InMemoryMatchHistoryRepository(),
+          clock: FakeClock(DateTime.utc(2026, 10, 11)),
+          idGenerator: SequentialIdGenerator(),
+          seedGenerator: FixedSeedGenerator(1),
+          gameLobby: FakeGameLobby(),
+        ),
+      ),
+    );
+    if (!settle) return;
+    for (var i = 0; i < 3; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(seconds: 2));
+    }
+    await tester.pumpAndSettle();
+  }
+
+  /// Настройки: у экрана своя шапка, «назад» — круглая кнопка с подписью для диктора.
+  Future<void> openSettingsAndReturn(WidgetTester tester) async {
+    await tester.tap(find.text(l10n.menuSettings));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.settingsBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
+  }
+
+  testWidgets('приложение открывается на главном меню на русском', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.byType(GwentLogo), findsOneWidget);
+    expect(tester.widget<GwentLogo>(find.byType(GwentLogo)).text, 'ГВИНТ');
+    expect(find.text(l10n.menuHotSeat), findsOneWidget);
+    expect(find.text(l10n.menuVsBot), findsOneWidget);
+    expect(find.text(l10n.menuNetworkGame), findsOneWidget);
+    expect(find.text(l10n.menuDecks), findsOneWidget);
+    expect(find.text(l10n.menuSettings), findsOneWidget);
+  });
+
+  testWidgets('меню называет версию приложения и версию набора карт', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.textContaining('Версия 1.2.3 · Набор карт'), findsOneWidget);
+  });
+
+  testWidgets('стартовые колоды подарены, играть можно сразу: подсказки про колоду нет', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.text(l10n.menuNoDeckHint), findsNothing);
+    expect(find.text(l10n.menuContentFailed), findsNothing);
+    expect(await tester.runAsync(() => decks.watchAll().first), isNotEmpty);
+  });
+
+  testWidgets('набор карт не загрузился: играть нельзя, меню зовёт в конструктор и остаётся рабочим', (tester) async {
+    await pumpApp(tester, source: InMemoryContentSource(const {}));
+
+    expect(find.text(l10n.menuContentFailed), findsOneWidget);
+    await tester.tap(find.text(l10n.menuHotSeat), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel(l10n.setupBack), findsNothing);
+
+    await openSettingsAndReturn(tester);
+  });
+
+  testWidgets('из меню открываются партии, лобби, колоды и настройки, «назад» возвращает в меню', (tester) async {
+    await pumpApp(tester);
+
+    // У экрана партии нет шапки: выход в меню — кнопка на нём.
+    await tester.tap(find.text(l10n.menuHotSeat));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
+
+    await tester.tap(find.text(l10n.menuVsBot));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+
+    // Игра на двух телефонах: выбор способа, у экрана своя шапка с «назад» в меню.
+    await tester.tap(find.text(l10n.menuNetworkGame));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netPlayTitle), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
+    await openSettingsAndReturn(tester);
+  });
+
+  testWidgets('настройки, открытые поверх экрана партии: «назад» возвращает на этот экран, а не в меню', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    await tester.tap(find.text(l10n.menuVsBot));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+
+    unawaited(router.push(AppRoutes.settings));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.settingsBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsNothing);
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+  });
+
+  testWidgets('комната и сетевая партия без активной игры уводят: комната на выбор способа, партия в меню', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.playRoom);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netPlayTitle), findsOneWidget);
+
+    router.go(AppRoutes.playMatch);
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
+  });
+
+  testWidgets('колоды: список, новая колода в конструкторе, возврат по шагам в меню', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text(l10n.menuDecks));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckListTitle), findsOneWidget);
+    expect(find.text(l10n.deckListNew), findsOneWidget, reason: 'есть кнопка «Новая колода»');
+
+    await tester.tap(find.text(l10n.deckListNew));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.editorEyebrow.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.editorHintPickLeader), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.editorBack).first);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckListTitle), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
+  });
+
+  testWidgets('колоды: открытая колода показывает своё название, сохранение возвращает в список', (tester) async {
+    await pumpApp(tester);
+    final saved = (await tester.runAsync(() => decks.watchAll().first))!.first;
+
+    await tester.tap(find.text(l10n.menuDecks));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel(RegExp('^${RegExp.escape(l10n.deckListOpen(saved.name))}')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, saved.name);
+
+    await tester.tap(find.text(l10n.editorSave));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckListTitle), findsOneWidget);
+  });
+
+  testWidgets('«Изменить» на шаге колоды открывает конструктор этой колоды; «назад» возвращает на тот же шаг', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text(l10n.menuVsBot));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.factionSelectConfirm));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.leaderSelectConfirm));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckSelectTitle), findsOneWidget);
+
+    await tester.tap(find.text(l10n.deckSelectEdit));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.editorEyebrow.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.deckSelectTitle), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.editorBack).first);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.deckSelectTitle), findsOneWidget);
+  });
+
+  testWidgets('режим из меню попадает на выбор фракции: вдвоём шаг называет игрока', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text(l10n.menuHotSeat));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.setupStepSeat(l10n.playerNumbered(1), 1, 2).toUpperCase()), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10n.menuVsBot));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.setupStep(1, 2).toUpperCase()), findsOneWidget);
+  });
+
+  testWidgets('заставка идёт один раз при запуске и закрывает меню, пока данные не готовы', (tester) async {
+    await pumpApp(tester, reduceMotion: false, settle: false);
+    await tester.pump();
+
+    expect(find.text(l10n.menuSplashLoading), findsOneWidget);
+    for (var i = 0; i < 3; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(seconds: 2));
+    }
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(find.text(l10n.menuSplashLoading), findsNothing);
+    expect(find.text(l10n.menuHotSeat), findsOneWidget);
+
+    // Возврат в меню заставку не повторяет.
+    await tester.tap(find.text(l10n.menuDecks));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    await tester.tap(find.byType(ChevronButton));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text(l10n.menuHotSeat), findsOneWidget);
+    expect(find.text(l10n.menuSplashLoading), findsNothing);
+  });
+
+  testWidgets('список колод пуст, когда колод нет', (tester) async {
+    await pumpApp(tester, source: InMemoryContentSource(const {}));
+
+    await tester.tap(find.text(l10n.menuDecks));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.deckListEmpty), findsOneWidget);
+  });
+
+  testWidgets('список колод показывает сохранённые колоды и число карт, пока набор карт не загрузился', (tester) async {
+    await decks.save(testDeck(name: 'Ан Крайт', cards: const {'a': 20, 'b': 2}));
+    await pumpApp(tester, source: InMemoryContentSource(const {}));
+
+    await tester.tap(find.text(l10n.menuDecks));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ан Крайт'), findsOneWidget);
+    expect(find.text('22 карты'), findsOneWidget);
+  });
+}

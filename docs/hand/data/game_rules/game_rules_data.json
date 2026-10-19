@@ -1,0 +1,7 @@
+{
+  "crystals": 2,
+  "starting_hand_size": 10,
+  "max_redraws": 2,
+  "min_squad_cards": 22,
+  "max_special_cards": 10
+}
