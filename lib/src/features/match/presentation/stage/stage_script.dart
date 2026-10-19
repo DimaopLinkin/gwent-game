@@ -126,6 +126,8 @@ final class StageScript {
     required this.rows,
     required this.duration,
     this.veilEnds = 0,
+    this.steps = const [],
+    this.locks = const [],
   });
 
   /// Номер сценария: по нему поле отличает свой сценарий от следующего.
@@ -143,6 +145,24 @@ final class StageScript {
   /// За сколько мс до конца с руки сходит вуаль: ввод разрешается, когда сценарий закончился.
   final double veilEnds;
 
+  /// Моменты, с которых начинаются шаги сценария: кнопка «Пропустить» перескакивает к следующему. Пусто: пропускать
+  /// нечего (розыгрыш карты короткий).
+  final List<double> steps;
+
+  /// Отрезки, внутри которых тап по полю не ускоряет показ: плашки итога читают на обычной скорости.
+  final List<(double, double)> locks;
+
+  /// Можно ли ускорять показ тапом в момент [time].
+  bool tapSpeedsUp(double time) => !locks.any((lock) => time >= lock.$1 && time < lock.$2);
+
+  /// Начало следующего шага после [time]; конец сценария, если шагов больше нет.
+  double nextStep(double time) {
+    for (final step in steps) {
+      if (step > time + 1) return step;
+    }
+    return duration;
+  }
+
   /// Кадр на момент [time].
   StageFrame frameAt(double time) {
     final builder = StageFrameBuilder(time);
@@ -158,6 +178,8 @@ final class StageScript {
       handHidden: builder.handHidden,
       leaderUsed: builder.leaderUsed,
       weatherSlots: builder.weatherSlots,
+      gems: builder.gems,
+      shakes: builder.shakes,
       handVeil: veilEnds <= 0 ? 1.0 : (1 - ((time - (duration - veilEnds)) / veilEnds)).clamp(0.0, 1.0),
       items: builder.items,
     );

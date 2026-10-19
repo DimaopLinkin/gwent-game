@@ -65,6 +65,35 @@ abstract final class StageTokens {
   /// Ясное небо: эффект «выдыхается».
   static const int clear = 700;
 
+  // Конец раунда и матча (макет 13).
+
+  /// Перекат цифр ряда и общего счёта при подсчёте.
+  static const int countRoll = 280;
+
+  /// Появление плашки итога раунда и исхода матча: масштаб по высоте 0,7 → 1.
+  static const int plaqueIn = 300;
+
+  /// Интервал между строками способностей фракций под плашкой.
+  static const int markGap = 300;
+
+  /// Потеря камня жизни: вспышка, трещина, затухание.
+  static const int lifeTotal = 500;
+
+  /// Дрожь полосы игрока при потере камня.
+  static const int lifeShake = 250;
+
+  /// Интервал между картами, уходящими в сброс (не больше).
+  static const int discardStep = 40;
+
+  /// Полёт карты в сброс.
+  static const int discardFlight = 300;
+
+  /// Весь уход карт в сброс (не больше).
+  static const int discardTotal = 1000;
+
+  /// Пульс карты, оставшейся на поле у Чудовищ.
+  static const int keepPulse = 400;
+
   /// Быстрая скорость: доля обычных длительностей (в том числе показа карт).
   static const double fastFactor = 0.55;
 

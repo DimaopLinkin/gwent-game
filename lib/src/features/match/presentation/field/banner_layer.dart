@@ -7,17 +7,17 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 
-/// Вес баннера задаёт размер полосы и время показа (макет 5, раздел 1): раунд — 176 pt и 2 с, пас — 92 pt и 1,5 с,
-/// ход — 56 pt и 1 с.
+/// Вес баннера задаёт размер полосы и время показа (макет 5, раздел 1; времена раунда и хода по макету 13): раунд —
+/// 176 pt и 1,1 с, пас — 92 pt и 1,5 с, ход — 56 pt и 0,7 с.
 enum BannerWeight {
   /// Начало раунда: двойная золотая рамка, ромбы, метки раундов, затемнение поля.
-  round(Duration(seconds: 2), 176),
+  round(Duration(milliseconds: 1100), 176),
 
   /// Пас: подпись под заголовком, лёгкое затемнение.
   pass(Duration(milliseconds: 1500), 92),
 
   /// Ход: одна строка, поле не затемняется.
-  turn(Duration(seconds: 1), 56)
+  turn(Duration(milliseconds: 700), 56)
   ;
 
   const BannerWeight(this.visibleFor, this.height);
@@ -58,6 +58,7 @@ class MatchBannerStrip extends StatelessWidget {
     this.pips = const [],
     this.emberPip = false,
     this.decisive = false,
+    this.titleSize,
   });
 
   /// Вес баннера.
@@ -87,16 +88,21 @@ class MatchBannerStrip extends StatelessWidget {
   /// Решающий раунд: полоса выше, заголовок мельче.
   final bool decisive;
 
+  /// Размер заголовка вместо стандартного для веса: у плашки итога раунда длинная подпись.
+  final double? titleSize;
+
   double get _height => decisive ? 190 : weight.height;
 
   @override
   Widget build(BuildContext context) {
     final round = weight == BannerWeight.round;
-    final titleSize = switch (weight) {
-      BannerWeight.round => decisive ? 42.0 : 58.0,
-      BannerWeight.pass => 31.0,
-      BannerWeight.turn => 26.0,
-    };
+    final titleSize =
+        this.titleSize ??
+        switch (weight) {
+          BannerWeight.round => decisive ? 42.0 : 58.0,
+          BannerWeight.pass => 31.0,
+          BannerWeight.turn => 26.0,
+        };
     final titleText = Text(
       title,
       textAlign: TextAlign.center,

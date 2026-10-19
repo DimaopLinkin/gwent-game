@@ -4,6 +4,7 @@ import 'dart:ui' show Color;
 import 'package:flutter/animation.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/components/rolling_number.dart';
+import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_beat.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
@@ -13,6 +14,7 @@ import 'package:gwent_engine/gwent_engine.dart';
 
 part 'stage_builder_effects.dart';
 part 'stage_builder_play.dart';
+part 'stage_builder_round.dart';
 part 'stage_builder_scorch.dart';
 
 const double _never = double.infinity;
@@ -149,6 +151,8 @@ final class StageScriptBuilder {
   final Map<Row, bool> _slotsBefore = {};
   final Map<Row, bool> _slotsAfter = {};
   final Set<CardInstanceId> _discardHandled = {};
+  final List<double> _steps = [];
+  final List<(double, double)> _locks = [];
   double _cursor = 0;
   double? _settleAt;
   double _settleStagger = 0;
@@ -394,6 +398,21 @@ final class StageScriptBuilder {
   StageScript? build(int id, List<GameEvent> events) {
     if (events.any(_isOutsideCardScenes)) return null;
     _walk(events);
+    return _assemble(id);
+  }
+
+  /// Собирает сценарий конца раунда или матча (макет 13) по событиям от [RoundEnded] и дальше.
+  ///
+  /// [prev] здесь — поле раунда перед последним действием, а не то, что игрок видел в прошлый раз: подсчёт и уход
+  /// карт показывают по нему. [summary] — итог раунда для плашки. `null`, если в [events] раунд не кончался.
+  StageScript? buildRound(int id, List<GameEvent> events, {required RoundSummary summary}) {
+    final endIndex = events.lastIndexWhere((event) => event is RoundEnded);
+    if (endIndex < 0) return null;
+    _roundEnd(events, endIndex, summary);
+    return _assemble(id);
+  }
+
+  StageScript? _assemble(int id) {
     if (_beats.isEmpty) return null;
     _applySettle();
     _reconcile();
@@ -426,6 +445,8 @@ final class StageScriptBuilder {
       rows: rows,
       duration: end + veil,
       veilEnds: veil,
+      steps: List.unmodifiable(_steps),
+      locks: List.unmodifiable(_locks),
     );
   }
 

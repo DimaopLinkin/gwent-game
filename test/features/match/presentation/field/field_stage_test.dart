@@ -8,8 +8,11 @@ import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
+import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_layer.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_round_views.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
@@ -202,6 +205,119 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       expect(cubit.state.stage, isNull, reason: 'тап ускорил показ в ${StageTokens.tapSpeedUp} раз');
       await tester.pump(const Duration(seconds: 4));
+    });
+
+    group('конец раунда', () {
+      const result = RoundResult(round: 1, scores: {Seat.one: 5, Seat.two: 2}, winner: Seat.one);
+
+      /// Поле раунда до итога и поле нового раунда; события — как их присылает движок.
+      Future<void> startRoundEnd(WidgetTester tester) async {
+        final unit = cards.unit(Row.melee);
+        final closing = viewOf(
+          cards,
+          me: sideOf(
+            cards,
+            Seat.one,
+            rows: {
+              Row.melee: rowOf([unit], cards),
+            },
+            score: 5,
+          ),
+          opponent: sideOf(cards, Seat.two, handCount: 5, score: 2),
+        );
+        final next = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one, discard: [unit]),
+          opponent: sideOf(cards, Seat.two, handCount: 5, crystals: 1),
+          round: 2,
+          turn: Seat.two,
+        );
+        cubit.onMatchState(MatchInProgress(view: closing, content: content, roster: rosterOf(cards), events: const []));
+        await pumpField(tester, closing);
+        cubit.onMatchState(
+          MatchInProgress(
+            view: next,
+            content: content,
+            roster: rosterOf(cards),
+            closing: closing,
+            events: const [
+              Passed(Seat.one, auto: false),
+              RoundEnded(result),
+              RoundStarted(2, Seat.two),
+              TurnStarted(Seat.two),
+            ],
+          ),
+        );
+        await tester.pumpWidget(
+          localizedApp(
+            BlocProvider.value(
+              value: cubit,
+              child: BlocBuilder<FieldCubit, Object?>(
+                builder: (context, _) =>
+                    FieldView(view: next, content: content, roster: rosterOf(cards), onIntent: (_) {}),
+              ),
+            ),
+          ),
+        );
+      }
+
+      testWidgets('показ идёт на поле: счёт, плашка итога, «Пропустить» ведёт дальше, в конце всё свободно', (
+        tester,
+      ) async {
+        await startRoundEnd(tester);
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(StageLayer), findsOneWidget);
+        expect(find.text('Пропустить'), findsOneWidget);
+        expect(find.byType(RoundPlaqueView), findsNothing);
+
+        await tester.pump(const Duration(milliseconds: 1800));
+        expect(find.byType(RoundPlaqueView), findsOneWidget);
+        expect(find.text('Вы выиграли раунд'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.text('Пропустить'));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.byType(RoundPlaqueView), findsNothing, reason: 'после «Пропустить» плашка уступила шагу сброса');
+
+        await tester.pump(const Duration(seconds: 6));
+        expect(cubit.state.stage, isNull);
+        expect(find.text('Пропустить'), findsNothing);
+        expect(tester.takeException(), isNull);
+        await tester.pump(const Duration(seconds: 4));
+      });
+
+      testWidgets('тап по подсчёту не сокращает плашку итога: она стоит больше секунды', (tester) async {
+        await startRoundEnd(tester);
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tapAt(const Offset(195, 300));
+        var visible = 0;
+        for (var step = 0; step < 30; step++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          if (find.byType(RoundPlaqueView).evaluate().isNotEmpty) visible++;
+        }
+        expect(visible, greaterThanOrEqualTo(7), reason: 'плашка 1,2 с, тап её не ускоряет');
+        await tester.pump(const Duration(seconds: 6));
+      });
+
+      testWidgets('плашка исхода матча в hot-seat называет победителя', (tester) async {
+        await tester.pumpWidget(
+          localizedApp(
+            MatchBannerView(
+              item: const MatchBannerItem(
+                outcome: RoundOutcome.loss,
+                roundsMine: 0,
+                roundsTheirs: 2,
+                winner: Seat.two,
+                scaleY: 1,
+                alpha: 1,
+              ),
+              roster: rosterOf(cards, hotSeat: true),
+            ),
+          ),
+        );
+        expect(find.text('Победил Игрок 2'), findsOneWidget);
+        expect(find.text('Поражение'), findsNothing);
+      });
     });
   });
 }

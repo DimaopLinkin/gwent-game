@@ -57,6 +57,7 @@ class PlayerBar extends StatelessWidget {
     this.discardTop,
     this.trailing,
     this.lifeTotal = 2,
+    this.lifeBreak,
     this.mine = true,
     this.onLeaderTap,
     this.onLeaderLongPress,
@@ -88,6 +89,9 @@ class PlayerBar extends StatelessWidget {
 
   /// Сколько камней в партии.
   final int lifeTotal;
+
+  /// Камень номер [lifeRemaining] теряется на глазах (конец раунда): от 0 (цел) до 1 (пустое гнездо). `null` — нет.
+  final double? lifeBreak;
 
   /// Карт в руке.
   final int handCount;
@@ -198,7 +202,7 @@ class PlayerBar extends StatelessWidget {
                 Row(
                   spacing: 8,
                   children: [
-                    _Gems(remaining: lifeRemaining, total: lifeTotal),
+                    _Gems(remaining: lifeRemaining, total: lifeTotal, breaking: lifeBreak),
                     KeyedSubtree(
                       key: anchors?.hand,
                       child: Semantics(
@@ -294,10 +298,11 @@ class _LeaderSlot extends StatelessWidget {
 }
 
 class _Gems extends StatelessWidget {
-  const _Gems({required this.remaining, required this.total});
+  const _Gems({required this.remaining, required this.total, this.breaking});
 
   final int remaining;
   final int total;
+  final double? breaking;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -308,14 +313,49 @@ class _Gems extends StatelessWidget {
       spacing: 2,
       children: [
         for (var i = 0; i < total; i++)
-          GwentIconView(
-            i < remaining ? GwentIcon.iconLifeGem : GwentIcon.iconLifeGemLost,
-            size: 14,
-            color: i < remaining ? GwentColors.goldHighlight : GwentColors.disabledIcon,
-          ),
+          if (i == remaining && breaking != null)
+            _BreakingGem(progress: breaking!)
+          else
+            GwentIconView(
+              i < remaining ? GwentIcon.iconLifeGem : GwentIcon.iconLifeGemLost,
+              size: 14,
+              color: i < remaining ? GwentColors.goldHighlight : GwentColors.disabledIcon,
+            ),
       ],
     ),
   );
+}
+
+/// Камень, который теряется: вспышка и рост, трещина, затухание до пустого гнезда (макет 13, шаг 4).
+class _BreakingGem extends StatelessWidget {
+  const _BreakingGem({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = progress.clamp(0.0, 1.0);
+    final lost = t >= 0.25;
+    final scale = t <= 0 || t >= 0.3 ? 1.0 : (t < 0.15 ? 1 + 0.3 * (t / 0.15) : 1.3 - 0.3 * ((t - 0.15) / 0.15));
+    final fade = ((t - 0.25) / 0.4).clamp(0.0, 1.0);
+    final glow = t > 0 && t < 0.25 ? 0.6 * (t / 0.25) : 0.0;
+    return Transform.scale(
+      scale: scale,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: glow > 0
+              ? [BoxShadow(color: GwentColors.goldHighlight.withValues(alpha: glow), blurRadius: 8)]
+              : null,
+        ),
+        child: GwentIconView(
+          lost ? GwentIcon.iconLifeGemLost : GwentIcon.iconLifeGem,
+          size: 14,
+          color: Color.lerp(GwentColors.goldHighlight, GwentColors.disabledIcon, lost ? fade : 0)!,
+        ),
+      ),
+    );
+  }
 }
 
 class _ScoreDisc extends StatelessWidget {

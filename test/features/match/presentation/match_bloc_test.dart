@@ -128,6 +128,46 @@ void main() {
     expect(matches.records.single.mode, history.MatchMode.hotSeat);
   });
 
+  group('поле раунда для показа конца раунда', () {
+    Future<List<MatchScreenState>> playOut(LocalMatchMode mode) async {
+      final states = <MatchScreenState>[];
+      final finished = _playOut(bloc, states);
+      bloc.add(MatchStartRequested(LocalMatchRequest(mode: mode, deckOne: 'skellige', deckTwo: 'monsters')));
+      await finished;
+      return states;
+    }
+
+    test('против бота: поле приходит только с обновлением, в котором раунд закончился', () async {
+      final states = await playOut(LocalMatchMode.vsBot);
+      final progress = states.whereType<MatchInProgress>().toList();
+      final ending = progress.where((state) => state.events.any((event) => event is RoundEnded)).toList();
+      expect(ending, isNotEmpty);
+      for (final state in ending) {
+        final closing = state.closing;
+        expect(closing, isNotNull, reason: 'конец раунда показывают по полю перед ним');
+        expect(closing!.round, state.view.round - (state.view.phase == MatchPhase.finished ? 0 : 1));
+        expect(closing.viewer, state.view.viewer);
+      }
+      expect(
+        progress.where((state) => state.events.every((event) => event is! RoundEnded)).every((s) => s.closing == null),
+        isTrue,
+        reason: 'остальные обновления поля раунда не несут',
+      );
+    });
+
+    test('hot-seat: у каждого места своё поле раунда, чужое не подставляется', () async {
+      final states = await playOut(LocalMatchMode.hotSeat);
+      final ending = states
+          .whereType<MatchInProgress>()
+          .where((state) => state.events.any((event) => event is RoundEnded))
+          .toList();
+      expect(ending, isNotEmpty);
+      for (final state in ending) {
+        if (state.closing case final closing?) expect(closing.viewer, state.view.viewer);
+      }
+    });
+  });
+
   /// Виды передач телефона в партии вдвоём с заданным сидом (сид решает, кто ходит первым).
   Future<List<HandoverKind>> handoverKinds(int seed) async {
     final hotSeat = newBloc(seed: seed);

@@ -275,7 +275,8 @@ class _FieldViewState extends State<FieldView> {
                         child: StageHost(
                           script: field.stage,
                           onDone: _cubit.endStage,
-                          builder: (context, frame, speedUp) => _canvas(context, geometry, field, frame, speedUp),
+                          builder: (context, frame, speedUp, skip) =>
+                              _canvas(context, geometry, field, frame, speedUp, skip),
                         ),
                       ),
                     );
@@ -344,6 +345,8 @@ class _FieldViewState extends State<FieldView> {
       faceOf: _fieldContent.face,
       backOf: back,
       leaderOf: leader,
+      roster: widget.roster,
+      content: _fieldContent,
     );
   }
 
@@ -353,6 +356,7 @@ class _FieldViewState extends State<FieldView> {
     FieldState field,
     StageFrame? frame,
     VoidCallback speedUp,
+    VoidCallback skip,
   ) {
     final l10n = context.l10n;
     final view = _view;
@@ -466,6 +470,12 @@ class _FieldViewState extends State<FieldView> {
               Positioned.fill(
                 child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: speedUp),
               ),
+              if (script.steps.length > 1)
+                Positioned(
+                  top: geometry.hand.top + 4,
+                  right: 8,
+                  child: _SkipButton(onPressed: skip),
+                ),
             ],
             Positioned(
               left: geometry.width - 47,
@@ -514,6 +524,8 @@ class _FieldViewState extends State<FieldView> {
       _ when view.turn == view.viewer => (l10n.bannerYourTurn, true),
       _ => (l10n.fieldStatusOpponentTurn, false),
     };
+    // Подсчёт, плашка итога и плашка исхода занимают середину полосы: статус под ними только мешал бы.
+    final covered = frame?.items.any((item) => item is CountItem || item is PlaqueItem || item is MatchBannerItem);
     return WeatherStrip(
       slots: [
         for (final row in Row.values)
@@ -524,7 +536,7 @@ class _FieldViewState extends State<FieldView> {
                 : null,
           ),
       ],
-      status: status,
+      status: covered == true ? '' : status,
       statusActive: active,
       round: view.round,
       isTarget: targets.highlightsStrip,
@@ -544,38 +556,42 @@ class _FieldViewState extends State<FieldView> {
     int? otherScore(StageFrame? frame) => frame?.counters[(kind: StageCounter.total, mine: !mine, row: null)]?.nearest;
     final cubit = _cubit;
     final canPass = _isMyTurn(view) && !_blocked;
-    return PlayerBar(
-      mine: mine,
-      name: widget.roster.name(mine ? view.viewer : view.viewer.opponent, l10n),
-      faction: _fieldContent.faction(side.faction),
-      leader: _fieldContent.leaderFace(side.leader, used: frame?.leaderUsed[mine] ?? side.leaderUsed),
-      leaderAvailable: mine && side.leaderAvailable && canPass,
-      lifeRemaining: side.crystals,
-      handCount: side.handCount,
-      score: side.score,
-      leading: (roll(StageCounter.total)?.nearest ?? side.score) > (otherScore(frame) ?? other.score),
-      deckCount: side.deckCount,
-      discardCount: side.discard.length,
-      discardTop: discardTop == null ? null : _fieldContent.face(discardTop),
-      scoreRoll: roll(StageCounter.total),
-      handRoll: roll(StageCounter.hand),
-      deckRoll: roll(StageCounter.deck),
-      discardRoll: roll(StageCounter.discard),
-      anchors: _anchors[mine],
-      // Пока движок ждёт выбора, листы игрока не открываются: они остались бы под листом выбора.
-      onLeaderTap: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
-      onLeaderLongPress: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
-      onDiscardTap: view.choice == null ? () => cubit.openDiscard(mine: mine) : null,
-      trailing: mine
-          ? PassButton(
-              compact: true,
-              enabled: canPass,
-              holdToPass: !widget.confirmPass,
-              onPressed: () => unawaited(_pass()),
-            )
-          : side.passed
-          ? _PassedTag(label: l10n.fieldPassedTag)
-          : null,
+    return Transform.translate(
+      offset: Offset(frame?.shakes[mine] ?? 0, 0),
+      child: PlayerBar(
+        mine: mine,
+        name: widget.roster.name(mine ? view.viewer : view.viewer.opponent, l10n),
+        faction: _fieldContent.faction(side.faction),
+        leader: _fieldContent.leaderFace(side.leader, used: frame?.leaderUsed[mine] ?? side.leaderUsed),
+        leaderAvailable: mine && side.leaderAvailable && canPass,
+        lifeRemaining: frame?.gems[mine]?.remaining ?? side.crystals,
+        lifeBreak: frame?.gems[mine]?.progress,
+        handCount: side.handCount,
+        score: side.score,
+        leading: (roll(StageCounter.total)?.nearest ?? side.score) > (otherScore(frame) ?? other.score),
+        deckCount: side.deckCount,
+        discardCount: side.discard.length,
+        discardTop: discardTop == null ? null : _fieldContent.face(discardTop),
+        scoreRoll: roll(StageCounter.total),
+        handRoll: roll(StageCounter.hand),
+        deckRoll: roll(StageCounter.deck),
+        discardRoll: roll(StageCounter.discard),
+        anchors: _anchors[mine],
+        // Пока движок ждёт выбора, листы игрока не открываются: они остались бы под листом выбора.
+        onLeaderTap: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
+        onLeaderLongPress: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
+        onDiscardTap: view.choice == null ? () => cubit.openDiscard(mine: mine) : null,
+        trailing: mine
+            ? PassButton(
+                compact: true,
+                enabled: canPass,
+                holdToPass: !widget.confirmPass,
+                onPressed: () => unawaited(_pass()),
+              )
+            : side.passed
+            ? _PassedTag(label: l10n.fieldPassedTag)
+            : null,
+      ),
     );
   }
 
@@ -862,4 +878,42 @@ class _ToastHostState extends State<_ToastHost> {
 
   @override
   Widget build(BuildContext context) => IgnorePointer(child: widget.child);
+}
+
+/// Кнопка «Пропустить» в углу поля: переходит к следующему шагу показа конца раунда или матча.
+class _SkipButton extends StatelessWidget {
+  const _SkipButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: context.l10n.stageSkip,
+    excludeSemantics: true,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onPressed,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        child: Center(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: GwentColors.bg.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: GwentColors.brass),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              child: Text(
+                context.l10n.stageSkip,
+                textScaler: TextScaler.noScaling,
+                style: GwentText.caption.copyWith(fontWeight: FontWeight.w700, fontSize: 12.5),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }

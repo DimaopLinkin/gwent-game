@@ -22,8 +22,19 @@ void main() {
     addTearDown(cubit.close);
   });
 
-  MatchInProgress progress(PlayerView view, {List<GameEvent> events = const [], Reject? refusal}) =>
-      MatchInProgress(view: view, content: content, roster: rosterOf(cards), events: events, refusal: refusal);
+  MatchInProgress progress(
+    PlayerView view, {
+    List<GameEvent> events = const [],
+    Reject? refusal,
+    PlayerView? closing,
+  }) => MatchInProgress(
+    view: view,
+    content: content,
+    roster: rosterOf(cards),
+    events: events,
+    refusal: refusal,
+    closing: closing,
+  );
 
   group('занятость поля', () {
     test('поле свободно, пока нет баннеров, итога раунда, паузы и конца партии', () {
@@ -95,6 +106,79 @@ void main() {
       );
       expect(cubit.state.finishing, isFalse);
       expect(cubit.state.isClean, isTrue);
+    });
+  });
+
+  group('конец раунда со сценарием', () {
+    const result = RoundResult(round: 1, scores: {Seat.one: 5, Seat.two: 2}, winner: Seat.one);
+
+    PlayerView closingBoard() {
+      final unit = cards.unit(Row.melee);
+      return viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          rows: {
+            Row.melee: rowOf([unit], cards),
+          },
+          score: 5,
+        ),
+      );
+    }
+
+    test('поле раунда даёт сценарий вместо листа итога, и поле занято, пока он идёт', () {
+      final after = viewOf(cards, round: 2, turn: Seat.two);
+      cubit.onMatchState(
+        progress(
+          after,
+          closing: closingBoard(),
+          events: const [
+            Passed(Seat.one, auto: false),
+            RoundEnded(result),
+            RoundStarted(2, Seat.two),
+            TurnStarted(Seat.two),
+          ],
+        ),
+      );
+      expect(cubit.state.stage, isNotNull);
+      expect(cubit.state.summary, isNull, reason: 'итог показывает плашка сценария');
+      expect(cubit.state.isBusy, isTrue);
+      cubit.endStage(cubit.state.stage!.id);
+      expect(cubit.state.isBusy, isTrue, reason: 'баннер нового раунда ещё впереди');
+    });
+
+    test('без поля раунда остаётся лист итога', () {
+      cubit.onMatchState(
+        progress(viewOf(cards, round: 2), events: const [RoundEnded(result), RoundStarted(2, Seat.two)]),
+      );
+      expect(cubit.state.stage, isNull);
+      expect(cubit.state.summary, isNotNull);
+    });
+
+    test('один раунд показывается один раз', () {
+      const events = [RoundEnded(result), RoundStarted(2, Seat.two)];
+      final after = viewOf(cards, round: 2);
+      cubit.onMatchState(progress(after, closing: closingBoard(), events: events));
+      cubit.endStage(cubit.state.stage!.id);
+      cubit.onMatchState(progress(after, closing: closingBoard(), events: events));
+      expect(cubit.state.stage, isNull);
+    });
+
+    test('конец партии по камням: сценарий сам держит поле, отдельное удержание не нужно', () {
+      cubit.onMatchState(
+        progress(
+          viewOf(cards, phase: MatchPhase.finished, turn: null),
+          closing: closingBoard(),
+          events: const [
+            RoundEnded(result),
+            MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.crystals)),
+          ],
+        ),
+      );
+      expect(cubit.state.stage, isNotNull);
+      expect(cubit.state.finishing, isFalse);
+      expect(cubit.state.summary, isNull);
     });
   });
 

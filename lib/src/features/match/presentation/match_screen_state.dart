@@ -97,6 +97,7 @@ final class MatchInProgress extends MatchScreenState {
     required this.roster,
     required List<GameEvent> events,
     this.refusal,
+    this.closing,
   }) : events = List.unmodifiable(events);
 
   /// Что видит игрок, который держит телефон.
@@ -114,6 +115,10 @@ final class MatchInProgress extends MatchScreenState {
 
   /// Движок отклонил последнее действие игрока: интерфейс разошёлся с партией, состояние не изменилось.
   final Reject? refusal;
+
+  /// Поле раунда, который закончился в [events], как оно стояло перед последним действием (пасом): в [view] ряды уже
+  /// очищены, а подсчёт и уход карт показывают по этой проекции. `null`, если в [events] раунд не кончался.
+  final PlayerView? closing;
 
   /// Партия ждёт действия от этого игрока; иначе ход соперника (бот думает или выбирает).
   bool get awaitsMe => awaitsAction(view);

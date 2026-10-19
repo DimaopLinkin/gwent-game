@@ -128,8 +128,8 @@ final class FieldCubit extends Cubit<FieldState> {
   /// Принимает новое состояние партии от экрана; [style] — скорость и «Уменьшить движение» для анимаций карт.
   void onMatchState(MatchScreenState match, {StageStyle style = StageStyle.normal}) {
     switch (match) {
-      case MatchInProgress(:final view, :final events, :final refusal, :final content):
-        _onProgress(view, events, refusal, content, style);
+      case MatchInProgress(:final view, :final events, :final refusal, :final content, :final closing):
+        _onProgress(view, events, refusal, content, style, closing);
       case MatchIdle() ||
           MatchStarting() ||
           MatchStartFailed() ||
@@ -154,9 +154,20 @@ final class FieldCubit extends Cubit<FieldState> {
     _lastTurn = null;
   }
 
-  void _onProgress(PlayerView view, List<GameEvent> events, Reject? refusal, GameContent content, StageStyle style) {
+  void _onProgress(
+    PlayerView view,
+    List<GameEvent> events,
+    Reject? refusal,
+    GameContent content,
+    StageStyle style,
+    PlayerView? closing,
+  ) {
     var next = state;
-    final script = _stageFor(view, events, content, style);
+    // Конец раунда или матча показывает по полю перед последним действием; остальное — по прошлой увиденной проекции.
+    final roundSummary = closing == null ? null : _roundSummaryFor(view, events);
+    final script = closing != null && roundSummary != null
+        ? _roundStageFor(closing, view, events, content, style, roundSummary)
+        : _stageFor(view, events, content, style);
     if (script != null) {
       next = next.copyWith(stage: script);
       _stageTimer?.cancel();
@@ -182,10 +193,16 @@ final class FieldCubit extends Cubit<FieldState> {
       next = next.copyWith(recent: recent);
       final banners = _bannersFrom(view, events);
       if (banners.isNotEmpty) next = next.copyWith(banners: [...next.banners, ...banners]);
-      if (_summaryFrom(view, events) case final summary?) next = next.copyWith(summary: summary);
+      if (roundSummary == null) {
+        if (_summaryFrom(view, events) case final summary?) next = next.copyWith(summary: summary);
+      }
     }
     if (refusal != null) next = next.copyWith(toast: FieldToast(++_toastCount, FieldMessage.refused));
-    if (_endsByCrystals(events) && view.phase == MatchPhase.finished && finishHold > Duration.zero) {
+    final scriptedRoundEnd = roundSummary != null && script != null;
+    if (!scriptedRoundEnd &&
+        _endsByCrystals(events) &&
+        view.phase == MatchPhase.finished &&
+        finishHold > Duration.zero) {
       // Игрок должен увидеть, чем и со счётом сколько закончилась партия, прежде чем откроется итог матча.
       next = next.copyWith(finishing: true);
       _finishTimer?.cancel();
@@ -207,6 +224,31 @@ final class FieldCubit extends Cubit<FieldState> {
       catalog: content.catalog,
       style: style,
     ).build(++_stageCount, events);
+  }
+
+  /// Итог раунда для сценария конца раунда или матча; `null`, если раунд в [events] не кончался или его уже показывали.
+  RoundSummary? _roundSummaryFor(PlayerView view, List<GameEvent> events) {
+    final endIndex = events.lastIndexWhere((event) => event is RoundEnded);
+    if (endIndex < 0) return null;
+    final result = (events[endIndex] as RoundEnded).result;
+    return _summarizedRounds.add(result.round) ? _buildSummary(view, events, endIndex) : null;
+  }
+
+  StageScript? _roundStageFor(
+    PlayerView closing,
+    PlayerView view,
+    List<GameEvent> events,
+    GameContent content,
+    StageStyle style,
+    RoundSummary summary,
+  ) {
+    _seen[view.viewer] = view;
+    return StageScriptBuilder(
+      prev: closing,
+      next: view,
+      catalog: content.catalog,
+      style: style,
+    ).buildRound(++_stageCount, events, summary: summary);
   }
 
   /// Партию закончил последний раунд; сдача держать поле не должна.
@@ -261,6 +303,11 @@ final class FieldCubit extends Cubit<FieldState> {
     if (endIndex < 0 || events.any((event) => event is MatchEnded)) return null;
     final result = (events[endIndex] as RoundEnded).result;
     if (!_summarizedRounds.add(result.round)) return null;
+    return _buildSummary(view, events, endIndex);
+  }
+
+  RoundSummary _buildSummary(PlayerView view, List<GameEvent> events, int endIndex) {
+    final result = (events[endIndex] as RoundEnded).result;
     final me = view.viewer;
     // Перки фракций сыграли до первого хода нового раунда; ход бота в той же пачке (лидер, добор) к ним не относится.
     final after = events.sublist(endIndex + 1).takeWhile((event) => event is! TurnStarted);

@@ -6,8 +6,10 @@ import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 
-/// Строит поле для кадра сценария; [speedUp] ускоряет текущий сценарий (тап по полю).
-typedef StageBuilderFn = Widget Function(BuildContext context, StageFrame? frame, VoidCallback speedUp);
+/// Строит поле для кадра сценария; [speedUp] ускоряет текущий сценарий (тап по полю), [skip] переходит к следующему
+/// шагу (кнопка «Пропустить»).
+typedef StageBuilderFn =
+    Widget Function(BuildContext context, StageFrame? frame, VoidCallback speedUp, VoidCallback skip);
 
 /// Часы сценария: гоняют время от нуля до конца [script] и отдают поле кадр за кадром.
 ///
@@ -65,14 +67,25 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     if (script == null) return;
     final delta = (elapsed - _last).inMicroseconds / 1000;
     _last = elapsed;
-    setState(() => _time += delta * _speed);
+    // Плашки итога тап не ускоряет, даже если игрок тапнул раньше: внутри окна время идёт как обычно.
+    final speed = script.tapSpeedsUp(_time) ? _speed : 1;
+    setState(() => _time += delta * speed);
     if (_time >= script.duration) {
       _ticker.stop();
       widget.onDone(script.id);
     }
   }
 
-  void _speedUp() => _speed = StageTokens.tapSpeedUp;
+  void _speedUp() {
+    final script = widget.script;
+    if (script == null || script.tapSpeedsUp(_time)) _speed = StageTokens.tapSpeedUp;
+  }
+
+  void _skip() {
+    final script = widget.script;
+    if (script == null) return;
+    setState(() => _time = script.nextStep(_time));
+  }
 
   @override
   void dispose() {
@@ -85,6 +98,6 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     final script = widget.script;
     StageFrame? frame;
     if (script != null) frame = script.frameAt(_time.clamp(0, script.duration));
-    return widget.builder(context, frame, _speedUp);
+    return widget.builder(context, frame, _speedUp, _skip);
   }
 }
