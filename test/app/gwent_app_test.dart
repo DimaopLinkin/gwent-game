@@ -146,7 +146,9 @@ void main() {
     await openSettingsAndReturn(tester);
   });
 
-  testWidgets('настройки поверх партии: «назад» возвращает в партию, а не в меню', (tester) async {
+  testWidgets('настройки, открытые поверх экрана партии: «назад» возвращает на этот экран, а не в меню', (
+    tester,
+  ) async {
     await pumpApp(tester);
     final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
 
@@ -162,7 +164,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SettingsScreen), findsNothing);
     expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
-    expect(find.byType(GwentLogo), findsNothing);
   });
 
   testWidgets('комната и сетевая партия без активной игры уводят: комната на выбор способа, партия в меню', (

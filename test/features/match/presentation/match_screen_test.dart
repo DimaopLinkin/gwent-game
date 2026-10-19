@@ -95,6 +95,7 @@ void main() {
   Future<void> pumpScreen(
     WidgetTester tester, {
     LocalMatchMode mode = LocalMatchMode.vsBot,
+    VoidCallback? onSettings,
     Size size = const Size(390, 844),
   }) async {
     tester.view.physicalSize = size;
@@ -132,7 +133,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('ru'),
-          home: MatchScreen(onExit: () => exits++, onEditDeck: edited.add),
+          home: MatchScreen(onExit: () => exits++, onEditDeck: edited.add, onSettings: onSettings),
         ),
       ),
     );
@@ -351,6 +352,23 @@ void main() {
       expect(find.byType(MatchResultView), findsOneWidget);
       expect(find.text('Поражение'), findsOneWidget);
       expect(matches.records.single.outcome, history.MatchOutcome.defeat);
+    });
+
+    testWidgets('пауза: «Настройки» открывают настройки, партия остаётся на паузе', (tester) async {
+      var opened = 0;
+      await pumpScreen(tester, onSettings: () => opened++);
+      await startAndSkip(tester);
+      await tester.tap(find.text('Готово'));
+      await settle(tester);
+      await endBanners(tester);
+
+      await tester.tap(find.bySemanticsLabel('Пауза'));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.text('Настройки'));
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(opened, 1);
+      expect(find.byType(PauseMenuLayer), findsOneWidget);
     });
 
     testWidgets('реванш: экран итога возвращает к знакомству с теми же колодами', (tester) async {
