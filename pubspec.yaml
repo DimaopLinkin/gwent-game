@@ -19,6 +19,8 @@ dependencies:
   collection: ^1.19.1
   # Проверка Wi-Fi перед сетевой игрой и переход в системные настройки (ADR 0020).
   connectivity_plus: ^7.3.1
+  # SHA-1 для ответа WebSocket-рукопожатия хоста (LanServer): сокет принимается вручную, чтобы ограничить сообщения.
+  crypto: ^3.0.7
   cupertino_icons: ^1.0.8
   # drift и drift_dev закреплены точно и меняются только вместе: drift_dev новее 2.34.0 требует analyzer 13+
   # и meta 1.18, а Flutter 3.41.0 закрепляет meta 1.17.0; drift новее 2.34.0 несовместим с drift_dev 2.34.0.

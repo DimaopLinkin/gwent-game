@@ -9,6 +9,8 @@ final class HostSettings extends Value {
     this.linkTimeout = const Duration(seconds: 9),
     this.startDelay = Duration.zero,
     this.unstableAfter = const Duration(seconds: 5),
+    this.maxUnacked = 500,
+    this.resendCooldown = const Duration(seconds: 1),
   });
 
   /// Набор правил хоста: гость с другим набором не подключится.
@@ -28,6 +30,24 @@ final class HostSettings extends Value {
   /// Сколько игрок может молчать, пока связь с ним ещё не считается нестабильной: раньше [linkTimeout].
   final Duration unstableAfter;
 
+  /// Сколько сообщений хоста игрок может не подтверждать. Честный клиент подтверждает всё в каждом своём кадре
+  /// (проверка связи идёт каждые 3 с), а хранить очередь неподтверждённого без предела нельзя: каждый `resend`
+  /// отправил бы её всю. При переполнении очередь сбрасывается, соединение закрывается, а вернувшийся игрок
+  /// начинает со снимка.
+  final int maxUnacked;
+
+  /// Как часто хост отвечает на `resend` одного игрока: чаще просьбы пропускаются. Одна просьба на каждый
+  /// обрыв нужна честному клиенту, а повторами её можно использовать как усилитель нагрузки.
+  final Duration resendCooldown;
+
   @override
-  List<Object?> get props => [ruleset, reconnectGrace, linkTimeout, startDelay, unstableAfter];
+  List<Object?> get props => [
+    ruleset,
+    reconnectGrace,
+    linkTimeout,
+    startDelay,
+    unstableAfter,
+    maxUnacked,
+    resendCooldown,
+  ];
 }

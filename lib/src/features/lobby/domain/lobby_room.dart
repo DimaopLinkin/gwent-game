@@ -125,6 +125,18 @@ final class RoomConnectionLost extends RoomEnd {
   int get hashCode => (RoomConnectionLost).hashCode;
 }
 
+/// Хост прислал данные, которых нет в справочнике этого телефона (неизвестная карта или лидер): подделка или сбой.
+final class RoomHostInvalid extends RoomEnd {
+  /// Создаёт причину.
+  const RoomHostInvalid();
+
+  @override
+  bool operator ==(Object other) => other is RoomHostInvalid;
+
+  @override
+  int get hashCode => (RoomHostInvalid).hashCode;
+}
+
 /// Комната сетевой игры до начала партии: кто в ней, что делает каждый и идёт ли отсчёт.
 @immutable
 final class LobbyRoom {

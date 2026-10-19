@@ -182,6 +182,50 @@ void main() {
     await subscription.cancel();
   });
 
+  group('подделка объявления', () {
+    // Самозванец копирует идентификатор настоящей партии (он открыт в объявлении) и объявляет её со своим адресом.
+    ServiceFound forged({String name = 'самозванец', List<String> hosts = const ['10.0.0.66'], int port = 4444}) =>
+        ServiceFound(ServiceRecord(name: name, port: port, attributes: GameAdRecord.encode(ad), hosts: hosts));
+
+    test('объявление с тем же идентификатором с чужого адреса не подменяет настоящее', () async {
+      final lists = <List<FoundGame>>[];
+      final subscription = lobby.discover().listen(lists.add);
+      await host(ad);
+      await _settle();
+      final real = lists.last.single;
+      directory.emit(forged());
+      await _settle();
+      expect(lists.last, [real]);
+      await subscription.cancel();
+    });
+
+    test('самозванец с адресом настоящего хоста в списке не получает свой адрес в приглашении', () async {
+      final lists = <List<FoundGame>>[];
+      final subscription = lobby.discover().listen(lists.add);
+      await host(ad);
+      await _settle();
+      directory.emit(forged(hosts: const ['10.0.0.66', '127.0.0.1']));
+      await _settle();
+      final address = lists.last.single.address as LanAddress;
+      expect(address.hosts, ['127.0.0.1'], reason: 'чужой адрес из объявления отбрасывается');
+      await subscription.cancel();
+    });
+
+    test('когда настоящее объявление пропало, остаётся то, что было с ним по соседству', () async {
+      final lists = <List<FoundGame>>[];
+      final subscription = lobby.discover().listen(lists.add);
+      // Хост сменил сеть: новое объявление пришло раньше, чем исчезло старое.
+      directory.emit(forged(name: 'старое', hosts: const ['192.168.1.5'], port: 1111));
+      directory.emit(forged(name: 'новое', hosts: const ['10.0.0.7'], port: 2222));
+      await _settle();
+      expect((lists.last.single.address as LanAddress).port, 1111);
+      directory.emit(const ServiceLost('старое'));
+      await _settle();
+      expect((lists.last.single.address as LanAddress).port, 2222, reason: 'новое объявление не потеряно');
+      await subscription.cancel();
+    });
+  });
+
   test('в приглашении сначала адреса Wi-Fi и частных сетей, сотовые и VPN в конце', () {
     expect(
       LanLobby.preferredAddresses([

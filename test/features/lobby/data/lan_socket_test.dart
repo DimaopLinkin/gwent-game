@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -42,7 +43,7 @@ void main() {
     final toGuest = <List<int>>[];
     host.incoming.listen(toHost.add);
     guest.incoming.listen(toGuest.add);
-    final big = Uint8List(200 * 1024);
+    final big = Uint8List(100 * 1024);
     for (var i = 0; i < big.length; i++) {
       big[i] = i % 251;
     }
@@ -61,6 +62,99 @@ void main() {
       [3],
     ]);
     await guest.close();
+  });
+
+  group('защита хоста от огромных сообщений', () {
+    Future<WebSocket> rawClient({CompressionOptions compression = CompressionOptions.compressionDefault}) {
+      final client = HttpClient()..findProxy = (_) => 'DIRECT';
+      return WebSocket.connect(
+        'ws://127.0.0.1:${server.port}/gwent/game-1',
+        customClient: client,
+        compression: compression,
+      );
+    }
+
+    Future<List<Uint8List>> receivedBy(Transport host, {required Completer<void> done}) async {
+      final received = <Uint8List>[];
+      host.incoming.listen(received.add, onDone: done.complete);
+      return received;
+    }
+
+    test('сообщение больше лимита рвёт соединение, не доходя до приложения', () async {
+      // ignore: close_sinks, сервер рвёт соединение, дождаться его закрытия достаточно через drain.
+      final socket = await rawClient();
+      expect(await accepted.moveNext(), isTrue);
+      final done = Completer<void>();
+      final received = await receivedBy(accepted.current, done: done);
+      socket.add(Uint8List(2 * 1024 * 1024));
+      await done.future.timeout(const Duration(seconds: 10));
+      expect(received, isEmpty);
+      await socket.drain<void>().timeout(const Duration(seconds: 10));
+    });
+
+    test('сжатая «бомба» (мало байт по сети, много после распаковки) не распаковывается', () async {
+      // ignore: close_sinks, сервер рвёт соединение, дождаться его закрытия достаточно через drain.
+      final socket = await rawClient();
+      expect(await accepted.moveNext(), isTrue);
+      final done = Completer<void>();
+      final received = await receivedBy(accepted.current, done: done);
+      socket.add(Uint8List(64 * 1024 * 1024));
+      await done.future.timeout(const Duration(seconds: 20));
+      expect(received, isEmpty);
+      await socket.drain<void>().timeout(const Duration(seconds: 10));
+    });
+
+    test('кадры допустимого размера идут подряд, лимит считается на сообщение, а не на соединение', () async {
+      final socket = await rawClient();
+      expect(await accepted.moveNext(), isTrue);
+      final done = Completer<void>();
+      final received = await receivedBy(accepted.current, done: done);
+      for (var i = 0; i < 40; i++) {
+        socket.add(Uint8List(60 * 1024));
+      }
+      await _until(() => received.length == 40);
+      await socket.close();
+    });
+  });
+
+  group('рукопожатие', () {
+    Future<String> rawRequest(List<String> headers) async {
+      final socket = await Socket.connect('127.0.0.1', server.port);
+      socket.write(
+        [
+          'GET /gwent/game-1 HTTP/1.1',
+          'Host: 127.0.0.1',
+          'Connection: Upgrade',
+          'Upgrade: websocket',
+          'Sec-WebSocket-Version: 13',
+          ...headers,
+          '',
+          '',
+        ].join('\r\n'),
+      );
+      final reply = await utf8.decoder
+          .bind(socket)
+          .transform(const LineSplitter())
+          .first
+          .timeout(const Duration(seconds: 5));
+      socket.destroy();
+      return reply;
+    }
+
+    test('повторённый ключ и ключ неверной длины: 400, соединение не принимается', () async {
+      expect(
+        await rawRequest([
+          'Sec-WebSocket-Key: AAAAAAAAAAAAAAAAAAAAAA==',
+          'Sec-WebSocket-Key: BBBBBBBBBBBBBBBBBBBBBB==',
+        ]),
+        contains('400'),
+      );
+      expect(await rawRequest(['Sec-WebSocket-Key: short']), contains('400'));
+    });
+
+    test('честный ключ: 101', () async {
+      expect(await rawRequest(['Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==']), contains('101'));
+    });
   });
 
   test('закрытие любой стороной закрывает входящие у обеих', () async {

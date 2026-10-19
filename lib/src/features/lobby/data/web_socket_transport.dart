@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:gwent/src/features/lobby/data/capped_socket.dart';
 import 'package:gwent_net/gwent_net.dart';
 
 /// Транспорт протокола поверх WebSocket (`dart:io`): Wi-Fi сейчас, сервер позже (раздел 6.2 спецификации).
@@ -10,14 +11,16 @@ import 'package:gwent_net/gwent_net.dart';
 /// Текстовое сообщение не из протокола: соединение закрывается. Ошибка сокета, как и обрыв, просто закрывает
 /// [incoming]; о живости связи судит протокол по `ping`.
 final class WebSocketTransport implements Transport {
-  /// Оборачивает открытый сокет.
-  WebSocketTransport(this._socket) {
+  /// Оборачивает открытый сокет. [budget] — счётчик байт, который сбрасывается с каждым принятым сообщением
+  /// (см. [CappedSocket]).
+  WebSocketTransport(this._socket, {ByteBudget? budget}) : _budget = budget {
     _socket.listen(_onMessage, onError: _onError, onDone: _finish, cancelOnError: true);
     // Ошибка отправки повторяет ошибку потока входящих, которая уже закрыла соединение.
     _socket.done.ignore();
   }
 
   final WebSocket _socket;
+  final ByteBudget? _budget;
   final StreamController<Uint8List> _incoming = StreamController<Uint8List>();
   bool _closed = false;
 
@@ -38,6 +41,7 @@ final class WebSocketTransport implements Transport {
 
   void _onMessage(Object? message) {
     if (_closed) return;
+    _budget?.messageReceived();
     switch (message) {
       case final Uint8List frame:
         _incoming.add(frame);

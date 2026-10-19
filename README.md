@@ -35,7 +35,7 @@
 | `docs/adr`, `docs/spec` | архитектурные решения и требования к фичам |
 | `drift_schemas/` | схемы базы пользовательских данных всех версий для миграций |
 
-Архитектура — чистые слои: domain, application, data и presentation, зависимости направлены к домену. Это проверяет `test/architecture_test.dart`, а чистоту пакетов — `test/purity_test.dart` в каждом из них. Подробности: управление состоянием и внедрение зависимостей — [ADR 0003](docs/adr/0003-state-management-and-di.md); сессия матча — [ADR 0006](docs/adr/0006-match-session.md); Wi-Fi — [ADR 0007](docs/adr/0007-wifi-transport.md), [ADR 0019](docs/adr/0019-wifi-multiplayer.md) и [ADR 0020](docs/adr/0020-wifi-qr-and-link-quality.md). Полный список решений: [docs/adr](docs/adr).
+Архитектура — чистые слои: domain, application, data и presentation, зависимости направлены к домену. Это проверяет `test/architecture_test.dart`, а чистоту пакетов — `test/purity_test.dart` в каждом из них. Подробности: управление состоянием и внедрение зависимостей — [ADR 0003](docs/adr/0003-state-management-and-di.md); сессия матча — [ADR 0006](docs/adr/0006-match-session.md); Wi-Fi — [ADR 0007](docs/adr/0007-wifi-transport.md), [ADR 0019](docs/adr/0019-wifi-multiplayer.md) и [ADR 0020](docs/adr/0020-wifi-qr-and-link-quality.md); защита сетевой игры — [ADR 0022](docs/adr/0022-network-hardening.md). Полный список решений: [docs/adr](docs/adr).
 
 Основные технологии: Flutter, `flutter_bloc` (Cubit/Bloc), `go_router`, Drift для пользовательских данных (колоды, результаты матчей, настройки), `bonsoir` и WebSocket для игры по Wi-Fi, `qr_flutter` и `mobile_scanner` для QR-кода партии, локализация через `gen-l10n` (пока только русский).
 

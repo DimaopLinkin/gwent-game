@@ -58,6 +58,7 @@ final class HostNetworkGame {
     final client = MatchClient(
       settings: ClientSettings(ruleset: setup.ruleset, playerName: playerName, appVersion: setup.appVersion),
       scheduler: _scheduler,
+      catalog: content.catalog,
     );
     final game = NetworkGame(
       client: client,

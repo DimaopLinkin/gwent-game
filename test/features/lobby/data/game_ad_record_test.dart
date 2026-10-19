@@ -27,6 +27,14 @@ void main() {
     expect(GameAdRecord.truncateUtf8('аб🐺', 8), 'аб🐺');
   });
 
+  test('имя из чужой записи очищается и обрезается при разборе', () {
+    final hostile = {...GameAdRecord.encode(ad), 'n': 'Вася${String.fromCharCode(0x202e)}\u0000${'я' * 5000}'};
+    final decoded = GameAdRecord.decode(hostile)!;
+    expect(utf8.encode(decoded.hostName).length, lessThanOrEqualTo(GameAdRecord.maxHostNameBytes));
+    expect(decoded.hostName, startsWith('Вася'));
+    expect(decoded.hostName, isNot(contains(String.fromCharCode(0x202e))));
+  });
+
   test('чужая или битая запись не разбирается', () {
     final valid = GameAdRecord.encode(ad);
     expect(GameAdRecord.decode(const {'lib': 'bonsoir'}), isNull);

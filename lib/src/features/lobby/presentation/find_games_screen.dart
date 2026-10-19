@@ -268,7 +268,7 @@ class _GameRow extends StatelessWidget {
       JoinRefusal.rulesetMismatch => l10n.netFindRulesetMismatch,
       JoinRefusal.matchFull || JoinRefusal.unknownResumeToken => l10n.netFindFull,
     };
-    final name = game.found.ad.hostName;
+    final name = game.found.ad.hostName.isEmpty ? l10n.netOpponentName : game.found.ad.hostName;
     final enabled = joinable && onJoin != null;
     return Semantics(
       button: true,

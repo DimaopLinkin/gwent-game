@@ -18,6 +18,7 @@ export 'src/host/host_settings.dart';
 export 'src/host/match_host.dart';
 export 'src/journal/match_journal.dart';
 export 'src/journal/match_record.dart';
+export 'src/protocol/display_name.dart';
 export 'src/protocol/envelope.dart';
 export 'src/protocol/net_message.dart';
 export 'src/protocol/protocol_version.dart';
