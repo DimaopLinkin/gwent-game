@@ -6,6 +6,7 @@ import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/core/presentation/components/gwent_overlay.dart';
 import 'package:gwent/src/core/presentation/components/info_panel.dart';
 import 'package:gwent/src/core/presentation/components/screen_labels.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
@@ -275,14 +276,12 @@ Future<void> showDeckCardPreview(
   required String actionLabel,
   required VoidCallback? onAction,
 }) async {
-  final act = await showGeneralDialog<bool>(
-    context: context,
+  final act = await showGwentOverlay<bool>(
+    context,
     barrierColor: GwentColors.scrimDetail,
     barrierDismissible: true,
     barrierLabel: context.l10n.fieldClose,
-    pageBuilder: (context, _, _) =>
-        _CardPreview(detail: detail, meta: meta, actionLabel: actionLabel, canAct: onAction != null),
-    transitionBuilder: (context, animation, _, child) => FadeTransition(opacity: animation, child: child),
+    builder: (context) => _CardPreview(detail: detail, meta: meta, actionLabel: actionLabel, canAct: onAction != null),
   );
   if (act ?? false) onAction?.call();
 }
@@ -321,7 +320,6 @@ class _CardPreview extends StatelessWidget {
                   fontSize: 16,
                   height: 1.3,
                   color: GwentColors.textPrimary,
-                  decoration: TextDecoration.none,
                 ),
               ),
             Text(
@@ -332,7 +330,6 @@ class _CardPreview extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
                 color: GwentColors.textSecondary,
-                decoration: TextDecoration.none,
               ),
             ),
             SizedBox(
