@@ -48,6 +48,7 @@ final class FindGamesCubit extends Cubit<FindGamesState> {
     final games = current is FindGamesSearching ? current.games : [game];
     await _subscription?.cancel();
     _subscription = null;
+    if (isClosed) return;
     emit(FindGamesJoining(games, game.found.ad.id));
     final NetworkOpenResult result;
     try {
@@ -57,7 +58,11 @@ final class FindGamesCubit extends Cubit<FindGamesState> {
       if (!isClosed) emit(FindGamesFailed(const NetworkUnreachable(), game));
       return;
     }
-    if (isClosed) return;
+    if (isClosed) {
+      // Игрок ушёл с экрана, пока подключался: место у хоста не держим.
+      if (result case NetworkGameOpened(:final game)) await game.close();
+      return;
+    }
     emit(switch (result) {
       NetworkGameOpened() => const FindGamesJoined(),
       _ => FindGamesFailed(result, game),

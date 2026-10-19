@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/app/gwent_app.dart';
+import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
@@ -140,6 +142,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GwentLogo), findsOneWidget);
     await openSettingsAndReturn(tester);
+  });
+
+  testWidgets('комната и сетевая партия без активной игры уводят: комната на выбор способа, партия в меню', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.playRoom);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netPlayTitle), findsOneWidget);
+
+    router.go(AppRoutes.playMatch);
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
   });
 
   testWidgets('колоды: список, новая колода в конструкторе, возврат по шагам в меню', (tester) async {

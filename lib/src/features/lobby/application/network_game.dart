@@ -72,6 +72,9 @@ final class NetworkGame {
   /// Обновления для стола партии: копятся, пока стол не открыт, и первым идёт раздача.
   final StreamController<TableUpdate> _table = StreamController<TableUpdate>();
   final Map<int, Intent> _intents = {};
+
+  /// Последнее запрошенное состояние объявления хоста (открыто или занято); `null`, пока не менялось.
+  bool? _requestedOpen;
   LobbyRoom _room = const LobbyRoom();
   PlayerView? _firstView;
   int? _deckRequest;
@@ -338,14 +341,18 @@ final class NetworkGame {
     final hosted = _hosted;
     if (hosted == null) return;
     final open = _room.opponent == null && !_room.started;
-    if (hosted.ad.open == open) return;
+    // Сравниваем с последним запрошенным, а не с объявленным: объявление обновляется после `await`, и быстрый вход
+    // с выходом гостя иначе оставил бы партию «занятой» при пустой комнате.
+    if ((_requestedOpen ?? hosted.ad.open) == open) return;
+    _requestedOpen = open;
     unawaited(
       hosted
           .advertise(hosted.ad.copyWith(open: open))
           .then<void>(
             (_) {},
             onError: (Object _) {
-              // Не удалось обновить объявление: игра идёт, соседи просто увидят прежнее.
+              // Не удалось обновить объявление: игра идёт, соседи просто увидят прежнее. Следующая смена повторит.
+              _requestedOpen = null;
             },
           ),
     );

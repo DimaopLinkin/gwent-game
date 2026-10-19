@@ -47,7 +47,11 @@ final class CreateGameCubit extends Cubit<CreateGameState> {
       if (!isClosed) emit(CreateGameFailed(const NetworkUnavailable(), gameName));
       return;
     }
-    if (isClosed) return;
+    if (isClosed) {
+      // Игрок ушёл с экрана, пока партия создавалась: она никому не нужна, объявление не должно остаться в сети.
+      if (result case NetworkGameOpened(:final game)) await game.close();
+      return;
+    }
     emit(switch (result) {
       NetworkGameOpened() => const CreateGameCreated(),
       _ => CreateGameFailed(result, gameName),

@@ -2132,10 +2132,6 @@
   "@netFindFull": {
     "description": "Подпись найденной партии, в которой нет свободного места."
   },
-  "netFindJoining": "Подключаемся…",
-  "@netFindJoining": {
-    "description": "Подпись, пока гость подключается к найденной партии."
-  },
   "netFindGameSemantics": "{name}: {status}. Войти",
   "@netFindGameSemantics": {
     "description": "Подпись найденной партии для экранного диктора.",
@@ -2160,10 +2156,6 @@
         "type": "String"
       }
     }
-  },
-  "netRoomLeave": "Покинуть",
-  "@netRoomLeave": {
-    "description": "Кнопка выхода из лобби."
   },
   "netRoleYouHost": "Вы · хост",
   "@netRoleYouHost": {

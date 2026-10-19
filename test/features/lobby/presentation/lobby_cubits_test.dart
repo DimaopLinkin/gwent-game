@@ -106,6 +106,19 @@ void main() {
       expect(hostActive.current?.title, 'Ночной Гвинт');
     });
 
+    test('игрок ушёл с экрана, пока партия создавалась: она закрывается и не остаётся в сети', () async {
+      final cubit = makeCubit();
+      await cubit.stream.firstWhere((state) => state is CreateGameForm);
+
+      final creating = cubit.create('Цири');
+      await cubit.close();
+      await creating;
+      await settle();
+
+      expect(hostActive.current, isNull);
+      expect(lobby.hosted, isEmpty);
+    });
+
     test('пустое название заменяется именем игрока', () async {
       final cubit = makeCubit();
       await cubit.stream.firstWhere((state) => state is CreateGameForm);
@@ -181,6 +194,19 @@ void main() {
 
       await cubit.join(game);
       expect(cubit.state, isA<FindGamesJoined>());
+    });
+
+    test('игрок ушёл с экрана, пока подключался: место у хоста не держится', () async {
+      await hostGame(gameName: 'Цири', playerName: 'Цири');
+      final cubit = makeCubit();
+      final found = await cubit.stream.firstWhere((state) => state is FindGamesSearching && state.games.isNotEmpty);
+
+      final joining = cubit.join((found as FindGamesSearching).games.single);
+      await cubit.close();
+      await joining;
+      await settle();
+
+      expect(guestActive.current, isNull);
     });
 
     test('отказ поиска (Wi-Fi выключен) показывается как недоступность сети', () async {

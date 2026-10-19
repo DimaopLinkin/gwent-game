@@ -111,6 +111,22 @@ void main() {
       await table.waitFor(() => table.converged, 'партия не началась');
     });
 
+    test('другая колода во время отсчёта отменяет его и запускает заново: соперник успевает увидеть смену', () async {
+      final table = await joined();
+      table.hostClient.submitDeck(skellige);
+      table.guest.submitDeck(northern);
+      await table.scheduler.flush();
+      await table.scheduler.elapse(const Duration(seconds: 2));
+
+      table.guest.submitDeck(northern);
+      await table.scheduler.flush();
+      expect(table.eventsOf<CountdownCancelled>(table.hostClient), hasLength(1));
+      expect(table.eventsOf<CountdownStarted>(table.hostClient), hasLength(2));
+      await table.scheduler.elapse(const Duration(seconds: 2));
+      expect(table.host.state, isNull, reason: 'прежний отсчёт не должен довести партию до старта');
+      await table.waitFor(() => table.converged, 'партия не началась');
+    });
+
     test('смена состояния лобби отменяет готовность и отсчёт', () async {
       final table = await joined();
       table.hostClient.submitDeck(skellige);

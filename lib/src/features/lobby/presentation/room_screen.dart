@@ -67,7 +67,8 @@ class RoomScreen extends StatelessWidget {
       body: isHost ? l10n.netLeaveBodyHost : l10n.netLeaveBodyGuest,
       confirmLabel: l10n.netLeaveConfirm,
     );
-    if (!confirmed) return;
+    // Пока диалог был открыт, мог кончиться отсчёт: партия уже идёт, и уходить из неё отсюда нельзя.
+    if (!confirmed || cubit.state.room.started) return;
     await cubit.leave();
     onLeft();
   }

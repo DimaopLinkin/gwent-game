@@ -262,6 +262,8 @@ final class MatchHost {
     session
       ..deck = deck
       ..draft = LobbyStatus(LobbyStage.chosen, leader: deck.leader);
+    // Другая колода во время отсчёта: прежний отсчёт отменяется, новый идёт заново, соперник успевает увидеть смену.
+    _cancelCountdown();
     _announceLobby(session.seat);
     _startIfReady();
   }
