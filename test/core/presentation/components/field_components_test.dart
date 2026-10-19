@@ -94,6 +94,8 @@ void main() {
       bool leading = false,
       bool leaderAvailable = false,
       Widget? trailing,
+      Widget? status,
+      PlayerBarAnchors? anchors,
       VoidCallback? onLeaderTap,
       VoidCallback? onDiscardTap,
     }) => PlayerBar(
@@ -109,6 +111,8 @@ void main() {
       leading: leading,
       leaderAvailable: leaderAvailable,
       trailing: trailing,
+      status: status,
+      anchors: anchors,
       onLeaderTap: onLeaderTap,
       onDiscardTap: onDiscardTap,
     );
@@ -127,6 +131,59 @@ void main() {
     testWidgets('помещается на самом узком экране 320 pt вместе с кнопкой паса', (tester) async {
       await pump(tester, bar(trailing: PassButton(onPressed: () {}, compact: true)), width: 320);
       expect(tester.takeException(), isNull);
+    });
+
+    group('индикатор связи', () {
+      const statusKey = Key('status');
+
+      /// Индикатор того же размера, что самая широкая метка: «Нестабильно» со значком.
+      Widget status() => const Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(key: statusKey, width: 80, height: 18),
+      );
+
+      Rect rectOf(GlobalKey key) {
+        final box = key.currentContext!.findRenderObject()! as RenderBox;
+        return box.localToGlobal(Offset.zero) & box.size;
+      }
+
+      for (final width in [360.0, 390.0]) {
+        testWidgets('ширина $width pt: не налезает на счёт, колоду, сброс и имя', (tester) async {
+          final anchors = PlayerBarAnchors();
+          await pump(
+            tester,
+            bar(mine: false, status: status(), anchors: anchors),
+            width: width,
+          );
+
+          final indicator = tester.getRect(find.byKey(statusKey));
+          for (final anchor in [anchors.score, anchors.deck, anchors.discard, anchors.leader]) {
+            expect(indicator.overlaps(rectOf(anchor)), isFalse);
+          }
+          expect(indicator.overlaps(tester.getRect(find.text('Соперник'))), isFalse);
+          expect(indicator.overlaps(tester.getRect(find.text('9'))), isFalse);
+          expect(tester.getRect(find.byType(PlayerBar)).contains(indicator.center), isTrue);
+          expect(tester.takeException(), isNull);
+        });
+      }
+
+      testWidgets('с меткой «Спасовал» и на экране 320 pt полоса не ломается', (tester) async {
+        await pump(
+          tester,
+          bar(mine: false, status: status(), trailing: const SizedBox(width: 60, height: 20)),
+          width: 360,
+        );
+        expect(tester.takeException(), isNull);
+        await pump(tester, bar(mine: false, status: status()), width: 320);
+        expect(tester.takeException(), isNull);
+        await pump(
+          tester,
+          bar(mine: false, status: const SizedBox.shrink(), trailing: const SizedBox(width: 60, height: 20)),
+          width: 320,
+        );
+        // Свёрнутый индикатор не отнимает у второй строки даже зазор: переполнения не прибавилось.
+        expect(tester.takeException(), isNull);
+      });
     });
 
     testWidgets('корона только у ведущего', (tester) async {

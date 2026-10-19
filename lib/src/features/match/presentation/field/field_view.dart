@@ -58,6 +58,7 @@ class FieldView extends StatefulWidget {
     this.confirmPass = false,
     this.onSettings,
     this.readOnly = false,
+    this.opponentStatus,
   });
 
   /// Проекция партии.
@@ -80,6 +81,9 @@ class FieldView extends StatefulWidget {
 
   /// Поле только смотрят (за листом итога матча): системная «назад» не открывает паузу, а уходит дальше.
   final bool readOnly;
+
+  /// Индикатор в полосе соперника (связь в сетевой партии, ADR 0019); `null` — индикатора нет.
+  final Widget? opponentStatus;
 
   @override
   State<FieldView> createState() => _FieldViewState();
@@ -586,6 +590,7 @@ class _FieldViewState extends State<FieldView> {
         deckRoll: roll(StageCounter.deck),
         discardRoll: roll(StageCounter.discard),
         anchors: _anchors[mine],
+        status: mine ? null : widget.opponentStatus,
         // Пока движок ждёт выбора, листы игрока не открываются: они остались бы под листом выбора.
         onLeaderTap: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
         onLeaderLongPress: view.choice == null ? () => cubit.openLeader(mine: mine) : null,
