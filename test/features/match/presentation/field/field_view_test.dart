@@ -60,6 +60,7 @@ void main() {
     PlayerView view, {
     bool confirmPass = false,
     bool hotSeat = false,
+    VoidCallback? onSettings,
     Size size = const Size(390, 844),
   }) async {
     tester.view.physicalSize = size;
@@ -79,6 +80,7 @@ void main() {
               roster: rosterOf(cards, hotSeat: hotSeat),
               onIntent: harness.intents.add,
               confirmPass: confirmPass,
+              onSettings: onSettings,
             ),
           ),
         ),
@@ -914,6 +916,20 @@ void main() {
       harness.cubit.openPause();
       await tester.pump(const Duration(milliseconds: 250));
       expect(tester.widget<PauseMenuLayer>(find.byType(PauseMenuLayer)).onSettings, isNull);
+    });
+
+    testWidgets('«Настройки» в паузе открывают настройки, партия остаётся на паузе', (tester) async {
+      var opened = 0;
+      final harness = await pumpField(tester, viewOf(cards), onSettings: () => opened++);
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(tester.widget<PauseMenuLayer>(find.byType(PauseMenuLayer)).onSettings, isNotNull);
+
+      await tester.tap(find.text('Настройки'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(opened, 1);
+      expect(harness.cubit.state.pause, PauseLayer.menu);
+      expect(find.byType(PauseMenuLayer), findsOneWidget);
     });
 
     testWidgets('«Правила» открывают справочник, «назад» возвращает в меню паузы', (tester) async {

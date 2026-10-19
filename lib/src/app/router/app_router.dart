@@ -174,7 +174,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               checkContentUpdate: dependencies.checkContentUpdate,
             ),
             child: SettingsScreen(
-              onBack: () => context.go(AppRoutes.menu),
+              // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
+              onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
               onLicenses: () => showLicensePage(context: context, applicationName: context.l10n.appTitle),
             ),
           ),
@@ -205,6 +206,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   onExit: () => context.go(AppRoutes.menu),
                   // Конструктор открывается поверх выбора, а не вместо него: после правки игрок возвращается к тому же шагу.
                   onEditDeck: (deckId) => context.push(AppRoutes.deckEdit(deckId)),
+                  onSettings: () => context.push(AppRoutes.settings),
                   animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
                     AnimationSpeed.normal => 1,
                     AnimationSpeed.fast => StageTokens.fastFactor,
@@ -270,6 +272,7 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
       builder: (context, snapshot) => MatchScreen(
         onExit: () => context.go(AppRoutes.menu),
         onEditDeck: (_) {},
+        onSettings: () => context.push(AppRoutes.settings),
         animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
           AnimationSpeed.normal => 1,
           AnimationSpeed.fast => StageTokens.fastFactor,

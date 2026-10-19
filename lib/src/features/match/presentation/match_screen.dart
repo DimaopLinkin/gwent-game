@@ -33,13 +33,15 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// чем идут анимации, но игрок видит ходы по порядку. Тот же порядок будет у анимаций карт (ADR 0013).
 class MatchScreen extends StatefulWidget {
   /// Создаёт экран; [onExit] уводит из партии в меню, [onEditDeck] открывает колоду в конструкторе, [confirmPass]
-  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт.
+  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт, [onSettings] открывает настройки
+  /// из меню паузы.
   const MatchScreen({
     super.key,
     required this.onExit,
     required this.onEditDeck,
     this.confirmPass = false,
     this.animationScale = 1,
+    this.onSettings,
   });
 
   /// Выход из партии.
@@ -53,6 +55,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Доля обычных длительностей анимаций карт: 1 или `StageTokens.fastFactor` для быстрой скорости (ADR 0017).
   final double animationScale;
+
+  /// Открыть настройки поверх партии; `null` — в меню паузы кнопка «Настройки» недоступна.
+  final VoidCallback? onSettings;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -190,7 +195,14 @@ class _MatchScreenState extends State<MatchScreen> {
           roster: roster,
         ),
         PlayerView(phase: MatchPhase.redraw) => MatchRedrawView(view: view, roster: roster, onIntent: submit),
-        _ => FieldView(view: view, content: content, roster: roster, onIntent: submit, confirmPass: widget.confirmPass),
+        _ => FieldView(
+          view: view,
+          content: content,
+          roster: roster,
+          onIntent: submit,
+          confirmPass: widget.confirmPass,
+          onSettings: widget.onSettings,
+        ),
       },
       MatchFinished(:final view, :final roster, :final canRematch) => MatchResultView(
         view: view,
