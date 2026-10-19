@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/app/gwent_app.dart';
+import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
@@ -10,6 +12,7 @@ import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
+import '../features/lobby/support/fake_game_lobby.dart';
 import '../support/factories.dart';
 import '../support/fakes.dart';
 import '../support/fonts.dart';
@@ -55,6 +58,7 @@ void main() {
           clock: FakeClock(DateTime.utc(2026, 10, 11)),
           idGenerator: SequentialIdGenerator(),
           seedGenerator: FixedSeedGenerator(1),
+          gameLobby: FakeGameLobby(),
         ),
       ),
     );
@@ -64,16 +68,6 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     }
     await tester.pumpAndSettle();
-  }
-
-  Future<void> openAndReturn(WidgetTester tester, String button, String title) async {
-    await tester.tap(find.text(button));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, title), findsOneWidget);
-
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    expect(find.byType(GwentLogo), findsOneWidget);
   }
 
   /// Настройки: у экрана своя шапка, «назад» — круглая кнопка с подписью для диктора.
@@ -140,8 +134,29 @@ void main() {
     await tester.tap(find.bySemanticsLabel(l10n.setupBack));
     await tester.pumpAndSettle();
 
-    await openAndReturn(tester, l10n.menuNetworkGame, l10n.lobbyTitle);
+    // Игра на двух телефонах: выбор способа, у экрана своя шапка с «назад» в меню.
+    await tester.tap(find.text(l10n.menuNetworkGame));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netPlayTitle), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
     await openSettingsAndReturn(tester);
+  });
+
+  testWidgets('комната и сетевая партия без активной игры уводят: комната на выбор способа, партия в меню', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.playRoom);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netPlayTitle), findsOneWidget);
+
+    router.go(AppRoutes.playMatch);
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
   });
 
   testWidgets('колоды: список, новая колода в конструкторе, возврат по шагам в меню', (tester) async {

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/src/protocol/net_message.dart';
 import 'package:gwent_net/src/session/peer_link.dart';
 import 'package:gwent_net/src/session/sequenced_channel.dart';
 
@@ -23,8 +24,11 @@ final class SeatSession {
   /// (потерялся `welcome`) можно отдать новому клиенту, не дожидаясь тайм-аута.
   bool confirmed = false;
 
-  /// Колода, принятая хостом до начала партии.
+  /// Колода, принятая хостом до начала партии. Пока она есть, игрок готов.
   Deck? deck;
+
+  /// Чем игрок занят в лобби, пока он не готов.
+  LobbyStatus draft = const LobbyStatus(LobbyStage.choosing);
 
   /// Ожидание переподключения.
   Timer? grace;

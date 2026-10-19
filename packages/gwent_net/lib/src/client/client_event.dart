@@ -73,3 +73,50 @@ final class OpponentPresenceChanged extends ClientEvent {
   @override
   List<Object?> get props => [online, name];
 }
+
+/// Соперник изменил своё состояние в лобби: стадию и лидера выбранной колоды.
+final class OpponentLobbyChanged extends ClientEvent {
+  const OpponentLobbyChanged(this.stage, {this.leader});
+
+  final LobbyStage stage;
+
+  /// Лидер колоды соперника; `null`, пока колода не выбрана.
+  final LeaderId? leader;
+
+  @override
+  List<Object?> get props => [stage, leader];
+}
+
+/// Оба игрока готовы: партия начнётся через [duration], если никто не отзовёт колоду.
+final class CountdownStarted extends ClientEvent {
+  const CountdownStarted(this.duration);
+
+  final Duration duration;
+
+  @override
+  List<Object?> get props => [duration];
+}
+
+/// Отсчёт старта прерван.
+final class CountdownCancelled extends ClientEvent {
+  const CountdownCancelled();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Соперник ушёл из лобби; его место свободно.
+final class OpponentLeft extends ClientEvent {
+  const OpponentLeft();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Хост закрыл лобби: возвращаться некуда, переподключаться не нужно.
+final class LobbyClosed extends ClientEvent {
+  const LobbyClosed();
+
+  @override
+  List<Object?> get props => const [];
+}

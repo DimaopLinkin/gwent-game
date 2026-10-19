@@ -4,6 +4,7 @@ import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 
+import '../features/lobby/support/fake_game_lobby.dart';
 import '../support/fakes.dart';
 
 void main() {
@@ -20,6 +21,7 @@ void main() {
       clock: FakeClock(DateTime.utc(2026, 10, 12)),
       idGenerator: SequentialIdGenerator(),
       seedGenerator: FixedSeedGenerator(1),
+      gameLobby: FakeGameLobby(),
     );
     final content = (await dependencies.loadGameContent() as GameContentReady).content;
     final factions = content.pack.rules.fractions.where((fraction) => fraction.isDeck).toList();

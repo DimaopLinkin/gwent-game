@@ -188,7 +188,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
     emit(_copy(ready, saving: true, clearMessage: true));
     try {
       final name = ready.draft.name.trim();
-      await _saveDeck(
+      final saved = await _saveDeck(
         id: ready.draft.id,
         name: name.isEmpty ? _fallbackName : name,
         factionId: ready.draft.factionId,
@@ -196,7 +196,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
         cards: ready.draft.cards,
       );
       if (isClosed) return;
-      emit(const DeckEditorSaved());
+      emit(DeckEditorSaved(saved.id));
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
       // Собранная колода остаётся на экране: игрок может нажать «Сохранить» ещё раз.

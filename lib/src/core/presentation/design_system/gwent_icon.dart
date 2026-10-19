@@ -91,6 +91,12 @@ enum GwentIcon {
   /// Сила ▼.
   iconPowerDown('power_down'),
 
+  /// Wi-Fi: способ соединения в сетевой игре.
+  iconWifi('wifi'),
+
+  /// Bluetooth: способ соединения в сетевой игре.
+  iconBluetooth('bluetooth'),
+
   /// Герб Королевств Севера.
   crestNorthernRealms('crest_northern_realms', isCrest: true),
 

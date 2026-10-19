@@ -9,10 +9,19 @@ import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.d
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_screen.dart';
-import 'package:gwent/src/features/lobby/presentation/lobby_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/create_game_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/find_games_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/lobby_builder_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/lobby_deck_picker_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/room_screen.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart' show LocalMatchMode;
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
+import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
@@ -34,7 +43,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
       builder: (context, state) => MenuScreen(
         onHotSeat: () => context.go(AppRoutes.matchHotSeat),
         onBot: () => context.go(AppRoutes.matchBot),
-        onNetworkGame: () => context.go(AppRoutes.lobby),
+        onNetworkGame: () => context.go(AppRoutes.play),
         onDecks: () => context.go(AppRoutes.decks),
         onSettings: () => context.go(AppRoutes.settings),
       ),
@@ -62,7 +71,99 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
             ),
           ],
         ),
-        GoRoute(path: _child(AppRoutes.lobby), builder: (context, state) => const LobbyScreen()),
+        GoRoute(
+          path: _child(AppRoutes.play),
+          builder: (context, state) => PlayMethodScreen(
+            onCreate: () => context.go(AppRoutes.playCreate),
+            onFind: () => context.go(AppRoutes.playFind),
+            onBack: () => context.go(AppRoutes.menu),
+          ),
+          routes: [
+            GoRoute(
+              path: 'create',
+              builder: (context, state) => BlocProvider(
+                create: (_) => CreateGameCubit(
+                  dependencies.hostNetworkGame,
+                  dependencies.watchSettings,
+                  fallbackName: context.l10n.playerPlateYou,
+                ),
+                child: CreateGameScreen(
+                  onCreated: () => context.go(AppRoutes.playRoom),
+                  onBack: () => context.go(AppRoutes.play),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: 'find',
+              builder: (context, state) => BlocProvider(
+                create: (_) => FindGamesCubit(
+                  dependencies.discoverNetworkGames,
+                  dependencies.joinNetworkGame,
+                  dependencies.watchSettings,
+                  fallbackName: context.l10n.playerPlateYou,
+                ),
+                child: FindGamesScreen(
+                  onJoined: () => context.go(AppRoutes.playRoom),
+                  onBack: () => context.go(AppRoutes.play),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: 'room',
+              // Комната без игры (например, после перезапуска) — это уже не комната.
+              redirect: (context, state) => dependencies.activeNetworkGame.current == null ? AppRoutes.play : null,
+              builder: (context, state) {
+                final game = dependencies.activeNetworkGame.current!;
+                return BlocProvider(
+                  create: (_) => RoomCubit(game, dependencies.loadDeckRules, dependencies.getDeck),
+                  child: RoomScreen(
+                    isHost: game.isHost,
+                    title: game.title ?? '',
+                    onPickDeck: (deckId) => context.push<String>(AppRoutes.playRoomDecks, extra: deckId),
+                    onBuildDeck: (deckId) => context.push<String>(
+                      deckId == null ? AppRoutes.playRoomBuild : AppRoutes.playRoomBuildDeck(deckId),
+                    ),
+                    onStarted: () => context.go(AppRoutes.playMatch),
+                    onLeft: () => context.go(AppRoutes.play),
+                  ),
+                );
+              },
+              routes: [
+                GoRoute(
+                  path: 'decks',
+                  builder: (context, state) => BlocProvider(
+                    create: (_) =>
+                        DeckListCubit(dependencies.watchDecks, dependencies.loadDeckRules, dependencies.deleteDeck),
+                    child: LobbyDeckPickerScreen(
+                      initialDeckId: state.extra as String?,
+                      onSelect: (deckId) => context.pop(deckId),
+                      onBuildNew: () async {
+                        final deckId = await context.push<String>(AppRoutes.playRoomBuild);
+                        if (deckId != null && context.mounted) context.pop(deckId);
+                      },
+                      onBack: () => context.pop(),
+                    ),
+                  ),
+                ),
+                GoRoute(path: 'build', builder: (context, state) => _lobbyBuilder(context, dependencies)),
+                GoRoute(
+                  path: 'build/:${AppRoutes.deckIdParam}',
+                  builder: (context, state) =>
+                      _lobbyBuilder(context, dependencies, deckId: state.pathParameters[AppRoutes.deckIdParam]),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'match',
+              // Сетевая партия открывается только из комнаты, когда хост её начал.
+              redirect: (context, state) {
+                final game = dependencies.activeNetworkGame.current;
+                return game != null && game.room.started && !game.handedOver ? null : AppRoutes.menu;
+              },
+              builder: (context, state) => _networkMatch(context, dependencies),
+            ),
+          ],
+        ),
         GoRoute(
           path: _child(AppRoutes.settings),
           builder: (context, state) => BlocProvider(
@@ -130,6 +231,53 @@ Widget _deckEditor(BuildContext context, AppDependencies dependencies, {String? 
   ),
   child: DeckEditorScreen(onExit: () => context.pop()),
 );
+
+/// Конструктор колоды в режиме лобби: колоду [deckId] или новую. Закрывается, вернув идентификатор сохранённой колоды
+/// (или `null`, если игрок вышел, ничего не сохранив).
+Widget _lobbyBuilder(BuildContext context, AppDependencies dependencies, {String? deckId}) => BlocProvider(
+  create: (_) => DeckEditorCubit(
+    loadDeckRules: dependencies.loadDeckRules,
+    getDeck: dependencies.getDeck,
+    saveDeck: dependencies.saveDeck,
+    newDeckName: context.l10n.deckListNew,
+    deckId: deckId,
+  ),
+  child: LobbyBuilderScreen(
+    onSaved: (savedId) => context.pop(savedId),
+    onCancel: () => context.pop(),
+  ),
+);
+
+/// Экран сетевой партии: стол уже начат в комнате, держатель берёт его у сетевой игры.
+Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
+  final settings = dependencies.watchSettings();
+  return MultiBlocProvider(
+    providers: [
+      BlocProvider(
+        create: (_) {
+          final bloc = MatchBloc(dependencies.startMatch, dependencies.recordFinishedMatch, awaitingSession: true);
+          if (dependencies.activeNetworkGame.current case final game?) {
+            bloc.add(MatchSessionOpened(game.openMatch()));
+          }
+          return bloc;
+        },
+      ),
+      BlocProvider(create: (_) => FieldCubit()),
+    ],
+    child: StreamBuilder<AppSettings>(
+      stream: settings,
+      initialData: const AppSettings(),
+      builder: (context, snapshot) => MatchScreen(
+        onExit: () => context.go(AppRoutes.menu),
+        onEditDeck: (_) {},
+        animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
+          AnimationSpeed.normal => 1,
+          AnimationSpeed.fast => StageTokens.fastFactor,
+        },
+      ),
+    ),
+  );
+}
 
 /// Режим партии из параметра пути; без параметра — против бота.
 LocalMatchMode _matchMode(GoRouterState state) =>

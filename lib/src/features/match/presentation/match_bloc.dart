@@ -25,7 +25,11 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// Законченная партия записывается в историю; местную партию можно повторить (реванш).
 final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   /// Создаёт держатель над сценариями.
-  MatchBloc(this._startMatch, this._recordFinishedMatch) : super(const MatchIdle()) {
+  ///
+  /// Сетевая партия уже начата вне экрана: [awaitingSession] ставит держатель в ожидание её стола
+  /// (`MatchSessionOpened`), минуя выбор колод.
+  MatchBloc(this._startMatch, this._recordFinishedMatch, {bool awaitingSession = false})
+    : super(awaitingSession ? const MatchStarting() : const MatchIdle()) {
     on<MatchStartRequested>(_onStartRequested);
     on<MatchSessionOpened>(_onSessionOpened);
     on<MatchIntentSubmitted>(_onIntentSubmitted);
@@ -95,7 +99,9 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   }
 
   Future<void> _onSessionOpened(MatchSessionOpened event, Emitter<MatchScreenState> emit) async {
-    if (state is! MatchIdle && state is! MatchStartFailed) {
+    // Ожидание стола (`MatchStarting` без начатой партии и без запроса) тоже принимает сессию.
+    final waiting = state is MatchStarting && _session == null && _request == null;
+    if (_session != null || (state is! MatchIdle && state is! MatchStartFailed && !waiting)) {
       // Партия уже идёт: вторую не открываем, но и стол не бросаем.
       await event.session.table.close();
       return;

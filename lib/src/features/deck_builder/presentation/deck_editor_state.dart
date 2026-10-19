@@ -132,7 +132,10 @@ final class DeckEditorNotFound extends DeckEditorState {
 /// Колода сохранена: экран закрывается.
 final class DeckEditorSaved extends DeckEditorState {
   /// Создаёт состояние.
-  const DeckEditorSaved();
+  const DeckEditorSaved(this.deckId);
+
+  /// Идентификатор сохранённой колоды: новой его выдаёт сохранение.
+  final String deckId;
 }
 
 /// Колоду собирают.

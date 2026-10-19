@@ -15,8 +15,29 @@ abstract final class AppRoutes {
   /// Конструктор колоды с идентификатором [deckId].
   static String deckEdit(String deckId) => '$decks/${Uri.encodeComponent(deckId)}';
 
-  /// Лобби сетевой игры.
-  static const String lobby = '/lobby';
+  /// Игра на двух телефонах: выбор способа соединения.
+  static const String play = '/play';
+
+  /// Создание сетевой игры (хост).
+  static const String playCreate = '$play/create';
+
+  /// Поиск сетевой игры рядом (гость).
+  static const String playFind = '$play/find';
+
+  /// Комната сетевой игры: ожидание соперника, выбор колоды, готовность.
+  static const String playRoom = '$play/room';
+
+  /// Выбор сохранённой колоды для комнаты.
+  static const String playRoomDecks = '$playRoom/decks';
+
+  /// Конструктор новой колоды из комнаты.
+  static const String playRoomBuild = '$playRoom/build';
+
+  /// Конструктор колоды [deckId] из комнаты.
+  static String playRoomBuildDeck(String deckId) => '$playRoomBuild/${Uri.encodeComponent(deckId)}';
+
+  /// Сетевая партия.
+  static const String playMatch = '$play/match';
 
   /// Игровое поле.
   static const String match = '/match';
