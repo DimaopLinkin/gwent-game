@@ -22,6 +22,7 @@ final class RecordFinishedMatch {
       mode: session.mode,
       playerFactionId: session.factionIds[me]!,
       opponentFactionId: session.factionIds[me.opponent]!,
+      opponentName: session.opponentName,
       outcome: switch (outcome.winner) {
         null => history.MatchOutcome.draw,
         final winner when winner == me => history.MatchOutcome.victory,

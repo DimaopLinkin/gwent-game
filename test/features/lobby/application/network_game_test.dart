@@ -166,6 +166,8 @@ void main() {
     expect(hostSession.table.localSeats, {Seat.one});
     expect(guestSession.table.localSeats, {Seat.two});
     expect(hostSession.deckNames, {Seat.one: north.name});
+    expect(hostSession.opponentName, 'Вереск');
+    expect(guestSession.opponentName, 'Цири');
     expect(hostSession.factionIds, {Seat.one: north.factionId, Seat.two: monsters.factionId});
     expect(guestSession.factionIds, hostSession.factionIds);
 
@@ -264,6 +266,45 @@ void main() {
     await scheduler.flush();
 
     expect(guest.room.end, const RoomConnectionLost());
+  });
+
+  test('хост не принял колоду: игрок остаётся с выбранной колодой и видит отказ до следующего выбора', () async {
+    final (host, guest) = await connected();
+    final broken = realDeck(content, Faction.monsters, id: 'broken').copyWith(cards: const {});
+
+    guest.ready(broken.toEngineDeck());
+    await scheduler.flush();
+    await scheduler.flush();
+
+    expect(guest.room.myStage, LobbyStage.chosen);
+    expect(guest.room.deckRefused, isTrue);
+    expect(host.room.opponent?.stage, isNot(LobbyStage.ready));
+
+    guest.reportStage(LobbyStage.building);
+    expect(guest.room.deckRefused, isFalse);
+  });
+
+  test('соперник пропал посреди партии: связь с ним видна, пока он не вернётся', () async {
+    final (host, guest) = await connected();
+    final north = realDeck(content, Faction.northernRealms, id: 'north');
+    host.ready(north.toEngineDeck());
+    guest.ready(north.toEngineDeck());
+    await scheduler.elapse(const Duration(seconds: 4));
+    await scheduler.flush();
+    expect(host.room.started, isTrue);
+
+    lobby.failJoins = 1000;
+    await lobby.hostEnds.single.close();
+    await scheduler.flush();
+    await scheduler.flush();
+    expect(host.room.opponent?.online, isFalse);
+    expect(host.room.opponent?.name, 'Вереск');
+
+    lobby.failJoins = 0;
+    await scheduler.elapse(const Duration(seconds: 3));
+    await scheduler.flush();
+    await scheduler.flush();
+    expect(host.room.opponent?.online, isTrue);
   });
 
   test('хост не может объявить партию: сценарий сообщает, что сеть недоступна', () async {

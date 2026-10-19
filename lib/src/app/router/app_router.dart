@@ -15,6 +15,8 @@ import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_builder_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_deck_picker_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_layer.dart';
 import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/room_screen.dart';
@@ -30,6 +32,7 @@ import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
+import 'package:gwent_engine/gwent_engine.dart' show Resign;
 
 /// Навигация приложения.
 ///
@@ -253,18 +256,18 @@ Widget _lobbyBuilder(BuildContext context, AppDependencies dependencies, {String
 /// Экран сетевой партии: стол уже начат в комнате, держатель берёт его у сетевой игры.
 Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
   final settings = dependencies.watchSettings();
+  final game = dependencies.activeNetworkGame.current;
   return MultiBlocProvider(
     providers: [
       BlocProvider(
         create: (_) {
           final bloc = MatchBloc(dependencies.startMatch, dependencies.recordFinishedMatch, awaitingSession: true);
-          if (dependencies.activeNetworkGame.current case final game?) {
-            bloc.add(MatchSessionOpened(game.openMatch()));
-          }
+          if (game != null) bloc.add(MatchSessionOpened(game.openMatch()));
           return bloc;
         },
       ),
       BlocProvider(create: (_) => FieldCubit()),
+      if (game != null) BlocProvider(create: (_) => MatchConnectionCubit(game)),
     ],
     child: StreamBuilder<AppSettings>(
       stream: settings,
@@ -277,6 +280,17 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
           AnimationSpeed.normal => 1,
           AnimationSpeed.fast => StageTokens.fastFactor,
         },
+        overlay: game == null
+            ? null
+            : Builder(
+                builder: (context) => MatchConnectionLayer(
+                  // Хост, не дождавшись гостя, засчитывает себе поражение; гость просто уходит, а хост по истечении
+                  // времени сдаст его место сам.
+                  onEnd: game.isHost
+                      ? () => context.read<MatchBloc>().add(const MatchIntentSubmitted(Resign()))
+                      : () => context.go(AppRoutes.menu),
+                ),
+              ),
       ),
     ),
   );

@@ -22,7 +22,7 @@ extension _RoundScenes on StageScriptBuilder {
     final counted = _countRows(summary, from: _ms(300), until: _ms(matchEnd == null ? 1700 : 2500));
     _cursor = counted;
     if (matchEnd != null) {
-      _matchEnd(matchEnd, summary, at: counted);
+      _matchEnd(matchEnd, at: counted);
       return;
     }
     final plaqueEnd = _plaque(summary, at: counted);
@@ -276,8 +276,15 @@ extension _RoundScenes on StageScriptBuilder {
     _requestSettle(_cursor, stagger: _ms(70));
   }
 
-  /// Конец матча: после подсчёта плашка исхода, проигравший теряет последний камень.
-  void _matchEnd(MatchEnded ended, RoundSummary summary, {required double at}) {
+  /// Сдача или выход соперника (макет 13): без подсчёта плашка исхода сразу, у сдавшегося гаснет камень.
+  void _resignation(MatchEnded ended) {
+    _steps.add(0);
+    _matchEnd(ended, at: 0);
+  }
+
+  /// Конец матча: после подсчёта плашка исхода, проигравший теряет последний камень. При сдаче у проигравшего
+  /// гаснет один из оставшихся камней: матч кончился не потерей камней, и пустого гнезда у него ещё нет.
+  void _matchEnd(MatchEnded ended, {required double at}) {
     final winner = ended.outcome.winner;
     final outcome = switch (winner) {
       null => RoundOutcome.draw,
@@ -303,13 +310,15 @@ extension _RoundScenes on StageScriptBuilder {
     );
     _steps.add(at);
     _locks.add((at, end));
+    final resigned = ended.outcome.reason == MatchEndReason.resignation;
     for (final mine in const [true, false]) {
       final side = _side(next, mine: mine);
-      if (side.crystals > 0) continue;
+      final loses = winner != null && winner != (mine ? viewer : viewer.opponent);
+      if (resigned ? !loses || side.crystals == 0 : side.crystals > 0) continue;
       _beats.add(
         GemBeat(
           mine: mine,
-          remaining: 0,
+          remaining: resigned ? side.crystals - 1 : 0,
           start: at + _ms(300),
           duration: _ms(StageTokens.lifeTotal),
           shake: _ms(StageTokens.lifeShake),

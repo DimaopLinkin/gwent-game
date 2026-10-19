@@ -205,7 +205,9 @@ class _Lobby extends StatelessWidget {
     final theirs = _describe(rules, opponent.leader);
     final mine = _describe(rules, room.myLeader);
     final online = room.link == RoomLink.online;
-    final hint = deck == null
+    final hint = room.deckRefused
+        ? l10n.netDeckRefused
+        : deck == null
         ? l10n.netPickDeckHint
         : rules == null
         ? null

@@ -348,6 +348,7 @@ void main() {
       expect(find.text('Сдаться?'), findsOneWidget);
       await tester.tap(find.descendant(of: find.byType(SurrenderConfirmLayer), matching: find.text('Сдаться')));
       await settle(tester);
+      await endBanners(tester);
 
       expect(find.byType(MatchResultView), findsOneWidget);
       expect(find.text('Поражение'), findsOneWidget);
@@ -379,6 +380,7 @@ void main() {
       await endBanners(tester);
       bloc.add(const MatchIntentSubmitted(Resign()));
       await settle(tester);
+      await endBanners(tester);
 
       expect(find.byType(MatchResultView), findsOneWidget);
       await tester.tap(find.text('Реванш'));
@@ -394,6 +396,7 @@ void main() {
       await endBanners(tester);
       bloc.add(const MatchIntentSubmitted(Resign()));
       await settle(tester);
+      await endBanners(tester);
 
       await tester.tap(find.text('В меню'));
       expect(exits, 1);

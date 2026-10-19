@@ -506,4 +506,47 @@ void main() {
       expect(script.tapSpeedsUp(3000), isFalse);
     });
   });
+
+  group('сдача и выход соперника', () {
+    PlayerView resigned() => viewOf(
+      cards,
+      me: sideOf(cards, Seat.one, hand: [cards.unit(Row.melee)]),
+      opponent: sideOf(cards, Seat.two, handCount: 5),
+      phase: MatchPhase.finished,
+      outcome: const MatchOutcome(winner: Seat.one, reason: MatchEndReason.resignation),
+    );
+
+    StageScript? scene(PlayerView view, List<GameEvent> events) =>
+        StageScriptBuilder(prev: view, next: view, catalog: content.catalog).buildResignation(1, events);
+
+    test('плашка исхода сразу, без подсчёта; у сдавшегося гаснет один из оставшихся камней', () {
+      final view = resigned();
+      final script = scene(view, const [
+        MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.resignation)),
+      ])!;
+      final banner = script.frameAt(300).items.whereType<MatchBannerItem>().single;
+      expect(banner.outcome, RoundOutcome.win);
+      expect(banner.winner, Seat.one);
+      expect(script.frameAt(script.duration).gems.keys, [false]);
+      expect(script.frameAt(500).gems[false]!.remaining, 1);
+      expect(script.beats.whereType<FlightBeat>(), isEmpty);
+      expect(script.tapSpeedsUp(300), isFalse);
+    });
+
+    test('сдался я: плашка «Поражение», гаснет мой камень', () {
+      final view = resigned();
+      final script = scene(view, const [
+        MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.resignation)),
+      ])!;
+      expect(script.frameAt(300).items.whereType<MatchBannerItem>().single.outcome, RoundOutcome.loss);
+      expect(script.frameAt(script.duration).gems.keys, [true]);
+    });
+
+    test('партия кончилась не сдачей: сцены нет', () {
+      expect(
+        scene(resigned(), const [MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.crystals))]),
+        isNull,
+      );
+    });
+  });
 }

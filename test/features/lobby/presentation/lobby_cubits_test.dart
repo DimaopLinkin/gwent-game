@@ -19,6 +19,8 @@ import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_state.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_state.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_state.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
@@ -342,6 +344,70 @@ void main() {
       await settle();
 
       expect(host.isClosed, isTrue);
+    });
+  });
+
+  group('связь в партии', () {
+    Future<(NetworkGame, NetworkGame)> pair() async {
+      final host = ((await hostGame(gameName: 'Цири', playerName: 'Цири')) as NetworkGameOpened).game;
+      final found = (await discover().firstWhere((games) => games.isNotEmpty)).single;
+      final guest = ((await joinGame(found: found.found, playerName: 'Вереск')) as NetworkGameOpened).game;
+      await settle();
+      return (host, guest);
+    }
+
+    MatchConnectionCubit connection(NetworkGame game) {
+      final cubit = MatchConnectionCubit(game, tick: const Duration(milliseconds: 5));
+      addTearDown(cubit.close);
+      return cubit;
+    }
+
+    test('пока все на связи, окна нет', () async {
+      final (host, guest) = await pair();
+
+      expect(connection(host).state, const MatchConnectionState(isHost: true));
+      expect(connection(guest).state, const MatchConnectionState(isHost: false));
+    });
+
+    test('хост: гость пропал, идёт отсчёт ожидания, «Ждать» закрывает окно, возвращение сбрасывает всё', () async {
+      final (host, _) = await pair();
+      final cubit = connection(host);
+      lobby.failJoins = 1000;
+
+      final lost = cubit.stream.firstWhere((state) => state.lost);
+      await lobby.hostEnds.single.close();
+      await settle();
+      expect((await lost).left, host.reconnectWindow);
+      final counting = await cubit.stream.firstWhere((state) => state.left < host.reconnectWindow);
+      expect(counting.dismissed, isFalse);
+
+      cubit.wait();
+      expect(cubit.state.dismissed, isTrue);
+      expect(cubit.state.lost, isTrue);
+
+      lobby.failJoins = 0;
+      final back = cubit.stream.firstWhere((state) => !state.lost);
+      await scheduler.elapse(const Duration(seconds: 3));
+      await settle();
+      expect(await back, const MatchConnectionState(isHost: true));
+    });
+
+    test('гость: хост пропал, гость переподключается и по возвращении окно пропадает', () async {
+      final (_, guest) = await pair();
+      final cubit = connection(guest);
+      lobby.failJoins = 1000;
+
+      final lost = cubit.stream.firstWhere((state) => state.lost);
+      await lobby.hostEnds.single.close();
+      await settle();
+      expect((await lost).isHost, isFalse);
+
+      lobby.failJoins = 0;
+      final back = cubit.stream.firstWhere((state) => !state.lost);
+      await scheduler.elapse(const Duration(seconds: 3));
+      await settle();
+      await back;
+      expect(cubit.state.lost, isFalse);
     });
   });
 }

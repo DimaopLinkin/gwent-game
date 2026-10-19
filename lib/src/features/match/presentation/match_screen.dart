@@ -42,6 +42,7 @@ class MatchScreen extends StatefulWidget {
     this.confirmPass = false,
     this.animationScale = 1,
     this.onSettings,
+    this.overlay,
   });
 
   /// Выход из партии.
@@ -58,6 +59,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Открыть настройки поверх партии; `null` — в меню паузы кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
+
+  /// Слой поверх поля, пока партия идёт (связь в сетевой партии, ADR 0019); `null` — слоя нет.
+  final Widget? overlay;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -79,6 +83,12 @@ class _MatchScreenState extends State<MatchScreen> {
     MatchIntro() || MatchToss() || MatchHandover() || MatchInProgress() => false,
   };
 
+  /// Идёт партия: поле, пересдача или выбор первого игрока; на знакомстве, жребии, передаче и итоге слоя нет.
+  bool get _fieldIsShown => switch (_shown) {
+    MatchInProgress(:final view) => view.phase != MatchPhase.finished,
+    _ => false,
+  };
+
   /// Поле на экране и показывает что-то: следующее состояние партии подождёт. Остальные экраны очередь не держат.
   bool get _fieldIsBusy =>
       switch (_shown) {
@@ -88,10 +98,18 @@ class _MatchScreenState extends State<MatchScreen> {
       context.read<FieldCubit>().state.isBusy;
 
   void _onMatchState(MatchScreenState state) {
-    if (state is MatchCrashed || (state is MatchFinished && state.events.any(_isResignation))) {
-      // Партия сломалась или игрок сдался: ждать анимаций незачем, а то, что в очереди, уже не покажешь.
+    if (state is MatchCrashed || (state is MatchInProgress && state.events.any(_isResignation))) {
+      // Партия сломалась или кто-то сдался: ждать анимаций незачем, а то, что в очереди, уже не покажешь.
       _waiting.clear();
       _show(state);
+    } else if (state is MatchFinished && state.events.any(_isResignation)) {
+      // Итог сдачи ждёт только плашку исхода, которая идёт перед ним, остальное в очереди устарело.
+      _waiting.clear();
+      if (_fieldIsBusy) {
+        _waiting.add(state);
+      } else {
+        _show(state);
+      }
     } else if (_waiting.isEmpty && !_fieldIsBusy) {
       _show(state);
     } else {
@@ -147,7 +165,16 @@ class _MatchScreenState extends State<MatchScreen> {
     ],
     child: Scaffold(
       backgroundColor: GwentColors.bg,
-      body: PopScope(canPop: _canLeave(_shown), child: _stage(context, _shown)),
+      body: PopScope(
+        canPop: _canLeave(_shown),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _stage(context, _shown),
+            if (_fieldIsShown) ?widget.overlay,
+          ],
+        ),
+      ),
     ),
   );
 

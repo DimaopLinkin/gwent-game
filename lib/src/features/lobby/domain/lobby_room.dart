@@ -113,6 +113,7 @@ final class LobbyRoom {
     this.myLeader,
     this.countdown,
     this.started = false,
+    this.deckRefused = false,
     this.end,
   });
 
@@ -137,6 +138,9 @@ final class LobbyRoom {
   /// Хост начал партию: комната закончилась, партию открывает `NetworkGame.openMatch`.
   final bool started;
 
+  /// Хост не принял отправленную колоду; сбрасывается, когда игрок выбирает или отправляет колоду снова.
+  final bool deckRefused;
+
   /// Почему комната закончилась без партии; `null`, пока она живёт.
   final RoomEnd? end;
 
@@ -152,6 +156,7 @@ final class LobbyRoom {
     Duration? countdown,
     bool clearCountdown = false,
     bool? started,
+    bool? deckRefused,
     RoomEnd? end,
   }) => LobbyRoom(
     seat: seat ?? this.seat,
@@ -161,6 +166,7 @@ final class LobbyRoom {
     myLeader: clearLeader ? null : myLeader ?? this.myLeader,
     countdown: clearCountdown ? null : countdown ?? this.countdown,
     started: started ?? this.started,
+    deckRefused: deckRefused ?? this.deckRefused,
     end: end ?? this.end,
   );
 
@@ -174,10 +180,11 @@ final class LobbyRoom {
       other.myLeader == myLeader &&
       other.countdown == countdown &&
       other.started == started &&
+      other.deckRefused == deckRefused &&
       other.end == end;
 
   @override
-  int get hashCode => Object.hash(seat, link, opponent, myStage, myLeader, countdown, started, end);
+  int get hashCode => Object.hash(seat, link, opponent, myStage, myLeader, countdown, started, deckRefused, end);
 
   @override
   String toString() => 'LobbyRoom(seat: $seat, $link, opponent: $opponent, ${myStage.name}, started: $started)';

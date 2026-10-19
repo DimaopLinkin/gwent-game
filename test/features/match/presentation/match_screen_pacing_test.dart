@@ -162,6 +162,7 @@ void main() {
       await push(tester, withHand(0, turn: null, phase: MatchPhase.finished), const [
         MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.resignation)),
       ]);
+      await endBanners(tester);
       expect(tester.getRect(find.byType(MatchResultView)), const Rect.fromLTWH(0, 0, 390, 844));
     });
   });
@@ -218,7 +219,7 @@ void main() {
       expect(find.byType(FieldView), findsNothing);
     });
 
-    testWidgets('сдача не ждёт анимаций: итог матча открывается сразу', (tester) async {
+    testWidgets('сдача не ждёт очереди: плашка исхода идёт сразу, за ней открывается итог матча', (tester) async {
       await pumpField(tester, withHand(1));
       await push(tester, withHand(1, turn: Seat.two), const [TurnStarted(Seat.two)]);
       expect(field.state.isBusy, isTrue);
@@ -226,6 +227,11 @@ void main() {
       await push(tester, withHand(1, turn: null, phase: MatchPhase.finished), const [
         MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.resignation)),
       ]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(MatchResultView), findsNothing, reason: 'сначала плашка исхода поверх поля');
+      expect(find.byType(FieldView), findsOneWidget);
+
+      await endBanners(tester);
       expect(find.byType(MatchResultView), findsOneWidget);
     });
 

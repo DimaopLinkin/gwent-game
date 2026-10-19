@@ -23,6 +23,7 @@ final class MatchSession {
     required this.content,
     required Map<Seat, String> factionIds,
     Map<Seat, String> deckNames = const {},
+    this.opponentName,
   }) : factionIds = Map.unmodifiable(factionIds),
        deckNames = Map.unmodifiable(deckNames);
 
@@ -40,6 +41,9 @@ final class MatchSession {
 
   /// Названия колод мест для экрана знакомства; места без названия (чужая колода по сети) в словаре нет.
   final Map<Seat, String> deckNames;
+
+  /// Имя соперника для истории: у сетевой партии это его имя в сети, у остальных `null`.
+  final String? opponentName;
 
   /// Чьими глазами партия записывается в историю: первое здешнее место (в hot-seat это первый игрок).
   Seat get perspective => Seat.values.firstWhere(table.localSeats.contains);
