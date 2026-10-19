@@ -3,25 +3,50 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gwent/src/features/sound/data/game_audio_context.dart';
+import 'package:gwent/src/features/sound/data/recent_slots.dart';
 import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent/src/features/sound/domain/sound_output.dart';
 
 /// Звук через `audioplayers` (ADR 0023): на каждый эффект один проигрыватель в режиме низкой задержки.
 ///
 /// Файлы лежат в `assets/sfx/` в формате AAC (`.m4a`), один набор на Android и iOS. Проигрыватель создаётся при первом
-/// обращении к эффекту (или заранее, в [preload]) и дальше живёт, пока живёт приложение. Повторный запуск эффекта
-/// сначала останавливает прежний: в режиме низкой задержки проигрыватель сам не узнаёт, что звук кончился.
+/// обращении к эффекту (или заранее, в [preload]). Живых проигрывателей не больше [maxPlayers]: на iOS каждый из них
+/// держит свой `AVPlayer`, и три десятка одновременно (по одному на эффект, да ещё с музыкой) уже мешают друг другу
+/// и музыке. Когда место кончилось, закрывается проигрыватель, которым дольше всего не пользовались, а эффект,
+/// которого сейчас нет, создаётся заново при запуске. Повторный запуск эффекта сначала останавливает прежний: в
+/// режиме низкой задержки проигрыватель сам не узнаёт, что звук кончился.
 ///
 /// Звуковой контекст (чужой звук не прерывается) задаёт `configureGameAudioContext`. Сбой воспроизведения (нет файла, нет плагина) уходит в
 /// `FlutterError.reportError`, игра продолжается без звука.
 final class AudioplayersSoundOutput implements SoundOutput {
-  /// Создаёт вывод; [assetDirectory] — папка с файлами внутри `assets/`.
-  AudioplayersSoundOutput({this.assetDirectory = 'sfx'});
+  /// Создаёт вывод; [assetDirectory] — папка с файлами внутри `assets/`, [maxPlayers] — сколько проигрывателей
+  /// держать живыми.
+  AudioplayersSoundOutput({this.assetDirectory = 'sfx', int maxPlayers = defaultMaxPlayers})
+    : _players = RecentSlots(maxPlayers);
+
+  /// Сколько проигрывателей эффектов держать живыми по умолчанию.
+  static const int defaultMaxPlayers = 12;
+
+  /// Эффекты, которые нужны сразу: меню, выбор карты, ход, самые частые звуки розыгрыша. Остальные создаются при
+  /// первом запуске.
+  @visibleForTesting
+  static const List<SoundEffect> coreEffects = [
+    SoundEffect.menuOpen,
+    SoundEffect.select,
+    SoundEffect.turnMine,
+    SoundEffect.turnOpponent,
+    SoundEffect.unitMelee,
+    SoundEffect.unitRanged,
+    SoundEffect.unitSiege,
+    SoundEffect.draw,
+    SoundEffect.pass,
+    SoundEffect.warning,
+  ];
 
   /// Папка с файлами внутри `assets/`.
   final String assetDirectory;
 
-  final Map<SoundEffect, Future<AudioPlayer>> _players = {};
+  final RecentSlots<SoundEffect, Future<AudioPlayer>> _players;
   final Map<SoundEffect, Future<void>> _queues = {};
 
   /// Имя файла эффекта без папки.
@@ -66,10 +91,13 @@ final class AudioplayersSoundOutput implements SoundOutput {
 
   @override
   Future<void> preload() async {
-    try {
-      await Future.wait([for (final effect in SoundEffect.values) _player(effect)]);
-    } on Object catch (error, stackTrace) {
-      _report(error, stackTrace, 'подготовка звуков');
+    // По одному: три десятка плееров, созданных разом, задерживают музыку, которая стартует рядом.
+    for (final effect in coreEffects) {
+      try {
+        await _player(effect);
+      } on Object catch (error, stackTrace) {
+        _report(error, stackTrace, 'подготовка ${effect.name}');
+      }
     }
   }
 
@@ -92,13 +120,28 @@ final class AudioplayersSoundOutput implements SoundOutput {
   }
 
   /// Проигрыватель эффекта; неудавшаяся подготовка не запоминается, следующий запуск попробует снова.
-  Future<AudioPlayer> _player(SoundEffect effect) => _players.putIfAbsent(
-    effect,
-    () => _create(effect).onError<Object>((error, stackTrace) {
-      _players.remove(effect);
+  Future<AudioPlayer> _player(SoundEffect effect) {
+    final existing = _players.use(effect);
+    if (existing != null) return existing;
+    late final Future<AudioPlayer> created;
+    created = _create(effect).onError<Object>((error, stackTrace) {
+      _players.remove(effect, created);
       Error.throwWithStackTrace(error, stackTrace);
-    }),
-  );
+    });
+    final evicted = _players.put(effect, created);
+    if (evicted != null) unawaited(_close(evicted.key, evicted.value));
+    return created;
+  }
+
+  Future<void> _close(SoundEffect effect, Future<AudioPlayer> player) async {
+    try {
+      // Закрывается после запусков, которые уже стоят в очереди этого эффекта.
+      await (_queues[effect] ?? Future<void>.value());
+      await (await player).dispose();
+    } on Object catch (error, stackTrace) {
+      _report(error, stackTrace, 'закрытие ${effect.name}');
+    }
+  }
 
   Future<AudioPlayer> _create(SoundEffect effect) async {
     await configureGameAudioContext();

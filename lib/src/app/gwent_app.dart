@@ -43,9 +43,10 @@ class _GwentAppState extends State<GwentApp> {
         unawaited(dependencies.backgroundMusic.resume());
       },
     );
-    // Звук и музыка готовятся и запускаются в фоне: меню не ждёт их, а сбой звука игру не останавливает.
-    unawaited(dependencies.playSound.preload());
+    // Звук и музыка готовятся и запускаются в фоне: меню не ждёт их, а сбой звука игру не останавливает. Музыка
+    // стартует первой: ей достаётся проигрыватель раньше, чем начнут создаваться проигрыватели эффектов.
     unawaited(dependencies.backgroundMusic.start());
+    unawaited(dependencies.playSound.preload());
   }
 
   @override

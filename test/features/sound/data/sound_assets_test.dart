@@ -23,6 +23,12 @@ void main() {
     expect(filesIn('assets/sfx'), names.toSet());
   });
 
+  test('эффекты, готовящиеся заранее, не повторяются и помещаются в число живых проигрывателей', () {
+    const core = AudioplayersSoundOutput.coreEffects;
+    expect(core.toSet(), hasLength(core.length));
+    expect(core.length, lessThanOrEqualTo(AudioplayersSoundOutput.defaultMaxPlayers));
+  });
+
   test('у каждой композиции есть свой файл в assets/music, и других файлов там нет', () {
     final names = [for (final track in MusicTrack.values) AudioplayersMusicOutput.fileName(track)];
     expect(names.toSet(), hasLength(MusicTrack.values.length), reason: 'две композиции делят файл');

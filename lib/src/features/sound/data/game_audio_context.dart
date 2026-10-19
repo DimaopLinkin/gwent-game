@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
 /// Звуковой контекст игры для всех проигрывателей приложения (ADR 0023): эффекты и музыка не забирают звуковой фокус
 /// у других приложений (Android) и смешиваются с их звуком, подчиняясь переключателю «Без звука» (iOS, сессия `ambient`).
@@ -6,6 +7,8 @@ import 'package:audioplayers/audioplayers.dart';
 /// Контекст ставится один раз за процесс; все вызовы ждут одного и того же результата. Неудача не запоминается: следующее
 /// обращение пробует ещё раз.
 Future<void> configureGameAudioContext() async {
+  // В отладочной сборке плагин пишет в консоль, что делает с каждым проигрывателем: так видно, почему звук молчит.
+  if (kDebugMode) AudioLogger.logLevel = AudioLogLevel.info;
   final pending = _configured;
   if (pending != null) return pending;
   final run = _configured = AudioPlayer.global.setAudioContext(
