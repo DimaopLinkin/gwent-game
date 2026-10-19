@@ -56,6 +56,7 @@ class FieldView extends StatefulWidget {
     required this.roster,
     required this.onIntent,
     this.confirmPass = false,
+    this.onSettings,
   });
 
   /// Проекция партии.
@@ -72,6 +73,9 @@ class FieldView extends StatefulWidget {
 
   /// Спрашивать подтверждение паса диалогом; иначе пас нужно держать 1 с.
   final bool confirmPass;
+
+  /// Открыть настройки поверх партии из меню паузы; `null` — кнопка «Настройки» недоступна.
+  final VoidCallback? onSettings;
 
   @override
   State<FieldView> createState() => _FieldViewState();
@@ -308,6 +312,7 @@ class _FieldViewState extends State<FieldView> {
         child: PauseMenuLayer(
           onResume: cubit.closePause,
           onRules: cubit.openRules,
+          onSettings: widget.onSettings,
           onSurrender: cubit.askSurrender,
         ),
       ),

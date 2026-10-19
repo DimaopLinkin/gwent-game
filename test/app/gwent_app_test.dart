@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -142,6 +144,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GwentLogo), findsOneWidget);
     await openSettingsAndReturn(tester);
+  });
+
+  testWidgets('настройки поверх партии: «назад» возвращает в партию, а не в меню', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    await tester.tap(find.text(l10n.menuVsBot));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+
+    unawaited(router.push(AppRoutes.settings));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.settingsBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsNothing);
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+    expect(find.byType(GwentLogo), findsNothing);
   });
 
   testWidgets('комната и сетевая партия без активной игры уводят: комната на выбор способа, партия в меню', (
