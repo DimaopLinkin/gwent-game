@@ -23,7 +23,9 @@ import 'package:gwent/src/features/lobby/application/discover_network_games.dart
 import 'package:gwent/src/features/lobby/application/host_network_game.dart';
 import 'package:gwent/src/features/lobby/application/join_network_game.dart';
 import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
+import 'package:gwent/src/features/lobby/application/network_readiness.dart';
 import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent/src/features/match/application/choose_opponent_deck.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
@@ -55,6 +57,7 @@ final class AppDependencies {
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
+    required NetworkAccess networkAccess,
     Entropy? entropy,
     Scheduler scheduler = const SystemScheduler(),
     Duration botThinkTime = const Duration(milliseconds: 700),
@@ -76,6 +79,7 @@ final class AppDependencies {
       idGenerator: idGenerator,
       seedGenerator: seedGenerator,
       gameLobby: gameLobby,
+      networkAccess: networkAccess,
       entropy: entropy ?? SecureEntropy(),
       scheduler: scheduler,
       botThinkTime: botThinkTime,
@@ -95,6 +99,7 @@ final class AppDependencies {
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
+    required NetworkAccess networkAccess,
     required Entropy entropy,
     required Scheduler scheduler,
     required Duration botThinkTime,
@@ -123,6 +128,7 @@ final class AppDependencies {
     hostNetworkGame = HostNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, entropy, scheduler);
     joinNetworkGame = JoinNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, scheduler);
     discoverNetworkGames = DiscoverNetworkGames(loadNetworkSetup, gameLobby);
+    networkReadiness = NetworkReadiness(networkAccess, settingsRepository);
   }
 
   /// Контент для партии и конструктора колод: пакет и справочник движка.
@@ -196,6 +202,9 @@ final class AppDependencies {
 
   /// Создание сетевой игры (хост).
   late final HostNetworkGame hostNetworkGame;
+
+  /// Готовность телефона к сетевой игре: Wi-Fi, доступ к локальной сети, переход в настройки.
+  late final NetworkReadiness networkReadiness;
 
   /// Подключение к найденной партии (гость).
   late final JoinNetworkGame joinNetworkGame;

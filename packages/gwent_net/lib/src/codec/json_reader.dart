@@ -22,6 +22,8 @@ final class JsonReader {
 
   bool boolean(String key) => _typed<bool>(key, 'true или false');
 
+  bool? optionalBoolean(String key) => has(key) ? boolean(key) : null;
+
   JsonReader object(String key) => JsonReader(_map[key], '$path.$key');
 
   /// Вложенный объект или `null`, если поля нет.

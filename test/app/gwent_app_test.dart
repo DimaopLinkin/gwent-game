@@ -15,6 +15,7 @@ import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../features/lobby/support/fake_game_lobby.dart';
+import '../features/lobby/support/lobby_fakes.dart';
 import '../support/factories.dart';
 import '../support/fakes.dart';
 import '../support/fonts.dart';
@@ -61,6 +62,7 @@ void main() {
           idGenerator: SequentialIdGenerator(),
           seedGenerator: FixedSeedGenerator(1),
           gameLobby: FakeGameLobby(),
+          networkAccess: FakeNetworkAccess(),
         ),
       ),
     );

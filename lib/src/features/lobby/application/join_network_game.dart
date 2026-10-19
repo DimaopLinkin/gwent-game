@@ -3,6 +3,8 @@ import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
 import 'package:gwent/src/features/lobby/application/network_game.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
 import 'package:gwent/src/features/lobby/domain/found_game.dart';
+import 'package:gwent/src/features/lobby/domain/game_ad.dart';
+import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
@@ -31,7 +33,15 @@ final class JoinNetworkGame {
   final Duration joinTimeout;
 
   /// Подключается к [found]; в игре телефон называется [playerName].
-  Future<NetworkOpenResult> call({required FoundGame found, required String playerName}) async {
+  Future<NetworkOpenResult> call({required FoundGame found, required String playerName}) =>
+      _join(found.address, playerName: playerName, ad: found.ad);
+
+  /// Подключается по [address] из QR-кода: объявления гость не видел, поэтому несовместимость данных карт или версии
+  /// выясняется при рукопожатии, и отказ приходит от хоста.
+  Future<NetworkOpenResult> byAddress(GameAddress address, {required String playerName}) =>
+      _join(address, playerName: playerName);
+
+  Future<NetworkOpenResult> _join(GameAddress address, {required String playerName, GameAd? ad}) async {
     final NetworkSetup setup;
     switch (await _setup()) {
       case NetworkSetupReady(setup: final ready):
@@ -39,10 +49,10 @@ final class JoinNetworkGame {
       case NetworkSetupUnavailable():
         return const NetworkContentUnavailable();
     }
-    if (found.ad.refusalFor(setup.ruleset) case final refusal?) return NetworkRefused(refusal);
+    if (ad?.refusalFor(setup.ruleset) case final refusal?) return NetworkRefused(refusal);
     final Transport transport;
     try {
-      transport = await _lobby.join(found.address);
+      transport = await _lobby.join(address);
     } on LobbyException catch (error) {
       return switch (error.failure) {
         LobbyFailure.unavailable => const NetworkUnavailable(),
@@ -59,7 +69,7 @@ final class JoinNetworkGame {
       scheduler: _scheduler,
       playerName: playerName,
       lobby: _lobby,
-      address: found.address,
+      address: address,
     );
     client.connect(transport);
     final room = await game.settled(joinTimeout);

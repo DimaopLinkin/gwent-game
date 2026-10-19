@@ -8,6 +8,7 @@ final class HostSettings extends Value {
     this.reconnectGrace = const Duration(minutes: 2),
     this.linkTimeout = const Duration(seconds: 9),
     this.startDelay = Duration.zero,
+    this.unstableAfter = const Duration(seconds: 5),
   });
 
   /// Набор правил хоста: гость с другим набором не подключится.
@@ -24,6 +25,9 @@ final class HostSettings extends Value {
   /// (ADR 0019). Ноль — партия начинается сразу, как только хост получил обе колоды.
   final Duration startDelay;
 
+  /// Сколько игрок может молчать, пока связь с ним ещё не считается нестабильной: раньше [linkTimeout].
+  final Duration unstableAfter;
+
   @override
-  List<Object?> get props => [ruleset, reconnectGrace, linkTimeout, startDelay];
+  List<Object?> get props => [ruleset, reconnectGrace, linkTimeout, startDelay, unstableAfter];
 }

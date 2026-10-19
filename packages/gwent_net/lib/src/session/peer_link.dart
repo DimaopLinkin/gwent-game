@@ -11,6 +11,9 @@ import 'package:gwent_net/src/transport/transport.dart';
 ///
 /// Если от собеседника нет кадров дольше [timeout] (полуоткрытый сокет, BLE вне зоны), соединение
 /// закрывается. [onLost] вызывается ровно один раз: при обрыве, по тайм-ауту или после [close].
+///
+/// Раньше тайм-аута связь называется нестабильной: если кадров нет дольше [quietAfter], [onQuiet] вызывается
+/// с `true`, а когда кадры пошли снова, с `false`.
 final class PeerLink {
   PeerLink(
     this._transport, {
@@ -19,14 +22,18 @@ final class PeerLink {
     required void Function(PeerLink link, Envelope envelope) onEnvelope,
     required void Function(PeerLink link, ProtocolException error) onMalformed,
     required void Function(PeerLink link) onLost,
+    this.quietAfter,
+    void Function(PeerLink link, {required bool quiet})? onQuiet,
     EnvelopeCodec codec = const EnvelopeCodec(),
   }) : _scheduler = scheduler,
        _codec = codec,
        _onEnvelope = onEnvelope,
        _onMalformed = onMalformed,
-       _onLost = onLost {
+       _onLost = onLost,
+       _onQuiet = onQuiet {
     _subscription = _transport.incoming.listen(_onFrame, onDone: _lost);
     _watchdog = _scheduler.timer(timeout, _timedOut);
+    _watchQuiet();
   }
 
   final Transport _transport;
@@ -35,12 +42,18 @@ final class PeerLink {
   final void Function(PeerLink link, Envelope envelope) _onEnvelope;
   final void Function(PeerLink link, ProtocolException error) _onMalformed;
   final void Function(PeerLink link) _onLost;
+  final void Function(PeerLink link, {required bool quiet})? _onQuiet;
 
   /// Сколько можно молчать собеседнику.
   final Duration timeout;
 
+  /// Через сколько молчания связь считается нестабильной; `null` — не следить.
+  final Duration? quietAfter;
+
   late final StreamSubscription<Uint8List> _subscription;
   late Timer _watchdog;
+  Timer? _quietWatch;
+  bool _quiet = false;
   bool _closed = false;
 
   bool get isClosed => _closed;
@@ -60,6 +73,11 @@ final class PeerLink {
     if (_closed) return;
     _watchdog.cancel();
     _watchdog = _scheduler.timer(timeout, _timedOut);
+    _watchQuiet();
+    if (_quiet) {
+      _quiet = false;
+      _onQuiet?.call(this, quiet: false);
+    }
     final Envelope envelope;
     try {
       envelope = _codec.decode(frame);
@@ -72,10 +90,22 @@ final class PeerLink {
 
   void _timedOut() => unawaited(close());
 
+  void _watchQuiet() {
+    final after = quietAfter;
+    if (after == null || _onQuiet == null) return;
+    _quietWatch?.cancel();
+    _quietWatch = _scheduler.timer(after, () {
+      if (_closed) return;
+      _quiet = true;
+      _onQuiet(this, quiet: true);
+    });
+  }
+
   void _lost() {
     if (_closed) return;
     _closed = true;
     _watchdog.cancel();
+    _quietWatch?.cancel();
     unawaited(_subscription.cancel());
     _onLost(this);
   }

@@ -167,6 +167,7 @@ void main() {
         const Envelope(ResendRequest(), ack: 7, matchId: 'm'),
         Envelope(DeckSubmission(skellige), seq: 1),
         const Envelope(OpponentPresence(online: false, name: 'Цири'), seq: 8),
+        const Envelope(OpponentPresence(online: true, name: 'Цири', unstable: true, away: true), seq: 8),
         const Envelope(Refusal(RefusalCode.matchPaused, replyTo: 3), seq: 9),
         const Envelope(
           Refusal(

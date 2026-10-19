@@ -19,6 +19,7 @@ final class DriftSettingsRepository implements SettingsRepository {
   static const String _musicVolumeKey = 'music_volume';
   static const String _effectsVolumeKey = 'effects_volume';
   static const String _contentCheckedAtKey = 'content_checked_at';
+  static const String _localNetworkExplainedKey = 'local_network_explained';
 
   final AppDatabase _db;
 
@@ -35,6 +36,7 @@ final class DriftSettingsRepository implements SettingsRepository {
     await _put(_musicVolumeKey, _differs(settings.musicVolume, defaults.musicVolume));
     await _put(_effectsVolumeKey, _differs(settings.effectsVolume, defaults.effectsVolume));
     await _put(_contentCheckedAtKey, settings.contentCheckedAt?.toUtc().toIso8601String());
+    await _put(_localNetworkExplainedKey, _differs(settings.localNetworkExplained, defaults.localNetworkExplained));
   });
 
   /// Значение в виде, пригодном для записи, или `null`, если оно равно значению по умолчанию и ключ не нужен.
@@ -61,6 +63,7 @@ final class DriftSettingsRepository implements SettingsRepository {
       musicVolume: _volume(values[_musicVolumeKey]) ?? defaults.musicVolume,
       effectsVolume: _volume(values[_effectsVolumeKey]) ?? defaults.effectsVolume,
       contentCheckedAt: DateTime.tryParse(values[_contentCheckedAtKey] ?? '')?.toUtc(),
+      localNetworkExplained: _bool(values[_localNetworkExplainedKey]) ?? defaults.localNetworkExplained,
     );
   }
 

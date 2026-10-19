@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +11,7 @@ import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_state.dart';
 import 'package:gwent/src/features/lobby/presentation/network_notice.dart';
@@ -67,7 +70,25 @@ class _Failed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final cubit = context.read<CreateGameCubit>();
     final notice = noticeOfResult(l10n, result);
+    if (result case NetworkUnavailable(:final problem?)) {
+      return NetworkNotice(
+        title: notice.title,
+        text: notice.text,
+        icon: noticeIcon(problem),
+        steps: noticeSteps(l10n, problem),
+        danger: problem != NetworkProblem.wifiOff && problem != NetworkProblem.localNetworkExplainer,
+        actions: noticeActions(
+          l10n,
+          problem,
+          onFix: problem == NetworkProblem.localNetworkExplainer
+              ? () => unawaited(cubit.continueAfterExplainer())
+              : () => unawaited(cubit.openSettings(problem)),
+          onBack: onBack,
+        ),
+      );
+    }
     return NetworkNotice(
       title: notice.title,
       text: notice.text,

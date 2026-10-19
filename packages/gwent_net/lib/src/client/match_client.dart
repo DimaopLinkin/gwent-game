@@ -83,6 +83,8 @@ final class MatchClient {
       onEnvelope: _onEnvelope,
       onMalformed: _onMalformed,
       onLost: _onLost,
+      quietAfter: _settings.unstableAfter,
+      onQuiet: _onQuiet,
     );
     _link = link;
     _status = ConnectionStatus.joining;
@@ -195,8 +197,8 @@ final class MatchClient {
         _emit(ViewChanged(view, const []));
       case final Refusal refusal:
         _emit(ActionRefused(refusal, request: refusal.replyTo - (_base ?? 0)));
-      case OpponentPresence(:final online, :final name):
-        _emit(OpponentPresenceChanged(online: online, name: name));
+      case OpponentPresence(:final online, :final name, :final unstable, :final away):
+        _emit(OpponentPresenceChanged(online: online, name: name, unstable: unstable, away: away));
       case OpponentLobby(:final stage, :final leader):
         _emit(OpponentLobbyChanged(stage, leader: leader));
       case CountdownStart(:final duration):
@@ -221,6 +223,11 @@ final class MatchClient {
   }
 
   void _onMalformed(PeerLink link, ProtocolException error) => unawaited(link.close());
+
+  void _onQuiet(PeerLink link, {required bool quiet}) {
+    if (link != _link || _status != ConnectionStatus.online) return;
+    _emit(LinkQualityChanged(unstable: quiet));
+  }
 
   void _onLost(PeerLink link) {
     if (link != _link) return;

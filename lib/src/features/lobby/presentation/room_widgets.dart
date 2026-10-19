@@ -17,11 +17,14 @@ import 'package:gwent_net/gwent_net.dart' show LobbyStage;
 
 /// Ожидание соперника у хоста (макет 9, экран 2b): кольца пульсируют, пока партия видна в сети.
 class RoomWaiting extends StatefulWidget {
-  /// Создаёт ожидание партии [title]; [onCancel] закрывает партию.
-  const RoomWaiting({super.key, required this.title, required this.onCancel});
+  /// Создаёт ожидание партии [title]; [onShowQr] открывает QR-код партии, [onCancel] закрывает партию.
+  const RoomWaiting({super.key, required this.title, required this.onShowQr, required this.onCancel});
 
   /// Название партии.
   final String title;
+
+  /// Игрок хочет показать QR-код партии.
+  final VoidCallback onShowQr;
 
   /// Игрок отменил партию.
   final VoidCallback onCancel;
@@ -119,7 +122,7 @@ class _RoomWaitingState extends State<RoomWaiting> with SingleTickerProviderStat
                       ),
                     ),
                     Text(
-                      l10n.netWaitHint,
+                      '${l10n.netWaitHint} ${l10n.netWaitQrHint}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: GwentText.alegreya,
@@ -133,6 +136,16 @@ class _RoomWaitingState extends State<RoomWaiting> with SingleTickerProviderStat
               ),
             ),
           ),
+          SizedBox(
+            width: double.infinity,
+            child: GwentButton(
+              label: l10n.netQrShow,
+              style: GwentButtonStyle.secondary,
+              fontSize: 21,
+              onPressed: widget.onShowQr,
+            ),
+          ),
+          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: GwentButton(
