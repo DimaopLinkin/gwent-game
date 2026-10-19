@@ -61,6 +61,9 @@ enum JoinRefusal {
 
   /// Токен переподключения не подходит к этой партии.
   unknownResumeToken,
+
+  /// Хост не пустил игрока или не ответил вовремя.
+  declined,
 }
 
 /// Хост → клиент: подключение отклонено; хост закрывает соединение.
@@ -298,6 +301,14 @@ final class OpponentLeave extends HostMessage {
 /// Хост → клиент: хост закрыл лобби; следом закрывается соединение, возвращаться некуда.
 final class LobbyClose extends HostMessage {
   const LobbyClose();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Хост → клиент: хост пустил игрока в лобби. До этого сообщения игрок ждёт решения хоста (ADR 0022).
+final class Admitted extends HostMessage {
+  const Admitted();
 
   @override
   List<Object?> get props => const [];

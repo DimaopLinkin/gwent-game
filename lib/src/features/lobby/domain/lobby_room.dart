@@ -151,6 +151,8 @@ final class LobbyRoom {
     this.countdown,
     this.started = false,
     this.deckRefused = false,
+    this.admitted = false,
+    this.pendingGuest,
     this.end,
   });
 
@@ -182,6 +184,12 @@ final class LobbyRoom {
   /// Хост не принял отправленную колоду; сбрасывается, когда игрок выбирает или отправляет колоду снова.
   final bool deckRefused;
 
+  /// Хост пустил этого игрока в лобби. До этого гость ждёт решения хоста и ничего не выбирает; хост пущен всегда.
+  final bool admitted;
+
+  /// Имя игрока, который постучался в лобби хоста и ждёт его решения; `null`, если таких нет. Только у хоста.
+  final String? pendingGuest;
+
   /// Почему комната закончилась без партии; `null`, пока она живёт.
   final RoomEnd? end;
 
@@ -199,6 +207,9 @@ final class LobbyRoom {
     bool clearCountdown = false,
     bool? started,
     bool? deckRefused,
+    bool? admitted,
+    String? pendingGuest,
+    bool clearPendingGuest = false,
     RoomEnd? end,
   }) => LobbyRoom(
     seat: seat ?? this.seat,
@@ -210,6 +221,8 @@ final class LobbyRoom {
     countdown: clearCountdown ? null : countdown ?? this.countdown,
     started: started ?? this.started,
     deckRefused: deckRefused ?? this.deckRefused,
+    admitted: admitted ?? this.admitted,
+    pendingGuest: clearPendingGuest ? null : pendingGuest ?? this.pendingGuest,
     end: end ?? this.end,
   );
 
@@ -225,11 +238,25 @@ final class LobbyRoom {
       other.countdown == countdown &&
       other.started == started &&
       other.deckRefused == deckRefused &&
+      other.admitted == admitted &&
+      other.pendingGuest == pendingGuest &&
       other.end == end;
 
   @override
-  int get hashCode =>
-      Object.hash(seat, link, linkUnstable, opponent, myStage, myLeader, countdown, started, deckRefused, end);
+  int get hashCode => Object.hash(
+    seat,
+    link,
+    linkUnstable,
+    opponent,
+    myStage,
+    myLeader,
+    countdown,
+    started,
+    deckRefused,
+    admitted,
+    pendingGuest,
+    end,
+  );
 
   @override
   String toString() => 'LobbyRoom(seat: $seat, $link, opponent: $opponent, ${myStage.name}, started: $started)';

@@ -21,6 +21,7 @@ final class HostNetworkGame {
     this._entropy,
     this._scheduler, {
     this.startDelay = const Duration(seconds: 3),
+    this.requireAdmission = true,
   });
 
   final LoadNetworkSetup _setup;
@@ -31,6 +32,9 @@ final class HostNetworkGame {
 
   /// Сколько идёт отсчёт между готовностью обоих игроков и началом партии.
   final Duration startDelay;
+
+  /// Хост принимает каждого гостя сам (ADR 0022); тесты, которым нужен быстрый вход, выключают.
+  final bool requireAdmission;
 
   /// Создаёт игру с названием [gameName] для списка найденных партий; в игре телефон называется [playerName].
   Future<NetworkOpenResult> call({required String gameName, required String playerName}) async {
@@ -44,7 +48,7 @@ final class HostNetworkGame {
     final content = setup.content;
     final host = MatchHost(
       engine: GwentEngine(content.catalog, rules: content.rules),
-      settings: HostSettings(ruleset: setup.ruleset, startDelay: startDelay),
+      settings: HostSettings(ruleset: setup.ruleset, startDelay: startDelay, requireAdmission: requireAdmission),
       scheduler: _scheduler,
       entropy: _entropy,
     );
@@ -69,7 +73,7 @@ final class HostNetworkGame {
       hosted: hosted,
     );
     final (hostEnd, clientEnd) = InMemoryTransport.pair();
-    host.accept(hostEnd);
+    host.accept(hostEnd, trusted: true);
     client.connect(clientEnd);
     await _active.set(game);
     return NetworkGameOpened(game);

@@ -16,6 +16,7 @@ export 'src/entropy/entropy.dart';
 export 'src/entropy/secure_entropy.dart';
 export 'src/host/host_settings.dart';
 export 'src/host/match_host.dart';
+export 'src/host/pending_guest.dart';
 export 'src/journal/match_journal.dart';
 export 'src/journal/match_record.dart';
 export 'src/protocol/display_name.dart';

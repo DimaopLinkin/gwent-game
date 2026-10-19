@@ -44,6 +44,7 @@ final class NetworkGame {
        _address = address {
     _events = client.events.listen(_onEvent);
     if (host != null && hosted != null) {
+      _pending = host.pendingGuest.listen(_onPendingGuest);
       _connections = hosted.connections.listen(
         host.accept,
         // Система закрыла приём соединений (например, iOS при сворачивании): новых гостей не будет.
@@ -75,6 +76,7 @@ final class NetworkGame {
 
   late final StreamSubscription<ClientEvent> _events;
   StreamSubscription<Transport>? _connections;
+  StreamSubscription<PendingGuest?>? _pending;
   final StreamController<LobbyRoom> _rooms = StreamController<LobbyRoom>.broadcast();
 
   /// Обновления для стола партии: копятся, пока стол не открыт, и первым идёт раздача.
@@ -154,6 +156,18 @@ final class NetworkGame {
     _setRoom(_room.copyWith(myStage: LobbyStage.chosen, clearCountdown: true));
   }
 
+  /// Хост пускает игрока, который ждёт решения. Без ожидающего ничего не делает.
+  void admitGuest() {
+    if (_closed || _room.pendingGuest == null) return;
+    if (_host?.pendingGuestNow?.seat case final seat?) _host?.admit(seat);
+  }
+
+  /// Хост не пускает игрока, который ждёт решения: тот получает отказ. Без ожидающего ничего не делает.
+  void declineGuest() {
+    if (_closed || _room.pendingGuest == null) return;
+    if (_host?.pendingGuestNow?.seat case final seat?) _host?.decline(seat);
+  }
+
   /// Уходит из лобби. Хост закрывает партию для обоих, гость освобождает место.
   Future<void> leave() async {
     if (_closed) return;
@@ -215,6 +229,7 @@ final class NetworkGame {
     if (_settled case final settled? when !settled.isCompleted) settled.complete(_room);
     await _events.cancel();
     await _connections?.cancel();
+    await _pending?.cancel();
     await _client.close();
     await _host?.close();
     try {
@@ -284,6 +299,8 @@ final class NetworkGame {
         _setRoom(_room.copyWith(clearCountdown: true));
       case OpponentLeft():
         _setRoom(_room.copyWith(clearOpponent: true, clearCountdown: true));
+      case GuestAdmitted():
+        _setRoom(_room.copyWith(admitted: true));
       case LobbyClosed():
         _setRoom(_room.copyWith(end: const RoomHostClosed()));
       case HostDataInvalid():
@@ -292,6 +309,11 @@ final class NetworkGame {
         _setRoom(_room.copyWith(end: const RoomHostInvalid(), clearCountdown: true));
         if (_room.started && !_table.isClosed) _table.add(const TableFailed(RoomHostInvalid()));
     }
+  }
+
+  void _onPendingGuest(PendingGuest? guest) {
+    if (_closed) return;
+    _setRoom(guest == null ? _room.copyWith(clearPendingGuest: true) : _room.copyWith(pendingGuest: guest.name));
   }
 
   void _onView(PlayerView view, List<GameEvent> events) {

@@ -2376,6 +2376,39 @@
   "@netCountdownStarting": {
     "description": "Подпись отсчёта перед матчем."
   },
+  "netAdmitTitle": "Принять игрока {name}?",
+  "@netAdmitTitle": {
+    "description": "Заголовок запроса хосту: гость стучится в лобби.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "netAdmitBody": "Он войдёт в вашу партию. Если не ответить, ему откажут.",
+  "@netAdmitBody": {
+    "description": "Пояснение запроса хосту о госте."
+  },
+  "netAdmitAccept": "Принять",
+  "@netAdmitAccept": {
+    "description": "Кнопка хоста: пустить гостя."
+  },
+  "netAdmitDecline": "Отклонить",
+  "@netAdmitDecline": {
+    "description": "Кнопка хоста: не пускать гостя."
+  },
+  "netGuestWaiting": "Ждём ответа хоста…",
+  "@netGuestWaiting": {
+    "description": "Подпись гостя, пока хост решает, пустить ли его."
+  },
+  "netNoticeDeclinedTitle": "Хост не принял вас",
+  "@netNoticeDeclinedTitle": {
+    "description": "Заголовок: хост отказал гостю или не ответил."
+  },
+  "netNoticeDeclinedText": "Хост отклонил приглашение или не ответил вовремя. Можно попробовать снова.",
+  "@netNoticeDeclinedText": {
+    "description": "Пояснение: хост отказал гостю или не ответил."
+  },
   "netLeaveTitle": "Покинуть лобби?",
   "@netLeaveTitle": {
     "description": "Заголовок подтверждения выхода из лобби."

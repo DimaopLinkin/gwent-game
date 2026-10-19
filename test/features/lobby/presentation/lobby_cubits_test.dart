@@ -58,6 +58,7 @@ void main() {
   late ActiveNetworkGame hostActive;
   late ActiveNetworkGame guestActive;
   late HostNetworkGame hostGame;
+  late HostNetworkGame admittingGame;
   late JoinNetworkGame joinGame;
   late DiscoverNetworkGames discover;
   late LoadDeckRules loadRules;
@@ -80,7 +81,8 @@ void main() {
     guestActive = ActiveNetworkGame();
     final loadContent = LoadGameContent(AssetContentSource.basePack(rootBundle));
     final setup = LoadNetworkSetup(loadContent, const FakeAppInfo(), WatchSettings(settings));
-    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler);
+    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler, requireAdmission: false);
+    admittingGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler);
     joinGame = JoinNetworkGame(setup, lobby, guestActive, scheduler);
     discover = DiscoverNetworkGames(setup, lobby);
     loadRules = LoadDeckRules(GameContentDeckRulesSource(loadContent));
@@ -445,6 +447,20 @@ void main() {
       await settle();
 
       await done;
+    });
+
+    test('гость стучится, а хост ещё смотрит на код: код закрывается, чтобы хост увидел запрос', () async {
+      final game = ((await admittingGame(gameName: 'Цири', playerName: 'Цири')) as NetworkGameOpened).game;
+      final cubit = makeCubit(game);
+      await cubit.stream.firstWhere((state) => state is HostInviteReady);
+
+      final done = cubit.stream.firstWhere((state) => state is HostInviteDone);
+      final found = (await discover().firstWhere((games) => games.isNotEmpty)).single;
+      await joinGame(found: found.found, playerName: 'Вереск');
+      await settle();
+
+      await done;
+      expect(game.room.pendingGuest, 'Вереск');
     });
 
     test('соперник подключился, пока открывался экран: код не показывается', () async {
