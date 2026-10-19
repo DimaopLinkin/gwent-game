@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 
 /// Строит поле для кадра сценария; [speedUp] ускоряет текущий сценарий (тап по полю), [skip] переходит к следующему
 /// шагу (кнопка «Пропустить»).
@@ -15,10 +16,11 @@ typedef StageBuilderFn =
 ///
 /// Время идёт одним тикером, поэтому тап «ускорить» просто увеличивает скорость хода времени в
 /// [StageTokens.tapSpeedUp] раз, не меняя самого сценария. Когда время дошло до конца, часы один раз сообщают об этом
-/// через [onDone]; пока сценария нет, поле строится без кадра, как обычно.
+/// через [onDone]; пока сценария нет, поле строится без кадра, как обычно. Звуки сценария ([StageScript.cues]) уходят в
+/// [onCue], когда время доходит до их момента; кнопка «Пропустить» пропущенные звуки не играет.
 class StageHost extends StatefulWidget {
   /// Создаёт часы.
-  const StageHost({super.key, required this.script, required this.onDone, required this.builder});
+  const StageHost({super.key, required this.script, required this.onDone, required this.builder, this.onCue});
 
   /// Сценарий; `null`, пока показывать нечего.
   final StageScript? script;
@@ -28,6 +30,9 @@ class StageHost extends StatefulWidget {
 
   /// Строит поле.
   final StageBuilderFn builder;
+
+  /// Звук сценария начался; `null` — без звука.
+  final ValueChanged<SoundEffect>? onCue;
 
   @override
   State<StageHost> createState() => _StageHostState();
@@ -39,6 +44,7 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
   double _time = 0;
   double _speed = 1;
   int? _playing;
+  int _nextCue = 0;
 
   @override
   void initState() {
@@ -58,6 +64,7 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     _time = 0;
     _speed = 1;
     _last = Duration.zero;
+    _nextCue = 0;
     if (_ticker.isActive) _ticker.stop();
     if (script != null) unawaited(_ticker.start());
   }
@@ -70,6 +77,7 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     // Плашки итога тап не ускоряет, даже если игрок тапнул раньше: внутри окна время идёт как обычно.
     final speed = script.tapSpeedsUp(_time) ? _speed : 1;
     setState(() => _time += delta * speed);
+    _playCues(script);
     if (_time >= script.duration) {
       _ticker.stop();
       widget.onDone(script.id);
@@ -84,7 +92,21 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
   void _skip() {
     final script = widget.script;
     if (script == null) return;
-    setState(() => _time = script.nextStep(_time));
+    final target = script.nextStep(_time);
+    // Звуки, оставшиеся за перескоком, пропадают: иначе они наложились бы друг на друга одним залпом.
+    while (_nextCue < script.cues.length && script.cues[_nextCue].at < target) {
+      _nextCue++;
+    }
+    setState(() => _time = target);
+  }
+
+  /// Играет звуки, чьё время уже настало.
+  void _playCues(StageScript script) {
+    final onCue = widget.onCue;
+    while (_nextCue < script.cues.length && script.cues[_nextCue].at <= _time) {
+      final cue = script.cues[_nextCue++];
+      onCue?.call(cue.effect);
+    }
   }
 
   @override

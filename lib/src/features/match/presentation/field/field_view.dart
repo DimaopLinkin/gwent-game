@@ -287,6 +287,7 @@ class _FieldViewState extends State<FieldView> {
                         child: StageHost(
                           script: field.stage,
                           onDone: _cubit.endStage,
+                          onCue: _cubit.playSound,
                           builder: (context, frame, speedUp, skip) =>
                               _canvas(context, geometry, field, frame, speedUp, skip),
                         ),

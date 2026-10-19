@@ -1,0 +1,8 @@
+# Имя результата|имя исходного файла (без расширения). Формат строки: slug|source
+musty_scent_of_fresh_pate|09. The Musty Scent Of Fresh Pâté
+another_round_for_everyone|3-27. Another Round for Everyone
+back_on_the_path|Back on the Path (Gwent   Tavern)
+a_story_you_wont_believe|Marcin Przybylowicz & Mikolai Stroinski - A Story You Won't Believe (OST The Witcher 3 Wild Hunt)
+the_nightingale|the_witcher_3_wild_hunt_12 The Nightingale
+cloak_and_dagger|the_witcher_3_wild_hunt_22 Cloak and Dagger
+drink_up_theres_more|the_witcher_3_wild_hunt_26 Drink Up, There's More!

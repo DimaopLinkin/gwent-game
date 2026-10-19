@@ -14,6 +14,8 @@ dependencies:
     sdk: flutter
 
   app_settings: ^9.0.1
+  # Воспроизведение звуковых эффектов (ADR 0023).
+  audioplayers: ^6.7.1
   bloc: ^9.2.1
   bonsoir: ^7.1.4
   collection: ^1.19.1
@@ -69,6 +71,10 @@ flutter:
     - assets/content/gwent-w3-base/
     # Арты карт 309×444, имя файла — UUID карты.
     - asset/image/cards/
+    # Звуковые эффекты AAC (.m4a), собираются tools/audio/convert_sfx.sh; происхождение и лицензия: tools/audio/README.md.
+    - assets/sfx/
+    # Фоновая музыка AAC (.m4a), собирается tools/audio/convert_music.sh; происхождение и лицензия: tools/audio/README.md.
+    - assets/music/
     # Иконки дизайн-системы: именованные слоты, контракт файла в docs/adr/0009-design-system.md.
     - assets/icons/
     # Лицензии шрифтов (OFL 1.1) для экрана лицензий.

@@ -7,6 +7,9 @@ import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_state.dart';
+import 'package:gwent/src/features/settings/application/watch_settings.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 
 import '../../../support/deck_rules_fixtures.dart';
 import '../../../support/fakes.dart';
@@ -21,13 +24,14 @@ void main() {
 
   setUp(() => repository = InMemoryDeckRepository());
 
-  Future<DeckEditorCubit> open({String? deckId, DeckRulesSource? source}) async {
+  Future<DeckEditorCubit> open({String? deckId, DeckRulesSource? source, PlaySound? sound}) async {
     final cubit = DeckEditorCubit(
       loadDeckRules: LoadDeckRules(source ?? FakeDeckRulesSource()),
       getDeck: GetDeck(repository),
       saveDeck: SaveDeck(repository, FakeClock(DateTime.utc(2026, 10, 18)), SequentialIdGenerator()),
       newDeckName: 'Новая колода',
       deckId: deckId,
+      sound: sound,
     );
     addTearDown(cubit.close);
     await cubit.stream.firstWhere((state) => state is! DeckEditorLoading);
@@ -71,6 +75,35 @@ void main() {
       final cubit = await open(source: _BrokenRulesSource());
 
       expect(cubit.state, isA<DeckEditorFailed>());
+    });
+  });
+
+  group('звуки', () {
+    late RecordingSoundOutput output;
+    late PlaySound sound;
+
+    setUp(() {
+      output = RecordingSoundOutput();
+      sound = PlaySound(output, WatchSettings(InMemorySettingsRepository()));
+      addTearDown(sound.dispose);
+    });
+
+    test('карта в колоду, из колоды и отказ звучат по-разному', () async {
+      final cubit = await open(sound: sound);
+
+      cubit
+        ..addCard(Small.geralt)
+        ..removeCard(Small.geralt)
+        ..removeCard(Small.geralt)
+        ..addCard(Small.geralt)
+        ..addCard(Small.geralt);
+
+      expect(output.effects, [
+        SoundEffect.deckAdd,
+        SoundEffect.deckRemove,
+        SoundEffect.deckAdd,
+        SoundEffect.warning,
+      ], reason: 'удаление карты, которой нет в колоде, молчит');
     });
   });
 

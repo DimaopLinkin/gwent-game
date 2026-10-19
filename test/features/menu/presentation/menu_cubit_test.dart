@@ -11,8 +11,12 @@ import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/menu/application/load_menu.dart';
 import 'package:gwent/src/features/menu/presentation/menu_cubit.dart';
 import 'package:gwent/src/features/menu/presentation/menu_state.dart';
+import 'package:gwent/src/features/settings/application/watch_settings.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_content/gwent_content.dart';
 
+import '../../../support/deck_rules_fixtures.dart';
 import '../../../support/fakes.dart';
 
 void main() {
@@ -40,6 +44,27 @@ void main() {
 
   Future<MenuReady> ready(MenuCubit cubit) async =>
       await cubit.stream.firstWhere((state) => state is MenuReady) as MenuReady;
+
+  test('меню открывается со звуком один раз, а смена колод его не повторяет', () async {
+    final output = RecordingSoundOutput();
+    final sound = PlaySound(output, WatchSettings(InMemorySettingsRepository()));
+    addTearDown(sound.dispose);
+    final cubit = MenuCubit(
+      loadMenu(AssetContentSource.basePack(rootBundle)),
+      WatchDecks(decks),
+      minSplash: Duration.zero,
+      sound: sound,
+    );
+    addTearDown(cubit.close);
+    expect(output.played, isEmpty, reason: 'пока идёт заставка, меню молчит');
+
+    await ready(cubit);
+    expect(output.effects, [SoundEffect.menuOpen]);
+
+    await decks.save(smallSkelligeDeck());
+    await Future<void>.delayed(Duration.zero);
+    expect(output.effects, [SoundEffect.menuOpen]);
+  });
 
   test('сначала заставка, потом меню; с набором и колодами играть можно', () async {
     final cubit = newCubit(AssetContentSource.basePack(rootBundle));

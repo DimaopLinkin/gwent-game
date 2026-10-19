@@ -7,6 +7,8 @@ import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_state.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 
 /// Держатель конструктора колоды (макет 8): состав колоды, вкладки, фильтры и сохранение.
 ///
@@ -23,7 +25,9 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
     required SaveDeck saveDeck,
     required String newDeckName,
     String? deckId,
+    PlaySound? sound,
   }) : _saveDeck = saveDeck,
+       _sound = sound,
        _fallbackName = newDeckName,
        super(const DeckEditorLoading()) {
     unawaited(_load(loadDeckRules, getDeck, deckId));
@@ -33,6 +37,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
   static const Duration messageDuration = Duration(milliseconds: 2400);
 
   final SaveDeck _saveDeck;
+  final PlaySound? _sound;
   final String _fallbackName;
   Timer? _messageTimer;
 
@@ -117,9 +122,11 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
     if (ready == null || card == null) return;
     final refusal = ready.rules.refusalToAdd(ready.draft, card);
     if (refusal != null) {
+      _sound?.call(SoundEffect.warning);
       _say(ready, EditorMessage(refusal, max: ready.rules.gameRules.maxSpecialCards));
       return;
     }
+    _sound?.call(SoundEffect.deckAdd);
     emit(_moved(ready, ready.draft.withAdded(cardId), cardId));
   }
 
@@ -127,6 +134,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
   void removeCard(String cardId) {
     final ready = _ready;
     if (ready == null || ready.draft.copiesOf(cardId) == 0) return;
+    _sound?.call(SoundEffect.deckRemove);
     emit(_moved(ready, ready.draft.withRemoved(cardId), cardId));
   }
 

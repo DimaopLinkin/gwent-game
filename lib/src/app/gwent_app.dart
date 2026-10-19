@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -30,10 +32,20 @@ class _GwentAppState extends State<GwentApp> {
   @override
   void initState() {
     super.initState();
+    final dependencies = widget.dependencies;
     _lifecycle = AppLifecycleListener(
-      onHide: () => widget.dependencies.activeNetworkGame.current?.setAway(away: true),
-      onShow: () => widget.dependencies.activeNetworkGame.current?.setAway(away: false),
+      onHide: () {
+        dependencies.activeNetworkGame.current?.setAway(away: true);
+        unawaited(dependencies.backgroundMusic.pause());
+      },
+      onShow: () {
+        dependencies.activeNetworkGame.current?.setAway(away: false);
+        unawaited(dependencies.backgroundMusic.resume());
+      },
     );
+    // Звук и музыка готовятся и запускаются в фоне: меню не ждёт их, а сбой звука игру не останавливает.
+    unawaited(dependencies.playSound.preload());
+    unawaited(dependencies.backgroundMusic.start());
   }
 
   @override
@@ -46,7 +58,11 @@ class _GwentAppState extends State<GwentApp> {
   @override
   Widget build(BuildContext context) => BlocProvider(
     // Меню живёт всё время работы приложения: заставка идёт один раз, а не при каждом возврате в меню.
-    create: (_) => MenuCubit(widget.dependencies.loadMenu, widget.dependencies.watchDecks),
+    create: (_) => MenuCubit(
+      widget.dependencies.loadMenu,
+      widget.dependencies.watchDecks,
+      sound: widget.dependencies.playSound,
+    ),
     child: MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
       theme: AppTheme.dark(),

@@ -14,6 +14,8 @@ import 'package:gwent/src/features/lobby/data/game_ad_record.dart';
 import 'package:gwent/src/features/lobby/data/lan_lobby.dart';
 import 'package:gwent/src/features/match_history/data/drift_match_history_repository.dart';
 import 'package:gwent/src/features/settings/data/drift_settings_repository.dart';
+import 'package:gwent/src/features/sound/data/audioplayers_music_output.dart';
+import 'package:gwent/src/features/sound/data/audioplayers_sound_output.dart';
 
 /// Точка сборки: единственное место, где интерфейсы связываются с реализациями.
 ///
@@ -32,5 +34,7 @@ AppDependencies createAppDependencies() {
     seedGenerator: SecureSeedGenerator(),
     gameLobby: LanLobby(directory: const BonsoirServiceDirectory(type: GameAdRecord.serviceType)),
     networkAccess: DeviceNetworkAccess(),
+    soundOutput: AudioplayersSoundOutput(),
+    musicOutput: AudioplayersMusicOutput(),
   );
 }

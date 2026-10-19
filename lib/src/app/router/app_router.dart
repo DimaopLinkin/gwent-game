@@ -208,6 +208,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               saveSettings: dependencies.saveSettings,
               loadAboutInfo: dependencies.loadAboutInfo,
               checkContentUpdate: dependencies.checkContentUpdate,
+              sound: dependencies.playSound,
             ),
             child: SettingsScreen(
               // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
@@ -235,7 +236,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   ),
                 ),
                 BlocProvider(create: (_) => MatchBloc(dependencies.startMatch, dependencies.recordFinishedMatch)),
-                BlocProvider(create: (_) => FieldCubit()),
+                BlocProvider(create: (_) => FieldCubit(sound: dependencies.playSound)),
               ],
               child: StreamBuilder<AppSettings>(
                 stream: settings,
@@ -268,6 +269,7 @@ Widget _deckEditor(BuildContext context, AppDependencies dependencies, {String? 
     saveDeck: dependencies.saveDeck,
     newDeckName: context.l10n.deckListNew,
     deckId: deckId,
+    sound: dependencies.playSound,
   ),
   child: DeckEditorScreen(onExit: () => context.pop()),
 );
@@ -281,6 +283,7 @@ Widget _lobbyBuilder(BuildContext context, AppDependencies dependencies, {String
     saveDeck: dependencies.saveDeck,
     newDeckName: context.l10n.deckListNew,
     deckId: deckId,
+    sound: dependencies.playSound,
   ),
   child: LobbyBuilderScreen(
     onSaved: (savedId) => context.pop(savedId),
@@ -301,7 +304,7 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
           return bloc;
         },
       ),
-      BlocProvider(create: (_) => FieldCubit()),
+      BlocProvider(create: (_) => FieldCubit(sound: dependencies.playSound)),
       if (game != null) BlocProvider(create: (_) => MatchConnectionCubit(game)),
     ],
     child: StreamBuilder<AppSettings>(
