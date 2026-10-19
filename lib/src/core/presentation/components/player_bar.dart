@@ -116,7 +116,8 @@ class PlayerBar extends StatelessWidget {
   final Widget? trailing;
 
   /// Индикатор рядом с камнями и числом карт в руке: связь с соперником в сетевой партии. Занимает только свободное
-  /// место второй строки и не отнимает его у счёта, колоды и сброса: он сам подбирает вид под отданную ширину.
+  /// место второй строки и не отнимает его у счёта, колоды и сброса: он сам подбирает вид под отданную ширину и сам
+  /// отступает от числа карт, поэтому без места не оставляет в полосе даже зазора.
   final Widget? status;
 
   /// Своя полоса (тёплый фон, граница сверху) или соперника (граница снизу).
@@ -205,9 +206,9 @@ class PlayerBar extends StatelessWidget {
                   ],
                 ),
                 Row(
-                  spacing: 8,
                   children: [
                     _Gems(remaining: lifeRemaining, total: lifeTotal, breaking: lifeBreak),
+                    const SizedBox(width: 8),
                     KeyedSubtree(
                       key: anchors?.hand,
                       child: Semantics(

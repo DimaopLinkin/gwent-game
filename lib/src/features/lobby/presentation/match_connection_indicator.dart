@@ -32,6 +32,9 @@ class _Indicator extends StatelessWidget {
   /// Значок в метке и один.
   static const double _iconSize = 13;
 
+  /// Отступ слева от числа карт в руке: индикатор уступает его вместе с местом.
+  static const double _lead = 8;
+
   /// Поля метки по горизонтали и толщина рамки.
   static const double _padding = 7;
   static const double _border = 1;
@@ -70,17 +73,26 @@ class _Indicator extends StatelessWidget {
         : const <String>[];
     return Semantics(
       label: full,
+      liveRegion: state.lost || state.unstable || state.away,
       excludeSemantics: true,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final direction = Directionality.of(context);
+          final room = constraints.maxWidth - _lead;
+          Widget shown = const SizedBox.shrink();
+          if (room >= _iconSize) shown = GwentIconView(icon, size: _iconSize, color: tone);
           for (final label in labels) {
-            final width = _labelWidth(label, direction);
-            if (width <= constraints.maxWidth) return _Pill(icon: icon, tone: tone, ring: ring, label: label);
+            if (_labelWidth(label, direction) <= room) {
+              shown = _Pill(icon: icon, tone: tone, ring: ring, label: label);
+              break;
+            }
           }
-          return constraints.maxWidth < _iconSize
-              ? const SizedBox.shrink()
-              : GwentIconView(icon, size: _iconSize, color: tone);
+          return room < _iconSize
+              ? shown
+              : Padding(
+                  padding: const EdgeInsets.only(left: _lead),
+                  child: shown,
+                );
         },
       ),
     );

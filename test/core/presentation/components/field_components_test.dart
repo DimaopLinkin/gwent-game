@@ -176,6 +176,13 @@ void main() {
         expect(tester.takeException(), isNull);
         await pump(tester, bar(mine: false, status: status()), width: 320);
         expect(tester.takeException(), isNull);
+        await pump(
+          tester,
+          bar(mine: false, status: const SizedBox.shrink(), trailing: const SizedBox(width: 60, height: 20)),
+          width: 320,
+        );
+        // Свёрнутый индикатор не отнимает у второй строки даже зазор: переполнения не прибавилось.
+        expect(tester.takeException(), isNull);
       });
     });
 
