@@ -35,6 +35,8 @@ import 'package:gwent/src/features/match_history/domain/match_history_repository
 import 'package:gwent/src/features/menu/application/load_menu.dart';
 import 'package:gwent/src/features/settings/application/check_content_update.dart';
 import 'package:gwent/src/features/settings/application/load_about_info.dart';
+import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
+import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart';
 import 'package:gwent/src/features/settings/application/save_settings.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
@@ -115,11 +117,13 @@ final class AppDependencies {
        ensureStarterDecks = EnsureStarterDecks(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
        watchSettings = WatchSettings(settingsRepository),
        saveSettings = SaveSettings(settingsRepository),
+       loadBotDifficulty = LoadBotDifficulty(settingsRepository),
+       saveBotDifficulty = SaveBotDifficulty(settingsRepository),
        loadAboutInfo = LoadAboutInfo(appInfo, loadGameContent),
        checkContentUpdate = CheckContentUpdate(loadGameContent, clock),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator) {
-    chooseOpponentDeck = ChooseOpponentDeck(deckRules, getActiveDeck);
+    chooseOpponentDeck = ChooseOpponentDeck(deckRules, seedGenerator);
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
@@ -169,6 +173,12 @@ final class AppDependencies {
 
   /// Сохранение настроек.
   final SaveSettings saveSettings;
+
+  /// Уровень сложности бота, выбранный в прошлый раз.
+  final LoadBotDifficulty loadBotDifficulty;
+
+  /// Запоминание выбранного уровня сложности бота.
+  final SaveBotDifficulty saveBotDifficulty;
 
   /// Версии приложения, набора карт и сетевого протокола для экрана настроек.
   final LoadAboutInfo loadAboutInfo;

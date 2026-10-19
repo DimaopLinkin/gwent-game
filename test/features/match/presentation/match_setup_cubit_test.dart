@@ -14,6 +14,10 @@ import 'package:gwent/src/features/match/application/choose_opponent_deck.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
+import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
+import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart';
+import 'package:gwent/src/features/settings/domain/app_settings.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_engine/gwent_engine.dart' show Seat, TooFewUnitCards;
 
 import '../../../support/deck_rules_fixtures.dart';
@@ -22,8 +26,10 @@ import '../../../support/fakes.dart';
 void main() {
   late InMemoryDeckRepository repository;
   late DeckRulesSource rules;
+  late InMemorySettingsRepository settings;
 
   setUp(() {
+    settings = InMemorySettingsRepository();
     repository = InMemoryDeckRepository();
     rules = FakeDeckRulesSource();
   });
@@ -39,17 +45,28 @@ void main() {
       loadDeckRules: LoadDeckRules(used),
       getActiveDeck: getActive,
       setActiveDeck: SetActiveDeck(repository, used, lock),
-      chooseOpponentDeck: ChooseOpponentDeck(used, getActive),
+      chooseOpponentDeck: ChooseOpponentDeck(used, FixedSeedGenerator(1)),
+      loadBotDifficulty: LoadBotDifficulty(settings),
+      saveBotDifficulty: SaveBotDifficulty(settings),
       mode: mode,
     );
     addTearDown(cubit.close);
     return cubit;
   }
 
-  Future<MatchSetupReady> ready(MatchSetupCubit cubit) async => switch (cubit.state) {
-    final MatchSetupReady state => state,
-    _ => await cubit.stream.firstWhere((state) => state is MatchSetupReady) as MatchSetupReady,
-  };
+  /// Состояние выбора, когда оно готово. Против бота сначала проходит шаг сложности (с уровнем из настроек),
+  /// если [pastDifficulty] не отключён: остальные тесты начинаются с выбора фракции.
+  Future<MatchSetupReady> ready(MatchSetupCubit cubit, {bool pastDifficulty = true}) async {
+    final state = switch (cubit.state) {
+      final MatchSetupReady state => state,
+      _ => await cubit.stream.firstWhere((state) => state is MatchSetupReady) as MatchSetupReady,
+    };
+    if (pastDifficulty && state.step == SetupStep.difficulty) {
+      await cubit.confirmDifficulty();
+      return cubit.state as MatchSetupReady;
+    }
+    return state;
+  }
 
   MatchSetupReady now(MatchSetupCubit cubit) => cubit.state as MatchSetupReady;
 
@@ -82,7 +99,7 @@ void main() {
       expect(state.seat, Seat.one);
       expect(state.faction.id, Small.skellige);
       expect(state.rules.factionInfos.map((faction) => faction.id), [Small.skellige, Small.monsters]);
-      expect(state.canStepBack, isFalse, reason: 'с первого шага первого места назад только из выбора в меню');
+      expect(state.canStepBack, isTrue, reason: 'против бота с выбора фракции назад ведёт к сложности');
       expect(state.isHotSeat, isFalse);
       expect(state.isLastSeat, isTrue);
     });
@@ -263,10 +280,91 @@ void main() {
     });
   });
 
+  group('сложность бота', () {
+    test('против бота выбор начинается со сложности, выбран нормальный уровень', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      final state = await ready(cubit, pastDifficulty: false);
+
+      expect(state.step, SetupStep.difficulty);
+      expect(state.difficulty, BotDifficulty.normal);
+      expect(state.canStepBack, isFalse, reason: 'первый шаг: назад только в меню');
+      expect(state.stepTotal, 3);
+      expect(state.stepNumber(SetupStep.faction), 2);
+    });
+
+    test('в hot-seat шага сложности нет', () async {
+      final state = await ready(build(LocalMatchMode.hotSeat), pastDifficulty: false);
+
+      expect(state.step, SetupStep.faction);
+      expect(state.stepTotal, 2);
+    });
+
+    test('уровень запоминается при подтверждении и выбран заранее в следующий раз', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit, pastDifficulty: false);
+      cubit.selectDifficulty(BotDifficulty.deathMatch);
+      expect(settings.saved.botDifficulty, BotDifficulty.normal, reason: 'пока не подтверждён, не сохраняется');
+
+      await cubit.confirmDifficulty();
+
+      expect(now(cubit).step, SetupStep.faction);
+      expect(settings.saved.botDifficulty, BotDifficulty.deathMatch);
+      final next = build(LocalMatchMode.vsBot);
+      expect((await ready(next, pastDifficulty: false)).difficulty, BotDifficulty.deathMatch);
+    });
+
+    test('назад с выбора фракции возвращает к сложности', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit);
+
+      expect(cubit.back(), isTrue);
+      expect(now(cubit).step, SetupStep.difficulty);
+      expect(cubit.back(), isFalse);
+    });
+
+    test('пока уровень сохраняется, другой выбрать нельзя', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit, pastDifficulty: false);
+      cubit.selectDifficulty(BotDifficulty.hard);
+
+      final confirming = cubit.confirmDifficulty();
+      cubit.selectDifficulty(BotDifficulty.easy);
+      await confirming;
+
+      expect(now(cubit).difficulty, BotDifficulty.hard);
+      expect(settings.saved.botDifficulty, BotDifficulty.hard);
+    });
+
+    test('сбой хранилища настроек не мешает выбору: уровень «Нормальный», выбор идёт дальше', () async {
+      settings = _BrokenSettingsRepository();
+      final cubit = build(LocalMatchMode.vsBot);
+      final state = await ready(cubit, pastDifficulty: false);
+      expect(state.difficulty, BotDifficulty.normal);
+
+      cubit.selectDifficulty(BotDifficulty.hard);
+      await cubit.confirmDifficulty();
+
+      expect(now(cubit).step, SetupStep.faction);
+      expect(now(cubit).difficulty, BotDifficulty.hard);
+    });
+
+    test('уровень можно выбирать только на шаге сложности', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit);
+
+      cubit.selectDifficulty(BotDifficulty.easy);
+
+      expect(now(cubit).difficulty, BotDifficulty.normal);
+    });
+  });
+
   group('партия против бота', () {
-    test('подтверждённая колода готовит запрос: лидер игрока и колода бота следующей фракции', () async {
+    test('подтверждённая колода готовит запрос: лидер игрока, уровень и собранная колода бота', () async {
       await repository.save(smallSkelligeDeck(id: 'mine'));
       final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit, pastDifficulty: false);
+      cubit.selectDifficulty(BotDifficulty.hard);
+      await cubit.confirmDifficulty();
       await toDeckStep(cubit, leader: Small.bran);
 
       final done = cubit.stream.firstWhere((state) => state is MatchSetupDone);
@@ -277,24 +375,40 @@ void main() {
       expect(request.deckOne, 'mine');
       expect(request.leaderOne, Small.bran);
       expect(request.leaderTwo, isNull, reason: 'бот играет лидером своей колоды');
-      final bot = (await repository.findById(request.deckTwo))!;
-      expect(
-        bot.factionId,
-        Small.monsters,
-        reason: 'после последней фракции в пакете идёт первая, после первой вторая',
-      );
+      expect(request.difficulty, BotDifficulty.hard);
+      final bot = request.opponentDeck!;
+      expect(request.deckTwo, bot.id);
+      expect(await repository.findById(bot.id), isNull, reason: 'колода бота в хранилище не попадает');
+      expect(smallDeckRules.check(bot), isEmpty);
     });
 
-    test('после последней фракции бот играет первой', () async {
+    test('фракция бота случайна и может совпасть с фракцией игрока', () async {
       await repository.save(monstersDeck());
-      final cubit = build(LocalMatchMode.vsBot);
-      await toDeckStep(cubit, factionIndex: 1);
+      final factions = <String>{};
+      for (var seed = 0; seed < 20; seed++) {
+        final cubit = MatchSetupCubit(
+          watchDecks: WatchDecks(repository),
+          loadDeckRules: LoadDeckRules(rules),
+          getActiveDeck: GetActiveDeck(
+            repository,
+            rules,
+            CreateStarterDeck(repository, FakeClock(DateTime.utc(2026, 10, 12)), SequentialIdGenerator()),
+            DeckSelectionLock(),
+          ),
+          setActiveDeck: SetActiveDeck(repository, rules, DeckSelectionLock()),
+          chooseOpponentDeck: ChooseOpponentDeck(rules, FixedSeedGenerator(seed)),
+          loadBotDifficulty: LoadBotDifficulty(settings),
+          saveBotDifficulty: SaveBotDifficulty(settings),
+          mode: LocalMatchMode.vsBot,
+        );
+        addTearDown(cubit.close);
+        await toDeckStep(cubit, factionIndex: 1);
+        final done = cubit.stream.firstWhere((state) => state is MatchSetupDone);
+        await cubit.confirmDeck();
+        factions.add(((await done as MatchSetupDone).request.opponentDeck!).factionId);
+      }
 
-      final done = cubit.stream.firstWhere((state) => state is MatchSetupDone);
-      await cubit.confirmDeck();
-
-      final request = (await done as MatchSetupDone).request;
-      expect((await repository.findById(request.deckTwo))!.factionId, Small.skellige);
+      expect(factions, {Small.skellige, Small.monsters}, reason: 'против Чудовищ встречается и зеркало');
     });
 
     test('выбранная колода становится активной колодой фракции', () async {
@@ -408,6 +522,16 @@ void main() {
       expect(now(cubit).step, SetupStep.leader);
       expect(cubit.back(), isTrue);
       expect(now(cubit).step, SetupStep.faction);
+      expect(cubit.back(), isTrue, reason: 'против бота перед фракцией стоит сложность');
+      expect(now(cubit).step, SetupStep.difficulty);
+      expect(cubit.back(), isFalse);
+      expect(now(cubit).step, SetupStep.difficulty);
+    });
+
+    test('в hot-seat с выбора фракции назад некуда', () async {
+      final cubit = build(LocalMatchMode.hotSeat);
+      await ready(cubit);
+
       expect(cubit.back(), isFalse);
       expect(now(cubit).step, SetupStep.faction);
     });
@@ -480,4 +604,13 @@ final class _RulesOnce implements DeckRulesSource {
     _served = true;
     return _rules;
   }
+}
+
+/// Хранилище настроек, которое не читается и не пишется.
+final class _BrokenSettingsRepository extends InMemorySettingsRepository {
+  @override
+  Stream<AppSettings> watch() => Stream.error(StateError('настройки недоступны'));
+
+  @override
+  Future<void> save(AppSettings settings) => Future.error(StateError('настройки недоступны'));
 }

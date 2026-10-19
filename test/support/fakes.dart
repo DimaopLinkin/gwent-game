@@ -11,6 +11,8 @@ import 'package:gwent/src/features/match_history/domain/match_history_repository
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
+import 'package:gwent_ai/gwent_ai.dart';
+import 'package:gwent_engine/gwent_engine.dart' show CardCatalog, MatchEngine;
 
 /// Версия приложения, заданная тестом.
 final class FakeAppInfo implements AppInfo {
@@ -140,7 +142,7 @@ final class InMemoryDeckRepository implements DeckRepository {
 }
 
 /// Настройки в памяти. Поток сразу выдаёт текущие настройки и новые после каждого сохранения.
-final class InMemorySettingsRepository implements SettingsRepository {
+base class InMemorySettingsRepository implements SettingsRepository {
   final StreamController<void> _changes = StreamController.broadcast();
 
   AppSettings saved = const AppSettings();
@@ -187,3 +189,7 @@ Stream<T> _watch<T>(StreamController<void> changes, T Function() read) => Stream
   final subscription = changes.stream.listen((_) => controller.add(read()));
   controller.onCancel = subscription.cancel;
 });
+
+/// Жадный бот нормального уровня без ошибок: для тестов, где важен ход партии, а не уровень сложности.
+MatchBot plainGreedyBot(MatchEngine engine, CardCatalog catalog, BotDifficulty difficulty, int seed) =>
+    GreedyBot(engine, catalog);

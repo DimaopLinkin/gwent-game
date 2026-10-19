@@ -4,11 +4,15 @@ import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_engine/gwent_engine.dart' show Seat;
 import 'package:meta/meta.dart';
 
-/// Шаг выбора перед партией (макет 7): фракция, лидер, колода.
+/// Шаг выбора перед партией: сложность бота (ADR 0021), потом по макету 7 фракция, лидер, колода.
 enum SetupStep {
+  /// Уровень сложности бота; только против бота и только у первого места.
+  difficulty,
+
   /// Карусель фракций.
   faction,
 
@@ -61,6 +65,7 @@ final class MatchSetupReady extends MatchSetupState {
   /// Создаёт состояние.
   MatchSetupReady({
     required this.mode,
+    required this.difficulty,
     required this.seat,
     required this.step,
     required this.rules,
@@ -74,6 +79,9 @@ final class MatchSetupReady extends MatchSetupState {
 
   /// Режим партии.
   final LocalMatchMode mode;
+
+  /// Выбранный уровень сложности бота; в hot-seat не используется.
+  final BotDifficulty difficulty;
 
   /// Место, за которое игрок выбирает: в hot-seat по очереди оба, против бота только первое.
   final Seat seat;
@@ -101,6 +109,16 @@ final class MatchSetupReady extends MatchSetupState {
 
   /// Идёт сохранение выбора или подготовка колоды: кнопки шага не принимают повторных нажатий.
   final bool busy;
+
+  /// Сколько шагов с подписью «Шаг N из M»: фракция и лидер, а против бота ещё сложность (колода идёт без номера).
+  int get stepTotal => mode == LocalMatchMode.vsBot ? 3 : 2;
+
+  /// Номер шага [step] для подписи «Шаг N из M»: против бота сложность занимает первый номер.
+  int stepNumber(SetupStep step) => switch (step) {
+    SetupStep.difficulty => 1,
+    SetupStep.faction => mode == LocalMatchMode.vsBot ? 2 : 1,
+    SetupStep.leader || SetupStep.deck => mode == LocalMatchMode.vsBot ? 3 : 2,
+  };
 
   /// Выбранная фракция.
   FactionInfo get faction => rules.factionInfos[factionIndex];

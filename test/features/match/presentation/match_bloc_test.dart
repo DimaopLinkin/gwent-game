@@ -38,7 +38,7 @@ void main() {
     DeckRepository? decks,
     int seed = 3,
     MatchHistoryRepository? history,
-    BotFactory createBot = GreedyBot.new,
+    BotFactory createBot = plainGreedyBot,
     bool awaitingSession = false,
   }) {
     final bloc = MatchBloc(
@@ -398,7 +398,7 @@ void main() {
   test('двойное нажатие «Реванш» открывает один стол', () async {
     var bots = 0;
     final counted = newBloc(
-      createBot: (engine, catalog) {
+      createBot: (engine, catalog, difficulty, seed) {
         bots++;
         return GreedyBot(engine, catalog);
       },
@@ -537,7 +537,7 @@ void main() {
         realDeck(content, Faction.skellige, id: 'skellige'),
         realDeck(content, Faction.monsters, id: 'monsters'),
       ]),
-      createBot: (engine, catalog) => _CountingBot(GreedyBot(engine, catalog), () => botAsked++),
+      createBot: (engine, catalog, difficulty, seed) => _CountingBot(GreedyBot(engine, catalog), () => botAsked++),
     );
     starting.add(
       const MatchStartRequested(

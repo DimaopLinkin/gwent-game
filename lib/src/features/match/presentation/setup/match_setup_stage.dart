@@ -11,11 +11,13 @@ import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent/src/features/match/presentation/match_stages.dart';
 import 'package:gwent/src/features/match/presentation/setup/deck_select_view.dart';
+import 'package:gwent/src/features/match/presentation/setup/difficulty_select_view.dart';
 import 'package:gwent/src/features/match/presentation/setup/faction_select_view.dart';
 import 'package:gwent/src/features/match/presentation/setup/leader_select_view.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Seat;
 
-/// Выбор фракции, лидера и колоды перед партией (макет 7): три экрана подряд для каждого места.
+/// Выбор фракции, лидера и колоды перед партией (макет 7): три экрана подряд для каждого места, а против бота
+/// перед ними экран сложности бота (ADR 0021).
 ///
 /// Показывает то, что говорит `MatchSetupCubit`. Системное «назад» на втором и третьем шагах и на втором месте
 /// возвращает на предыдущий шаг, на первом шаге уводит из выбора ([onExit]). Когда выбор закончен, передаёт
@@ -66,7 +68,9 @@ class _Step extends StatelessWidget {
     final mapper = CardContentMapper(pack: ready.rules.pack, l10n: l10n);
     final player = l10n.playerNumbered(ready.seat == Seat.one ? 1 : 2);
     CardFace faceOf(String leaderId) => mapper.leader(ready.rules.pack.rules.leaderCardsById[leaderId]!).face;
-    String stepLabel(int step) => ready.isHotSeat ? l10n.setupStepSeat(player, step, 2) : l10n.setupStep(step, 2);
+    String stepLabel(SetupStep step) => ready.isHotSeat
+        ? l10n.setupStepSeat(player, ready.stepNumber(step), ready.stepTotal)
+        : l10n.setupStep(ready.stepNumber(step), ready.stepTotal);
     void back() {
       if (!cubit.back()) onExit();
     }
@@ -79,8 +83,16 @@ class _Step extends StatelessWidget {
         if (!didPop) cubit.back();
       },
       child: switch (ready.step) {
+        SetupStep.difficulty => DifficultySelectView(
+          eyebrow: stepLabel(SetupStep.difficulty),
+          selected: ready.difficulty,
+          onSelect: cubit.selectDifficulty,
+          onConfirm: cubit.confirmDifficulty,
+          onBack: back,
+          busy: ready.busy,
+        ),
         SetupStep.faction => FactionSelectView(
-          eyebrow: stepLabel(1),
+          eyebrow: stepLabel(SetupStep.faction),
           factions: ready.rules.factionInfos,
           index: ready.factionIndex,
           onIndexChanged: cubit.showFaction,
@@ -89,7 +101,7 @@ class _Step extends StatelessWidget {
           confirmEnabled: !ready.busy,
         ),
         SetupStep.leader => LeaderSelectView(
-          eyebrow: stepLabel(2),
+          eyebrow: stepLabel(SetupStep.leader),
           faction: faction,
           selectedId: ready.leaderId,
           faceOf: faceOf,

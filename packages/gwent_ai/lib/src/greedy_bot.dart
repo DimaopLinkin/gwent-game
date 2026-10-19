@@ -1,5 +1,8 @@
+import 'dart:math' show max;
+
+import 'package:gwent_ai/src/bot_difficulty.dart';
+import 'package:gwent_ai/src/card_values.dart';
 import 'package:gwent_ai/src/greedy_bot_settings.dart';
-import 'package:gwent_ai/src/internal/card_values.dart';
 import 'package:gwent_ai/src/internal/turn_candidates.dart';
 import 'package:gwent_ai/src/match_bot.dart';
 import 'package:gwent_engine/gwent_engine.dart';
@@ -14,15 +17,25 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// и варианты выбора, но не то, какие именно карты пришли в руку. Пробный ход видит и случайный исход самого хода
 /// (например, отряд, которого выбрал случайный Медик): такое знание бот получает до хода, а не после.
 final class GreedyBot implements MatchBot {
-  GreedyBot(this._engine, CardCatalog catalog, {GreedyBotSettings settings = const GreedyBotSettings()})
+  /// Создаёт бота. [seed] нужен только ошибкам лёгкого уровня (`GreedyBotSettings.mistakeChance`): с одним сидом
+  /// и одинаковыми партиями бот ошибается одинаково.
+  GreedyBot(this._engine, CardCatalog catalog, {GreedyBotSettings settings = const GreedyBotSettings(), int seed = 0})
     : _catalog = catalog,
       _settings = settings,
-      _values = CardValues(catalog, settings);
+      _values = CardValues(catalog, settings),
+      _rng = SeededRng(seed);
+
+  /// Бот уровня [difficulty] с настройками этого уровня.
+  GreedyBot.forDifficulty(MatchEngine engine, CardCatalog catalog, BotDifficulty difficulty, {int seed = 0})
+    : this(engine, catalog, settings: GreedyBotSettings.forDifficulty(difficulty), seed: seed);
 
   final MatchEngine _engine;
   final CardCatalog _catalog;
   final GreedyBotSettings _settings;
   final CardValues _values;
+
+  /// Источник случайности для ошибок; движется только у бота с `mistakeChance` больше нуля.
+  Rng _rng;
 
   /// Предел цепочки выборов после одного хода: защита от зацикливания.
   static const int _chainLimit = 16;
@@ -66,7 +79,20 @@ final class GreedyBot implements MatchBot {
         if (_engine.apply(state, seat, intent) case Accepted(state: final next))
           _move(intent, view, _engine.project(_settle(next, seat), seat)),
     ];
-    return _firstAccepted(state, seat, [_policy(view, moves), const Pass()]);
+    final intent = _policy(view, moves);
+    return _firstAccepted(state, seat, [_mistake(intent, moves) ?? intent, const Pass()]);
+  }
+
+  /// Случайная карта вместо задуманного розыгрыша: бросок на ошибку лёгкого уровня. Пас и ответ спасовавшему
+  /// сопернику ошибкой не портятся: `null`, когда ход остаётся задуманным.
+  Intent? _mistake(Intent intent, List<_Move> moves) {
+    if (_settings.mistakeChance == 0 || intent is Pass || moves.isEmpty) return null;
+    final (roll, afterRoll) = _rng.nextInt(100);
+    _rng = afterRoll;
+    if (roll >= _settings.mistakeChance) return null;
+    final (index, afterPick) = _rng.nextInt(moves.length);
+    _rng = afterPick;
+    return moves[index].intent;
   }
 
   /// Правила паса поверх жадного выбора хода.
@@ -110,11 +136,24 @@ final class GreedyBot implements MatchBot {
     if (ahead && opponent.handCount == 0 && !opponent.leaderAvailable) return pass;
     if (me.crystals == 1) {
       // Проигрыш раунда проигрывает партию: пас с отрывом только тогда, когда любой ход его уменьшает.
-      return ahead && best.gain <= 0 ? pass : best.intent;
+      return ahead && best.gain <= 0 ? pass : _frugal(moves, best).intent;
     }
     if (ahead && lead >= _settings.passLead) return pass;
     if (!ahead && -lead >= _settings.giveUpDeficit) return pass;
-    return best.gain > 0 ? best.intent : pass;
+    return best.gain > 0 ? _frugal(moves, best).intent : pass;
+  }
+
+  /// Ход, который бот играет вместо лучшего [best]: самый дешёвый из не хуже лучшего больше чем на допуск экономии.
+  _Move _frugal(List<_Move> moves, _Move best) {
+    final slack = _settings.frugalSlack + max(best.gain, 0) * _settings.frugalShare / 100;
+    if (slack == 0) return best;
+    var pick = best;
+    for (final move in moves) {
+      if (move.gain < best.gain - slack) continue;
+      final cheaper = _settings.wasteful ? move.spent > pick.spent : move.spent < pick.spent;
+      if (cheaper || move.spent == pick.spent && move.gain > pick.gain) pick = move;
+    }
+    return pick;
   }
 
   /// Итог пробного хода: прирост оценки, выигран ли раунд и сколько стоит потраченное.
