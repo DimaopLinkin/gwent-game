@@ -300,6 +300,56 @@ void main() {
     expect(cubit.state.banners.single, isA<TurnStartBanner>().having((banner) => banner.mine, 'mine', isFalse));
   });
 
+  group("подпись Скоя'таэлей на первом ходу (макет 13)", () {
+    PlayerView board({Faction mine = Faction.skellige, Faction theirs = Faction.monsters}) => viewOf(
+      cards,
+      me: sideOf(cards, Seat.one, faction: mine),
+      opponent: sideOf(cards, Seat.two, faction: theirs),
+    );
+
+    TurnStartBanner firstTurn(PlayerView view, {required bool byChoice}) {
+      cubit
+        ..onMatchState(progress(view, events: [FirstPlayerChosen(Seat.one, byChoice: byChoice)]))
+        ..onMatchState(progress(view, events: const [RoundStarted(1, Seat.one), TurnStarted(Seat.one)]));
+      return cubit.state.banners.whereType<TurnStartBanner>().single;
+    }
+
+    test("выбрал я: баннер хода помнит, что первого игрока выбрали Скоя'таэли, и чьё это место", () {
+      final banner = firstTurn(board(mine: Faction.scoiatael), byChoice: true);
+      expect(banner.chosenBy, Seat.one);
+      expect(banner.chosenByMine, isTrue);
+    });
+
+    test('выбрал соперник', () {
+      final banner = firstTurn(board(theirs: Faction.scoiatael), byChoice: true);
+      expect(banner.chosenBy, Seat.two);
+      expect(banner.chosenByMine, isFalse);
+    });
+
+    test('первого игрока определил жребий: подписи нет', () {
+      expect(firstTurn(board(mine: Faction.scoiatael), byChoice: false).chosenBy, isNull);
+    });
+
+    test('подпись только у первого хода партии, дальше ходы без неё', () {
+      final view = board(mine: Faction.scoiatael);
+      firstTurn(view, byChoice: true);
+      cubit
+        ..dismissBanner()
+        ..dismissBanner()
+        ..onMatchState(progress(view, events: const [TurnStarted(Seat.two)]))
+        ..onMatchState(progress(view, events: const [TurnStarted(Seat.one)]));
+      expect(cubit.state.banners.whereType<TurnStartBanner>().map((banner) => banner.chosenBy), everyElement(isNull));
+    });
+
+    test('решение, оставшееся от прошлой партии, в новую не переходит', () {
+      final view = board(mine: Faction.scoiatael);
+      cubit.onMatchState(progress(view, events: const [FirstPlayerChosen(Seat.one, byChoice: true)]));
+      cubit.onMatchState(const MatchStarting());
+      cubit.onMatchState(progress(view, events: const [RoundStarted(1, Seat.one), TurnStarted(Seat.one)]));
+      expect(cubit.state.banners.whereType<TurnStartBanner>().single.chosenBy, isNull);
+    });
+  });
+
   test('пас соперника заменяет баннер его хода', () {
     cubit.onMatchState(
       progress(viewOf(cards), events: const [Passed(Seat.two, auto: false), TurnStarted(Seat.one)]),

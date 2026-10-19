@@ -673,6 +673,23 @@
       }
     }
   },
+  "bannerFirstChoiceYou": "Скоя'таэли: вы выбрали, кто ходит первым",
+  "@bannerFirstChoiceYou": {
+    "description": "Подпись баннера первого хода: первого игрока выбрал сам игрок (фракция Скоя'таэли)."
+  },
+  "bannerFirstChoiceOpponent": "Скоя'таэли: соперник выбрал, кто ходит первым",
+  "@bannerFirstChoiceOpponent": {
+    "description": "Подпись баннера первого хода: первого игрока выбрал соперник (фракция Скоя'таэли)."
+  },
+  "bannerFirstChoiceBy": "Скоя'таэли: {name} выбрал, кто ходит первым",
+  "@bannerFirstChoiceBy": {
+    "description": "Подпись баннера первого хода на одном телефоне: первого игрока выбрал игрок с именем {name}.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "bannerOpponentTurn": "Ход противника",
   "@bannerOpponentTurn": {
     "description": "Баннер хода соперника."
@@ -924,9 +941,13 @@
   "@summaryMarkWonTie": {
     "description": "Способность Нильфгаарда в итоге раунда."
   },
-  "matchResultEyebrow": "Матч окончен",
-  "@matchResultEyebrow": {
-    "description": "Надпись над заголовком итога матча."
+  "matchResultShowField": "Показать поле",
+  "@matchResultShowField": {
+    "description": "Кнопка листа итога матча: опустить лист и открыть поле партии."
+  },
+  "matchResultShowResults": "К итогам",
+  "@matchResultShowResults": {
+    "description": "Кнопка свёрнутого листа итога матча: вернуть лист."
   },
   "matchResultWinnerHot": "Победил {name}",
   "@matchResultWinnerHot": {

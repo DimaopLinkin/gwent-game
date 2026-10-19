@@ -763,6 +763,52 @@ void main() {
       await endBanners(tester);
     });
 
+    testWidgets("первый ход после выбора Скоя'таэлей: подпись под заголовком, полоса 76 pt, баннер держится дольше", (
+      tester,
+    ) async {
+      final view = viewOf(cards, me: sideOf(cards, Seat.one, faction: Faction.scoiatael));
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [FirstPlayerChosen(Seat.one, byChoice: true)]);
+      feed(harness, view, const [RoundStarted(1, Seat.one), TurnStarted(Seat.one)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 2000));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(bannerTitle(tester), 'Ваш ход');
+      expect(find.text("Скоя'таэли: вы выбрали, кто ходит первым"), findsOneWidget);
+      expect(tester.getSize(find.byType(MatchBannerStrip)).height, 76);
+
+      await tester.pump(const Duration(milliseconds: 1000));
+      expect(find.byType(MatchBannerStrip), findsOneWidget, reason: 'подпись надо успеть прочесть: баннер идёт 1,8 с');
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(MatchBannerStrip), findsNothing);
+    });
+
+    testWidgets("первый ход после выбора соперника-Скоя'таэля", (tester) async {
+      final view = viewOf(
+        cards,
+        turn: Seat.two,
+        opponent: sideOf(cards, Seat.two, faction: Faction.scoiatael),
+      );
+      final harness = await pumpField(tester, view);
+      feed(harness, view, const [FirstPlayerChosen(Seat.two, byChoice: true)]);
+      feed(harness, view, const [TurnStarted(Seat.two)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(bannerTitle(tester), 'Ход противника');
+      expect(find.text("Скоя'таэли: соперник выбрал, кто ходит первым"), findsOneWidget);
+      await endBanners(tester);
+    });
+
+    testWidgets('в hot-seat подпись называет игрока по номеру', (tester) async {
+      final view = viewOf(cards, me: sideOf(cards, Seat.one, faction: Faction.scoiatael));
+      final harness = await pumpField(tester, view, hotSeat: true);
+      feed(harness, view, const [FirstPlayerChosen(Seat.one, byChoice: true)], hotSeat: true);
+      feed(harness, view, const [TurnStarted(Seat.one)], hotSeat: true);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text("Скоя'таэли: Игрок 1 выбрал, кто ходит первым"), findsOneWidget);
+      await endBanners(tester);
+    });
+
     testWidgets('решающий раунд: у каждого по одному камню', (tester) async {
       final view = viewOf(
         cards,

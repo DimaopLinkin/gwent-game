@@ -383,6 +383,7 @@ void main() {
       await endBanners(tester);
 
       expect(find.byType(MatchResultView), findsOneWidget);
+      await tester.pump(MatchResultView.sheetSlide);
       await tester.tap(find.text('Реванш'));
       await settle(tester);
       expect(find.byType(MatchIntroView), findsOneWidget);
@@ -397,6 +398,7 @@ void main() {
       bloc.add(const MatchIntentSubmitted(Resign()));
       await settle(tester);
       await endBanners(tester);
+      await tester.pump(MatchResultView.sheetSlide);
 
       await tester.tap(find.text('В меню'));
       expect(exits, 1);

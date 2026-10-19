@@ -236,6 +236,8 @@ class _MatchScreenState extends State<MatchScreen> {
         roster: roster,
         onExit: widget.onExit,
         onRematch: canRematch ? () => bloc.add(const MatchRematchRequested()) : null,
+        // Поле, на котором кончилась партия, видно за листом и по кнопке «Показать поле» (макет 13).
+        field: FieldView(view: view, content: roster.content, roster: roster, onIntent: (_) {}, readOnly: true),
       ),
       MatchCrashed() => SafeArea(
         child: MatchPanel(

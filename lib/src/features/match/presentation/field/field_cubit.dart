@@ -49,6 +49,9 @@ final class FieldCubit extends Cubit<FieldState> {
   final Set<int> _summarizedRounds = {};
   Seat? _lastTurn;
 
+  /// Скоя'таэли выбрали первого игрока, а баннер первого хода ещё не показан: подпись достанется ему.
+  bool _firstChoicePending = false;
+
   /// Выбирает карту руки [id]; повторный выбор той же карты снимает выбор.
   void toggleSelected(CardInstanceId id) =>
       emit(state.selected == id ? state.copyWith(clearSelected: true) : state.copyWith(selected: id));
@@ -152,6 +155,7 @@ final class FieldCubit extends Cubit<FieldState> {
     _summarizedRounds.clear();
     _seen.clear();
     _lastTurn = null;
+    _firstChoicePending = false;
   }
 
   void _onProgress(
@@ -163,6 +167,7 @@ final class FieldCubit extends Cubit<FieldState> {
     PlayerView? closing,
   ) {
     var next = state;
+    if (events.any((event) => event is FirstPlayerChosen && event.byChoice)) _firstChoicePending = true;
     // Конец раунда или матча показывает по полю перед последним действием; остальное — по прошлой увиденной проекции.
     final roundSummary = closing == null ? null : _roundSummaryFor(view, events);
     final script = closing != null && roundSummary != null
@@ -315,10 +320,26 @@ final class FieldCubit extends Cubit<FieldState> {
     if (turn != null && turn.seat != _lastTurn) {
       _lastTurn = turn.seat;
       if (!banners.any((banner) => banner is PassBanner && !banner.mine)) {
-        banners.add(TurnStartBanner(seat: turn.seat, mine: turn.seat == view.viewer));
+        final chosenBy = _firstChoicePending ? _firstChooser(view) : null;
+        _firstChoicePending = false;
+        banners.add(
+          TurnStartBanner(
+            seat: turn.seat,
+            mine: turn.seat == view.viewer,
+            chosenBy: chosenBy,
+            chosenByMine: chosenBy == view.viewer,
+          ),
+        );
       }
     }
     return banners;
+  }
+
+  /// Место Скоя'таэлей, которые выбирали первого игрока; `null`, если ни у кого нет такого перка.
+  static Seat? _firstChooser(PlayerView view) {
+    if (view.me.faction.perk == FactionPerk.chooseFirstPlayer) return view.viewer;
+    if (view.opponent.faction.perk == FactionPerk.chooseFirstPlayer) return view.viewer.opponent;
+    return null;
   }
 
   /// Итог раунда, закончившегося в [events], если игрок его ещё не видел; в конце партии итог раунда не нужен

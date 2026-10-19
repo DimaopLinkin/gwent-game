@@ -122,7 +122,8 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
 
   void _onIntentSubmitted(MatchIntentSubmitted event, Emitter<MatchScreenState> emit) {
     final seat = _shown;
-    if (state is! MatchInProgress || seat == null) return;
+    // Передача телефона, которая ждёт конца показа, сдаче не мешает: сдаётся тот, у кого телефон.
+    if ((state is! MatchInProgress && state is! MatchHandover) || seat == null) return;
     _session!.table.submit(seat, event.intent);
   }
 
@@ -227,10 +228,30 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     final next = _actor(local) ?? shown ?? session.perspective;
     if (local.length > 1 && next != shown) {
       // Hot-seat: телефон уходит другому игроку, в том числе в начале партии; руку видит только он.
+      if (shown != null && _endsRoundFor(shown)) {
+        // Раунд кончил тот, у кого телефон: поле, подсчёт и плашки остаются у него, а экран передачи ждёт в очереди
+        // экрана партии до конца плашки хода (макет 13). Следующему игроку конец раунда не повторяется.
+        _show(shown, emit);
+      }
       emit(MatchHandover(next, kind: _handoverKind(_views[next]!), roster: roster));
       return;
     }
     _show(next, emit);
+  }
+
+  /// Последнее действие [seat] закончило раунд, а партия продолжается: конец раунда этот игрок ещё не видел.
+  bool _endsRoundFor(Seat seat) =>
+      _views[seat]!.phase == MatchPhase.playing && (_unseen[seat] ?? const []).any((event) => event is RoundEnded);
+
+  /// Конец раунда для [seat] уже показан другому игроку: из его непросмотренных событий уходит всё до начала нового
+  /// раунда, поле раунда не нужно. Что сыграли после, остаётся.
+  void _forgetRoundEnd(Seat seat) {
+    final events = _unseen[seat];
+    if (events != null) {
+      final end = events.lastIndexWhere((event) => event is RoundEnded);
+      if (end >= 0) _unseen[seat] = events.sublist(end + 1);
+    }
+    _roundFields.remove(seat);
   }
 
   /// Решение о первом игроке, которое ещё не показано жребием, или `null`.
@@ -265,15 +286,14 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     final view = _views[seat]!;
     if (view.phase == MatchPhase.playing) _boardShown = true;
     final events = _takeUnseen(seat);
-    emit(
-      MatchInProgress(
-        view: view,
-        content: _session!.content,
-        roster: _roster!,
-        events: events,
-        closing: _takeClosing(seat, events),
-      ),
-    );
+    final closing = _takeClosing(seat, events);
+    if (view.phase == MatchPhase.playing && events.any((event) => event is RoundEnded)) {
+      // Конец раунда увидел этот игрок: другим местам он не повторяется.
+      for (final other in _unseen.keys.where((other) => other != seat).toList()) {
+        _forgetRoundEnd(other);
+      }
+    }
+    emit(MatchInProgress(view: view, content: _session!.content, roster: _roster!, events: events, closing: closing));
   }
 
   /// Поле закончившегося раунда, если оно относится к [events].
