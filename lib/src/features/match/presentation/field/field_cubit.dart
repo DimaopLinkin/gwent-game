@@ -170,8 +170,15 @@ final class FieldCubit extends Cubit<FieldState> {
         : _resignationStageFor(view, events, content, style) ?? _stageFor(view, events, content, style);
     if (script != null) {
       next = next.copyWith(stage: script);
-      // Сдача обрывает партию: баннер хода, который ещё висит, итога не задерживает.
-      if (events.any(_isResignation)) next = next.copyWith(banners: const []);
+      // Сдача обрывает партию: баннер хода, пауза и выбор, которые ещё висят, итога не задерживают.
+      if (events.any(_isResignation)) {
+        next = next.copyWith(
+          banners: const [],
+          pause: PauseLayer.none,
+          overlay: const NoOverlay(),
+          clearSelected: true,
+        );
+      }
       _stageTimer?.cancel();
       _stageTimer = Timer(Duration(milliseconds: script.duration.ceil()) + stageGrace, () => endStage(script.id));
     }
@@ -230,7 +237,7 @@ final class FieldCubit extends Cubit<FieldState> {
 
   /// Сценарий сдачи или выхода соперника: плашка исхода поверх поля до итога матча; `null`, если партия кончилась иначе.
   StageScript? _resignationStageFor(PlayerView view, List<GameEvent> events, GameContent content, StageStyle style) {
-    if (view.phase != MatchPhase.finished) return null;
+    if (view.phase != MatchPhase.finished || !events.any(_isResignation)) return null;
     final prev = _seen[view.viewer] ?? view;
     _seen[view.viewer] = view;
     return StageScriptBuilder(
@@ -266,10 +273,10 @@ final class FieldCubit extends Cubit<FieldState> {
     ).buildRound(++_stageCount, events, summary: summary);
   }
 
-  /// Партию закончил последний раунд; сдача держать поле не должна.
   static bool _isResignation(GameEvent event) =>
       event is MatchEnded && event.outcome.reason == MatchEndReason.resignation;
 
+  /// Партию закончил последний раунд; сдача держать поле не должна.
   static bool _endsByCrystals(List<GameEvent> events) =>
       events.any((event) => event is MatchEnded && event.outcome.reason == MatchEndReason.crystals);
 
