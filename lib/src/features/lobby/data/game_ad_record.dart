@@ -1,7 +1,6 @@
-import 'dart:convert';
-
 import 'package:gwent/src/features/lobby/domain/game_ad.dart';
 import 'package:gwent_net/gwent_net.dart';
+import 'package:gwent_net/gwent_net.dart' as net show truncateUtf8;
 
 /// Объявление партии в TXT-записи DNS-SD и обратно.
 ///
@@ -50,7 +49,8 @@ abstract final class GameAdRecord {
     if (rulesetHash == null || engineVersion == null || open == null) return null;
     return GameAd(
       id: id,
-      hostName: hostName,
+      // Запись пришла из сети от кого угодно: имя очищается и обрезается по тем же правилам, что и при отправке.
+      hostName: truncateUtf8(cleanDisplayName(hostName), maxHostNameBytes),
       ruleset: Ruleset(id: rulesetId, hash: rulesetHash, engineVersion: engineVersion),
       protocol: protocol,
       open: open,
@@ -58,15 +58,5 @@ abstract final class GameAdRecord {
   }
 
   /// [text], обрезанный по целым символам так, чтобы в UTF-8 занимать не больше [maxBytes] байт.
-  static String truncateUtf8(String text, int maxBytes) {
-    final buffer = StringBuffer();
-    var bytes = 0;
-    for (final rune in text.runes) {
-      final char = String.fromCharCode(rune);
-      bytes += utf8.encode(char).length;
-      if (bytes > maxBytes) break;
-      buffer.write(char);
-    }
-    return buffer.toString();
-  }
+  static String truncateUtf8(String text, int maxBytes) => net.truncateUtf8(text, maxBytes);
 }

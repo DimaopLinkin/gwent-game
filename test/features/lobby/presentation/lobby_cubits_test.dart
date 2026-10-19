@@ -14,11 +14,17 @@ import 'package:gwent/src/features/lobby/application/join_network_game.dart';
 import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
 import 'package:gwent/src/features/lobby/application/network_game.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/application/network_readiness.dart';
 import 'package:gwent/src/features/lobby/domain/game_ad.dart';
+import 'package:gwent/src/features/lobby/domain/game_address.dart';
+import 'package:gwent/src/features/lobby/domain/game_invite.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_state.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_state.dart';
+import 'package:gwent/src/features/lobby/presentation/host_invite_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/host_invite_state.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_state.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
@@ -31,6 +37,15 @@ import 'package:gwent_net/testing.dart';
 import '../../../support/fakes.dart';
 import '../../../support/match_fixtures.dart';
 import '../support/fake_game_lobby.dart';
+import '../support/lobby_fakes.dart';
+
+const NetworkProblem wifiOff = NetworkProblem.wifiOff;
+const NetworkProblem explainer = NetworkProblem.localNetworkExplainer;
+const NetworkProblem denied = NetworkProblem.localNetworkDenied;
+
+/// Сеть недоступна по названной причине.
+Matcher _unavailable(NetworkProblem problem) =>
+    isA<NetworkUnavailable>().having((result) => result.problem, 'problem', problem);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -43,9 +58,12 @@ void main() {
   late ActiveNetworkGame hostActive;
   late ActiveNetworkGame guestActive;
   late HostNetworkGame hostGame;
+  late HostNetworkGame admittingGame;
   late JoinNetworkGame joinGame;
   late DiscoverNetworkGames discover;
   late LoadDeckRules loadRules;
+  late FakeNetworkAccess access;
+  late NetworkReadiness readiness;
 
   setUpAll(() async => content = await loadBaseContent());
 
@@ -53,6 +71,8 @@ void main() {
     lobby = FakeGameLobby();
     scheduler = FakeScheduler();
     settings = InMemorySettingsRepository();
+    access = FakeNetworkAccess();
+    readiness = NetworkReadiness(access, settings);
     decks = InMemoryDeckRepository([
       realDeck(content, engine.Faction.northernRealms, id: 'north'),
       realDeck(content, engine.Faction.monsters, id: 'monsters').copyWith(cards: const {}),
@@ -61,7 +81,8 @@ void main() {
     guestActive = ActiveNetworkGame();
     final loadContent = LoadGameContent(AssetContentSource.basePack(rootBundle));
     final setup = LoadNetworkSetup(loadContent, const FakeAppInfo(), WatchSettings(settings));
-    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler);
+    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler, requireAdmission: false);
+    admittingGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler);
     joinGame = JoinNetworkGame(setup, lobby, guestActive, scheduler);
     discover = DiscoverNetworkGames(setup, lobby);
     loadRules = LoadDeckRules(GameContentDeckRulesSource(loadContent));
@@ -80,7 +101,7 @@ void main() {
 
   group('создание игры', () {
     CreateGameCubit makeCubit() {
-      final cubit = CreateGameCubit(hostGame, WatchSettings(settings), fallbackName: 'Игрок');
+      final cubit = CreateGameCubit(hostGame, WatchSettings(settings), readiness, fallbackName: 'Игрок');
       addTearDown(cubit.close);
       return cubit;
     }
@@ -130,6 +151,63 @@ void main() {
       expect(lobby.hosted.values.single.ad.hostName, 'Игрок');
     });
 
+    test('Wi-Fi выключен, но есть мобильная сеть: партия создаётся', () async {
+      final cubit = makeCubit();
+      await cubit.stream.firstWhere((state) => state is CreateGameForm);
+      access
+        ..wifiOn = false
+        ..mobileOn = true;
+
+      await cubit.create('Цири');
+
+      expect(cubit.state, isA<CreateGameCreated>());
+    });
+
+    test('Wi-Fi выключен: партия не создаётся, причина названа', () async {
+      final cubit = makeCubit();
+      await cubit.stream.firstWhere((state) => state is CreateGameForm);
+      access.wifiOn = false;
+
+      await cubit.create('Цири');
+
+      expect(cubit.state, isA<CreateGameFailed>().having((failed) => failed.result, 'result', _unavailable(wifiOff)));
+      expect(lobby.hosted, isEmpty);
+
+      await cubit.openSettings(NetworkProblem.wifiOff);
+      expect(access.openedSettings, ['wifi']);
+    });
+
+    test('iOS: сначала пояснение, «Продолжить» запоминает его и создаёт партию с тем же названием', () async {
+      access.asksLocalNetworkPermission = true;
+      final cubit = makeCubit();
+      await cubit.stream.firstWhere((state) => state is CreateGameForm);
+
+      await cubit.create('Ночной Гвинт');
+      expect(
+        cubit.state,
+        isA<CreateGameFailed>().having((failed) => failed.result, 'result', _unavailable(explainer)),
+      );
+      expect(lobby.hosted, isEmpty);
+
+      await cubit.continueAfterExplainer();
+
+      expect(cubit.state, isA<CreateGameCreated>());
+      expect(lobby.hosted.values.single.ad.hostName, 'Ночной Гвинт');
+      expect(settings.saved.localNetworkExplained, isTrue);
+    });
+
+    test('iOS: служба сети отказала после пояснения — доступ к локальной сети запрещён', () async {
+      access.asksLocalNetworkPermission = true;
+      await settings.save(const AppSettings(localNetworkExplained: true));
+      final cubit = makeCubit();
+      await cubit.stream.firstWhere((state) => state is CreateGameForm);
+      lobby.failHost = true;
+
+      await cubit.create('Цири');
+
+      expect(cubit.state, isA<CreateGameFailed>().having((failed) => failed.result, 'result', _unavailable(denied)));
+    });
+
     test('если сеть недоступна, остаётся причина, а «Повторить» создаёт партию заново', () async {
       final cubit = makeCubit();
       await cubit.stream.firstWhere((state) => state is CreateGameForm);
@@ -148,7 +226,7 @@ void main() {
 
   group('поиск игр', () {
     FindGamesCubit makeCubit() {
-      final cubit = FindGamesCubit(discover, joinGame, WatchSettings(settings), fallbackName: 'Гость');
+      final cubit = FindGamesCubit(discover, joinGame, WatchSettings(settings), readiness, fallbackName: 'Гость');
       addTearDown(cubit.close);
       return cubit;
     }
@@ -220,6 +298,97 @@ void main() {
       await cubit.stream.firstWhere((state) => state is FindGamesUnavailable);
     });
 
+    test('Wi-Fi выключен: поиск не начинается, причина названа', () async {
+      access.wifiOn = false;
+
+      final cubit = makeCubit();
+      final unavailable = await cubit.stream.firstWhere((state) => state is FindGamesUnavailable);
+
+      expect((unavailable as FindGamesUnavailable).problem, wifiOff);
+      expect(lobby.joinCalls, 0);
+      await cubit.openSettings(wifiOff);
+      expect(access.openedSettings, ['wifi']);
+    });
+
+    test('iOS: пояснение, «Продолжить» запоминает его и начинает поиск', () async {
+      access.asksLocalNetworkPermission = true;
+      final cubit = makeCubit();
+      final explainer = await cubit.stream.firstWhere((state) => state is FindGamesUnavailable);
+      expect((explainer as FindGamesUnavailable).problem, NetworkProblem.localNetworkExplainer);
+
+      final searching = cubit.stream.firstWhere((state) => state is FindGamesSearching);
+      await cubit.continueAfterExplainer();
+      await searching;
+      await hostGame(gameName: 'Цири', playerName: 'Цири');
+
+      await cubit.stream.firstWhere((state) => state is FindGamesSearching && state.games.isNotEmpty);
+      expect(settings.saved.localNetworkExplained, isTrue);
+    });
+
+    test('iOS: служба поиска отказала после пояснения — доступ к локальной сети запрещён', () async {
+      access.asksLocalNetworkPermission = true;
+      await settings.save(const AppSettings(localNetworkExplained: true));
+      final cubit = makeCubit();
+      await cubit.stream.firstWhere((state) => state is FindGamesSearching && state.games.isEmpty);
+
+      lobby.failDiscover();
+
+      final unavailable = await cubit.stream.firstWhere((state) => state is FindGamesUnavailable);
+      expect((unavailable as FindGamesUnavailable).problem, NetworkProblem.localNetworkDenied);
+    });
+
+    group('по QR-коду', () {
+      Future<GameAddress> hostAddress() async {
+        final host = ((await hostGame(gameName: 'Цири', playerName: 'Цири')) as NetworkGameOpened).game;
+        return (await host.address())!;
+      }
+
+      test('адрес из кода ведёт в комнату хоста, объявления гость не видел', () async {
+        final address = await hostAddress();
+        final cubit = makeCubit();
+        await cubit.stream.firstWhere((state) => state is FindGamesSearching);
+
+        await cubit.joinByCode(GameInvite.decode(GameInvite.encode(address))!);
+
+        expect(cubit.state, isA<FindGamesJoined>());
+        await settle();
+        expect(hostActive.current?.room.opponent?.name, 'Гость');
+      });
+
+      test('хост недоступен: причина, «Повторить» подключается по тому же адресу', () async {
+        final address = await hostAddress();
+        final cubit = makeCubit();
+        await cubit.stream.firstWhere((state) => state is FindGamesSearching);
+        lobby.failJoins = 1;
+
+        await cubit.joinByCode(address);
+        expect(
+          cubit.state,
+          isA<FindGamesFailed>()
+              .having((failed) => failed.result, 'result', isA<NetworkUnreachable>())
+              .having((failed) => failed.address, 'address', address),
+        );
+
+        await cubit.retry();
+        expect(cubit.state, isA<FindGamesJoined>());
+      });
+
+      test('Wi-Fi выключился после сканирования: подключения нет, причина названа', () async {
+        final address = await hostAddress();
+        final cubit = makeCubit();
+        await cubit.stream.firstWhere((state) => state is FindGamesSearching);
+        access.wifiOn = false;
+
+        await cubit.joinByCode(address);
+
+        expect(
+          cubit.state,
+          isA<FindGamesFailed>().having((failed) => failed.result, 'result', _unavailable(wifiOff)),
+        );
+        expect(lobby.joinCalls, 0);
+      });
+    });
+
     test('партию с чужой версией выбрать нельзя', () async {
       const foreign = GameAd(
         id: 'foreign',
@@ -234,6 +403,84 @@ void main() {
 
       expect(cubit.state, isA<FindGamesSearching>());
       expect(lobby.joinCalls, 0);
+    });
+  });
+
+  group('QR-код хоста', () {
+    Future<NetworkGame> hosted() async =>
+        ((await hostGame(gameName: 'Цири', playerName: 'Цири')) as NetworkGameOpened).game;
+
+    HostInviteCubit makeCubit(NetworkGame game) {
+      final cubit = HostInviteCubit(game);
+      addTearDown(cubit.close);
+      return cubit;
+    }
+
+    test('код несёт приглашение с адресом партии, под ним адрес для людей', () async {
+      final game = await hosted();
+
+      final cubit = makeCubit(game);
+      final ready = await cubit.stream.firstWhere((state) => state is HostInviteReady) as HostInviteReady;
+
+      expect(GameInvite.decode(ready.invite), await game.address());
+      expect(ready.label, '10.0.0.2:4000');
+    });
+
+    test('адрес IPv6 в подписи берётся в скобки', () async {
+      final game = await hosted();
+      lobby.hosted.values.single.hosts = const ['fe80::1'];
+
+      final cubit = makeCubit(game);
+      final ready = await cubit.stream.firstWhere((state) => state is HostInviteReady) as HostInviteReady;
+
+      expect(ready.label, '[fe80::1]:4000');
+    });
+
+    test('соперник подключился: код больше не нужен', () async {
+      final game = await hosted();
+      final cubit = makeCubit(game);
+      await cubit.stream.firstWhere((state) => state is HostInviteReady);
+
+      final done = cubit.stream.firstWhere((state) => state is HostInviteDone);
+      final found = (await discover().firstWhere((games) => games.isNotEmpty)).single;
+      await joinGame(found: found.found, playerName: 'Вереск');
+      await settle();
+
+      await done;
+    });
+
+    test('гость стучится, а хост ещё смотрит на код: код закрывается, чтобы хост увидел запрос', () async {
+      final game = ((await admittingGame(gameName: 'Цири', playerName: 'Цири')) as NetworkGameOpened).game;
+      final cubit = makeCubit(game);
+      await cubit.stream.firstWhere((state) => state is HostInviteReady);
+
+      final done = cubit.stream.firstWhere((state) => state is HostInviteDone);
+      final found = (await discover().firstWhere((games) => games.isNotEmpty)).single;
+      await joinGame(found: found.found, playerName: 'Вереск');
+      await settle();
+
+      await done;
+      expect(game.room.pendingGuest, 'Вереск');
+    });
+
+    test('соперник подключился, пока открывался экран: код не показывается', () async {
+      final game = await hosted();
+      final found = (await discover().firstWhere((games) => games.isNotEmpty)).single;
+      await joinGame(found: found.found, playerName: 'Вереск');
+      await settle();
+
+      final cubit = makeCubit(game);
+
+      expect(cubit.state, isA<HostInviteDone>());
+    });
+
+    test('партия закрыта: адреса нет, показывать нечего', () async {
+      final game = await hosted();
+      await game.close();
+
+      final cubit = makeCubit(game);
+
+      await cubit.stream.firstWhere((state) => state is HostInviteFailed || state is HostInviteDone);
     });
   });
 
@@ -408,6 +655,64 @@ void main() {
       await settle();
       await back;
       expect(cubit.state.lost, isFalse);
+    });
+
+    test('молчание гостя дольше 5 с: у хоста и гостя «нестабильно», когда кадры идут, пропадает', () async {
+      lobby.faultScheduler = scheduler;
+      final (host, guest) = await pair();
+      final hostCubit = connection(host);
+      final guestCubit = connection(guest);
+
+      lobby.guestLinks.single.faults = const Faults(drop: 1);
+      await scheduler.elapse(const Duration(seconds: 6));
+      await settle();
+
+      expect(hostCubit.state.unstable, isTrue);
+      expect(hostCubit.state.lost, isFalse);
+      expect(guestCubit.state.unstable, isTrue);
+      expect(guestCubit.state.lost, isFalse);
+
+      lobby.guestLinks.single.faults = Faults.none;
+      await scheduler.elapse(const Duration(seconds: 3));
+      await settle();
+
+      expect(hostCubit.state, const MatchConnectionState(isHost: true));
+      expect(guestCubit.state, const MatchConnectionState(isHost: false));
+    });
+
+    test('хост свернул приложение: гость видит окно «пауза», у хоста его нет, возвращение его убирает', () async {
+      final (host, guest) = await pair();
+      final hostCubit = connection(host);
+      final guestCubit = connection(guest);
+
+      host.setAway(away: true);
+      await settle();
+      expect(guestCubit.state.away, isTrue);
+      expect(guestCubit.state.lost, isFalse);
+      expect(hostCubit.state.away, isFalse);
+
+      guestCubit.wait();
+      expect(guestCubit.state.dismissed, isTrue);
+
+      host.setAway(away: false);
+      await settle();
+      expect(guestCubit.state, const MatchConnectionState(isHost: false));
+    });
+
+    test('обрыв связи важнее «свернул приложение»: при потере хоста гость видит окно обрыва', () async {
+      final (host, guest) = await pair();
+      final cubit = connection(guest);
+      host.setAway(away: true);
+      await settle();
+      expect(cubit.state.away, isTrue);
+      lobby.failJoins = 1000;
+
+      await lobby.hostEnds.single.close();
+      await settle();
+
+      expect(cubit.state.lost, isTrue);
+      expect(cubit.state.away, isFalse);
+      expect(cubit.state.dismissed, isFalse);
     });
   });
 }

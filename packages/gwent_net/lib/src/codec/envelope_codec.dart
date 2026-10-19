@@ -8,6 +8,7 @@ import 'package:gwent_net/src/codec/intent_json.dart';
 import 'package:gwent_net/src/codec/json_reader.dart';
 import 'package:gwent_net/src/codec/protocol_exception.dart';
 import 'package:gwent_net/src/codec/view_json.dart';
+import 'package:gwent_net/src/protocol/display_name.dart';
 import 'package:gwent_net/src/protocol/envelope.dart';
 import 'package:gwent_net/src/protocol/net_message.dart';
 import 'package:gwent_net/src/protocol/protocol_version.dart';
@@ -87,6 +88,7 @@ String _type(NetMessage message) => switch (message) {
   CountdownCancel() => 'countdown_cancel',
   OpponentLeave() => 'opponent_leave',
   LobbyClose() => 'lobby_close',
+  Admitted() => 'admitted',
 };
 
 Map<String, Object?> _payload(NetMessage message) => switch (message) {
@@ -117,9 +119,14 @@ Map<String, Object?> _payload(NetMessage message) => switch (message) {
     'reply_to': replyTo,
     'reject': ?_encodeOptionalReject(reject),
   },
-  OpponentPresence(:final online, :final name) => {'online': online, 'name': name},
+  OpponentPresence(:final online, :final name, :final unstable, :final away) => {
+    'online': online,
+    'name': name,
+    'unstable': ?(unstable ? true : null),
+    'away': ?(away ? true : null),
+  },
   LobbyStatus(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
-  DeckWithdrawal() || LobbyLeave() || CountdownCancel() || OpponentLeave() || LobbyClose() => const {},
+  DeckWithdrawal() || LobbyLeave() || CountdownCancel() || OpponentLeave() || LobbyClose() || Admitted() => const {},
   OpponentLobby(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
   CountdownStart(:final duration) => {'ms': duration.inMilliseconds},
 };
@@ -127,7 +134,7 @@ Map<String, Object?> _payload(NetMessage message) => switch (message) {
 NetMessage _message(String type, JsonReader p) => switch (type) {
   'hello' => Hello(
     ruleset: decodeRuleset(p.object('ruleset')),
-    playerName: p.string('name'),
+    playerName: cleanDisplayName(p.string('name')),
     appVersion: p.string('app'),
     resumeToken: p.optionalString('resume_token'),
   ),
@@ -150,20 +157,33 @@ NetMessage _message(String type, JsonReader p) => switch (type) {
     replyTo: p.integer('reply_to'),
     reject: p.optional('reject', decodeReject),
   ),
-  'opponent' => OpponentPresence(online: p.boolean('online'), name: p.string('name')),
+  'opponent' => OpponentPresence(
+    online: p.boolean('online'),
+    name: cleanDisplayName(p.string('name')),
+    unstable: p.optionalBoolean('unstable') ?? false,
+    away: p.optionalBoolean('away') ?? false,
+  ),
   'lobby_status' => _lobbyStatus(p),
   'deck_withdraw' => const DeckWithdrawal(),
   'lobby_leave' => const LobbyLeave(),
   'opponent_lobby' => OpponentLobby(p.enumValue('stage', LobbyStage.values), leader: _optionalLeader(p)),
-  'countdown_start' => CountdownStart(Duration(milliseconds: p.integer('ms'))),
+  'countdown_start' => CountdownStart(_countdown(p)),
   'countdown_cancel' => const CountdownCancel(),
   'opponent_leave' => const OpponentLeave(),
   'lobby_close' => const LobbyClose(),
+  'admitted' => const Admitted(),
   final other => throw MalformedFrame(
     r'$.t: '
     'неизвестный тип сообщения «$other»',
   ),
 };
+
+/// Отсчёт до старта: разумный срок. Хост ставит секунды, а чужой хост не должен выдать игроку отсчёт в годы.
+Duration _countdown(JsonReader p) {
+  final ms = p.integer('ms');
+  if (ms < 0 || ms > 60 * 1000) throw MalformedFrame('${p.path}.ms: отсчёт $ms мс вне 0–60000');
+  return Duration(milliseconds: ms);
+}
 
 Map<String, Object?>? _encodeOptionalReject(Reject? reject) => reject == null ? null : encodeReject(reject);
 

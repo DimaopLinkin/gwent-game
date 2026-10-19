@@ -1,27 +1,32 @@
-import 'package:gwent/src/features/deck_builder/application/get_active_deck.dart';
+import 'package:gwent/src/core/domain/seed_generator.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
+import 'package:gwent/src/features/match/domain/bot_deck_builder.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
+import 'package:gwent_engine/gwent_engine.dart' show SeededRng;
 
-/// Сценарий: колода бота против игрока.
+/// Сценарий: колода бота против игрока (ADR 0021).
 ///
-/// Бот играет следующей по порядку пакета фракцией после фракции игрока (после последней идёт первая), чтобы
-/// фракции в партиях против бота менялись, а не повторялись. Колода бота — активная колода той фракции
-/// (`GetActiveDeck`): её игрок выбрал или собрал сам, а если подходящей нет, сценарий создаёт стартовую.
+/// Фракция бота выбирается случайно среди всех фракций с колодой, в том числе совпадающей с фракцией игрока.
+/// Колоду бот собирает сам под уровень сложности ([BotDeckBuilder]) с долей случайности: колода одного уровня
+/// каждый раз другая. Случайность идёт от [SeedGenerator], поэтому с фиксированным сидом выбор повторяется.
+/// Колода в хранилище не попадает: она живёт только в запросе на партию.
 final class ChooseOpponentDeck {
   /// Создаёт сценарий.
-  const ChooseOpponentDeck(this._rules, this._getActiveDeck);
+  const ChooseOpponentDeck(this._rules, this._seeds);
 
   final DeckRulesSource _rules;
-  final GetActiveDeck _getActiveDeck;
+  final SeedGenerator _seeds;
 
-  /// Колода бота против игрока, играющего фракцией [playerFactionId].
+  /// Колода бота уровня [difficulty].
   ///
   /// Бросает [NotADeckFactionException], если в пакете нет ни одной фракции с колодой.
-  Future<Deck> call(String playerFactionId) async {
-    final factions = (await _rules.load()).deckFactions;
-    if (factions.isEmpty) throw NotADeckFactionException(playerFactionId);
-    final index = factions.indexWhere((faction) => faction.id == playerFactionId);
-    return _getActiveDeck(factions[(index + 1) % factions.length].id);
+  Future<Deck> call(BotDifficulty difficulty) async {
+    final rules = await _rules.load();
+    final factions = rules.deckFactions;
+    if (factions.isEmpty) throw const NotADeckFactionException('');
+    final (index, rng) = SeededRng(_seeds.next()).nextInt(factions.length);
+    return BotDeckBuilder(rules).build(factions[index].id, difficulty, rng);
   }
 }

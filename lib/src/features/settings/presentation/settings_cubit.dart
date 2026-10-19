@@ -9,12 +9,15 @@ import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/domain/content_update_result.dart';
 import 'package:gwent/src/features/settings/presentation/settings_state.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 
 /// Держатель экрана настроек.
 ///
 /// Читает настройки один раз и дальше держит их у себя: экран единственный, кто их меняет, а повторное чтение из
 /// хранилища после каждой записи заставило бы ползунок дёргаться. Каждое изменение сразу попадает в состояние и
-/// уходит в хранилище. Громкость пишется отдельно, когда игрок отпустил ползунок ([saveVolumes]).
+/// уходит в хранилище. Громкость пишется отдельно, когда игрок отпустил ползунок ([saveVolumes]); новая громкость
+/// эффектов сразу звучит образцом, а громкость музыки подхватывает фоновая музыка из сохранённых настроек.
 final class SettingsCubit extends Cubit<SettingsState> {
   /// Создаёт держатель и сразу начинает читать настройки.
   ///
@@ -26,7 +29,9 @@ final class SettingsCubit extends Cubit<SettingsState> {
     required LoadAboutInfo loadAboutInfo,
     required CheckContentUpdate checkContentUpdate,
     this.minCheckDuration = const Duration(milliseconds: 800),
-  }) : _watchSettings = watchSettings,
+    PlaySound? sound,
+  }) : _sound = sound,
+       _watchSettings = watchSettings,
        _saveSettings = saveSettings,
        _loadAboutInfo = loadAboutInfo,
        _checkContentUpdate = checkContentUpdate,
@@ -38,6 +43,10 @@ final class SettingsCubit extends Cubit<SettingsState> {
   final SaveSettings _saveSettings;
   final LoadAboutInfo _loadAboutInfo;
   final CheckContentUpdate _checkContentUpdate;
+  final PlaySound? _sound;
+
+  /// Громкость эффектов, образец которой играл в последний раз.
+  int? _previewedEffects;
 
   /// Наименьшая длительность состояния «Проверка…».
   final Duration minCheckDuration;
@@ -46,6 +55,7 @@ final class SettingsCubit extends Cubit<SettingsState> {
     try {
       final settings = await _watchSettings().first;
       final about = await _loadAboutInfo();
+      _previewedEffects = settings.effectsVolume;
       if (!isClosed) emit(SettingsLoaded(settings: settings, about: about));
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
@@ -71,9 +81,15 @@ final class SettingsCubit extends Cubit<SettingsState> {
   /// Громкость эффектов меняется под пальцем; в хранилище попадёт после [saveVolumes].
   void changeEffectsVolume(int volume) => _change((settings) => settings.copyWith(effectsVolume: volume), save: false);
 
-  /// Игрок отпустил ползунок: сохраняет громкость.
+  /// Игрок отпустил ползунок: сохраняет громкость. Если изменилась громкость эффектов, звучит образец.
   void saveVolumes() {
-    if (state case SettingsLoaded(:final settings)) unawaited(_save(settings));
+    if (state case SettingsLoaded(:final settings)) {
+      unawaited(_save(settings));
+      if (settings.effectsVolume != _previewedEffects) {
+        _previewedEffects = settings.effectsVolume;
+        _sound?.call(SoundEffect.turnMine, volume: settings.effectsVolume);
+      }
+    }
   }
 
   /// Проверяет обновление набора карт; пока проверка идёт, повторное нажатие ничего не делает.

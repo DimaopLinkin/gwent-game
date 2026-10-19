@@ -48,6 +48,18 @@ final class ViewChanged extends ClientEvent {
   List<Object?> get props => [view, events];
 }
 
+/// Хост прислал данные, которых нет в справочнике клиента (карта, лидер) или проекцию не для этого игрока.
+/// Соединение закрыто, и возвращаться к такому хосту бессмысленно.
+final class HostDataInvalid extends ClientEvent {
+  const HostDataInvalid(this.problem);
+
+  /// Что именно не так, для журнала и отладки.
+  final String problem;
+
+  @override
+  List<Object?> get props => [problem];
+}
+
 /// Хост не выполнил сообщение клиента.
 final class ActionRefused extends ClientEvent {
   const ActionRefused(this.refusal, {required this.request});
@@ -63,15 +75,31 @@ final class ActionRefused extends ClientEvent {
 
 /// Соперник на связи или отключился.
 final class OpponentPresenceChanged extends ClientEvent {
-  const OpponentPresenceChanged({required this.online, required this.name});
+  const OpponentPresenceChanged({required this.online, required this.name, this.unstable = false, this.away = false});
 
   final bool online;
 
   /// Имя соперника.
   final String name;
 
+  /// Хост давно не слышал соперника, хотя обрыв ещё не засчитан.
+  final bool unstable;
+
+  /// Соперник свернул приложение.
+  final bool away;
+
   @override
-  List<Object?> get props => [online, name];
+  List<Object?> get props => [online, name, unstable, away];
+}
+
+/// Связь этого клиента с хостом стала нестабильной (хост молчит дольше обычного) или выровнялась.
+final class LinkQualityChanged extends ClientEvent {
+  const LinkQualityChanged({required this.unstable});
+
+  final bool unstable;
+
+  @override
+  List<Object?> get props => [unstable];
 }
 
 /// Соперник изменил своё состояние в лобби: стадию и лидера выбранной колоды.
@@ -116,6 +144,14 @@ final class OpponentLeft extends ClientEvent {
 /// Хост закрыл лобби: возвращаться некуда, переподключаться не нужно.
 final class LobbyClosed extends ClientEvent {
   const LobbyClosed();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Хост пустил игрока в лобби: до этого хост решал, принять ли его.
+final class GuestAdmitted extends ClientEvent {
+  const GuestAdmitted();
 
   @override
   List<Object?> get props => const [];

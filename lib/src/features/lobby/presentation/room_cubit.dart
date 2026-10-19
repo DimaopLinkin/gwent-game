@@ -47,6 +47,12 @@ final class RoomCubit extends Cubit<RoomState> {
     }
   }
 
+  /// Хост пускает гостя, который ждёт решения.
+  void admitGuest() => _game.admitGuest();
+
+  /// Хост не пускает гостя, который ждёт решения.
+  void declineGuest() => _game.declineGuest();
+
   void _onRoom(LobbyRoom room) {
     final previous = state.room;
     emit(state.copyWith(room: room));

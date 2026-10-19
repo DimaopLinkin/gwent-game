@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:gwent_net/src/client/client_event.dart';
 import 'package:gwent_net/src/client/client_settings.dart';
+import 'package:gwent_net/src/client/host_data_check.dart';
 import 'package:gwent_net/src/client/resume_ticket.dart';
 import 'package:gwent_net/src/codec/protocol_exception.dart';
 import 'package:gwent_net/src/protocol/envelope.dart';
@@ -35,13 +36,20 @@ enum ConnectionStatus {
 /// Намерения, отправленные без связи, ждут в очереди и уходят после переподключения. Переподключение
 /// делает приложение: получает новый транспорт (лобби, QR, другой вид связи) и вызывает [connect].
 final class MatchClient {
-  MatchClient({required ClientSettings settings, required Scheduler scheduler, ResumeTicket? ticket})
-    : _settings = settings,
-      _scheduler = scheduler,
-      _ticket = ticket,
-      _channel = SequencedChannel(matchId: ticket?.matchId);
+  /// [catalog] обязателен: им проверяются данные хоста: карты и лидеры из его кадров должны быть в справочнике клиента.
+  MatchClient({
+    required ClientSettings settings,
+    required Scheduler scheduler,
+    ResumeTicket? ticket,
+    required CardCatalog catalog,
+  }) : _settings = settings,
+       _catalog = catalog,
+       _scheduler = scheduler,
+       _ticket = ticket,
+       _channel = SequencedChannel(matchId: ticket?.matchId);
 
   final ClientSettings _settings;
+  final CardCatalog _catalog;
   final Scheduler _scheduler;
   final SequencedChannel _channel;
   final StreamController<ClientEvent> _events = StreamController<ClientEvent>.broadcast();
@@ -83,6 +91,8 @@ final class MatchClient {
       onEnvelope: _onEnvelope,
       onMalformed: _onMalformed,
       onLost: _onLost,
+      quietAfter: _settings.unstableAfter,
+      onQuiet: _onQuiet,
     );
     _link = link;
     _status = ConnectionStatus.joining;
@@ -188,15 +198,19 @@ final class MatchClient {
   void _onSequenced(PeerLink link, NetMessage message) {
     switch (message) {
       case MatchUpdate(:final events, :final view):
-        _view = view;
-        _emit(ViewChanged(view, events));
+        if (_acceptable(link, view, events)) {
+          _view = view;
+          _emit(ViewChanged(view, events));
+        }
       case MatchSnapshot(:final view):
-        _view = view;
-        _emit(ViewChanged(view, const []));
+        if (_acceptable(link, view, const [])) {
+          _view = view;
+          _emit(ViewChanged(view, const []));
+        }
       case final Refusal refusal:
         _emit(ActionRefused(refusal, request: refusal.replyTo - (_base ?? 0)));
-      case OpponentPresence(:final online, :final name):
-        _emit(OpponentPresenceChanged(online: online, name: name));
+      case OpponentPresence(:final online, :final name, :final unstable, :final away):
+        _emit(OpponentPresenceChanged(online: online, name: name, unstable: unstable, away: away));
       case OpponentLobby(:final stage, :final leader):
         _emit(OpponentLobbyChanged(stage, leader: leader));
       case CountdownStart(:final duration):
@@ -205,6 +219,8 @@ final class MatchClient {
         _emit(const CountdownCancelled());
       case OpponentLeave():
         _emit(const OpponentLeft());
+      case Admitted():
+        _emit(const GuestAdmitted());
       case LobbyClose():
         // Хост закроет соединение сам; обрыв после этого сообщения не повод переподключаться.
         _status = ConnectionStatus.closed;
@@ -215,12 +231,28 @@ final class MatchClient {
     }
   }
 
+  /// Данные хоста годятся для экрана. Если нет, клиент сообщает об этом и закрывает соединение.
+  bool _acceptable(PeerLink link, PlayerView view, List<GameEvent> events) {
+    final problem = findHostDataProblem(_catalog, view: view, events: events, seat: _seat);
+    if (problem == null) return true;
+    // Как после `LobbyClose`: обрыв, который следует за этим, не повод переподключаться к тому же хосту.
+    _status = ConnectionStatus.closed;
+    _emit(HostDataInvalid(problem));
+    unawaited(link.close());
+    return false;
+  }
+
   void _sendPing() {
     final link = _link;
     if (link != null && _status == ConnectionStatus.online) link.send(_channel.control(Ping(sent: _channel.sent)));
   }
 
   void _onMalformed(PeerLink link, ProtocolException error) => unawaited(link.close());
+
+  void _onQuiet(PeerLink link, {required bool quiet}) {
+    if (link != _link || _status != ConnectionStatus.online) return;
+    _emit(LinkQualityChanged(unstable: quiet));
+  }
 
   void _onLost(PeerLink link) {
     if (link != _link) return;

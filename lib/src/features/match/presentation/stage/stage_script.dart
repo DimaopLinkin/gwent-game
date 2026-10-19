@@ -1,5 +1,6 @@
 import 'package:gwent/src/features/match/presentation/stage/stage_beat.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:meta/meta.dart';
 
@@ -112,6 +113,19 @@ final class RowSpec {
   );
 }
 
+/// Звук в сценарии: [effect] начинается в момент [at] (мс от начала сценария).
+@immutable
+final class SoundCue {
+  /// Создаёт звук сценария.
+  const SoundCue({required this.at, required this.effect});
+
+  /// Момент начала звука.
+  final double at;
+
+  /// Эффект.
+  final SoundEffect effect;
+}
+
 /// Сценарий показа одного обновления партии: что и когда движется.
 ///
 /// Сценарий не знает размеров экрана и не рисует: он собран из событий партии заранее, а в любой момент [frameAt]
@@ -128,6 +142,7 @@ final class StageScript {
     this.veilEnds = 0,
     this.steps = const [],
     this.locks = const [],
+    this.cues = const [],
   });
 
   /// Номер сценария: по нему поле отличает свой сценарий от следующего.
@@ -151,6 +166,10 @@ final class StageScript {
 
   /// Отрезки, внутри которых тап по полю не ускоряет показ: плашки итога читают на обычной скорости.
   final List<(double, double)> locks;
+
+  /// Звуки сценария по времени: поле играет их, когда время сценария доходит до момента звука. Перескок кнопкой
+  /// «Пропустить» пропущенные звуки не играет.
+  final List<SoundCue> cues;
 
   /// Можно ли ускорять показ тапом в момент [time].
   bool tapSpeedsUp(double time) => !locks.any((lock) => time >= lock.$1 && time < lock.$2);

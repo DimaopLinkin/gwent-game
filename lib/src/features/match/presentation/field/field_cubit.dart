@@ -7,6 +7,8 @@ import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Держатель того, что на поле решает сам игрок или что объявляют события: выбранная карта руки, листы сброса и
@@ -26,10 +28,14 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// Розыгрыш карт и эффекты (макет 12, ADR 0017) строятся здесь же из событий и двух проекций, до и после
 /// обновления: сценарий собирается сразу, поэтому поле занято с первого кадра. Сценарий одинаков для своего хода,
 /// хода бота и хода соперника по сети.
+///
+/// Звуки партии (ADR 0023): звуки розыгрыша и конца раунда лежат в сценарии и играет их поле через [playSound];
+/// остальные держатель играет сам: знакомство, раздачу, пересдачу, баннеры, выбор карты, листы и отказы. Без [PlaySound]
+/// (тесты) партия идёт без звука.
 final class FieldCubit extends Cubit<FieldState> {
   /// Создаёт держатель с пустым состоянием; [finishHold] — сколько поле держит конец партии (последний ход и счёт),
   /// прежде чем открыть итог матча.
-  FieldCubit({this.finishHold = defaultFinishHold}) : super(const FieldState());
+  FieldCubit({this.finishHold = defaultFinishHold, PlaySound? sound}) : _sound = sound, super(const FieldState());
 
   /// Сколько поле держит конец партии по умолчанию.
   static const Duration defaultFinishHold = Duration(milliseconds: 2200);
@@ -40,6 +46,7 @@ final class FieldCubit extends Cubit<FieldState> {
   /// Запас времени сверх длительности сценария: если поле его не отыграло (экран ушёл), сценарий снимается сам.
   static const Duration stageGrace = Duration(milliseconds: 1500);
 
+  final PlaySound? _sound;
   Timer? _finishTimer;
   Timer? _stageTimer;
   int _stageCount = 0;
@@ -48,17 +55,28 @@ final class FieldCubit extends Cubit<FieldState> {
   final Set<int> _announcedRounds = {};
   final Set<int> _summarizedRounds = {};
   Seat? _lastTurn;
+  bool _dealtAnnounced = false;
+
+  /// Баннер, чей звук уже сыграл: баннер звучит, когда выходит на экран, а не когда встал в очередь.
+  FieldBanner? _voicedBanner;
 
   /// Скоя'таэли выбрали первого игрока, а баннер первого хода ещё не показан: подпись достанется ему.
   bool _firstChoicePending = false;
 
+  /// Играет звук [effect]; без [PlaySound] ничего не делает.
+  void playSound(SoundEffect effect) => _sound?.call(effect);
+
   /// Выбирает карту руки [id]; повторный выбор той же карты снимает выбор.
-  void toggleSelected(CardInstanceId id) =>
-      emit(state.selected == id ? state.copyWith(clearSelected: true) : state.copyWith(selected: id));
+  void toggleSelected(CardInstanceId id) {
+    if (state.selected != id) playSound(SoundEffect.select);
+    emit(state.selected == id ? state.copyWith(clearSelected: true) : state.copyWith(selected: id));
+  }
 
   /// Выбирает карту руки [id] (например, когда её начали тащить).
   void select(CardInstanceId id) {
-    if (state.selected != id) emit(state.copyWith(selected: id));
+    if (state.selected == id) return;
+    playSound(SoundEffect.select);
+    emit(state.copyWith(selected: id));
   }
 
   /// Снимает выбор карты.
@@ -67,10 +85,16 @@ final class FieldCubit extends Cubit<FieldState> {
   }
 
   /// Открывает лист сброса.
-  void openDiscard({required bool mine}) => emit(state.copyWith(overlay: DiscardOverlay(mine: mine)));
+  void openDiscard({required bool mine}) {
+    playSound(SoundEffect.sheetOpen);
+    emit(state.copyWith(overlay: DiscardOverlay(mine: mine)));
+  }
 
   /// Открывает лист лидера.
-  void openLeader({required bool mine}) => emit(state.copyWith(overlay: LeaderOverlay(mine: mine)));
+  void openLeader({required bool mine}) {
+    playSound(SoundEffect.sheetOpen);
+    emit(state.copyWith(overlay: LeaderOverlay(mine: mine)));
+  }
 
   /// Закрывает лист.
   void closeOverlay() {
@@ -146,6 +170,7 @@ final class FieldCubit extends Cubit<FieldState> {
         _stageTimer?.cancel();
         if (!state.isClean) emit(const FieldState());
         if (match is MatchIntro || match is MatchStarting) _forget();
+        if (match is MatchIntro) playSound(SoundEffect.matchOpening);
     }
   }
 
@@ -156,6 +181,7 @@ final class FieldCubit extends Cubit<FieldState> {
     _seen.clear();
     _lastTurn = null;
     _firstChoicePending = false;
+    _dealtAnnounced = false;
   }
 
   void _onProgress(
@@ -168,6 +194,7 @@ final class FieldCubit extends Cubit<FieldState> {
   ) {
     var next = state;
     if (events.any((event) => event is FirstPlayerChosen && event.byChoice)) _firstChoicePending = true;
+    _playDealSounds(view, events);
     // Конец раунда или матча показывает по полю перед последним действием; остальное — по прошлой увиденной проекции.
     final roundSummary = closing == null ? null : _roundSummaryFor(view, events);
     final script = closing != null && roundSummary != null
@@ -276,6 +303,39 @@ final class FieldCubit extends Cubit<FieldState> {
       catalog: content.catalog,
       style: style,
     ).buildRound(++_stageCount, events, summary: summary);
+  }
+
+  /// Раздача и пересдача: руки розданы (один раз за партию), игрок поменял карту.
+  void _playDealSounds(PlayerView view, List<GameEvent> events) {
+    if (view.phase == MatchPhase.redraw && !_dealtAnnounced) {
+      _dealtAnnounced = true;
+      playSound(SoundEffect.matchStart);
+    }
+    if (events.any((event) => event is CardRedrawn && event.seat == view.viewer)) playSound(SoundEffect.redraw);
+  }
+
+  /// Звуки того, что появилось на поле: баннер, который вышел на экран, и тост-отказ.
+  ///
+  /// Баннер скрыт, пока идёт анимация, открыт лист итога или пауза (`BannerLayer` в `FieldView`), и звучит, когда
+  /// выходит на экран, а не когда встал в очередь.
+  @override
+  void onChange(Change<FieldState> change) {
+    super.onChange(change);
+    final next = change.nextState;
+    final shown = next.stage == null && next.summary == null && next.pause == PauseLayer.none;
+    final banner = shown ? next.banners.firstOrNull : null;
+    if (banner != null && !identical(banner, _voicedBanner)) {
+      _voicedBanner = banner;
+      final effect = switch (banner) {
+        RoundStartBanner(round: 1) => SoundEffect.firstRoundStart,
+        RoundStartBanner() => null,
+        PassBanner() => SoundEffect.pass,
+        TurnStartBanner(:final mine) => mine ? SoundEffect.turnMine : SoundEffect.turnOpponent,
+      };
+      if (effect != null) playSound(effect);
+    }
+    final toast = change.nextState.toast;
+    if (toast != null && toast.id != change.currentState.toast?.id) playSound(SoundEffect.warning);
   }
 
   static bool _isResignation(GameEvent event) =>

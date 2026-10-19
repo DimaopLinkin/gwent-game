@@ -44,6 +44,7 @@ final class NetworkGame {
        _address = address {
     _events = client.events.listen(_onEvent);
     if (host != null && hosted != null) {
+      _pending = host.pendingGuest.listen(_onPendingGuest);
       _connections = hosted.connections.listen(
         host.accept,
         // Система закрыла приём соединений (например, iOS при сворачивании): новых гостей не будет.
@@ -75,6 +76,7 @@ final class NetworkGame {
 
   late final StreamSubscription<ClientEvent> _events;
   StreamSubscription<Transport>? _connections;
+  StreamSubscription<PendingGuest?>? _pending;
   final StreamController<LobbyRoom> _rooms = StreamController<LobbyRoom>.broadcast();
 
   /// Обновления для стола партии: копятся, пока стол не открыт, и первым идёт раздача.
@@ -154,6 +156,18 @@ final class NetworkGame {
     _setRoom(_room.copyWith(myStage: LobbyStage.chosen, clearCountdown: true));
   }
 
+  /// Хост пускает игрока, который ждёт решения. Без ожидающего ничего не делает.
+  void admitGuest() {
+    if (_closed || _room.pendingGuest == null) return;
+    if (_host?.pendingGuestNow?.seat case final seat?) _host?.admit(seat);
+  }
+
+  /// Хост не пускает игрока, который ждёт решения: тот получает отказ. Без ожидающего ничего не делает.
+  void declineGuest() {
+    if (_closed || _room.pendingGuest == null) return;
+    if (_host?.pendingGuestNow?.seat case final seat?) _host?.decline(seat);
+  }
+
   /// Уходит из лобби. Хост закрывает партию для обоих, гость освобождает место.
   Future<void> leave() async {
     if (_closed) return;
@@ -187,6 +201,20 @@ final class NetworkGame {
     );
   }
 
+  /// Адрес партии для приглашения по QR-коду; `null` у гостя и у закрытой игры.
+  Future<GameAddress?> address() async {
+    final hosted = _hosted;
+    return _closed || hosted == null ? null : hosted.address();
+  }
+
+  /// Хост свернул приложение ([away]) или вернулся: гость видит паузу, пока связь жива. У гостя ничего не делает:
+  /// его уход виден хосту как обрыв связи.
+  void setAway({required bool away}) {
+    final seat = _room.seat;
+    if (_closed || seat == null) return;
+    _host?.setAway(seat, away: away);
+  }
+
   /// Партию открыли для экрана: комната больше не нужна и не закрывает игру.
   bool get handedOver => _handedOver;
 
@@ -201,6 +229,7 @@ final class NetworkGame {
     if (_settled case final settled? when !settled.isCompleted) settled.complete(_room);
     await _events.cancel();
     await _connections?.cancel();
+    await _pending?.cancel();
     await _client.close();
     await _host?.close();
     try {
@@ -225,7 +254,7 @@ final class NetworkGame {
         _reconnecting = false;
         _deadline?.cancel();
         _deadline = null;
-        _setRoom(_room.copyWith(seat: seat, link: RoomLink.online));
+        _setRoom(_room.copyWith(seat: seat, link: RoomLink.online, linkUnstable: false));
       case JoinRefused(:final reason):
         _reconnecting = false;
         _deadline?.cancel();
@@ -236,18 +265,24 @@ final class NetworkGame {
         _onView(view, events);
       case ActionRefused(:final refusal, :final request):
         _onRefusal(refusal, request);
-      case OpponentPresenceChanged(:final online, :final name):
+      case LinkQualityChanged(:final unstable):
+        _setRoom(_room.copyWith(linkUnstable: unstable));
+      case OpponentPresenceChanged(:final online, :final name, :final unstable, :final away):
         // Посреди партии из соперника меняется только связь: по ней экран показывает обрыв.
         if (_room.started) {
           if (_room.opponent case final opponent?) {
-            _setRoom(_room.copyWith(opponent: opponent.copyWith(online: online)));
+            _setRoom(
+              _room.copyWith(
+                opponent: opponent.copyWith(online: online, unstable: unstable, away: away),
+              ),
+            );
           }
           return;
         }
         final opponent = _room.opponent ?? RoomOpponent(name: name, online: online);
         _setRoom(
           _room.copyWith(
-            opponent: opponent.copyWith(name: name, online: online),
+            opponent: opponent.copyWith(name: name, online: online, unstable: unstable, away: away),
           ),
         );
       case OpponentLobbyChanged(:final stage, :final leader):
@@ -264,9 +299,21 @@ final class NetworkGame {
         _setRoom(_room.copyWith(clearCountdown: true));
       case OpponentLeft():
         _setRoom(_room.copyWith(clearOpponent: true, clearCountdown: true));
+      case GuestAdmitted():
+        _setRoom(_room.copyWith(admitted: true));
       case LobbyClosed():
         _setRoom(_room.copyWith(end: const RoomHostClosed()));
+      case HostDataInvalid():
+        _reconnecting = false;
+        _deadline?.cancel();
+        _setRoom(_room.copyWith(end: const RoomHostInvalid(), clearCountdown: true));
+        if (_room.started && !_table.isClosed) _table.add(const TableFailed(RoomHostInvalid()));
     }
+  }
+
+  void _onPendingGuest(PendingGuest? guest) {
+    if (_closed) return;
+    _setRoom(guest == null ? _room.copyWith(clearPendingGuest: true) : _room.copyWith(pendingGuest: guest.name));
   }
 
   void _onView(PlayerView view, List<GameEvent> events) {
@@ -298,7 +345,7 @@ final class NetworkGame {
       _setRoom(_room.copyWith(end: const RoomConnectionLost()));
       return;
     }
-    _setRoom(_room.copyWith(link: RoomLink.lost));
+    _setRoom(_room.copyWith(link: RoomLink.lost, linkUnstable: false));
     if (_host != null || _lobby == null || _address == null) return;
     _reconnecting = true;
     _deadline ??= _scheduler.timer(reconnectWindow, _giveUp);

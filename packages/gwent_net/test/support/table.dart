@@ -122,6 +122,7 @@ final class Table {
       settings: ClientSettings(ruleset: clientRuleset, playerName: name, appVersion: _settings.appVersion),
       scheduler: scheduler,
       ticket: ticket,
+      catalog: catalog,
     );
     final log = events[client] = [];
     client.events.listen((event) {
@@ -134,7 +135,7 @@ final class Table {
   /// Подключает клиента хоста.
   void connectHost() {
     final (client, server) = InMemoryTransport.pair();
-    host.accept(server);
+    host.accept(server, trusted: true);
     hostClient.connect(client);
   }
 

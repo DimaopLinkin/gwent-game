@@ -61,6 +61,9 @@ enum JoinRefusal {
 
   /// Токен переподключения не подходит к этой партии.
   unknownResumeToken,
+
+  /// Хост не пустил игрока или не ответил вовремя.
+  declined,
 }
 
 /// Хост → клиент: подключение отклонено; хост закрывает соединение.
@@ -239,15 +242,21 @@ final class Refusal extends HostMessage {
 
 /// Хост → клиент: соперник подключился, отключился или вернулся.
 final class OpponentPresence extends HostMessage {
-  const OpponentPresence({required this.online, required this.name});
+  const OpponentPresence({required this.online, required this.name, this.unstable = false, this.away = false});
 
   final bool online;
 
   /// Имя соперника из его `hello`.
   final String name;
 
+  /// Соперник на связи, но хост давно не слышал его: связь нестабильна, обрыв ещё не засчитан.
+  final bool unstable;
+
+  /// Соперник свернул приложение: партия ждёт его возвращения, пока связь жива.
+  final bool away;
+
   @override
-  List<Object?> get props => [online, name];
+  List<Object?> get props => [online, name, unstable, away];
 }
 
 /// Хост → клиент: что делает соперник в лобби. Приходит при каждом его изменении и сразу после подключения.
@@ -292,6 +301,14 @@ final class OpponentLeave extends HostMessage {
 /// Хост → клиент: хост закрыл лобби; следом закрывается соединение, возвращаться некуда.
 final class LobbyClose extends HostMessage {
   const LobbyClose();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Хост → клиент: хост пустил игрока в лобби. До этого сообщения игрок ждёт решения хоста (ADR 0022).
+final class Admitted extends HostMessage {
+  const Admitted();
 
   @override
   List<Object?> get props => const [];

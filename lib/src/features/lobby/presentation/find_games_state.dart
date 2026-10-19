@@ -1,5 +1,7 @@
 import 'package:gwent/src/features/lobby/application/discover_network_games.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/domain/game_address.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 
 /// Состояние экрана поиска партий рядом.
 sealed class FindGamesState {
@@ -27,6 +29,15 @@ final class FindGamesJoining extends FindGamesState {
   final String gameId;
 }
 
+/// Гость подключается по адресу из QR-кода.
+final class FindGamesJoiningByCode extends FindGamesState {
+  /// Создаёт состояние.
+  const FindGamesJoiningByCode(this.address);
+
+  /// Адрес из QR-кода.
+  final GameAddress address;
+}
+
 /// Гость подключился: экран уходит в комнату хоста.
 final class FindGamesJoined extends FindGamesState {
   /// Создаёт состояние.
@@ -35,18 +46,26 @@ final class FindGamesJoined extends FindGamesState {
 
 /// Подключиться не удалось.
 final class FindGamesFailed extends FindGamesState {
-  /// Создаёт состояние: [result] — причина, [game] — партия, к которой подключались.
-  const FindGamesFailed(this.result, this.game);
+  /// Создаёт состояние: [result] — причина, [game] — партия из списка, [address] — адрес из QR-кода. Задан ровно
+  /// один из двух.
+  const FindGamesFailed(this.result, {this.game, this.address})
+    : assert((game == null) != (address == null), 'нужна ровно одна цель: партия из списка или адрес');
 
   /// Почему не вышло.
   final NetworkOpenResult result;
 
-  /// Партия, к которой подключались; «Повторить» подключается к ней же.
-  final DiscoveredGame game;
+  /// Партия из списка, к которой подключались; «Повторить» подключается к ней же.
+  final DiscoveredGame? game;
+
+  /// Адрес из QR-кода, к которому подключались; «Повторить» подключается к нему же.
+  final GameAddress? address;
 }
 
 /// Поиск не работает: Wi-Fi выключен или нет доступа к локальной сети.
 final class FindGamesUnavailable extends FindGamesState {
-  /// Создаёт состояние.
-  const FindGamesUnavailable();
+  /// Создаёт состояние. [problem] — причина, если телефон смог её назвать.
+  const FindGamesUnavailable({this.problem});
+
+  /// Что именно мешает; `null`, если известно только, что поиск не работает.
+  final NetworkProblem? problem;
 }

@@ -36,6 +36,7 @@ class RoomScreen extends StatelessWidget {
     required this.title,
     required this.onPickDeck,
     required this.onBuildDeck,
+    required this.onShowQr,
     required this.onStarted,
     required this.onLeft,
   });
@@ -51,6 +52,9 @@ class RoomScreen extends StatelessWidget {
 
   /// Открывает конструктор: новую колоду или колоду [deckId]; возвращает идентификатор сохранённой или `null`.
   final Future<String?> Function(String? deckId) onBuildDeck;
+
+  /// Хост хочет показать QR-код партии.
+  final VoidCallback onShowQr;
 
   /// Хост начал партию.
   final VoidCallback onStarted;
@@ -103,7 +107,9 @@ class RoomScreen extends StatelessWidget {
                   children: [
                     ScreenHeader(
                       title: room.opponent == null && !room.started ? l10n.netCreateTitle : l10n.netRoomTitle,
-                      subtitle: room.opponent == null ? null : l10n.netRoomSubtitle(isHost ? title : _hostName(room)),
+                      subtitle: room.opponent == null
+                          ? null
+                          : l10n.netRoomSubtitle(isHost ? title : _hostName(room, l10n)),
                       titleSize: 32,
                       onBack: end != null ? onLeft : () => unawaited(_confirmLeave(context)),
                     ),
@@ -113,8 +119,12 @@ class RoomScreen extends StatelessWidget {
                         null when room.started => const GameLoader(),
                         null when room.opponent == null =>
                           isHost
-                              ? RoomWaiting(title: title, onCancel: () => unawaited(_confirmLeave(context)))
-                              : const GameLoader(caption: ''),
+                              ? RoomWaiting(
+                                  title: title,
+                                  onShowQr: onShowQr,
+                                  onCancel: () => unawaited(_confirmLeave(context)),
+                                )
+                              : GameLoader(caption: room.admitted ? '' : l10n.netGuestWaiting),
                         null => _Lobby(
                           state: state,
                           isHost: isHost,
@@ -128,6 +138,12 @@ class RoomScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (room.pendingGuest case final guest? when end == null && !room.started)
+                  RoomAdmission(
+                    name: guest,
+                    onAccept: context.read<RoomCubit>().admitGuest,
+                    onDecline: context.read<RoomCubit>().declineGuest,
+                  ),
                 if (state.countdownLeft case final left? when end == null && !room.started)
                   RoomCountdown(left: left, onCancel: context.read<RoomCubit>().cancelReady),
               ],
@@ -138,7 +154,10 @@ class RoomScreen extends StatelessWidget {
     );
   }
 
-  String _hostName(LobbyRoom room) => room.opponent?.name ?? '';
+  String _hostName(LobbyRoom room, AppLocalizations l10n) {
+    final name = room.opponent?.name ?? '';
+    return name.isEmpty ? l10n.netOpponentName : name;
+  }
 }
 
 class _Ended extends StatelessWidget {

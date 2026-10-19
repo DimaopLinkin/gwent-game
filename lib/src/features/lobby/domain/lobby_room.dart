@@ -18,7 +18,14 @@ enum RoomLink {
 @immutable
 final class RoomOpponent {
   /// Создаёт соперника.
-  const RoomOpponent({required this.name, required this.online, this.stage = LobbyStage.choosing, this.leader});
+  const RoomOpponent({
+    required this.name,
+    required this.online,
+    this.stage = LobbyStage.choosing,
+    this.leader,
+    this.unstable = false,
+    this.away = false,
+  });
 
   /// Имя из его `hello`.
   final String name;
@@ -32,14 +39,29 @@ final class RoomOpponent {
   /// Лидер его колоды; `null`, пока колода не выбрана. Колода соперника скрыта, видны только фракция и лидер.
   final LeaderId? leader;
 
+  /// Хост давно не слышал соперника, хотя обрыв ещё не засчитан (ADR 0020).
+  final bool unstable;
+
+  /// Соперник свернул приложение: партия ждёт его возвращения, пока связь жива.
+  final bool away;
+
   /// Копия с заменёнными полями.
-  RoomOpponent copyWith({String? name, bool? online, LobbyStage? stage, LeaderId? leader, bool clearLeader = false}) =>
-      RoomOpponent(
-        name: name ?? this.name,
-        online: online ?? this.online,
-        stage: stage ?? this.stage,
-        leader: clearLeader ? null : leader ?? this.leader,
-      );
+  RoomOpponent copyWith({
+    String? name,
+    bool? online,
+    LobbyStage? stage,
+    LeaderId? leader,
+    bool clearLeader = false,
+    bool? unstable,
+    bool? away,
+  }) => RoomOpponent(
+    name: name ?? this.name,
+    online: online ?? this.online,
+    stage: stage ?? this.stage,
+    leader: clearLeader ? null : leader ?? this.leader,
+    unstable: unstable ?? this.unstable,
+    away: away ?? this.away,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -47,10 +69,12 @@ final class RoomOpponent {
       other.name == name &&
       other.online == online &&
       other.stage == stage &&
-      other.leader == leader;
+      other.leader == leader &&
+      other.unstable == unstable &&
+      other.away == away;
 
   @override
-  int get hashCode => Object.hash(name, online, stage, leader);
+  int get hashCode => Object.hash(name, online, stage, leader, unstable, away);
 
   @override
   String toString() => 'RoomOpponent($name, online: $online, ${stage.name})';
@@ -101,6 +125,18 @@ final class RoomConnectionLost extends RoomEnd {
   int get hashCode => (RoomConnectionLost).hashCode;
 }
 
+/// Хост прислал данные, которых нет в справочнике этого телефона (неизвестная карта или лидер): подделка или сбой.
+final class RoomHostInvalid extends RoomEnd {
+  /// Создаёт причину.
+  const RoomHostInvalid();
+
+  @override
+  bool operator ==(Object other) => other is RoomHostInvalid;
+
+  @override
+  int get hashCode => (RoomHostInvalid).hashCode;
+}
+
 /// Комната сетевой игры до начала партии: кто в ней, что делает каждый и идёт ли отсчёт.
 @immutable
 final class LobbyRoom {
@@ -108,12 +144,15 @@ final class LobbyRoom {
   const LobbyRoom({
     this.seat,
     this.link = RoomLink.connecting,
+    this.linkUnstable = false,
     this.opponent,
     this.myStage = LobbyStage.choosing,
     this.myLeader,
     this.countdown,
     this.started = false,
     this.deckRefused = false,
+    this.admitted = false,
+    this.pendingGuest,
     this.end,
   });
 
@@ -122,6 +161,10 @@ final class LobbyRoom {
 
   /// Связь с хостом.
   final RoomLink link;
+
+  /// Хост молчит дольше обычного, хотя связь ещё не оборвана (ADR 0020). У хоста всегда `false`: он следит за гостем
+  /// через [RoomOpponent.unstable].
+  final bool linkUnstable;
 
   /// Соперник; `null`, пока никто не подключился или соперник ушёл.
   final RoomOpponent? opponent;
@@ -141,6 +184,12 @@ final class LobbyRoom {
   /// Хост не принял отправленную колоду; сбрасывается, когда игрок выбирает или отправляет колоду снова.
   final bool deckRefused;
 
+  /// Хост пустил этого игрока в лобби. До этого гость ждёт решения хоста и ничего не выбирает; хост пущен всегда.
+  final bool admitted;
+
+  /// Имя игрока, который постучался в лобби хоста и ждёт его решения; `null`, если таких нет. Только у хоста.
+  final String? pendingGuest;
+
   /// Почему комната закончилась без партии; `null`, пока она живёт.
   final RoomEnd? end;
 
@@ -148,6 +197,7 @@ final class LobbyRoom {
   LobbyRoom copyWith({
     Seat? seat,
     RoomLink? link,
+    bool? linkUnstable,
     RoomOpponent? opponent,
     bool clearOpponent = false,
     LobbyStage? myStage,
@@ -157,16 +207,22 @@ final class LobbyRoom {
     bool clearCountdown = false,
     bool? started,
     bool? deckRefused,
+    bool? admitted,
+    String? pendingGuest,
+    bool clearPendingGuest = false,
     RoomEnd? end,
   }) => LobbyRoom(
     seat: seat ?? this.seat,
     link: link ?? this.link,
+    linkUnstable: linkUnstable ?? this.linkUnstable,
     opponent: clearOpponent ? null : opponent ?? this.opponent,
     myStage: myStage ?? this.myStage,
     myLeader: clearLeader ? null : myLeader ?? this.myLeader,
     countdown: clearCountdown ? null : countdown ?? this.countdown,
     started: started ?? this.started,
     deckRefused: deckRefused ?? this.deckRefused,
+    admitted: admitted ?? this.admitted,
+    pendingGuest: clearPendingGuest ? null : pendingGuest ?? this.pendingGuest,
     end: end ?? this.end,
   );
 
@@ -175,16 +231,32 @@ final class LobbyRoom {
       other is LobbyRoom &&
       other.seat == seat &&
       other.link == link &&
+      other.linkUnstable == linkUnstable &&
       other.opponent == opponent &&
       other.myStage == myStage &&
       other.myLeader == myLeader &&
       other.countdown == countdown &&
       other.started == started &&
       other.deckRefused == deckRefused &&
+      other.admitted == admitted &&
+      other.pendingGuest == pendingGuest &&
       other.end == end;
 
   @override
-  int get hashCode => Object.hash(seat, link, opponent, myStage, myLeader, countdown, started, deckRefused, end);
+  int get hashCode => Object.hash(
+    seat,
+    link,
+    linkUnstable,
+    opponent,
+    myStage,
+    myLeader,
+    countdown,
+    started,
+    deckRefused,
+    admitted,
+    pendingGuest,
+    end,
+  );
 
   @override
   String toString() => 'LobbyRoom(seat: $seat, $link, opponent: $opponent, ${myStage.name}, started: $started)';

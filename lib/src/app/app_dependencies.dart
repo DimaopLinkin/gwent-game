@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
@@ -23,7 +25,9 @@ import 'package:gwent/src/features/lobby/application/discover_network_games.dart
 import 'package:gwent/src/features/lobby/application/host_network_game.dart';
 import 'package:gwent/src/features/lobby/application/join_network_game.dart';
 import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
+import 'package:gwent/src/features/lobby/application/network_readiness.dart';
 import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent/src/features/match/application/choose_opponent_deck.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
@@ -33,9 +37,15 @@ import 'package:gwent/src/features/match_history/domain/match_history_repository
 import 'package:gwent/src/features/menu/application/load_menu.dart';
 import 'package:gwent/src/features/settings/application/check_content_update.dart';
 import 'package:gwent/src/features/settings/application/load_about_info.dart';
+import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
+import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart';
 import 'package:gwent/src/features/settings/application/save_settings.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
+import 'package:gwent/src/features/sound/application/background_music.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/music_output.dart';
+import 'package:gwent/src/features/sound/domain/sound_output.dart';
 import 'package:gwent_content/gwent_content.dart';
 import 'package:gwent_net/gwent_net.dart' show Entropy, Scheduler, SecureEntropy, SystemScheduler;
 
@@ -55,6 +65,10 @@ final class AppDependencies {
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
+    required NetworkAccess networkAccess,
+    required SoundOutput soundOutput,
+    required MusicOutput musicOutput,
+    Random? random,
     Entropy? entropy,
     Scheduler scheduler = const SystemScheduler(),
     Duration botThinkTime = const Duration(milliseconds: 700),
@@ -76,6 +90,10 @@ final class AppDependencies {
       idGenerator: idGenerator,
       seedGenerator: seedGenerator,
       gameLobby: gameLobby,
+      networkAccess: networkAccess,
+      soundOutput: soundOutput,
+      musicOutput: musicOutput,
+      random: random ?? Random(),
       entropy: entropy ?? SecureEntropy(),
       scheduler: scheduler,
       botThinkTime: botThinkTime,
@@ -95,6 +113,10 @@ final class AppDependencies {
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
+    required NetworkAccess networkAccess,
+    required SoundOutput soundOutput,
+    required MusicOutput musicOutput,
+    required Random random,
     required Entropy entropy,
     required Scheduler scheduler,
     required Duration botThinkTime,
@@ -110,11 +132,13 @@ final class AppDependencies {
        ensureStarterDecks = EnsureStarterDecks(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
        watchSettings = WatchSettings(settingsRepository),
        saveSettings = SaveSettings(settingsRepository),
+       loadBotDifficulty = LoadBotDifficulty(settingsRepository),
+       saveBotDifficulty = SaveBotDifficulty(settingsRepository),
        loadAboutInfo = LoadAboutInfo(appInfo, loadGameContent),
        checkContentUpdate = CheckContentUpdate(loadGameContent, clock),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator) {
-    chooseOpponentDeck = ChooseOpponentDeck(deckRules, getActiveDeck);
+    chooseOpponentDeck = ChooseOpponentDeck(deckRules, seedGenerator);
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
@@ -123,6 +147,9 @@ final class AppDependencies {
     hostNetworkGame = HostNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, entropy, scheduler);
     joinNetworkGame = JoinNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, scheduler);
     discoverNetworkGames = DiscoverNetworkGames(loadNetworkSetup, gameLobby);
+    networkReadiness = NetworkReadiness(networkAccess, settingsRepository);
+    playSound = PlaySound(soundOutput, watchSettings);
+    backgroundMusic = BackgroundMusic(musicOutput, watchSettings, random);
   }
 
   /// Контент для партии и конструктора колод: пакет и справочник движка.
@@ -164,6 +191,12 @@ final class AppDependencies {
   /// Сохранение настроек.
   final SaveSettings saveSettings;
 
+  /// Уровень сложности бота, выбранный в прошлый раз.
+  final LoadBotDifficulty loadBotDifficulty;
+
+  /// Запоминание выбранного уровня сложности бота.
+  final SaveBotDifficulty saveBotDifficulty;
+
   /// Версии приложения, набора карт и сетевого протокола для экрана настроек.
   final LoadAboutInfo loadAboutInfo;
 
@@ -197,9 +230,18 @@ final class AppDependencies {
   /// Создание сетевой игры (хост).
   late final HostNetworkGame hostNetworkGame;
 
+  /// Готовность телефона к сетевой игре: Wi-Fi, доступ к локальной сети, переход в настройки.
+  late final NetworkReadiness networkReadiness;
+
   /// Подключение к найденной партии (гость).
   late final JoinNetworkGame joinNetworkGame;
 
   /// Поиск партий рядом.
   late final DiscoverNetworkGames discoverNetworkGames;
+
+  /// Звуковые эффекты с громкостью из настроек (ADR 0023).
+  late final PlaySound playSound;
+
+  /// Фоновая музыка с громкостью из настроек (ADR 0023).
+  late final BackgroundMusic backgroundMusic;
 }

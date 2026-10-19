@@ -5,8 +5,8 @@ import 'package:gwent/src/features/lobby/application/network_game.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_state.dart';
 
-/// Держатель связи в сетевой партии (макет 9, экраны 5 и 6): следит за комнатой игры и отсчитывает время, которое
-/// ждут возвращения соперника или хоста.
+/// Держатель связи в сетевой партии (макет 9, экраны 5 и 6): следит за комнатой игры, показывает нестабильную связь
+/// и сворачивание хоста, отсчитывает время, которое ждут возвращения соперника или хоста.
 ///
 /// Время ожидания то же, что у хоста до сдачи отсутствующего (`reconnectWindow`): когда оно выйдет, партию заканчивает
 /// сам хост, а экран узнаёт об этом из стола.
@@ -29,26 +29,46 @@ final class MatchConnectionCubit extends Cubit<MatchConnectionState> {
 
   bool _isLost(LobbyRoom room) => _game.isHost ? room.opponent?.online == false : room.link != RoomLink.online;
 
+  /// Хост свернул приложение, а связь с ним ещё жива; хост о госте такого не узнаёт.
+  bool _isAway(LobbyRoom room) => !_game.isHost && room.link == RoomLink.online && room.opponent?.away == true;
+
+  bool _isUnstable(LobbyRoom room) => _game.isHost
+      ? room.opponent?.online == true && room.opponent?.unstable == true
+      : room.link == RoomLink.online && room.linkUnstable;
+
   void _apply(LobbyRoom room) {
     final lost = _isLost(room);
-    if (lost == state.lost) return;
-    _timer?.cancel();
-    _timer = null;
-    if (!lost) {
-      emit(state.copyWith(lost: false, left: Duration.zero, dismissed: false));
-      return;
+    final away = !lost && _isAway(room);
+    final unstable = !lost && !away && _isUnstable(room);
+    final was = state;
+    if (lost == was.lost && away == was.away && unstable == was.unstable) return;
+    final lostChanged = lost != was.lost;
+    if (lostChanged) {
+      _timer?.cancel();
+      _timer = null;
     }
-    emit(state.copyWith(lost: true, left: _game.reconnectWindow, dismissed: false));
-    _timer = Timer.periodic(_tick, (_) {
-      final left = state.left - _tick;
-      if (left <= Duration.zero) {
-        _timer?.cancel();
-        _timer = null;
-        emit(state.copyWith(left: Duration.zero));
-      } else {
-        emit(state.copyWith(left: left));
-      }
-    });
+    emit(
+      was.copyWith(
+        lost: lost,
+        away: away,
+        unstable: unstable,
+        left: lostChanged ? (lost ? _game.reconnectWindow : Duration.zero) : was.left,
+        // «Ждать» прячет окно до следующей перемены: новый обрыв или сворачивание открывают его снова.
+        dismissed: !lostChanged && away == was.away && was.dismissed,
+      ),
+    );
+    if (lost && lostChanged) _timer = Timer.periodic(_tick, (_) => _countDown());
+  }
+
+  void _countDown() {
+    final left = state.left - _tick;
+    if (left <= Duration.zero) {
+      _timer?.cancel();
+      _timer = null;
+      emit(state.copyWith(left: Duration.zero));
+    } else {
+      emit(state.copyWith(left: left));
+    }
   }
 
   /// Закрывает окно обрыва, ожидание идёт дальше.

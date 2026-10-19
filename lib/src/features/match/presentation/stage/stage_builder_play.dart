@@ -61,6 +61,7 @@ extension _PlayScenes on StageScriptBuilder {
     final landed = mineSeat
         ? _flyMine(played.card, _handPlace(played.card), target, at)
         : _revealAndEnter(played.card, target, at, spy: target.mine);
+    _unitSounds(played.card, placed.row, target, landed);
     final ability = catalog.card(played.card.cardId);
     if (ability is UnitCardDefinition) {
       switch (ability.ability) {
@@ -76,6 +77,22 @@ extension _PlayScenes on StageScriptBuilder {
     final settle = math.max(end, landed);
     _requestSettle(settle, stagger: _ms(100));
     return settle + _ms(StageTokens.roll);
+  }
+
+  /// Звуки отряда, вставшего в ряд из руки в момент [at]: ряд (или герой), затем способность. Как в оригинале, шпион
+  /// звука ряда не даёт, а Крепкая связь звучит, только если в ряду есть пара.
+  void _unitSounds(CardInstance card, Row row, RowRef target, double at) {
+    final definition = catalog.card(card.cardId);
+    if (definition is! UnitCardDefinition) return;
+    final ability = definition.ability;
+    if (ability is! SpyAbility) _sound(definition.isHero ? SoundEffect.hero : soundOfRow(row), at);
+    final effect = soundOfUnitAbility(ability);
+    if (effect == null) return;
+    final paired = _rows[target]!.order.any(
+      (draft) => draft.card.id != card.id && draft.card.cardId == card.cardId && draft.after != null,
+    );
+    if (ability is TightBondAbility && !paired) return;
+    _sound(effect, at);
   }
 
   /// Моя карта летит из [from] в ряд [target] по дуге и садится в него: возвращает момент посадки.
@@ -290,6 +307,7 @@ extension _PlayScenes on StageScriptBuilder {
 
   /// Слот рога загорается, по ряду проходит золотая (у Мардрёма тёмно-фиолетовая) волна слева направо.
   void _hornGlow(RowRef target, double at, {required bool mardrem}) {
+    _sound(mardrem ? SoundEffect.mardroeme : SoundEffect.horn, at);
     final color = mardrem ? const Color(0xFF8F4FB5) : _gold;
     _beats
       ..add(
@@ -374,6 +392,7 @@ extension _PlayScenes on StageScriptBuilder {
       if (back is HandPlace) _beats.add(HandHideBeat(card: decoyed.returned.id, until: start + flight));
       end = start + flight + land;
     }
+    _sound(SoundEffect.decoy, start + (_rm ? 0 : flight));
     _bump(StageCounter.hand, 1, start + (_rm ? 0 : flight), mine: _mine(decoyed.seat));
     _requestSettle(start + (_rm ? 0 : flight));
     return math.max(end, start + (_rm ? 0 : flight) + _ms(StageTokens.roll));
@@ -430,6 +449,7 @@ extension _PlayScenes on StageScriptBuilder {
 
   /// Погода легла: слот горит, по рядам обоих игроков идёт волна, силы отрядов падают, у героев вспыхивает рамка.
   double _weatherLands(List<Row> rows, double at) {
+    _sound(soundOfWeather(rows.toSet()), at);
     _slotsChange(at);
     final wave = _ms(StageTokens.wave);
     var last = at;
@@ -530,6 +550,7 @@ extension _PlayScenes on StageScriptBuilder {
     required bool mineSeat,
     List<CardInstance> cards = const [],
   }) {
+    _sound(SoundEffect.clearWeather, at);
     _slotsChange(at);
     final clear = _ms(StageTokens.clear);
     for (final mine in const [true, false]) {

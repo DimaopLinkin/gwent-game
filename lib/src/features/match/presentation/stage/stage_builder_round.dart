@@ -107,6 +107,7 @@ extension _RoundScenes on StageScriptBuilder {
     );
     _steps.add(at);
     _locks.add((at, end));
+    _sound(summary.outcome == RoundOutcome.win ? SoundEffect.roundWon : SoundEffect.roundLost, at);
     return end;
   }
 
@@ -310,6 +311,7 @@ extension _RoundScenes on StageScriptBuilder {
     );
     _steps.add(at);
     _locks.add((at, end));
+    _sound(outcome == RoundOutcome.win ? SoundEffect.matchWon : SoundEffect.matchLost, at);
     final resigned = ended.outcome.reason == MatchEndReason.resignation;
     for (final mine in const [true, false]) {
       final side = _side(next, mine: mine);

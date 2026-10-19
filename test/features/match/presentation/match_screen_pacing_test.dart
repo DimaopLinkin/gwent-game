@@ -25,7 +25,6 @@ import 'package:gwent/src/features/match/presentation/overlays/match_result_view
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' as history;
-import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_engine/gwent_engine.dart' hide Deck;
 
 import '../../../support/fakes.dart';
@@ -70,7 +69,7 @@ void main() {
         LoadGameContent(AssetContentSource.basePack(rootBundle)),
         InMemoryDeckRepository(),
         FixedSeedGenerator(3),
-        createBot: GreedyBot.new,
+        createBot: plainGreedyBot,
         botThinkTime: Duration.zero,
       ),
       RecordFinishedMatch(

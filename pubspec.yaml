@@ -13,9 +13,16 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  app_settings: ^9.0.1
+  # Воспроизведение звуковых эффектов (ADR 0023).
+  audioplayers: ^6.7.1
   bloc: ^9.2.1
   bonsoir: ^7.1.4
   collection: ^1.19.1
+  # Проверка Wi-Fi перед сетевой игрой и переход в системные настройки (ADR 0020).
+  connectivity_plus: ^7.3.1
+  # SHA-1 для ответа WebSocket-рукопожатия хоста (LanServer): сокет принимается вручную, чтобы ограничить сообщения.
+  crypto: ^3.0.7
   cupertino_icons: ^1.0.8
   # drift и drift_dev закреплены точно и меняются только вместе: drift_dev новее 2.34.0 требует analyzer 13+
   # и meta 1.18, а Flutter 3.41.0 закрепляет meta 1.17.0; drift новее 2.34.0 несовместим с drift_dev 2.34.0.
@@ -27,8 +34,12 @@ dependencies:
   go_router: ^17.5.0
   intl: ^0.20.2
   meta: ^1.17.0
+  # Сканер QR-кода гостя: на iOS через Vision без ML Kit, на Android CameraX (ADR 0020).
+  mobile_scanner: ^7.4.2
   # Версия приложения для главного меню.
   package_info_plus: ^10.2.2
+  # QR-код адреса партии на экране хоста (ADR 0020).
+  qr_flutter: ^4.1.0
   uuid: ^4.5.3
 
   gwent_ai:
@@ -60,6 +71,10 @@ flutter:
     - assets/content/gwent-w3-base/
     # Арты карт 309×444, имя файла — UUID карты.
     - asset/image/cards/
+    # Звуковые эффекты AAC (.m4a), собираются tools/audio/convert_sfx.sh; происхождение и лицензия: tools/audio/README.md.
+    - assets/sfx/
+    # Фоновая музыка AAC (.m4a), собирается tools/audio/convert_music.sh; происхождение и лицензия: tools/audio/README.md.
+    - assets/music/
     # Иконки дизайн-системы: именованные слоты, контракт файла в docs/adr/0009-design-system.md.
     - assets/icons/
     # Лицензии шрифтов (OFL 1.1) для экрана лицензий.

@@ -54,7 +54,12 @@ final class LanConnector {
 
   Future<WebSocket> _open(Uri uri) async {
     final client = HttpClient()..connectionTimeout = timeout;
-    final pending = WebSocket.connect(uri.toString(), customClient: client);
+    final pending = WebSocket.connect(
+      uri.toString(),
+      customClient: client,
+      // Хост может оказаться чужим (подделанное объявление, QR): сжатие превратило бы мегабайт в гигабайт памяти.
+      compression: CompressionOptions.compressionOff,
+    );
     try {
       return await pending.timeout(timeout);
     } on TimeoutException {

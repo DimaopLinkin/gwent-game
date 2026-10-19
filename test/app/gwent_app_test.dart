@@ -15,6 +15,7 @@ import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../features/lobby/support/fake_game_lobby.dart';
+import '../features/lobby/support/lobby_fakes.dart';
 import '../support/factories.dart';
 import '../support/fakes.dart';
 import '../support/fonts.dart';
@@ -61,6 +62,9 @@ void main() {
           idGenerator: SequentialIdGenerator(),
           seedGenerator: FixedSeedGenerator(1),
           gameLobby: FakeGameLobby(),
+          networkAccess: FakeNetworkAccess(),
+          soundOutput: RecordingSoundOutput(),
+          musicOutput: FakeMusicOutput(),
         ),
       ),
     );
@@ -70,6 +74,24 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     }
     await tester.pumpAndSettle();
+  }
+
+  /// Даёт настоящим чтениям (пакет карт, настройки, колоды) закончиться и дорисовывает кадры.
+  Future<void> settleReal(WidgetTester tester) async {
+    for (var i = 0; i < 3; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(seconds: 2));
+    }
+    await tester.pumpAndSettle();
+  }
+
+  /// Открывает выбор против бота и проходит шаг сложности: дальше экран выбора фракции.
+  Future<void> openVsBotSetup(WidgetTester tester) async {
+    await tester.tap(find.text(l10n.menuVsBot));
+    await settleReal(tester);
+    expect(find.text(l10n.difficultySelectTitle), findsOneWidget);
+    await tester.tap(find.text(l10n.difficultySelectConfirm));
+    await settleReal(tester);
   }
 
   /// Настройки: у экрана своя шапка, «назад» — круглая кнопка с подписью для диктора.
@@ -130,9 +152,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GwentLogo), findsOneWidget);
 
-    await tester.tap(find.text(l10n.menuVsBot));
-    await tester.pumpAndSettle();
+    await openVsBotSetup(tester);
     expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+    // С выбора фракции «назад» ведёт к сложности, оттуда — в меню.
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.difficultySelectTitle), findsOneWidget);
     await tester.tap(find.bySemanticsLabel(l10n.setupBack));
     await tester.pumpAndSettle();
 
@@ -152,8 +177,7 @@ void main() {
     await pumpApp(tester);
     final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
 
-    await tester.tap(find.text(l10n.menuVsBot));
-    await tester.pumpAndSettle();
+    await openVsBotSetup(tester);
     expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
 
     unawaited(router.push(AppRoutes.settings));
@@ -223,8 +247,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text(l10n.menuVsBot));
-    await tester.pumpAndSettle();
+    await openVsBotSetup(tester);
     await tester.tap(find.text(l10n.factionSelectConfirm));
     await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.leaderSelectConfirm));
@@ -241,7 +264,7 @@ void main() {
     expect(find.text(l10n.deckSelectTitle), findsOneWidget);
   });
 
-  testWidgets('режим из меню попадает на выбор фракции: вдвоём шаг называет игрока', (tester) async {
+  testWidgets('режим из меню попадает на выбор сложности или фракции: вдвоём шаг называет игрока', (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.text(l10n.menuHotSeat));
@@ -251,8 +274,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(l10n.menuVsBot));
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.setupStep(1, 2).toUpperCase()), findsOneWidget);
+    await settleReal(tester);
+    expect(find.text(l10n.setupStep(1, 3).toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.difficultySelectTitle), findsOneWidget);
   });
 
   testWidgets('заставка идёт один раз при запуске и закрывает меню, пока данные не готовы', (tester) async {

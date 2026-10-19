@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -23,8 +25,32 @@ class GwentApp extends StatefulWidget {
 class _GwentAppState extends State<GwentApp> {
   late final GoRouter _router = createAppRouter(widget.dependencies);
 
+  // Хост сообщает, что свернул приложение, пока оно ещё отвечает: гость видит «партия на паузе», а не обрыв. Если ОС
+  // заморозит процесс хоста надолго, обрыв засчитывается как обычно (ADR 0020).
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    final dependencies = widget.dependencies;
+    _lifecycle = AppLifecycleListener(
+      onHide: () {
+        dependencies.activeNetworkGame.current?.setAway(away: true);
+        unawaited(dependencies.backgroundMusic.pause());
+      },
+      onShow: () {
+        dependencies.activeNetworkGame.current?.setAway(away: false);
+        unawaited(dependencies.backgroundMusic.resume());
+      },
+    );
+    // Звук и музыка готовятся и запускаются в фоне: меню не ждёт их, а сбой звука игру не останавливает. Эффекты
+    // готовятся, когда музыка уже запущена: пока грузится композиция, лишних проигрывателей не создаётся.
+    unawaited(dependencies.backgroundMusic.start().whenComplete(dependencies.playSound.preload));
+  }
+
   @override
   void dispose() {
+    _lifecycle.dispose();
     _router.dispose();
     super.dispose();
   }
@@ -32,7 +58,11 @@ class _GwentAppState extends State<GwentApp> {
   @override
   Widget build(BuildContext context) => BlocProvider(
     // Меню живёт всё время работы приложения: заставка идёт один раз, а не при каждом возврате в меню.
-    create: (_) => MenuCubit(widget.dependencies.loadMenu, widget.dependencies.watchDecks),
+    create: (_) => MenuCubit(
+      widget.dependencies.loadMenu,
+      widget.dependencies.watchDecks,
+      sound: widget.dependencies.playSound,
+    ),
     child: MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
       theme: AppTheme.dark(),

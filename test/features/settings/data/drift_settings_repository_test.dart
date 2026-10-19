@@ -4,6 +4,7 @@ import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/features/settings/data/drift_settings_repository.dart';
 import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 
 import '../../../support/test_database.dart';
 
@@ -40,6 +41,8 @@ void main() {
       musicVolume: 0,
       effectsVolume: 100,
       contentCheckedAt: DateTime.utc(2026, 10, 18, 9, 30),
+      botDifficulty: BotDifficulty.deathMatch,
+      localNetworkExplained: true,
     );
 
     await repository.save(settings);
@@ -63,6 +66,7 @@ void main() {
     await put('music_volume', 'громко');
     await put('effects_volume', '250');
     await put('content_checked_at', 'вчера');
+    await put('bot_difficulty', 'невозможный');
 
     final settings = await repository.watch().first;
 
@@ -72,5 +76,6 @@ void main() {
     expect(settings.musicVolume, 70);
     expect(settings.effectsVolume, 100);
     expect(settings.contentCheckedAt, isNull);
+    expect(settings.botDifficulty, BotDifficulty.normal);
   });
 }

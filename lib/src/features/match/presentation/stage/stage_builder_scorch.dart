@@ -52,6 +52,7 @@ extension _ScorchScenes on StageScriptBuilder {
     final destroyed = related.where((entry) => !done.contains(entry.$1) && entry.$2 is UnitsDestroyed).firstOrNull;
     if (destroyed == null) return at;
     done.add(destroyed.$1);
+    _sound(SoundEffect.scorch, at);
     final units = (destroyed.$2 as UnitsDestroyed).units;
     var end = at;
     var freeAt = at;

@@ -11,6 +11,8 @@ import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_state.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_content/gwent_content.dart' show ContentSource, InMemoryContentSource;
 
 import '../../../support/fakes.dart';
@@ -27,6 +29,7 @@ void main() {
     SettingsRepository? storage,
     ContentSource? source,
     Duration minCheck = Duration.zero,
+    PlaySound? sound,
   }) {
     final content = LoadGameContent(source ?? AssetContentSource.basePack(rootBundle));
     final repo = storage ?? repository;
@@ -36,6 +39,7 @@ void main() {
       loadAboutInfo: LoadAboutInfo(const FakeAppInfo('1.2.3', '7'), content),
       checkContentUpdate: CheckContentUpdate(content, FakeClock(now)),
       minCheckDuration: minCheck,
+      sound: sound,
     );
     addTearDown(cubit.close);
     return cubit;
@@ -103,6 +107,45 @@ void main() {
 
     expect(repository.saved.musicVolume, 20);
     expect(repository.saved.effectsVolume, 5);
+  });
+
+  group('образец громкости эффектов', () {
+    late RecordingSoundOutput output;
+    late PlaySound sound;
+
+    setUp(() {
+      output = RecordingSoundOutput();
+      sound = PlaySound(output, WatchSettings(repository));
+      addTearDown(sound.dispose);
+    });
+
+    test('игрок отпустил ползунок эффектов: звучит образец с выбранной громкостью, ещё не сохранённой', () async {
+      final cubit = newCubit(sound: sound);
+      await loaded(cubit);
+
+      cubit
+        ..changeEffectsVolume(30)
+        ..saveVolumes();
+
+      expect(output.played.single.effect, SoundEffect.turnMine);
+      expect(output.played.single.volume, 0.3);
+    });
+
+    test('ползунок музыки образца не даёт, и повторное отпускание без перемены тоже', () async {
+      final cubit = newCubit(sound: sound);
+      await loaded(cubit);
+
+      cubit
+        ..changeMusicVolume(10)
+        ..saveVolumes();
+      expect(output.played, isEmpty);
+
+      cubit
+        ..changeEffectsVolume(60)
+        ..saveVolumes()
+        ..saveVolumes();
+      expect(output.played, hasLength(1));
+    });
   });
 
   test('сбой записи не роняет экран: настройка остаётся в состоянии', () async {

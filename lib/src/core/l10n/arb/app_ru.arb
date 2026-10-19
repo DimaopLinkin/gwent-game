@@ -1490,6 +1490,46 @@
   "@settingsFanProject": {
     "description": "Отметка внизу группы «О приложении»."
   },
+  "difficultySelectTitle": "Сложность бота",
+  "@difficultySelectTitle": {
+    "description": "Заголовок экрана выбора сложности бота перед партией против него."
+  },
+  "difficultySelectConfirm": "Выбрать сложность",
+  "@difficultySelectConfirm": {
+    "description": "Кнопка подтверждения сложности бота."
+  },
+  "botDifficultyEasy": "Лёгкий",
+  "@botDifficultyEasy": {
+    "description": "Название самого слабого уровня бота."
+  },
+  "botDifficultyEasyHint": "Бот иногда ходит наугад, рано пасует и собирает колоду из слабых карт.",
+  "@botDifficultyEasyHint": {
+    "description": "Описание лёгкого уровня бота."
+  },
+  "botDifficultyNormal": "Нормальный",
+  "@botDifficultyNormal": {
+    "description": "Название обычного уровня бота."
+  },
+  "botDifficultyNormalHint": "Играет честно и по расчёту очков; колода собрана из случайных карт фракции.",
+  "@botDifficultyNormalHint": {
+    "description": "Описание нормального уровня бота."
+  },
+  "botDifficultyHard": "Тяжёлый",
+  "@botDifficultyHard": {
+    "description": "Название сильного уровня бота."
+  },
+  "botDifficultyHardHint": "Бережёт сильные карты и тратит слабые первыми; колода из сильных карт.",
+  "@botDifficultyHardHint": {
+    "description": "Описание тяжёлого уровня бота."
+  },
+  "botDifficultyDeathMatch": "НА СМЕРТЬ!",
+  "@botDifficultyDeathMatch": {
+    "description": "Название самого сильного уровня бота."
+  },
+  "botDifficultyDeathMatchHint": "Не тратит ни одной лишней карты и собирает лучшую колоду фракции. Пощады не будет.",
+  "@botDifficultyDeathMatchHint": {
+    "description": "Описание самого сильного уровня бота."
+  },
   "setupStep": "Шаг {step} из {total}",
   "@setupStep": {
     "description": "Надпись над заголовком шага выбора фракции и лидера.",
@@ -2336,6 +2376,39 @@
   "@netCountdownStarting": {
     "description": "Подпись отсчёта перед матчем."
   },
+  "netAdmitTitle": "Принять игрока {name}?",
+  "@netAdmitTitle": {
+    "description": "Заголовок запроса хосту: гость стучится в лобби.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "netAdmitBody": "Он войдёт в вашу партию. Если не ответить, ему откажут.",
+  "@netAdmitBody": {
+    "description": "Пояснение запроса хосту о госте."
+  },
+  "netAdmitAccept": "Принять",
+  "@netAdmitAccept": {
+    "description": "Кнопка хоста: пустить гостя."
+  },
+  "netAdmitDecline": "Отклонить",
+  "@netAdmitDecline": {
+    "description": "Кнопка хоста: не пускать гостя."
+  },
+  "netGuestWaiting": "Ждём ответа хоста…",
+  "@netGuestWaiting": {
+    "description": "Подпись гостя, пока хост решает, пустить ли его."
+  },
+  "netNoticeDeclinedTitle": "Хост не принял вас",
+  "@netNoticeDeclinedTitle": {
+    "description": "Заголовок: хост отказал гостю или не ответил."
+  },
+  "netNoticeDeclinedText": "Хост отклонил приглашение или не ответил вовремя. Можно попробовать снова.",
+  "@netNoticeDeclinedText": {
+    "description": "Пояснение: хост отказал гостю или не ответил."
+  },
   "netLeaveTitle": "Покинуть лобби?",
   "@netLeaveTitle": {
     "description": "Заголовок подтверждения выхода из лобби."
@@ -2439,5 +2512,153 @@
   "netNoticeLostText": "Не удалось вернуться к хосту. Попробуйте найти партию снова.",
   "@netNoticeLostText": {
     "description": "Пояснение: связь с хостом не удалось вернуть."
+  },
+  "netNoticeInvalidTitle": "Странные данные от хоста",
+  "@netNoticeInvalidTitle": {
+    "description": "Заголовок: хост прислал карты или лидера, которых нет в наборе этого телефона."
+  },
+  "netNoticeInvalidText": "Хост прислал то, чего нет в игре. Партия остановлена. Попробуйте найти другую партию.",
+  "@netNoticeInvalidText": {
+    "description": "Пояснение: хост прислал карты или лидера, которых нет в наборе этого телефона."
+  },
+  "netLinkUnstable": "Нестабильно",
+  "@netLinkUnstable": {
+    "description": "Плашка связи в сетевой партии: связь есть, но с задержками (макет 9, экран 5b)."
+  },
+  "netLinkAway": "Пауза",
+  "@netLinkAway": {
+    "description": "Короткая метка связи в полосе соперника: хост свернул приложение, партия на паузе."
+  },
+  "netAwayTitle": "Хост свернул приложение",
+  "@netAwayTitle": {
+    "description": "Окно у гостя, когда хост ушёл из приложения (макет 9, экран 6c)."
+  },
+  "netAwayText": "Партия на паузе",
+  "@netAwayText": {
+    "description": "Пояснение под заголовком окна «Хост свернул приложение»."
+  },
+  "netProblemSettings": "Открыть настройки",
+  "@netProblemSettings": {
+    "description": "Кнопка сообщения о сети: открыть системные настройки"
+  },
+  "netProblemWifiTitle": "Wi-Fi выключен",
+  "@netProblemWifiTitle": {
+    "description": "Заголовок сообщения: телефон не в Wi-Fi сети (макет 9, 7c)"
+  },
+  "netProblemWifiText": "Включите Wi-Fi и подключитесь к той же сети, что и соперник.",
+  "@netProblemWifiText": {
+    "description": "Пояснение к выключенному Wi-Fi"
+  },
+  "netProblemExplainTitle": "Нужен доступ к локальной сети",
+  "@netProblemExplainTitle": {
+    "description": "Заголовок пояснения перед системным запросом iOS (макет 9, 7d)"
+  },
+  "netProblemExplainText": "Игра ищет соперника в вашей Wi-Fi сети. iOS спросит разрешение — выберите «Разрешить».",
+  "@netProblemExplainText": {
+    "description": "Пояснение перед системным запросом доступа к локальной сети"
+  },
+  "netProblemExplainStep1": "Нажмите «Продолжить».",
+  "@netProblemExplainStep1": {
+    "description": "Шаг 1 пояснения про локальную сеть"
+  },
+  "netProblemExplainStep2": "В системном окне выберите «Разрешить».",
+  "@netProblemExplainStep2": {
+    "description": "Шаг 2 пояснения про локальную сеть"
+  },
+  "netProblemExplainStep3": "Игра сразу начнёт поиск.",
+  "@netProblemExplainStep3": {
+    "description": "Шаг 3 пояснения про локальную сеть"
+  },
+  "netProblemContinue": "Продолжить",
+  "@netProblemContinue": {
+    "description": "Кнопка пояснения: перейти к системному запросу"
+  },
+  "netProblemLater": "Не сейчас",
+  "@netProblemLater": {
+    "description": "Кнопка пояснения: отказаться"
+  },
+  "netProblemDeniedTitle": "Нет доступа к локальной сети",
+  "@netProblemDeniedTitle": {
+    "description": "Заголовок сообщения: iOS не дала доступ к локальной сети (макет 9, 7e)"
+  },
+  "netProblemDeniedText": "Без него телефоны не найдут друг друга. Разрешите доступ в настройках.",
+  "@netProblemDeniedText": {
+    "description": "Пояснение к запрету доступа к локальной сети"
+  },
+  "netProblemDeniedStep1": "Откройте «Настройки» → «Гвинт».",
+  "@netProblemDeniedStep1": {
+    "description": "Шаг 1 инструкции по включению локальной сети"
+  },
+  "netProblemDeniedStep2": "Включите «Локальная сеть».",
+  "@netProblemDeniedStep2": {
+    "description": "Шаг 2 инструкции по включению локальной сети"
+  },
+  "netProblemDeniedStep3": "Вернитесь в игру.",
+  "@netProblemDeniedStep3": {
+    "description": "Шаг 3 инструкции по включению локальной сети"
+  },
+  "netQrShow": "Показать QR",
+  "@netQrShow": {
+    "description": "Кнопка ожидания соперника: показать QR-код партии (макет 9, 2b)"
+  },
+  "netQrTitle": "QR-код",
+  "@netQrTitle": {
+    "description": "Заголовок экрана с QR-кодом партии (макет 9, 2c)"
+  },
+  "netQrCaption": "Отсканируйте вторым телефоном",
+  "@netQrCaption": {
+    "description": "Подпись под QR-кодом партии"
+  },
+  "netQrHint": "Гость нажимает «Найти рядом», затем «Сканировать QR».",
+  "@netQrHint": {
+    "description": "Подсказка под QR-кодом партии"
+  },
+  "netQrBack": "Назад к ожиданию",
+  "@netQrBack": {
+    "description": "Кнопка экрана с QR-кодом"
+  },
+  "netQrSemantics": "QR-код партии",
+  "@netQrSemantics": {
+    "description": "Подпись QR-кода для чтения с экрана"
+  },
+  "netQrFailed": "Не удалось подготовить QR-код. Вернитесь к ожиданию и попробуйте снова.",
+  "@netQrFailed": {
+    "description": "Сообщение, когда адрес партии неизвестен"
+  },
+  "netScanButton": "Сканировать QR",
+  "@netScanButton": {
+    "description": "Кнопка гостя: открыть сканер QR-кода (макет 9, 3a, 3b, 7b)"
+  },
+  "netScanTitle": "Сканировать QR",
+  "@netScanTitle": {
+    "description": "Заголовок экрана сканера QR-кода (макет 9, 3c)"
+  },
+  "netScanAim": "Наведите на QR-код",
+  "@netScanAim": {
+    "description": "Подпись над видоискателем сканера"
+  },
+  "netScanHint": "Код показан на экране телефона, создавшего партию.",
+  "@netScanHint": {
+    "description": "Подсказка под видоискателем сканера"
+  },
+  "netScanForeign": "Это не QR-код игры. Отсканируйте код с экрана хоста.",
+  "@netScanForeign": {
+    "description": "Сообщение, когда считан чужой QR-код"
+  },
+  "netScanDeniedTitle": "Нет доступа к камере",
+  "@netScanDeniedTitle": {
+    "description": "Заголовок: приложению не дали камеру для сканера"
+  },
+  "netScanDeniedText": "Камера нужна, чтобы считать QR-код. Разрешите доступ в настройках.",
+  "@netScanDeniedText": {
+    "description": "Пояснение: камера недоступна"
+  },
+  "netScanViewfinder": "Видоискатель камеры",
+  "@netScanViewfinder": {
+    "description": "Подпись видоискателя сканера для чтения с экрана"
+  },
+  "netWaitQrHint": "Если телефоны не видят друг друга, покажите QR-код.",
+  "@netWaitQrHint": {
+    "description": "Вторая фраза подсказки ожидания соперника (макет 9, 2b)"
   }
 }
