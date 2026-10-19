@@ -2,27 +2,55 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gwent/src/features/sound/data/effect_voice_pool.dart';
 import 'package:gwent/src/features/sound/data/game_audio_context.dart';
 import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent/src/features/sound/domain/sound_output.dart';
 
-/// Звук через `audioplayers` (ADR 0023): на каждый эффект один проигрыватель в режиме низкой задержки.
+/// Звук через `audioplayers` (ADR 0023): проигрыватели эффектов в режиме низкой задержки.
 ///
-/// Файлы лежат в `assets/sfx/` в формате AAC (`.m4a`), один набор на Android и iOS. Проигрыватель создаётся при первом
-/// обращении к эффекту (или заранее, в [preload]) и дальше живёт, пока живёт приложение. Повторный запуск эффекта
-/// сначала останавливает прежний: в режиме низкой задержки проигрыватель сам не узнаёт, что звук кончился.
-///
-/// Звуковой контекст (чужой звук не прерывается) задаёт `configureGameAudioContext`. Сбой воспроизведения (нет файла, нет плагина) уходит в
-/// `FlutterError.reportError`, игра продолжается без звука.
+/// Файлы лежат в `assets/sfx/` в формате AAC (`.m4a`), один набор на Android и iOS. Проигрыватели живут в
+/// [EffectVoicePool]: их число ограничено (на iOS каждый держит свой `AVPlayer`), а повтор эффекта звучит поверх
+/// прежнего. Любой вызов плагина, который не ответил за [nativeTimeout], считается сорвавшимся: проигрыватель
+/// освобождается, очередь не стоит. Звуковой контекст (чужой звук не прерывается) задаёт `configureGameAudioContext`.
+/// Сбой воспроизведения уходит в `FlutterError.reportError`, игра продолжается без звука.
 final class AudioplayersSoundOutput implements SoundOutput {
-  /// Создаёт вывод; [assetDirectory] — папка с файлами внутри `assets/`.
-  AudioplayersSoundOutput({this.assetDirectory = 'sfx'});
+  /// Создаёт вывод; [assetDirectory] — папка с файлами внутри `assets/`, [maxEffects] — сколько эффектов держать
+  /// готовыми.
+  AudioplayersSoundOutput({
+    this.assetDirectory = 'sfx',
+    int maxEffects = defaultMaxEffects,
+    this.nativeTimeout = const Duration(seconds: 5),
+  }) {
+    _pool = EffectVoicePool(create: _createVoice, onError: _report, maxEffects: maxEffects);
+  }
+
+  /// Сколько эффектов держать готовыми по умолчанию.
+  static const int defaultMaxEffects = 12;
+
+  /// Эффекты, которые нужны сразу: меню, выбор карты, ход, самые частые звуки розыгрыша. Остальные создаются при
+  /// первом запуске.
+  @visibleForTesting
+  static const List<SoundEffect> coreEffects = [
+    SoundEffect.menuOpen,
+    SoundEffect.select,
+    SoundEffect.turnMine,
+    SoundEffect.turnOpponent,
+    SoundEffect.unitMelee,
+    SoundEffect.unitRanged,
+    SoundEffect.unitSiege,
+    SoundEffect.draw,
+    SoundEffect.pass,
+    SoundEffect.warning,
+  ];
 
   /// Папка с файлами внутри `assets/`.
   final String assetDirectory;
 
-  final Map<SoundEffect, Future<AudioPlayer>> _players = {};
-  final Map<SoundEffect, Future<void>> _queues = {};
+  /// Сколько ждать ответа плагина на одну команду.
+  final Duration nativeTimeout;
+
+  late final EffectVoicePool _pool;
 
   /// Имя файла эффекта без папки.
   @visibleForTesting
@@ -66,50 +94,55 @@ final class AudioplayersSoundOutput implements SoundOutput {
 
   @override
   Future<void> preload() async {
-    try {
-      await Future.wait([for (final effect in SoundEffect.values) _player(effect)]);
-    } on Object catch (error, stackTrace) {
-      _report(error, stackTrace, 'подготовка звуков');
+    // По одному: десяток проигрывателей, созданных разом, задерживает музыку, которая стартует рядом.
+    for (final effect in coreEffects) {
+      await _pool.warm(effect);
     }
   }
 
   @override
-  void play(SoundEffect effect, {required double volume}) {
-    // Запуски одного эффекта идут по очереди: остановка, громкость и старт не должны перемешаться между собой.
-    final previous = _queues[effect] ?? Future<void>.value();
-    _queues[effect] = previous.then((_) => _play(effect, volume));
-  }
+  void play(SoundEffect effect, {required double volume}) => _pool.play(effect, volume);
 
-  Future<void> _play(SoundEffect effect, double volume) async {
-    try {
-      final player = await _player(effect);
-      await player.stop();
-      await player.setVolume(volume);
-      await player.resume();
-    } on Object catch (error, stackTrace) {
-      _report(error, stackTrace, 'воспроизведение ${effect.name}');
-    }
-  }
-
-  /// Проигрыватель эффекта; неудавшаяся подготовка не запоминается, следующий запуск попробует снова.
-  Future<AudioPlayer> _player(SoundEffect effect) => _players.putIfAbsent(
-    effect,
-    () => _create(effect).onError<Object>((error, stackTrace) {
-      _players.remove(effect);
-      Error.throwWithStackTrace(error, stackTrace);
-    }),
-  );
-
-  Future<AudioPlayer> _create(SoundEffect effect) async {
+  Future<EffectVoice> _createVoice(SoundEffect effect) async {
     await configureGameAudioContext();
-    final player = AudioPlayer();
-    await player.setPlayerMode(PlayerMode.lowLatency);
-    await player.setReleaseMode(ReleaseMode.stop);
-    await player.setSource(AssetSource('$assetDirectory/${fileName(effect)}'));
-    return player;
+    final player = AudioPlayer()..positionUpdater = null;
+    try {
+      await (() async {
+        await player.setPlayerMode(PlayerMode.lowLatency);
+        await player.setReleaseMode(ReleaseMode.stop);
+        await player.setSource(AssetSource('$assetDirectory/${fileName(effect)}'));
+      })().timeout(nativeTimeout);
+    } on Object {
+      // Не готовый до конца проигрыватель нельзя бросать: за ним стоит нативный `AVPlayer`.
+      unawaited(
+        player.dispose().then<void>(
+          (_) {},
+          onError: (Object error, StackTrace stackTrace) => _report(error, stackTrace, 'закрытие ${effect.name}'),
+        ),
+      );
+      rethrow;
+    }
+    return _AudioplayersVoice(player, nativeTimeout);
   }
 
   void _report(Object error, StackTrace stackTrace, String action) => FlutterError.reportError(
     FlutterErrorDetails(exception: error, stack: stackTrace, library: 'звук', context: ErrorDescription(action)),
   );
+}
+
+final class _AudioplayersVoice implements EffectVoice {
+  _AudioplayersVoice(this._player, this._timeout);
+
+  final AudioPlayer _player;
+  final Duration _timeout;
+
+  @override
+  Future<void> play(double volume) => (() async {
+    await _player.stop();
+    await _player.setVolume(volume);
+    await _player.resume();
+  })().timeout(_timeout);
+
+  @override
+  Future<void> dispose() => _player.dispose();
 }
