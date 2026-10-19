@@ -241,6 +241,17 @@ void main() {
     );
   });
 
+  test('медленное первое создание проигрывателя звук не теряет', () async {
+    final gate = createGate = Completer<void>();
+    poolOf().play(SoundEffect.select, 1);
+    await settle();
+    clock = clock.add(const Duration(milliseconds: 900));
+    gate.complete();
+    await settle();
+    await settle();
+    expect(log.where((entry) => entry.startsWith('play:')), ['play:select#0']);
+  });
+
   test('запуск, дождавшийся очереди недолго, звучит', () async {
     final pool = poolOf(voicesPerEffect: 1)..play(SoundEffect.select, 1);
     await settle();

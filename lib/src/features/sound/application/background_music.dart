@@ -26,7 +26,7 @@ final class BackgroundMusic {
       // Настройки не читаются: музыка остаётся на последней известной громкости, а ошибка уходит в обработчик зоны.
       onError: Zone.current.handleUncaughtError,
     );
-    _ended = _output.trackEnded.listen((_) => unawaited(_continueAfterGap()));
+    _ended = _output.trackEnded.listen((_) => _onTrackEnded());
   }
 
   /// Сколько максимум раз подряд запуск композиции повторяется сам, прежде чем музыка замолчит до смены громкости или
@@ -60,6 +60,10 @@ final class BackgroundMusic {
   int _failures = 0;
   bool _disposed = false;
 
+  /// Композиция кончилась, а следующая ещё не началась (идёт [trackGap]): выполнить запуск следующей надо ровно раз.
+  bool _nextPending = false;
+  Timer? _retryTimer;
+
   /// Хвост очереди работ: решения о воспроизведении принимаются по одному, на актуальном состоянии, поэтому пауза не
   /// обгоняет начатый запуск, а запуск не оживляет музыку, которую уже поставили на паузу.
   Future<void> _tail = Future<void>.value();
@@ -91,6 +95,7 @@ final class BackgroundMusic {
   /// Перестаёт следить за настройками и проигрывателем.
   Future<void> dispose() async {
     _disposed = true;
+    _retryTimer?.cancel();
     await _settings.cancel();
     await _ended.cancel();
   }
@@ -116,6 +121,8 @@ final class BackgroundMusic {
       return;
     }
     if (!_loaded) {
+      // Сюда приводят действия игрока и системы (громкость, возврат из фона): у них свой запас попыток.
+      _failures = 0;
       await _playNext();
     } else if (!_playing) {
       _playing = true;
@@ -126,29 +133,42 @@ final class BackgroundMusic {
     }
   }
 
-  /// Композиция кончилась: после [trackGap] начинается следующая.
+  /// Композиция кончилась: она больше не звучит, следующая начнётся через [trackGap].
+  void _onTrackEnded() {
+    if (!_loaded) return;
+    _loaded = false;
+    _playing = false;
+    _nextPending = true;
+    unawaited(_continueAfterGap());
+  }
+
   Future<void> _continueAfterGap() async {
     if (trackGap > Duration.zero) await Future<void>.delayed(trackGap);
     if (_disposed) return;
-    await _enqueue(_playNext);
+    await _enqueue(() async {
+      // Пока шёл промежуток, музыку могли оживить сменой громкости или возвратом из фона: тогда следующая уже играет.
+      if (_nextPending) await _playNext();
+    });
   }
 
   /// Запуск не удался: пробует ещё раз через [retryDelay], но не больше [maxRetries] раз подряд.
   void _retryLater() {
     if (_failures >= maxRetries) return;
     _failures++;
-    final delay = retryDelay * _failures;
-    unawaited(
-      Future<void>.delayed(delay).then((_) {
-        if (_disposed || _loaded) return null;
-        return _enqueue(() async {
+    _retryTimer?.cancel();
+    _retryTimer = Timer(retryDelay * _failures, () {
+      if (_disposed || _loaded) return;
+      unawaited(
+        _enqueue(() async {
           if (!_loaded) await _playNext();
-        });
-      }),
-    );
+        }),
+      );
+    });
   }
 
   Future<void> _playNext() async {
+    _nextPending = false;
+    _retryTimer?.cancel();
     _loaded = false;
     _playing = false;
     if (!_audible) return;

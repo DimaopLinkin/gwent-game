@@ -222,6 +222,62 @@ void main() {
     expect(output.tracks, hasLength(1));
   });
 
+  test('два события конца подряд не пропускают композицию и не запускают её дважды', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 20), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output
+      ..finishTrack()
+      ..finishTrack();
+    await wait(80);
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('пауза и возврат внутри промежутка между композициями не оживляют доигравшую и не дублируют запуск', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 30), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await music.pause();
+    await music.resume();
+    await wait(80);
+    expect(output.commands, isNot(contains('resume')), reason: 'доигравшая композиция не продолжается');
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('сброс громкости в ноль и возврат внутри промежутка запускают следующую композицию один раз', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 30), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await settings.save(const AppSettings(musicVolume: 0));
+    await settle();
+    await settings.save(const AppSettings(musicVolume: 40));
+    await wait(80);
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('конец композиции после dispose ничего не запускает', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 20), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await music.dispose();
+    await wait(60);
+    expect(output.tracks, hasLength(1));
+  });
+
+  test('неудачи при ручных запусках не расходуют запас автоповторов', () async {
+    music = buildMusic(trackGap: Duration.zero, retryDelay: const Duration(minutes: 1));
+    output.playSucceeds = false;
+    await music.start();
+    for (var i = 0; i < BackgroundMusic.maxRetries + 2; i++) {
+      await music.pause();
+      await music.resume();
+    }
+    output.playSucceeds = true;
+    final failed = output.tracks.length;
+    await music.pause();
+    await music.resume();
+    expect(output.tracks, hasLength(failed + 1));
+  });
+
   test('ошибка потока настроек не роняет музыку и уходит в обработчик зоны', () async {
     final errors = <Object>[];
     final failing = FakeMusicOutput();
