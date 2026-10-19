@@ -132,7 +132,8 @@ class _Notice extends StatelessWidget {
     }
     // Несовместимой версией «Повторить» не помочь.
     final retryable = switch (result) {
-      NetworkRefused(:final reason) => reason == JoinRefusal.matchFull || reason == JoinRefusal.unknownResumeToken,
+      NetworkRefused(:final reason) =>
+        reason == JoinRefusal.matchFull || reason == JoinRefusal.unknownResumeToken || reason == JoinRefusal.declined,
       _ => true,
     };
     return NetworkNotice(
@@ -266,7 +267,7 @@ class _GameRow extends StatelessWidget {
       null => l10n.netFindVersionOk,
       JoinRefusal.protocolMismatch => l10n.netFindProtocolMismatch,
       JoinRefusal.rulesetMismatch => l10n.netFindRulesetMismatch,
-      JoinRefusal.matchFull || JoinRefusal.unknownResumeToken => l10n.netFindFull,
+      JoinRefusal.matchFull || JoinRefusal.unknownResumeToken || JoinRefusal.declined => l10n.netFindFull,
     };
     final name = game.found.ad.hostName.isEmpty ? l10n.netOpponentName : game.found.ad.hostName;
     final enabled = joinable && onJoin != null;

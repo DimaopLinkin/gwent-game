@@ -124,7 +124,7 @@ class RoomScreen extends StatelessWidget {
                                   onShowQr: onShowQr,
                                   onCancel: () => unawaited(_confirmLeave(context)),
                                 )
-                              : const GameLoader(caption: ''),
+                              : GameLoader(caption: room.admitted ? '' : l10n.netGuestWaiting),
                         null => _Lobby(
                           state: state,
                           isHost: isHost,
@@ -138,6 +138,12 @@ class RoomScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (room.pendingGuest case final guest? when end == null && !room.started)
+                  RoomAdmission(
+                    name: guest,
+                    onAccept: context.read<RoomCubit>().admitGuest,
+                    onDecline: context.read<RoomCubit>().declineGuest,
+                  ),
                 if (state.countdownLeft case final left? when end == null && !room.started)
                   RoomCountdown(left: left, onCancel: context.read<RoomCubit>().cancelReady),
               ],

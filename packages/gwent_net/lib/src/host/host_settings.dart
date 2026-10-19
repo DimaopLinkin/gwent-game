@@ -11,6 +11,8 @@ final class HostSettings extends Value {
     this.unstableAfter = const Duration(seconds: 5),
     this.maxUnacked = 500,
     this.resendCooldown = const Duration(seconds: 1),
+    this.requireAdmission = false,
+    this.admissionTimeout = const Duration(seconds: 30),
   });
 
   /// Набор правил хоста: гость с другим набором не подключится.
@@ -40,6 +42,13 @@ final class HostSettings extends Value {
   /// обрыв нужна честному клиенту, а повторами её можно использовать как усилитель нагрузки.
   final Duration resendCooldown;
 
+  /// Новый игрок занимает место только с согласия хоста (ADR 0022). Соединения, принятые как доверенные
+  /// (клиент самого хоста), пускаются сразу.
+  final bool requireAdmission;
+
+  /// Сколько хост может решать, пускать ли игрока: потом игрок отклоняется.
+  final Duration admissionTimeout;
+
   @override
   List<Object?> get props => [
     ruleset,
@@ -49,5 +58,7 @@ final class HostSettings extends Value {
     unstableAfter,
     maxUnacked,
     resendCooldown,
+    requireAdmission,
+    admissionTimeout,
   ];
 }

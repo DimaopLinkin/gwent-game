@@ -27,6 +27,7 @@ import 'package:gwent/src/features/lobby/application/network_readiness.dart';
 import 'package:gwent/src/features/lobby/domain/game_ad.dart';
 import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/domain/game_invite.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
@@ -67,6 +68,7 @@ void main() {
   late ActiveNetworkGame hostActive;
   late ActiveNetworkGame guestActive;
   late HostNetworkGame hostGame;
+  late HostNetworkGame admittingGame;
   late JoinNetworkGame joinGame;
   late DiscoverNetworkGames discover;
   late LoadDeckRules loadRules;
@@ -93,7 +95,8 @@ void main() {
     guestActive = ActiveNetworkGame();
     final loadContent = LoadGameContent(AssetContentSource.basePack(rootBundle));
     final setup = LoadNetworkSetup(loadContent, const FakeAppInfo(), WatchSettings(settings));
-    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler);
+    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler, requireAdmission: false);
+    admittingGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler);
     joinGame = JoinNetworkGame(setup, lobby, guestActive, scheduler);
     discover = DiscoverNetworkGames(setup, lobby);
     loadRules = LoadDeckRules(GameContentDeckRulesSource(loadContent));
@@ -504,6 +507,58 @@ void main() {
       expect(find.text(l10n.netLeaveTitle), findsOneWidget);
       expect(find.text(l10n.netLeaveBodyHost), findsOneWidget);
       expect(left, 0);
+    });
+
+    testWidgets('гость стучится: хост видит «Принять игрока», «Принять» пускает его в лобби', (tester) async {
+      final opened = await tester.runAsync(() => admittingGame(gameName: 'Цири', playerName: 'Цири'));
+      final host = (opened! as NetworkGameOpened).game;
+      await pumpRoom(tester, game: host);
+      final found = (await tester.runAsync(() => discover().firstWhere((games) => games.isNotEmpty)))!.single;
+      await tester.runAsync(() => joinGame(found: found.found, playerName: 'Вереск'));
+      await settleNetwork(tester);
+
+      expectNoFallbackTextStyle(tester);
+      expect(find.text(l10n.netAdmitTitle('Вереск')), findsOneWidget);
+      expect(find.text(l10n.netAdmitBody), findsOneWidget);
+
+      await tester.tap(find.text(l10n.netAdmitAccept));
+      await settleNetwork(tester);
+
+      expect(find.text(l10n.netAdmitTitle('Вереск')), findsNothing);
+      expect(host.room.opponent?.name, 'Вереск');
+    });
+
+    testWidgets('«Отклонить» убирает запрос, гость получает отказ', (tester) async {
+      final opened = await tester.runAsync(() => admittingGame(gameName: 'Цири', playerName: 'Цири'));
+      final host = (opened! as NetworkGameOpened).game;
+      await pumpRoom(tester, game: host);
+      final found = (await tester.runAsync(() => discover().firstWhere((games) => games.isNotEmpty)))!.single;
+      final joined = await tester.runAsync(() => joinGame(found: found.found, playerName: 'Вереск'));
+      final guest = (joined! as NetworkGameOpened).game;
+      await settleNetwork(tester);
+
+      await tester.tap(find.text(l10n.netAdmitDecline));
+      await settleNetwork(tester);
+
+      expect(find.text(l10n.netAdmitTitle('Вереск')), findsNothing);
+      expect(host.room.opponent, isNull);
+      expect(guest.room.end, const RoomRefused(JoinRefusal.declined));
+    });
+
+    testWidgets('гость ждёт решения хоста: подпись ожидания, затем отказ с пояснением', (tester) async {
+      final opened = await tester.runAsync(() => admittingGame(gameName: 'Цири', playerName: 'Цири'));
+      final host = (opened! as NetworkGameOpened).game;
+      final found = (await tester.runAsync(() => discover().firstWhere((games) => games.isNotEmpty)))!.single;
+      final joined = await tester.runAsync(() => joinGame(found: found.found, playerName: 'Вереск'));
+      final guest = (joined! as NetworkGameOpened).game;
+      await pumpRoom(tester, game: guest);
+
+      expect(find.text(l10n.netGuestWaiting), findsOneWidget);
+
+      host.declineGuest();
+      await settleNetwork(tester);
+
+      expect(find.text(l10n.netNoticeDeclinedTitle), findsOneWidget);
     });
 
     testWidgets('подтверждённый уход закрывает игру и возвращает на прежний экран', (tester) async {

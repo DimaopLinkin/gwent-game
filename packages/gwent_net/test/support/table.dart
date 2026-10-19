@@ -135,7 +135,7 @@ final class Table {
   /// Подключает клиента хоста.
   void connectHost() {
     final (client, server) = InMemoryTransport.pair();
-    host.accept(server);
+    host.accept(server, trusted: true);
     hostClient.connect(client);
   }
 

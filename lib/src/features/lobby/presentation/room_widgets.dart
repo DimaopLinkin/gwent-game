@@ -585,3 +585,79 @@ class RoomCountdown extends StatelessWidget {
     );
   }
 }
+
+/// Запрос хосту: гость постучался в лобби и ждёт ответа. Занимает экран, пока хост не ответит или гость не уйдёт
+/// (ADR 0022). Кнопки друг под другом: подписи не переносятся на вторую строку.
+class RoomAdmission extends StatelessWidget {
+  /// Создаёт запрос про игрока [name].
+  const RoomAdmission({super.key, required this.name, required this.onAccept, required this.onDecline});
+
+  /// Имя гостя из его `hello`.
+  final String name;
+
+  /// Хост пускает гостя.
+  final VoidCallback onAccept;
+
+  /// Хост отказывает гостю.
+  final VoidCallback onDecline;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final title = l10n.netAdmitTitle(name.isEmpty ? l10n.netOpponentName : name);
+    return Positioned.fill(
+      child: ColoredBox(
+        color: GwentColors.scrimDetail,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            child: Center(
+              child: Semantics(
+                liveRegion: true,
+                label: title,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 14,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      textScaler: TextScaler.noScaling,
+                      style: const TextStyle(
+                        fontFamily: GwentText.cormorant,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 30,
+                        height: 1.1,
+                        color: GwentColors.goldHighlight,
+                      ),
+                    ),
+                    Text(
+                      l10n.netAdmitBody,
+                      textAlign: TextAlign.center,
+                      style: _caption(GwentColors.textSecondary, size: 17),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: double.infinity,
+                      child: GwentButton(label: l10n.netAdmitAccept, fontSize: 21, onPressed: onAccept),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: GwentButton(
+                        label: l10n.netAdmitDecline,
+                        style: GwentButtonStyle.secondary,
+                        solid: true,
+                        fontSize: 21,
+                        onPressed: onDecline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -148,3 +148,11 @@ final class LobbyClosed extends ClientEvent {
   @override
   List<Object?> get props => const [];
 }
+
+/// Хост пустил игрока в лобби: до этого хост решал, принять ли его.
+final class GuestAdmitted extends ClientEvent {
+  const GuestAdmitted();
+
+  @override
+  List<Object?> get props => const [];
+}

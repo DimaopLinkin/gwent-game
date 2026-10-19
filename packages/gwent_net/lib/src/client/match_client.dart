@@ -219,6 +219,8 @@ final class MatchClient {
         _emit(const CountdownCancelled());
       case OpponentLeave():
         _emit(const OpponentLeft());
+      case Admitted():
+        _emit(const GuestAdmitted());
       case LobbyClose():
         // Хост закроет соединение сам; обрыв после этого сообщения не повод переподключаться.
         _status = ConnectionStatus.closed;

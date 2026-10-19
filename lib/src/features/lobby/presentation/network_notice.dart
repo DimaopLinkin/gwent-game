@@ -76,6 +76,7 @@ NoticeText noticeOfRefusal(AppLocalizations l10n, JoinRefusal reason) => switch 
   JoinRefusal.rulesetMismatch => (title: l10n.netNoticeRulesetTitle, text: l10n.netNoticeRulesetText),
   JoinRefusal.matchFull => (title: l10n.netNoticeFullTitle, text: l10n.netNoticeFullText),
   JoinRefusal.unknownResumeToken => (title: l10n.netNoticeFailTitle, text: l10n.netNoticeFailText),
+  JoinRefusal.declined => (title: l10n.netNoticeDeclinedTitle, text: l10n.netNoticeDeclinedText),
 };
 
 /// Что сказать игроку о том, почему комната закончилась без партии.

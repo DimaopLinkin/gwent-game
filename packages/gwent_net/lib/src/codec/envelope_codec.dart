@@ -88,6 +88,7 @@ String _type(NetMessage message) => switch (message) {
   CountdownCancel() => 'countdown_cancel',
   OpponentLeave() => 'opponent_leave',
   LobbyClose() => 'lobby_close',
+  Admitted() => 'admitted',
 };
 
 Map<String, Object?> _payload(NetMessage message) => switch (message) {
@@ -125,7 +126,7 @@ Map<String, Object?> _payload(NetMessage message) => switch (message) {
     'away': ?(away ? true : null),
   },
   LobbyStatus(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
-  DeckWithdrawal() || LobbyLeave() || CountdownCancel() || OpponentLeave() || LobbyClose() => const {},
+  DeckWithdrawal() || LobbyLeave() || CountdownCancel() || OpponentLeave() || LobbyClose() || Admitted() => const {},
   OpponentLobby(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
   CountdownStart(:final duration) => {'ms': duration.inMilliseconds},
 };
@@ -170,6 +171,7 @@ NetMessage _message(String type, JsonReader p) => switch (type) {
   'countdown_cancel' => const CountdownCancel(),
   'opponent_leave' => const OpponentLeave(),
   'lobby_close' => const LobbyClose(),
+  'admitted' => const Admitted(),
   final other => throw MalformedFrame(
     r'$.t: '
     'неизвестный тип сообщения «$other»',

@@ -80,7 +80,7 @@ void main() {
     guestActive = ActiveNetworkGame();
     final loadContent = LoadGameContent(AssetContentSource.basePack(rootBundle));
     final setup = LoadNetworkSetup(loadContent, const FakeAppInfo(), WatchSettings(settings));
-    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler);
+    hostGame = HostNetworkGame(setup, lobby, hostActive, SecureEntropy(), scheduler, requireAdmission: false);
     joinGame = JoinNetworkGame(setup, lobby, guestActive, scheduler);
     discover = DiscoverNetworkGames(setup, lobby);
     loadRules = LoadDeckRules(GameContentDeckRulesSource(loadContent));
