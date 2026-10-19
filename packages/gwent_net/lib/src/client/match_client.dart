@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:gwent_net/src/client/client_event.dart';
 import 'package:gwent_net/src/client/client_settings.dart';
+import 'package:gwent_net/src/client/host_data_check.dart';
 import 'package:gwent_net/src/client/resume_ticket.dart';
 import 'package:gwent_net/src/codec/protocol_exception.dart';
 import 'package:gwent_net/src/protocol/envelope.dart';
@@ -35,13 +36,20 @@ enum ConnectionStatus {
 /// Намерения, отправленные без связи, ждут в очереди и уходят после переподключения. Переподключение
 /// делает приложение: получает новый транспорт (лобби, QR, другой вид связи) и вызывает [connect].
 final class MatchClient {
-  MatchClient({required ClientSettings settings, required Scheduler scheduler, ResumeTicket? ticket})
-    : _settings = settings,
-      _scheduler = scheduler,
-      _ticket = ticket,
-      _channel = SequencedChannel(matchId: ticket?.matchId);
+  /// [catalog] обязателен: им проверяются данные хоста: карты и лидеры из его кадров должны быть в справочнике клиента.
+  MatchClient({
+    required ClientSettings settings,
+    required Scheduler scheduler,
+    ResumeTicket? ticket,
+    required CardCatalog catalog,
+  }) : _settings = settings,
+       _catalog = catalog,
+       _scheduler = scheduler,
+       _ticket = ticket,
+       _channel = SequencedChannel(matchId: ticket?.matchId);
 
   final ClientSettings _settings;
+  final CardCatalog _catalog;
   final Scheduler _scheduler;
   final SequencedChannel _channel;
   final StreamController<ClientEvent> _events = StreamController<ClientEvent>.broadcast();
@@ -190,11 +198,15 @@ final class MatchClient {
   void _onSequenced(PeerLink link, NetMessage message) {
     switch (message) {
       case MatchUpdate(:final events, :final view):
-        _view = view;
-        _emit(ViewChanged(view, events));
+        if (_acceptable(link, view, events)) {
+          _view = view;
+          _emit(ViewChanged(view, events));
+        }
       case MatchSnapshot(:final view):
-        _view = view;
-        _emit(ViewChanged(view, const []));
+        if (_acceptable(link, view, const [])) {
+          _view = view;
+          _emit(ViewChanged(view, const []));
+        }
       case final Refusal refusal:
         _emit(ActionRefused(refusal, request: refusal.replyTo - (_base ?? 0)));
       case OpponentPresence(:final online, :final name, :final unstable, :final away):
@@ -215,6 +227,17 @@ final class MatchClient {
         // Нарушение протокола: сообщение клиента от хоста.
         unawaited(link.close());
     }
+  }
+
+  /// Данные хоста годятся для экрана. Если нет, клиент сообщает об этом и закрывает соединение.
+  bool _acceptable(PeerLink link, PlayerView view, List<GameEvent> events) {
+    final problem = findHostDataProblem(_catalog, view: view, events: events, seat: _seat);
+    if (problem == null) return true;
+    // Как после `LobbyClose`: обрыв, который следует за этим, не повод переподключаться к тому же хосту.
+    _status = ConnectionStatus.closed;
+    _emit(HostDataInvalid(problem));
+    unawaited(link.close());
+    return false;
   }
 
   void _sendPing() {

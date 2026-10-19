@@ -42,6 +42,9 @@ final class SequencedChannel {
   /// Есть сообщения, которые собеседник ещё не подтвердил.
   bool get hasUnacked => _unacked.isNotEmpty;
 
+  /// Сколько сообщений собеседник ещё не подтвердил.
+  int get unackedCount => _unacked.length;
+
   /// Сообщение с номером; хранится до подтверждения.
   Envelope sequenced(NetMessage message) {
     final envelope = Envelope(message, seq: ++_sent, ack: _received, matchId: matchId);

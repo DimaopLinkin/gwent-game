@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:gwent/src/features/lobby/data/game_ad_record.dart';
 import 'package:gwent/src/features/lobby/data/lan_connector.dart';
 import 'package:gwent/src/features/lobby/data/lan_server.dart';
@@ -52,15 +53,25 @@ final class LanLobby implements GameLobby {
   Stream<List<FoundGame>> discover() {
     return Stream<List<FoundGame>>.multi((controller) {
       // Ключ — имя экземпляра сервиса: событие пропажи несёт только его.
-      final games = <String, FoundGame>{};
+      final records = <String, FoundGame>{};
+      var shown = const <FoundGame>[];
+      void publish() {
+        final next = _visible(records);
+        if (const ListEquality<FoundGame>().equals(next, shown)) return;
+        shown = next;
+        controller.add(next);
+      }
+
       controller.add(const []);
       final subscription = _directory.browse().listen(
         (event) {
-          final changed = switch (event) {
-            ServiceFound(:final record) => _found(games, record),
-            ServiceLost(:final name) => games.remove(name) != null,
-          };
-          if (changed) controller.add(List.unmodifiable(games.values));
+          switch (event) {
+            case ServiceFound(:final record):
+              _remember(records, record);
+            case ServiceLost(:final name):
+              records.remove(name);
+          }
+          publish();
         },
         onError: controller.addError,
         onDone: controller.close,
@@ -110,24 +121,48 @@ final class LanLobby implements GameLobby {
   ServiceRecord _record(GameAd ad, int port) =>
       ServiceRecord(name: ad.id, port: port, attributes: GameAdRecord.encode(ad));
 
-  /// Добавляет или обновляет партию; `true`, если список изменился.
-  static bool _found(Map<String, FoundGame> games, ServiceRecord record) {
+  /// Запоминает объявление [record] или забывает его, если оно не наше или недоступно.
+  static void _remember(Map<String, FoundGame> games, ServiceRecord record) {
     final ad = GameAdRecord.decode(record.attributes);
     final hosts = LanConnector.orderedHosts(record.hosts);
     if (ad == null || hosts.isEmpty || record.port < 1 || record.port > 65535) {
-      return games.remove(record.name) != null;
+      games.remove(record.name);
+      return;
     }
-    final game = FoundGame(
+    games[record.name] = FoundGame(
       ad: ad,
       address: LanAddress(gameId: ad.id, hosts: hosts, port: record.port),
     );
-    if (games[record.name] == game) return false;
-    // Та же партия под другим именем: ОС переименовала новое объявление, пока старое ещё не пропало.
-    // Новее — последнее объявление.
-    games
-      ..removeWhere((name, other) => name != record.name && other.ad.id == ad.id)
-      ..[record.name] = game;
-    return true;
+  }
+
+  /// Список партий для игрока: по одной записи на партию.
+  ///
+  /// Объявление принимает любое устройство сети, а идентификатор партии открыт, поэтому самозванец может объявить
+  /// «ту же» партию со своим адресом. Партию определяет первое увиденное объявление; последующие с тем же
+  /// идентификатором принимаются, только если у них есть общий адрес с первым (ОС переименовала новое объявление
+  /// того же хоста, пока старое не пропало), и из них берутся лишь общие адреса. Если первое пропало, на его место
+  /// встаёт следующее: хост мог сменить сеть.
+  static List<FoundGame> _visible(Map<String, FoundGame> records) {
+    final anchors = <String, FoundGame>{};
+    final chosen = <String, FoundGame>{};
+    for (final game in records.values) {
+      final id = game.ad.id;
+      final anchor = anchors.putIfAbsent(id, () => game);
+      if (identical(anchor, game)) {
+        chosen[id] = game;
+        continue;
+      }
+      final common = [
+        for (final host in (game.address as LanAddress).hosts)
+          if ((anchor.address as LanAddress).hosts.contains(host)) host,
+      ];
+      if (common.isEmpty) continue;
+      chosen[id] = FoundGame(
+        ad: game.ad,
+        address: LanAddress(gameId: id, hosts: common, port: (game.address as LanAddress).port),
+      );
+    }
+    return List.unmodifiable(chosen.values);
   }
 }
 

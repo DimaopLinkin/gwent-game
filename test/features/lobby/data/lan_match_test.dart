@@ -44,6 +44,7 @@ void main() {
     final client = MatchClient(
       settings: ClientSettings(ruleset: testRuleset, playerName: name, appVersion: 'test'),
       scheduler: const SystemScheduler(),
+      catalog: catalog,
     );
     client.events.listen(log.add);
     return client;
@@ -125,6 +126,7 @@ void main() {
     final stranger = MatchClient(
       settings: const ClientSettings(ruleset: other, playerName: 'Чужой', appVersion: 'test'),
       scheduler: const SystemScheduler(),
+      catalog: catalog,
     );
     final events = <ClientEvent>[];
     stranger.events.listen(events.add);

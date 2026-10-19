@@ -83,6 +83,7 @@ NoticeText noticeOfEnd(AppLocalizations l10n, RoomEnd end) => switch (end) {
   RoomRefused(:final reason) => noticeOfRefusal(l10n, reason),
   RoomHostClosed() => (title: l10n.netNoticeClosedTitle, text: l10n.netNoticeClosedText),
   RoomConnectionLost() => (title: l10n.netNoticeLostTitle, text: l10n.netNoticeLostText),
+  RoomHostInvalid() => (title: l10n.netNoticeInvalidTitle, text: l10n.netNoticeInvalidText),
 };
 
 /// Кнопка сообщения.

@@ -62,6 +62,7 @@ final class JoinNetworkGame {
     final client = MatchClient(
       settings: ClientSettings(ruleset: setup.ruleset, playerName: playerName, appVersion: setup.appVersion),
       scheduler: _scheduler,
+      catalog: setup.content.catalog,
     );
     final game = NetworkGame(
       client: client,
@@ -77,7 +78,7 @@ final class JoinNetworkGame {
       case RoomRefused(:final reason):
         await game.close();
         return NetworkRefused(reason);
-      case RoomHostClosed() || RoomConnectionLost():
+      case RoomHostClosed() || RoomConnectionLost() || RoomHostInvalid():
         await game.close();
         return const NetworkUnreachable();
       case null:

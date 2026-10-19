@@ -102,6 +102,7 @@ final class MatchHost {
     _anonymous.clear();
     for (final session in _seats.values) {
       session.grace?.cancel();
+      session.resendCooldown?.cancel();
       session.link = null;
     }
     await Future.wait(links.map((link) => link.close()));
@@ -243,6 +244,9 @@ final class MatchHost {
         link.send(channel.control(Pong(sent: channel.sent)));
         if (sent > channel.received) link.send(channel.control(const ResendRequest()));
       case ResendRequest():
+        // Пауза между ответами: иначе короткая просьба заставляла бы хост снова и снова слать всю очередь.
+        if (session.resendCooldown != null) break;
+        session.resendCooldown = _scheduler.timer(_settings.resendCooldown, () => session.resendCooldown = null);
         channel.pending().forEach(link.send);
       case Hello() || Welcome() || JoinRejected() || Pong() || ClientMessage() || HostMessage():
         // Клиент такое не шлёт после `welcome`; номерные сообщения сюда не попадают.
@@ -441,7 +445,16 @@ final class MatchHost {
 
   /// Отправляет сообщение с номером; если игрок отключён, оно дождётся переподключения.
   void _send(SeatSession session, HostMessage message) {
-    final envelope = session.channel.sequenced(message);
+    final channel = session.channel;
+    final envelope = channel.sequenced(message);
+    if (channel.unackedCount > _settings.maxUnacked) {
+      // Игрок не подтверждает сообщения (зависший или враждебный клиент): очередь не растёт дальше, а вернувшийся
+      // игрок начнёт со снимка.
+      channel.discardUnacked();
+      final link = session.link;
+      if (link != null) unawaited(link.close());
+      return;
+    }
     session.link?.send(envelope);
   }
 

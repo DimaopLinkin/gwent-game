@@ -48,6 +48,18 @@ final class ViewChanged extends ClientEvent {
   List<Object?> get props => [view, events];
 }
 
+/// Хост прислал данные, которых нет в справочнике клиента (карта, лидер) или проекцию не для этого игрока.
+/// Соединение закрыто, и возвращаться к такому хосту бессмысленно.
+final class HostDataInvalid extends ClientEvent {
+  const HostDataInvalid(this.problem);
+
+  /// Что именно не так, для журнала и отладки.
+  final String problem;
+
+  @override
+  List<Object?> get props => [problem];
+}
+
 /// Хост не выполнил сообщение клиента.
 final class ActionRefused extends ClientEvent {
   const ActionRefused(this.refusal, {required this.request});

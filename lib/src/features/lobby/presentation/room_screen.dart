@@ -107,7 +107,9 @@ class RoomScreen extends StatelessWidget {
                   children: [
                     ScreenHeader(
                       title: room.opponent == null && !room.started ? l10n.netCreateTitle : l10n.netRoomTitle,
-                      subtitle: room.opponent == null ? null : l10n.netRoomSubtitle(isHost ? title : _hostName(room)),
+                      subtitle: room.opponent == null
+                          ? null
+                          : l10n.netRoomSubtitle(isHost ? title : _hostName(room, l10n)),
                       titleSize: 32,
                       onBack: end != null ? onLeft : () => unawaited(_confirmLeave(context)),
                     ),
@@ -146,7 +148,10 @@ class RoomScreen extends StatelessWidget {
     );
   }
 
-  String _hostName(LobbyRoom room) => room.opponent?.name ?? '';
+  String _hostName(LobbyRoom room, AppLocalizations l10n) {
+    final name = room.opponent?.name ?? '';
+    return name.isEmpty ? l10n.netOpponentName : name;
+  }
 }
 
 class _Ended extends StatelessWidget {

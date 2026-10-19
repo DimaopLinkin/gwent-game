@@ -286,6 +286,11 @@ final class NetworkGame {
         _setRoom(_room.copyWith(clearOpponent: true, clearCountdown: true));
       case LobbyClosed():
         _setRoom(_room.copyWith(end: const RoomHostClosed()));
+      case HostDataInvalid():
+        _reconnecting = false;
+        _deadline?.cancel();
+        _setRoom(_room.copyWith(end: const RoomHostInvalid(), clearCountdown: true));
+        if (_room.started && !_table.isClosed) _table.add(const TableFailed(RoomHostInvalid()));
     }
   }
 

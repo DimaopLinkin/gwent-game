@@ -122,6 +122,7 @@ final class Table {
       settings: ClientSettings(ruleset: clientRuleset, playerName: name, appVersion: _settings.appVersion),
       scheduler: scheduler,
       ticket: ticket,
+      catalog: catalog,
     );
     final log = events[client] = [];
     client.events.listen((event) {
