@@ -7,6 +7,7 @@ import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 import '../../../../support/match_fixtures.dart';
@@ -504,6 +505,47 @@ void main() {
       final game = finished();
       final script = build(game, events(game.mineScore, game.theirScore), summaryOf(mine: game.mineScore));
       expect(script.tapSpeedsUp(3000), isFalse);
+    });
+  });
+
+  group('звуки конца раунда и матча', () {
+    test('выигранный раунд звучит победой в момент плашки, проигранный и ничья — поражением', () {
+      final game = round();
+      final expected = {
+        RoundOutcome.win: SoundEffect.roundWon,
+        RoundOutcome.loss: SoundEffect.roundLost,
+        RoundOutcome.draw: SoundEffect.roundLost,
+      };
+      for (final MapEntry(key: outcome, value: effect) in expected.entries) {
+        final script = build(game, roundEvents(game.mineScore, game.theirScore), summaryOf(outcome: outcome));
+        expect(script.cues.map((cue) => cue.effect), [effect], reason: outcome.name);
+        expect(script.cues.single.at, script.steps[1] + 1400, reason: 'плашка после подсчёта рядов');
+      }
+    });
+
+    test('матч: победа и поражение звучат в момент плашки исхода', () {
+      for (final (winner, effect) in [(Seat.one, SoundEffect.matchWon), (Seat.two, SoundEffect.matchLost)]) {
+        final game = round();
+        final next = viewOf(
+          cards,
+          me: game.closing.me,
+          opponent: game.closing.opponent,
+          phase: MatchPhase.finished,
+          outcome: MatchOutcome(winner: winner, reason: MatchEndReason.crystals),
+        );
+        final script = StageScriptBuilder(prev: game.closing, next: next, catalog: content.catalog).buildRound(
+          1,
+          [
+            const Passed(Seat.one, auto: false),
+            RoundEnded(
+              RoundResult(round: 3, scores: {Seat.one: game.mineScore, Seat.two: game.theirScore}, winner: winner),
+            ),
+            MatchEnded(MatchOutcome(winner: winner, reason: MatchEndReason.crystals)),
+          ],
+          summary: summaryOf(),
+        )!;
+        expect(script.cues.map((cue) => cue.effect), [effect]);
+      }
     });
   });
 

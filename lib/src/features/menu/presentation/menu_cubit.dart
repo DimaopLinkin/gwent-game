@@ -5,6 +5,8 @@ import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/menu/application/load_menu.dart';
 import 'package:gwent/src/features/menu/presentation/menu_state.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 
 /// Держатель главного меню: заставка при запуске, затем меню, которое знает, можно ли играть.
 ///
@@ -13,13 +15,15 @@ import 'package:gwent/src/features/menu/presentation/menu_state.dart';
 /// меню зовёт в конструктор. Держатель живёт всё время работы приложения, поэтому заставка идёт один раз.
 final class MenuCubit extends Cubit<MenuState> {
   /// Создаёт держатель и сразу начинает готовить меню.
-  MenuCubit(this._loadMenu, this._watchDecks, {this.minSplash = const Duration(milliseconds: 1200)})
-    : super(const MenuLoading()) {
+  MenuCubit(this._loadMenu, this._watchDecks, {this.minSplash = const Duration(milliseconds: 1200), PlaySound? sound})
+    : _sound = sound,
+      super(const MenuLoading()) {
     unawaited(_load());
   }
 
   final LoadMenu _loadMenu;
   final WatchDecks _watchDecks;
+  final PlaySound? _sound;
 
   /// Наименьшее время заставки.
   final Duration minSplash;
@@ -27,6 +31,7 @@ final class MenuCubit extends Cubit<MenuState> {
   StreamSubscription<List<Deck>>? _subscription;
   MenuInfo? _info;
   bool _hasDeck = false;
+  bool _opened = false;
 
   Future<void> _load() async {
     final minimum = Future<void>.delayed(minSplash);
@@ -61,6 +66,11 @@ final class MenuCubit extends Cubit<MenuState> {
   void _emitReady() {
     if (isClosed) return;
     final info = _info;
+    // Звук открытия меню один раз: заставка кончилась и меню появилось.
+    if (!_opened) {
+      _opened = true;
+      _sound?.call(SoundEffect.menuOpen);
+    }
     emit(
       MenuReady(
         appVersion: info?.appVersion,

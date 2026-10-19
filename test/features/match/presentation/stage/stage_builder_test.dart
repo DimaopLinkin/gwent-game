@@ -4,7 +4,9 @@ import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_sounds.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 import '../../../../support/match_fixtures.dart';
@@ -260,6 +262,171 @@ void main() {
       expect(end.rows[key]!.cards.single.view.strength, 1);
       expect(end.rows[key]!.weather, isTrue);
       expect(end.weatherSlots[row], isTrue);
+    });
+  });
+
+  group('звуки сценария', () {
+    List<SoundEffect> effects(StageScript script) => [for (final cue in script.cues) cue.effect];
+
+    /// Сценарий, в котором я играю [card] из руки в ряд [row] (результат — в моём ряду).
+    StageScript playFromHand(CardInstance card, Row row) {
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: [card]));
+      final next = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: const [],
+          rows: {
+            row: rowOf([card], cards),
+          },
+        ),
+      );
+      return build(prev, next, [CardPlayed(Seat.one, card), UnitPlaced(Seat.one, row, card, EntrySource.hand)])!;
+    }
+
+    test('отряд ложится со звуком своего ряда в момент посадки', () {
+      final expected = {
+        Row.melee: SoundEffect.unitMelee,
+        Row.ranged: SoundEffect.unitRanged,
+        Row.siege: SoundEffect.unitSiege,
+      };
+      for (final MapEntry(key: row, value: effect) in expected.entries) {
+        final script = playFromHand(cards.unit(row), row);
+        expect(effects(script), [effect], reason: row.name);
+        final landing = script.rows[(mine: true, row: row)]!.phases.single.showAt;
+        expect(script.cues.single.at, landing, reason: 'звук в момент посадки карты');
+      }
+    });
+
+    test('герой звучит как герой, а не как ряд', () {
+      final hero = cards.hero();
+      final row = (cards.definition(hero) as UnitCardDefinition).placement.rows.first;
+      expect(effects(playFromHand(hero, row)), [SoundEffect.hero]);
+    });
+
+    test('шпион звучит как шпион и звука ряда не даёт', () {
+      final spy = cards.spy();
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: [spy]));
+      final next = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: const []),
+        opponent: sideOf(
+          cards,
+          Seat.two,
+          handCount: 3,
+          rows: {
+            Row.melee: rowOf([spy], cards),
+          },
+        ),
+      );
+      final script = build(prev, next, [
+        CardPlayed(Seat.one, spy),
+        UnitPlaced(Seat.two, Row.melee, spy, EntrySource.hand),
+      ])!;
+      expect(effects(script), [SoundEffect.spy]);
+    });
+
+    test('Медик: сначала звук самого отряда, затем звук Медика, когда начинается возврат карты', () {
+      final medic = cards.medic();
+      final back = cards.unit(Row.melee);
+      final prev = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: [medic], discard: [back]),
+      );
+      final next = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: const [],
+          rows: {
+            Row.melee: rowOf([medic, back], cards),
+          },
+        ),
+      );
+      final script = build(prev, next, [
+        CardPlayed(Seat.one, medic),
+        UnitPlaced(Seat.one, Row.melee, medic, EntrySource.hand),
+        UnitPlaced(Seat.one, Row.melee, back, EntrySource.medic),
+      ])!;
+      final own = (cards.definition(medic) as UnitCardDefinition).isHero ? SoundEffect.hero : SoundEffect.unitMelee;
+      expect(effects(script), [own, SoundEffect.medic]);
+      expect(script.cues.last.at, greaterThanOrEqualTo(script.cues.first.at));
+    });
+
+    test('Казнь звучит, когда начинают гореть цели', () {
+      final scorch = cards.special<ScorchAbility>();
+      final victim = cards.unit(Row.melee);
+      final prev = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: [scorch]),
+        opponent: sideOf(
+          cards,
+          Seat.two,
+          handCount: 3,
+          rows: {
+            Row.melee: rowOf([victim], cards),
+          },
+        ),
+      );
+      final next = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: const [], discard: [scorch]),
+        opponent: sideOf(cards, Seat.two, handCount: 3, discard: [victim]),
+      );
+      final script = build(prev, next, [
+        CardPlayed(Seat.one, scorch),
+        UnitsDestroyed([DestroyedUnit(Seat.two, Row.melee, victim)]),
+        CardDiscarded(Seat.two, victim),
+        CardDiscarded(Seat.one, scorch),
+      ])!;
+      expect(effects(script), [SoundEffect.scorch]);
+    });
+
+    test('погода звучит по рядам: мороз, туман, дождь', () {
+      final frost = cards.special<WeatherAbility>();
+      final row = ((cards.definition(frost) as SpecialCardDefinition).ability as WeatherAbility).rows.first;
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: [frost]));
+      final next = viewOf(cards, me: sideOf(cards, Seat.one, hand: const []));
+      final script = build(prev, next, [CardPlayed(Seat.one, frost), WeatherPlayed(Seat.one, frost)])!;
+      expect(effects(script), [
+        soundOfWeather({row}),
+      ]);
+    });
+
+    test('«Уменьшить движение» не отнимает звуков', () {
+      final unit = cards.unit(Row.ranged);
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit]));
+      final next = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: const [],
+          rows: {
+            Row.ranged: rowOf([unit], cards),
+          },
+        ),
+      );
+      final script = build(
+        prev,
+        next,
+        [CardPlayed(Seat.one, unit), UnitPlaced(Seat.one, Row.ranged, unit, EntrySource.hand)],
+        style: const StageStyle(reduceMotion: true),
+      )!;
+      expect(effects(script), [SoundEffect.unitRanged]);
+    });
+
+    test('добор звучит один раз на пачку карт', () {
+      final a = cards.unit(Row.melee);
+      final b = cards.unit(Row.ranged);
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: const []));
+      final next = viewOf(cards, me: sideOf(cards, Seat.one, hand: [a, b]));
+      final script = build(prev, next, [
+        CardsDrawn(Seat.one, [a, b]),
+      ])!;
+      expect(effects(script), [SoundEffect.draw]);
     });
   });
 

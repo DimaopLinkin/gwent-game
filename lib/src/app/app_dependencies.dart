@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
@@ -40,6 +42,10 @@ import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart
 import 'package:gwent/src/features/settings/application/save_settings.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
+import 'package:gwent/src/features/sound/application/background_music.dart';
+import 'package:gwent/src/features/sound/application/play_sound.dart';
+import 'package:gwent/src/features/sound/domain/music_output.dart';
+import 'package:gwent/src/features/sound/domain/sound_output.dart';
 import 'package:gwent_content/gwent_content.dart';
 import 'package:gwent_net/gwent_net.dart' show Entropy, Scheduler, SecureEntropy, SystemScheduler;
 
@@ -60,6 +66,9 @@ final class AppDependencies {
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
     required NetworkAccess networkAccess,
+    required SoundOutput soundOutput,
+    required MusicOutput musicOutput,
+    Random? random,
     Entropy? entropy,
     Scheduler scheduler = const SystemScheduler(),
     Duration botThinkTime = const Duration(milliseconds: 700),
@@ -82,6 +91,9 @@ final class AppDependencies {
       seedGenerator: seedGenerator,
       gameLobby: gameLobby,
       networkAccess: networkAccess,
+      soundOutput: soundOutput,
+      musicOutput: musicOutput,
+      random: random ?? Random(),
       entropy: entropy ?? SecureEntropy(),
       scheduler: scheduler,
       botThinkTime: botThinkTime,
@@ -102,6 +114,9 @@ final class AppDependencies {
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
     required NetworkAccess networkAccess,
+    required SoundOutput soundOutput,
+    required MusicOutput musicOutput,
+    required Random random,
     required Entropy entropy,
     required Scheduler scheduler,
     required Duration botThinkTime,
@@ -133,6 +148,8 @@ final class AppDependencies {
     joinNetworkGame = JoinNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, scheduler);
     discoverNetworkGames = DiscoverNetworkGames(loadNetworkSetup, gameLobby);
     networkReadiness = NetworkReadiness(networkAccess, settingsRepository);
+    playSound = PlaySound(soundOutput, watchSettings);
+    backgroundMusic = BackgroundMusic(musicOutput, watchSettings, random);
   }
 
   /// Контент для партии и конструктора колод: пакет и справочник движка.
@@ -221,4 +238,10 @@ final class AppDependencies {
 
   /// Поиск партий рядом.
   late final DiscoverNetworkGames discoverNetworkGames;
+
+  /// Звуковые эффекты с громкостью из настроек (ADR 0023).
+  late final PlaySound playSound;
+
+  /// Фоновая музыка с громкостью из настроек (ADR 0023).
+  late final BackgroundMusic backgroundMusic;
 }

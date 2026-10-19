@@ -9,7 +9,9 @@ import 'package:gwent/src/features/match/presentation/stage/stage_beat.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_sounds.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 part 'stage_builder_effects.dart';
@@ -153,12 +155,16 @@ final class StageScriptBuilder {
   final Set<CardInstanceId> _discardHandled = {};
   final List<double> _steps = [];
   final List<(double, double)> _locks = [];
+  final List<SoundCue> _cues = [];
   double _cursor = 0;
   double? _settleAt;
   double _settleStagger = 0;
   bool _thought = false;
 
   bool get _rm => style.reduceMotion;
+
+  /// Звук [effect] начинается в момент [at].
+  void _sound(SoundEffect effect, double at) => _cues.add(SoundCue(at: at, effect: effect));
 
   double _ms(int token) => style.ms(token).toDouble();
 
@@ -455,7 +461,15 @@ final class StageScriptBuilder {
       veilEnds: veil,
       steps: List.unmodifiable(_steps),
       locks: List.unmodifiable(_locks),
+      cues: _orderedCues(),
     );
+  }
+
+  /// Звуки по времени; при равном времени порядок, в котором их добавили (сортировка списка не стабильна).
+  List<SoundCue> _orderedCues() {
+    final indexed = _cues.indexed.toList()
+      ..sort((a, b) => a.$2.at != b.$2.at ? a.$2.at.compareTo(b.$2.at) : a.$1.compareTo(b.$1));
+    return List.unmodifiable([for (final (_, cue) in indexed) cue]);
   }
 
   /// События после [index] до конца этой сцены.

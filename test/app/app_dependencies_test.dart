@@ -24,6 +24,8 @@ void main() {
       seedGenerator: FixedSeedGenerator(1),
       gameLobby: FakeGameLobby(),
       networkAccess: FakeNetworkAccess(),
+      soundOutput: RecordingSoundOutput(),
+      musicOutput: FakeMusicOutput(),
     );
     final content = (await dependencies.loadGameContent() as GameContentReady).content;
     final factions = content.pack.rules.fractions.where((fraction) => fraction.isDeck).toList();

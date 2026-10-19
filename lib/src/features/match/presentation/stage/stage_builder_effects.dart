@@ -19,10 +19,14 @@ extension _EffectScenes on StageScriptBuilder {
         case UnitPlaced(:final source) when source != EntrySource.hand:
           done.add(i);
           if (source.isMuster) {
-            if (musterAt < 0) musterAt = end;
+            if (musterAt < 0) {
+              musterAt = end;
+              _sound(SoundEffect.muster, end);
+            }
             end = math.max(end, _enterFromZone(event, musterAt + musterStep * _ms(StageTokens.twin), actor));
             musterStep++;
           } else {
+            if (source == EntrySource.medic) _sound(SoundEffect.medic, end);
             end = math.max(end, _enterFromZone(event, end, actor));
           }
         case BerserkTransformed():
@@ -144,6 +148,7 @@ extension _EffectScenes on StageScriptBuilder {
   /// Добор: карты вылетают из колоды одна за другой, у меня разворачиваются лицом и встают в руку.
   double _draw({required bool mine, required List<CardInstance>? cards, required int count, required double at}) {
     var end = at;
+    if (count > 0) _sound(SoundEffect.draw, at);
     final flight = _ms(StageTokens.flight);
     for (var k = 0; k < count; k++) {
       final start = at + k * _ms(StageTokens.twin);

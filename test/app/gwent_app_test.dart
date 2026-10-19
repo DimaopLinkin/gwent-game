@@ -63,6 +63,8 @@ void main() {
           seedGenerator: FixedSeedGenerator(1),
           gameLobby: FakeGameLobby(),
           networkAccess: FakeNetworkAccess(),
+          soundOutput: RecordingSoundOutput(),
+          musicOutput: FakeMusicOutput(),
         ),
       ),
     );
