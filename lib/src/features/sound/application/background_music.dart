@@ -14,14 +14,31 @@ import 'package:gwent/src/features/sound/domain/music_track.dart';
 /// через [pause] и возвращает через [resume]. Сценарий живёт столько же, сколько приложение.
 final class BackgroundMusic {
   /// Создаёт сценарий над [_output]; [random] выбирает порядок композиций.
-  BackgroundMusic(this._output, WatchSettings watchSettings, this._random) {
+  BackgroundMusic(
+    this._output,
+    WatchSettings watchSettings,
+    this._random, {
+    this.trackGap = const Duration(milliseconds: 600),
+    this.retryDelay = const Duration(seconds: 2),
+  }) {
     _settings = watchSettings().listen(
       _onSettings,
       // Настройки не читаются: музыка остаётся на последней известной громкости, а ошибка уходит в обработчик зоны.
       onError: Zone.current.handleUncaughtError,
     );
-    _ended = _output.trackEnded.listen((_) => unawaited(_enqueue(_playNext)));
+    _ended = _output.trackEnded.listen((_) => unawaited(_continueAfterGap()));
   }
+
+  /// Сколько максимум раз подряд запуск композиции повторяется сам, прежде чем музыка замолчит до смены громкости или
+  /// возврата из фона.
+  static const int maxRetries = 5;
+
+  /// Пауза между концом композиции и началом следующей: платформа успевает закончить прежнюю (на iOS она ещё
+  /// освобождает проигрыватель, и запуск в этот момент остался бы без звука или без события конца).
+  final Duration trackGap;
+
+  /// Пауза перед повтором не удавшегося запуска; растёт с каждой неудачей.
+  final Duration retryDelay;
 
   final MusicOutput _output;
   final Random _random;
@@ -39,6 +56,9 @@ final class BackgroundMusic {
 
   /// Проигрыватель сейчас играет.
   bool _playing = false;
+
+  int _failures = 0;
+  bool _disposed = false;
 
   /// Хвост очереди работ: решения о воспроизведении принимаются по одному, на актуальном состоянии, поэтому пауза не
   /// обгоняет начатый запуск, а запуск не оживляет музыку, которую уже поставили на паузу.
@@ -70,6 +90,7 @@ final class BackgroundMusic {
 
   /// Перестаёт следить за настройками и проигрывателем.
   Future<void> dispose() async {
+    _disposed = true;
     await _settings.cancel();
     await _ended.cancel();
   }
@@ -105,6 +126,28 @@ final class BackgroundMusic {
     }
   }
 
+  /// Композиция кончилась: после [trackGap] начинается следующая.
+  Future<void> _continueAfterGap() async {
+    if (trackGap > Duration.zero) await Future<void>.delayed(trackGap);
+    if (_disposed) return;
+    await _enqueue(_playNext);
+  }
+
+  /// Запуск не удался: пробует ещё раз через [retryDelay], но не больше [maxRetries] раз подряд.
+  void _retryLater() {
+    if (_failures >= maxRetries) return;
+    _failures++;
+    final delay = retryDelay * _failures;
+    unawaited(
+      Future<void>.delayed(delay).then((_) {
+        if (_disposed || _loaded) return null;
+        return _enqueue(() async {
+          if (!_loaded) await _playNext();
+        });
+      }),
+    );
+  }
+
   Future<void> _playNext() async {
     _loaded = false;
     _playing = false;
@@ -112,10 +155,13 @@ final class BackgroundMusic {
     final track = _nextTrack();
     _loaded = true;
     _playing = true;
-    if (!await _output.play(track, volume: _level)) {
-      // Запуск не удался: следующая смена громкости или возврат из фона попробует ещё раз.
+    if (await _output.play(track, volume: _level)) {
+      _failures = 0;
+    } else {
+      // Запуск не удался: пробуем ещё раз сами, а если и это не помогло, то при смене громкости или возврате из фона.
       _loaded = false;
       _playing = false;
+      _retryLater();
     }
   }
 

@@ -27,6 +27,9 @@ typedef SoundErrorReporter = void Function(Object error, StackTrace stackTrace, 
 /// Один и тот же эффект, запущенный снова в пределах [overlapWindow], звучит поверх прежнего: для этого у эффекта
 /// заводится до [voicesPerEffect] проигрывателей, и запуски идут по кругу. Запуски одного проигрывателя идут по
 /// очереди. Проигрыватель, на котором что-то сорвалось, выбрасывается, и следующий запуск создаёт новый.
+///
+/// Запуск живёт [staleAfter]: если он простоял дольше (платформа держала вызов, пока экран был заблокирован), то
+/// просто пропускается. Иначе после разблокировки все накопившиеся звуки сыграли бы разом.
 final class EffectVoicePool {
   /// Создаёт пул; [create] делает проигрыватели, [onError] получает все ошибки, [now] отдаёт текущее время.
   EffectVoicePool({
@@ -36,6 +39,7 @@ final class EffectVoicePool {
     this.voicesPerEffect = 2,
     this.overlapWindow = const Duration(milliseconds: 1500),
     this.closeDelay = const Duration(seconds: 6),
+    this.staleAfter = const Duration(milliseconds: 400),
     DateTime Function() now = DateTime.now,
   }) : assert(voicesPerEffect > 0, 'проигрывателей на эффект положительное число'),
        _create = create,
@@ -51,6 +55,9 @@ final class EffectVoicePool {
 
   /// Сколько вытесненный эффект ещё может доиграть, прежде чем проигрыватель освободится.
   final Duration closeDelay;
+
+  /// Через сколько после запроса запуск уже не нужен.
+  final Duration staleAfter;
 
   final EffectVoiceFactory _create;
   final SoundErrorReporter _onError;
@@ -79,7 +86,7 @@ final class EffectVoicePool {
       if (overlapping) slot.cursor = (slot.cursor + 1) % slot.voices.length;
       voice = slot.voices[slot.cursor % slot.voices.length];
     }
-    voice.tail = voice.tail.then((_) => _run(slot, voice, effect, volume));
+    voice.tail = voice.tail.then((_) => _run(slot, voice, effect, volume, now));
   }
 
   _Slot _slot(SoundEffect effect) {
@@ -106,10 +113,13 @@ final class EffectVoicePool {
     return voice;
   }
 
-  Future<void> _run(_Slot slot, _Voice voice, SoundEffect effect, double volume) async {
+  bool _isStale(DateTime requested) => _now().difference(requested) > staleAfter;
+
+  Future<void> _run(_Slot slot, _Voice voice, SoundEffect effect, double volume, DateTime requested) async {
+    if (_isStale(requested)) return;
     // Ошибка подготовки уже сообщена в [_addVoice].
     final player = await voice.player.then<EffectVoice?>((player) => player, onError: (Object _) => null);
-    if (player == null) return;
+    if (player == null || _isStale(requested)) return;
     try {
       await player.play(volume);
     } on Object catch (error, stackTrace) {
