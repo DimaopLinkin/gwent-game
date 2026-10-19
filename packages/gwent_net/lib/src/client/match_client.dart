@@ -25,6 +25,9 @@ enum ConnectionStatus {
 
   /// Хост не пустил.
   refused,
+
+  /// Хост закрыл лобби.
+  closed,
 }
 
 /// Игрок партии: шлёт хосту колоду и намерения, хранит свою проекцию (раздел 2 сетевой спецификации).
@@ -97,6 +100,16 @@ final class MatchClient {
 
   /// Отправляет намерение; возвращает номер запроса, на который сошлётся `ActionRefused.request`.
   int send(Intent intent) => _sendSequenced(IntentMessage(intent));
+
+  /// Сообщает хосту, чем игрок занят в лобби. Отменяет прежнюю готовность. [stage] не может быть `ready`:
+  /// готовность — это колода, [submitDeck].
+  int reportLobbyStatus(LobbyStage stage, {LeaderId? leader}) => _sendSequenced(LobbyStatus(stage, leader: leader));
+
+  /// Берёт отправленную колоду обратно (отмена готовности).
+  int withdrawDeck() => _sendSequenced(const DeckWithdrawal());
+
+  /// Уходит из лобби: хост освобождает место сразу. Соединение закрывает приложение.
+  int leaveLobby() => _sendSequenced(const LobbyLeave());
 
   /// Закрывает соединение и поток событий.
   Future<void> close() async {
@@ -184,6 +197,18 @@ final class MatchClient {
         _emit(ActionRefused(refusal, request: refusal.replyTo - (_base ?? 0)));
       case OpponentPresence(:final online, :final name):
         _emit(OpponentPresenceChanged(online: online, name: name));
+      case OpponentLobby(:final stage, :final leader):
+        _emit(OpponentLobbyChanged(stage, leader: leader));
+      case CountdownStart(:final duration):
+        _emit(CountdownStarted(duration));
+      case CountdownCancel():
+        _emit(const CountdownCancelled());
+      case OpponentLeave():
+        _emit(const OpponentLeft());
+      case LobbyClose():
+        // Хост закроет соединение сам; обрыв после этого сообщения не повод переподключаться.
+        _status = ConnectionStatus.closed;
+        _emit(const LobbyClosed());
       case ControlMessage() || ClientMessage():
         // Нарушение протокола: сообщение клиента от хоста.
         unawaited(link.close());
@@ -202,7 +227,7 @@ final class MatchClient {
     _link = null;
     _ping?.cancel();
     _ping = null;
-    if (_status == ConnectionStatus.refused) return;
+    if (_status == ConnectionStatus.refused || _status == ConnectionStatus.closed) return;
     _status = ConnectionStatus.offline;
     _emit(const ConnectionLost());
   }

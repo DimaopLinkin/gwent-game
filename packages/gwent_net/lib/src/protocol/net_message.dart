@@ -119,6 +119,53 @@ final class DeckSubmission extends ClientMessage {
   List<Object?> get props => [deck];
 }
 
+/// Где игрок в лобби перед партией: макет «Два телефона», блок игрока (ADR 0019).
+enum LobbyStage {
+  /// Выбирает колоду из сохранённых.
+  choosing,
+
+  /// Собирает колоду в конструкторе.
+  building,
+
+  /// Колода выбрана, но игрок ещё не готов.
+  chosen,
+
+  /// Готов: колода отправлена хосту (`DeckSubmission`) и не отозвана.
+  ready,
+}
+
+/// Состояние игрока в лобби до готовности: чем он занят и какого лидера выбрал.
+///
+/// Готовность не передаётся этим сообщением: «готов» значит, что хост получил колоду (`DeckSubmission`).
+/// Сообщение с новым состоянием отменяет прежнюю готовность, как [DeckWithdrawal].
+final class LobbyStatus extends ClientMessage {
+  const LobbyStatus(this.stage, {this.leader}) : assert(stage != LobbyStage.ready, 'готовность — это колода хосту');
+
+  final LobbyStage stage;
+
+  /// Лидер выбранной колоды; лидера видно сопернику сразу: он не скрытая информация партии.
+  final LeaderId? leader;
+
+  @override
+  List<Object?> get props => [stage, leader];
+}
+
+/// Игрок берёт колоду обратно (отмена готовности): отсчёт старта прерывается, колоду можно сменить.
+final class DeckWithdrawal extends ClientMessage {
+  const DeckWithdrawal();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Игрок уходит из лобби: хост освобождает его место сразу, не ожидая возвращения.
+final class LobbyLeave extends ClientMessage {
+  const LobbyLeave();
+
+  @override
+  List<Object?> get props => const [];
+}
+
 /// Намерение игрока. Место игрока хост берёт из соединения, а не из сообщения.
 final class IntentMessage extends ClientMessage {
   const IntentMessage(this.intent);
@@ -201,4 +248,51 @@ final class OpponentPresence extends HostMessage {
 
   @override
   List<Object?> get props => [online, name];
+}
+
+/// Хост → клиент: что делает соперник в лобби. Приходит при каждом его изменении и сразу после подключения.
+final class OpponentLobby extends HostMessage {
+  const OpponentLobby(this.stage, {this.leader});
+
+  final LobbyStage stage;
+
+  /// Лидер выбранной колоды соперника; `null`, пока колода не выбрана.
+  final LeaderId? leader;
+
+  @override
+  List<Object?> get props => [stage, leader];
+}
+
+/// Хост → клиент: оба игрока готовы, партия начнётся через [duration].
+final class CountdownStart extends HostMessage {
+  const CountdownStart(this.duration);
+
+  final Duration duration;
+
+  @override
+  List<Object?> get props => [duration];
+}
+
+/// Хост → клиент: отсчёт прерван (игрок отозвал колоду, ушёл или потерял связь), партия не начнётся.
+final class CountdownCancel extends HostMessage {
+  const CountdownCancel();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Хост → клиент: соперник ушёл из лобби, его место свободно.
+final class OpponentLeave extends HostMessage {
+  const OpponentLeave();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Хост → клиент: хост закрыл лобби; следом закрывается соединение, возвращаться некуда.
+final class LobbyClose extends HostMessage {
+  const LobbyClose();
+
+  @override
+  List<Object?> get props => const [];
 }

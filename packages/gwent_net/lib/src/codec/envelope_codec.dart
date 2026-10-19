@@ -79,6 +79,14 @@ String _type(NetMessage message) => switch (message) {
   MatchSnapshot() => 'snapshot',
   Refusal() => 'error',
   OpponentPresence() => 'opponent',
+  LobbyStatus() => 'lobby_status',
+  DeckWithdrawal() => 'deck_withdraw',
+  LobbyLeave() => 'lobby_leave',
+  OpponentLobby() => 'opponent_lobby',
+  CountdownStart() => 'countdown_start',
+  CountdownCancel() => 'countdown_cancel',
+  OpponentLeave() => 'opponent_leave',
+  LobbyClose() => 'lobby_close',
 };
 
 Map<String, Object?> _payload(NetMessage message) => switch (message) {
@@ -110,6 +118,10 @@ Map<String, Object?> _payload(NetMessage message) => switch (message) {
     'reject': ?_encodeOptionalReject(reject),
   },
   OpponentPresence(:final online, :final name) => {'online': online, 'name': name},
+  LobbyStatus(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
+  DeckWithdrawal() || LobbyLeave() || CountdownCancel() || OpponentLeave() || LobbyClose() => const {},
+  OpponentLobby(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
+  CountdownStart(:final duration) => {'ms': duration.inMilliseconds},
 };
 
 NetMessage _message(String type, JsonReader p) => switch (type) {
@@ -139,6 +151,14 @@ NetMessage _message(String type, JsonReader p) => switch (type) {
     reject: p.optional('reject', decodeReject),
   ),
   'opponent' => OpponentPresence(online: p.boolean('online'), name: p.string('name')),
+  'lobby_status' => _lobbyStatus(p),
+  'deck_withdraw' => const DeckWithdrawal(),
+  'lobby_leave' => const LobbyLeave(),
+  'opponent_lobby' => OpponentLobby(p.enumValue('stage', LobbyStage.values), leader: _optionalLeader(p)),
+  'countdown_start' => CountdownStart(Duration(milliseconds: p.integer('ms'))),
+  'countdown_cancel' => const CountdownCancel(),
+  'opponent_leave' => const OpponentLeave(),
+  'lobby_close' => const LobbyClose(),
   final other => throw MalformedFrame(
     r'$.t: '
     'неизвестный тип сообщения «$other»',
@@ -146,3 +166,15 @@ NetMessage _message(String type, JsonReader p) => switch (type) {
 };
 
 Map<String, Object?>? _encodeOptionalReject(Reject? reject) => reject == null ? null : encodeReject(reject);
+
+/// Состояние лобби клиента: готовность передаётся колодой, поэтому стадия `ready` здесь — нарушение протокола.
+LobbyStatus _lobbyStatus(JsonReader p) {
+  final stage = p.enumValue('stage', LobbyStage.values);
+  if (stage == LobbyStage.ready) throw MalformedFrame('${p.path}.stage: готовность передаётся колодой');
+  return LobbyStatus(stage, leader: _optionalLeader(p));
+}
+
+LeaderId? _optionalLeader(JsonReader p) => switch (p.optionalString('leader')) {
+  final leader? => LeaderId(leader),
+  null => null,
+};

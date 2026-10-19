@@ -214,18 +214,28 @@ void main() {
     expect(table.eventsOf<ConnectionLost>(table.guest), isEmpty);
   });
 
-  test('после закрытия хоста клиенты видят обрыв, новые соединения закрываются', () async {
+  test('после закрытия хоста в лобби клиенты узнают о закрытии, новые соединения закрываются', () async {
     final table = Table()
       ..connectHost()
       ..connectGuest();
     await table.scheduler.flush();
     await table.host.close();
     await table.scheduler.flush();
-    expect(table.guest.status, ConnectionStatus.offline);
-    expect(table.hostClient.status, ConnectionStatus.offline);
+    expect(table.guest.status, ConnectionStatus.closed);
+    expect(table.hostClient.status, ConnectionStatus.closed);
 
     table.connectGuest();
     await table.scheduler.flush();
     expect(table.guest.status, ConnectionStatus.offline);
+  });
+
+  test('после закрытия хоста в партии клиенты видят обрыв', () async {
+    final table = Table();
+    await table.start(skellige, northern);
+    await table.host.close();
+    await table.scheduler.flush();
+    expect(table.guest.status, ConnectionStatus.offline);
+    expect(table.hostClient.status, ConnectionStatus.offline);
+    expect(table.eventsOf<ConnectionLost>(table.guest), hasLength(1));
   });
 }

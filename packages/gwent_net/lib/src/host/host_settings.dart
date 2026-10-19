@@ -7,6 +7,7 @@ final class HostSettings extends Value {
     required this.ruleset,
     this.reconnectGrace = const Duration(minutes: 2),
     this.linkTimeout = const Duration(seconds: 9),
+    this.startDelay = Duration.zero,
   });
 
   /// Набор правил хоста: гость с другим набором не подключится.
@@ -19,6 +20,10 @@ final class HostSettings extends Value {
   /// Сколько клиент может молчать, пока соединение считается живым. Клиент шлёт `ping` чаще.
   final Duration linkTimeout;
 
+  /// Сколько ждать между готовностью обоих игроков и началом партии: за это время любой может отозвать колоду
+  /// (ADR 0019). Ноль — партия начинается сразу, как только хост получил обе колоды.
+  final Duration startDelay;
+
   @override
-  List<Object?> get props => [ruleset, reconnectGrace, linkTimeout];
+  List<Object?> get props => [ruleset, reconnectGrace, linkTimeout, startDelay];
 }

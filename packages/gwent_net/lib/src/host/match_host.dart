@@ -52,6 +52,9 @@ final class MatchHost {
   MatchState? _state;
   bool _closed = false;
 
+  /// Отсчёт до старта партии: идёт, пока оба игрока готовы и на связи.
+  Timer? _countdown;
+
   /// Полное состояние партии; `null` до начала. Его видит только хост, игрокам уходят проекции.
   MatchState? get state => _state;
 
@@ -75,7 +78,16 @@ final class MatchHost {
 
   /// Закрывает все соединения и таймеры. Партия дальше не идёт.
   Future<void> close() async {
+    if (_closed) return;
+    // В лобби игроки узнают, что возвращаться некуда; в партии они переподключатся к новому хосту сами.
+    if (_state == null) {
+      for (final session in _seats.values) {
+        _send(session, const LobbyClose());
+      }
+    }
     _closed = true;
+    _countdown?.cancel();
+    _countdown = null;
     final links = [..._anonymous, for (final session in _seats.values) ?session.link];
     _anonymous.clear();
     for (final session in _seats.values) {
@@ -123,6 +135,7 @@ final class MatchHost {
     if (session == null) return;
     session.link = null;
     if (_state?.phase == MatchPhase.finished) return;
+    _cancelCountdown();
     _announce(session.seat);
     session.grace = _scheduler.timer(_settings.reconnectGrace, () => _expire(session));
   }
@@ -144,6 +157,8 @@ final class MatchHost {
     link.send(session.channel.control(Welcome(seat: seat, matchId: matchId, resumeToken: session.token, next: 1)));
     _announce(seat);
     _announce(seat.opponent);
+    _announceLobby(seat);
+    _announceLobby(seat.opponent);
   }
 
   /// Место для нового игрока: свободное или занятое клиентом, который так и не получил `welcome`.
@@ -173,9 +188,14 @@ final class MatchHost {
       channel.pending().forEach(link.send);
     } else if (_state case final state?) {
       _send(session, MatchSnapshot(_engine.project(state, session.seat)));
+    } else {
+      // В лобби снимка нет: игрок узнаёт о сопернике из объявлений ниже.
+      _announceLobby(session.seat.opponent);
     }
     _announce(session.seat);
     _announce(session.seat.opponent);
+    _announceLobby(session.seat);
+    _startIfReady();
   }
 
   void _bind(SeatSession session, PeerLink link) {
@@ -216,6 +236,12 @@ final class MatchHost {
         _onDeck(session, deck, envelope.seq);
       case IntentMessage(:final intent):
         _onIntent(session, intent, envelope.seq);
+      case final LobbyStatus status:
+        _onLobbyStatus(session, status, envelope.seq);
+      case DeckWithdrawal():
+        _onWithdrawal(session, envelope.seq);
+      case LobbyLeave():
+        _onLeave(session);
       case ControlMessage() || HostMessage():
         // Нарушение протокола: сообщение хоста от клиента.
         unawaited(session.link?.close());
@@ -234,13 +260,72 @@ final class MatchHost {
       return _refuse(session, RefusalCode.deckRejected, seq, reject);
     }
     session.deck = deck;
+    _announceLobby(session.seat);
     _startIfReady();
   }
 
+  void _onLobbyStatus(SeatSession session, LobbyStatus status, int seq) {
+    if (_state != null) return _refuse(session, RefusalCode.matchStarted, seq);
+    session
+      ..draft = status
+      ..deck = null;
+    _cancelCountdown();
+    _announceLobby(session.seat);
+  }
+
+  void _onWithdrawal(SeatSession session, int seq) {
+    if (_state != null) return _refuse(session, RefusalCode.matchStarted, seq);
+    if (session.deck == null) return;
+    session.deck = null;
+    _cancelCountdown();
+    _announceLobby(session.seat);
+  }
+
+  /// Игрок ушёл из лобби: место свободно сразу. Соединение закроет сам игрок, а закрытое хостом место с новым
+  /// игроком уже не спутает.
+  void _onLeave(SeatSession session) {
+    if (_state != null) return;
+    _cancelCountdown();
+    session.grace?.cancel();
+    _seats.remove(session.seat);
+    final link = session.link;
+    session.link = null;
+    if (link != null) unawaited(link.close());
+    if (_seats[session.seat.opponent] case final remaining?) _send(remaining, const OpponentLeave());
+  }
+
   void _startIfReady() {
+    if (_state != null || _countdown != null) return;
+    final one = _seats[Seat.one];
+    final two = _seats[Seat.two];
+    if (one?.deck == null || two?.deck == null) return;
+    final delay = _settings.startDelay;
+    if (delay == Duration.zero) return _start();
+    // Отсчёт идёт только пока оба на связи: отключившийся игрок может не вернуться.
+    if (!one!.online || !two!.online) return;
+    for (final session in [one, two]) {
+      _send(session, CountdownStart(delay));
+    }
+    _countdown = _scheduler.timer(delay, () {
+      _countdown = null;
+      _start();
+    });
+  }
+
+  void _cancelCountdown() {
+    final countdown = _countdown;
+    if (countdown == null) return;
+    countdown.cancel();
+    _countdown = null;
+    for (final session in _seats.values) {
+      _send(session, const CountdownCancel());
+    }
+  }
+
+  void _start() {
     final one = _seats[Seat.one]?.deck;
     final two = _seats[Seat.two]?.deck;
-    if (one == null || two == null) return;
+    if (_state != null || one == null || two == null) return;
     final record = MatchRecord(matchId: matchId, ruleset: _settings.ruleset, seed: _entropy.seed(), one: one, two: two);
     switch (_engine.start(record.setup)) {
       case Accepted(:final state, :final events):
@@ -283,6 +368,7 @@ final class MatchHost {
     if (session.online || _seats[session.seat] != session) return;
     if (_state == null) {
       _seats.remove(session.seat);
+      if (_seats[session.seat.opponent] case final remaining?) _send(remaining, const OpponentLeave());
     } else {
       _apply(session.seat, const Resign());
     }
@@ -302,6 +388,20 @@ final class MatchHost {
     if (subject != null && target != null) {
       _send(target, OpponentPresence(online: subject.online, name: subject.playerName));
     }
+  }
+
+  /// Говорит сопернику игрока [about], чем тот занят в лобби. После начала партии лобби нет.
+  void _announceLobby(Seat about) {
+    final subject = _seats[about];
+    final target = _seats[about.opponent];
+    if (subject == null || target == null || _state != null) return;
+    final deck = subject.deck;
+    _send(
+      target,
+      deck == null
+          ? OpponentLobby(subject.draft.stage, leader: subject.draft.leader)
+          : OpponentLobby(LobbyStage.ready, leader: deck.leader),
+    );
   }
 
   void _refuse(SeatSession session, RefusalCode code, int replyTo, [Reject? reject]) =>
