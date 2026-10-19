@@ -215,7 +215,11 @@ void main() {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await tester.pump();
       expect(find.byType(MatchResultView), findsOneWidget);
-      expect(find.byType(FieldView), findsNothing);
+      expect(
+        tester.widget<FieldView>(find.byType(FieldView)).readOnly,
+        isTrue,
+        reason: 'поле остаётся за листом итога, его только смотрят',
+      );
     });
 
     testWidgets('сдача не ждёт анимаций: итог матча открывается сразу', (tester) async {

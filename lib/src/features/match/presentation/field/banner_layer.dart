@@ -59,6 +59,7 @@ class MatchBannerStrip extends StatelessWidget {
     this.emberPip = false,
     this.decisive = false,
     this.titleSize,
+    this.height,
   });
 
   /// Вес баннера.
@@ -91,7 +92,10 @@ class MatchBannerStrip extends StatelessWidget {
   /// Размер заголовка вместо стандартного для веса: у плашки итога раунда длинная подпись.
   final double? titleSize;
 
-  double get _height => decisive ? 190 : weight.height;
+  /// Высота полосы вместо стандартной для веса: у баннера хода с подписью (макет 13) она 76 pt.
+  final double? height;
+
+  double get _height => height ?? (decisive ? 190 : weight.height);
 
   @override
   Widget build(BuildContext context) {
@@ -291,7 +295,7 @@ class _BannerLayerState extends State<BannerLayer> with SingleTickerProviderStat
       return;
     }
     _controller
-      ..duration = _weightOf(banner).visibleFor
+      ..duration = _durationOf(banner)
       ..forward(from: 0);
   }
 
@@ -310,6 +314,13 @@ class _BannerLayerState extends State<BannerLayer> with SingleTickerProviderStat
     PassBanner() => BannerWeight.pass,
     TurnStartBanner() => BannerWeight.turn,
   };
+
+  /// Время показа: баннер хода с подписью о выборе Скоя'таэлей держится дольше обычного, подпись надо успеть прочесть.
+  static Duration _durationOf(FieldBanner banner) =>
+      banner is TurnStartBanner && banner.chosenBy != null ? turnNoteVisibleFor : _weightOf(banner).visibleFor;
+
+  /// Сколько держится баннер хода с подписью о выборе Скоя'таэлей.
+  static const Duration turnNoteVisibleFor = Duration(milliseconds: 1800);
 
   /// 0 → 1 за появление, 1 на выдержке, 1 → 0 за уход: те же доли времени, что в макете (12 % и 84–95 %).
   double _presence(double t) {
@@ -404,10 +415,19 @@ class _BannerLayerState extends State<BannerLayer> with SingleTickerProviderStat
                   : RoundPip.future,
           ],
         );
-      case TurnStartBanner(:final seat, :final mine):
+      case TurnStartBanner(:final seat, :final mine, :final chosenBy, :final chosenByMine):
         final theirs = !mine && !roster.hotSeat;
+        final note = chosenBy == null
+            ? null
+            : roster.hotSeat
+            ? l10n.bannerFirstChoiceBy(roster.name(chosenBy, l10n))
+            : chosenByMine
+            ? l10n.bannerFirstChoiceYou
+            : l10n.bannerFirstChoiceOpponent;
         return MatchBannerStrip(
           weight: weight,
+          height: note == null ? null : 76,
+          subtitle: note,
           title: roster.hotSeat
               ? l10n.bannerTurnOf(roster.name(seat, l10n))
               : mine

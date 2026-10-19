@@ -118,10 +118,11 @@ SideView sideOf(
   int deckCount = 20,
   int? redrawsLeft,
   bool redrawDone = false,
+  Faction faction = Faction.skellige,
 }) => SideView(
   seat: seat,
   leader: leader ?? source.leader,
-  faction: Faction.skellige,
+  faction: faction,
   leaderAvailable: leaderAvailable,
   leaderUsed: leaderUsed,
   leaderDisabled: leaderDisabled,
