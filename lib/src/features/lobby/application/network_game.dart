@@ -44,7 +44,15 @@ final class NetworkGame {
        _address = address {
     _events = client.events.listen(_onEvent);
     if (host != null && hosted != null) {
-      _connections = hosted.connections.listen(host.accept);
+      _connections = hosted.connections.listen(
+        host.accept,
+        // Система закрыла приём соединений (например, iOS при сворачивании): новых гостей не будет.
+        onDone: () {
+          if (!_closed && _room.end == null && !_room.started) {
+            _setRoom(_room.copyWith(end: const RoomConnectionLost()));
+          }
+        },
+      );
     }
   }
 
@@ -120,7 +128,15 @@ final class NetworkGame {
   void reportStage(LobbyStage stage, {LeaderId? leader}) {
     if (_closed || _room.started) return;
     _client.reportLobbyStatus(stage, leader: leader);
-    _setRoom(_room.copyWith(myStage: stage, myLeader: leader, clearLeader: leader == null, clearCountdown: true));
+    _setRoom(
+      _room.copyWith(
+        myStage: stage,
+        myLeader: leader,
+        clearLeader: leader == null,
+        clearCountdown: true,
+        deckRefused: false,
+      ),
+    );
   }
 
   /// Отправляет колоду: игрок готов. Партия начнётся, когда готов и соперник. [deckName] попадёт на экран знакомства.
@@ -128,7 +144,7 @@ final class NetworkGame {
     if (_closed || _room.started) return;
     _deckName = deckName;
     _deckRequest = _client.submitDeck(deck);
-    _setRoom(_room.copyWith(myStage: LobbyStage.ready, myLeader: deck.leader));
+    _setRoom(_room.copyWith(myStage: LobbyStage.ready, myLeader: deck.leader, deckRefused: false));
   }
 
   /// Берёт колоду обратно: игрок больше не готов.
@@ -167,6 +183,7 @@ final class NetworkGame {
       content: _content,
       factionIds: {seat: _factionId(view.me.faction), seat.opponent: _factionId(view.opponent.faction)},
       deckNames: {seat: ?deckName},
+      opponentName: _room.opponent?.name,
     );
   }
 
@@ -220,7 +237,13 @@ final class NetworkGame {
       case ActionRefused(:final refusal, :final request):
         _onRefusal(refusal, request);
       case OpponentPresenceChanged(:final online, :final name):
-        if (_room.started) return;
+        // Посреди партии из соперника меняется только связь: по ней экран показывает обрыв.
+        if (_room.started) {
+          if (_room.opponent case final opponent?) {
+            _setRoom(_room.copyWith(opponent: opponent.copyWith(online: online)));
+          }
+          return;
+        }
         final opponent = _room.opponent ?? RoomOpponent(name: name, online: online);
         _setRoom(
           _room.copyWith(
@@ -257,7 +280,7 @@ final class NetworkGame {
   void _onRefusal(Refusal refusal, int request) {
     if (request == _deckRequest) {
       _deckRequest = null;
-      _setRoom(_room.copyWith(myStage: LobbyStage.chosen, clearCountdown: true));
+      _setRoom(_room.copyWith(myStage: LobbyStage.chosen, clearCountdown: true, deckRefused: true));
       return;
     }
     final intent = _intents.remove(request);

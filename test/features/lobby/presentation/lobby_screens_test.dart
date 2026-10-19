@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,6 +29,8 @@ import 'package:gwent/src/features/lobby/presentation/create_game_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_deck_picker_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_layer.dart';
 import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/room_screen.dart';
@@ -462,6 +466,83 @@ void main() {
       expect(selected, 'north');
       await tester.tap(find.text(l10n.netPickerNew));
       expect(built, 1);
+    });
+  });
+
+  group('связь в партии', () {
+    Future<(NetworkGame, NetworkGame)> pair(WidgetTester tester) async {
+      final opened = await tester.runAsync(() => hostGame(gameName: 'Цири', playerName: 'Цири'));
+      final host = (opened! as NetworkGameOpened).game;
+      final found = (await tester.runAsync(() => discover().firstWhere((games) => games.isNotEmpty)))!.single;
+      final guest =
+          ((await tester.runAsync(() => joinGame(found: found.found, playerName: 'Вереск')))! as NetworkGameOpened)
+              .game;
+      await settleNetwork(tester);
+      return (host, guest);
+    }
+
+    /// Останавливает отсчёт держателя: фальшивые часы теста не терпят висящих таймеров.
+    Future<void> stopCountdown(WidgetTester tester, MatchConnectionCubit cubit) async {
+      unawaited(cubit.close());
+      await tester.pump();
+    }
+
+    /// Слой связи над игрой; возвращает держатель, чтобы тест остановил его отсчёт до конца теста.
+    Future<MatchConnectionCubit> pumpLayer(WidgetTester tester, NetworkGame game) async {
+      useSmallPhone(tester);
+      final cubit = MatchConnectionCubit(game);
+      await tester.pumpWidget(
+        localizedScreen(
+          BlocProvider.value(
+            value: cubit,
+            child: MatchConnectionLayer(onEnd: () {}),
+          ),
+        ),
+      );
+      return cubit;
+    }
+
+    testWidgets('связь в норме: только точка, окна нет', (tester) async {
+      final (host, _) = await pair(tester);
+      await pumpLayer(tester, host);
+
+      expect(find.text(l10n.netLinkOk), findsOneWidget);
+      expect(find.text(l10n.netLostTitle), findsNothing);
+    });
+
+    testWidgets('хост: гость пропал — окно с «Ждать» и «Завершить матч»; «Ждать» оставляет таймер в углу', (
+      tester,
+    ) async {
+      final (host, _) = await pair(tester);
+      final cubit = await pumpLayer(tester, host);
+      lobby.failJoins = 1000;
+
+      await tester.runAsync(() => lobby.hostEnds.single.close());
+      await settleNetwork(tester);
+      expect(find.text(l10n.netLostTitle), findsOneWidget);
+      expect(find.text(l10n.netLostWait), findsOneWidget);
+      expect(find.text(l10n.netLostEnd), findsOneWidget);
+      expect(find.text('2:00'), findsWidgets);
+
+      await tester.tap(find.text(l10n.netLostWait));
+      await tester.pump();
+      expect(find.text(l10n.netLostTitle), findsNothing);
+      expect(find.textContaining(l10n.netLinkLost), findsOneWidget);
+      await stopCountdown(tester, cubit);
+    });
+
+    testWidgets('гость: хост пропал — «Переподключаемся…» и одна кнопка «Завершить матч»', (tester) async {
+      final (_, guest) = await pair(tester);
+      final cubit = await pumpLayer(tester, guest);
+      lobby.failJoins = 1000;
+
+      await tester.runAsync(() => lobby.hostEnds.single.close());
+      await settleNetwork(tester);
+
+      expect(find.text(l10n.netReconnectTitle), findsOneWidget);
+      expect(find.text(l10n.netLostWait), findsNothing);
+      expect(find.text(l10n.netLostEnd), findsOneWidget);
+      await stopCountdown(tester, cubit);
     });
   });
 }

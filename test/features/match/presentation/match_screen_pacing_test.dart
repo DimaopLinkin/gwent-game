@@ -15,6 +15,7 @@ import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
+import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
@@ -162,6 +163,7 @@ void main() {
       await push(tester, withHand(0, turn: null, phase: MatchPhase.finished), const [
         MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.resignation)),
       ]);
+      await endBanners(tester);
       expect(tester.getRect(find.byType(MatchResultView)), const Rect.fromLTWH(0, 0, 390, 844));
     });
   });
@@ -222,7 +224,7 @@ void main() {
       );
     });
 
-    testWidgets('сдача не ждёт анимаций: итог матча открывается сразу', (tester) async {
+    testWidgets('сдача не ждёт очереди: плашка исхода идёт сразу, за ней открывается итог матча', (tester) async {
       await pumpField(tester, withHand(1));
       await push(tester, withHand(1, turn: Seat.two), const [TurnStarted(Seat.two)]);
       expect(field.state.isBusy, isTrue);
@@ -230,6 +232,27 @@ void main() {
       await push(tester, withHand(1, turn: null, phase: MatchPhase.finished), const [
         MatchEnded(MatchOutcome(winner: Seat.two, reason: MatchEndReason.resignation)),
       ]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(MatchResultView), findsNothing, reason: 'сначала плашка исхода поверх поля');
+      expect(find.byType(FieldView), findsOneWidget);
+
+      await endBanners(tester);
+      expect(find.byType(MatchResultView), findsOneWidget);
+    });
+
+    testWidgets('соперник сдался при открытой паузе: пауза закрывается, плашка идёт, затем итог', (tester) async {
+      await pumpField(tester, withHand(1));
+      field.openPause();
+      await tester.pump();
+
+      await push(tester, withHand(1, turn: null, phase: MatchPhase.finished), const [
+        MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.resignation)),
+      ]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(field.state.pause, PauseLayer.none);
+      expect(find.byType(MatchResultView), findsNothing);
+
+      await endBanners(tester);
       expect(find.byType(MatchResultView), findsOneWidget);
     });
 

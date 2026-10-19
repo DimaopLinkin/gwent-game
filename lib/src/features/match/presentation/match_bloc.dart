@@ -317,7 +317,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     final canRematch = _request != null;
     final session = _session!;
     // Сначала поле с последним ходом и счётом: игрок видит, чем кончилась партия, а итог матча экран открывает после.
-    if (_boardShown && events.any((event) => event is MatchEnded && event.outcome.reason == MatchEndReason.crystals)) {
+    if (_boardShown && events.any((event) => event is MatchEnded)) {
       emit(MatchInProgress(view: view, content: session.content, roster: roster, events: events, closing: closing));
     }
     emit(MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch));

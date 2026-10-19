@@ -26,11 +26,12 @@ void main() {
     );
   });
 
-  MatchSession session(history.MatchMode mode, Set<Seat> localSeats) => MatchSession(
+  MatchSession session(history.MatchMode mode, Set<Seat> localSeats, {String? opponentName}) => MatchSession(
     mode: mode,
     table: _Table(localSeats),
     content: content,
     factionIds: const {Seat.one: 'skellige', Seat.two: 'monsters'},
+    opponentName: opponentName,
   );
 
   test('победа против бота: режим ai, фракции и раунды глазами первого места', () async {
@@ -55,6 +56,16 @@ void main() {
     expect(saved.mode, history.MatchMode.hotSeat);
     expect(saved.outcome, history.MatchOutcome.defeat);
     expect((saved.roundsWon, saved.roundsLost), (0, 2));
+  });
+
+  test('сетевая партия: в истории остаётся имя соперника в сети', () async {
+    final saved = await record(
+      session(history.MatchMode.wifi, {Seat.two}, opponentName: 'Вереск'),
+      _finalView(winner: Seat.two, rounds: [Seat.two, Seat.two], viewer: Seat.two),
+    );
+    expect(saved.mode, history.MatchMode.wifi);
+    expect(saved.opponentName, 'Вереск');
+    expect(saved.outcome, history.MatchOutcome.victory);
   });
 
   test('ничья: раунды вничью не идут в счёт', () async {

@@ -412,6 +412,14 @@ final class StageScriptBuilder {
     return _assemble(id);
   }
 
+  /// Собирает сценарий сдачи или выхода соперника (макет 13); `null`, если в [events] партия так не кончалась.
+  StageScript? buildResignation(int id, List<GameEvent> events) {
+    final ended = events.whereType<MatchEnded>().where((e) => e.outcome.reason == MatchEndReason.resignation);
+    if (ended.isEmpty) return null;
+    _resignation(ended.first);
+    return _assemble(id);
+  }
+
   StageScript? _assemble(int id) {
     if (_beats.isEmpty) return null;
     _applySettle();
