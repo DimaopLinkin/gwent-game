@@ -720,36 +720,39 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('мало места: вместо «Нет связи · 2:00» остаётся «2:00», а потом один значок', (tester) async {
-      final handle = tester.ensureSemantics();
-      final (host, _) = await pair(tester);
-      final cubit = await pumpLayer(tester, host, statusWidth: 60);
-      lobby.failJoins = 1000;
+    testWidgets(
+      'мало места: вместо «Нет связи · 2:00» остаётся «2:00», а совсем без места индикатор молчит, но читается диктором',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        final (host, _) = await pair(tester);
+        final cubit = await pumpLayer(tester, host, statusWidth: 70);
+        lobby.failJoins = 1000;
 
-      await tester.runAsync(() => lobby.hostEnds.single.close());
-      await settleNetwork(tester);
-      await tester.tap(find.text(l10n.netLostWait));
-      await tester.pump();
-      expect(find.text('${l10n.netLinkLost} · 2:00'), findsNothing);
-      expect(find.text('2:00'), findsOneWidget);
+        await tester.runAsync(() => lobby.hostEnds.single.close());
+        await settleNetwork(tester);
+        await tester.tap(find.text(l10n.netLostWait));
+        await tester.pump();
+        expect(find.text('${l10n.netLinkLost} · 2:00'), findsNothing);
+        expect(find.text('2:00'), findsOneWidget);
 
-      await tester.pumpWidget(
-        localizedScreen(
-          BlocProvider.value(
-            value: cubit,
-            child: const Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 20, child: MatchConnectionIndicator()),
+        await tester.pumpWidget(
+          localizedScreen(
+            BlocProvider.value(
+              value: cubit,
+              child: const Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(width: 20, child: MatchConnectionIndicator()),
+              ),
             ),
           ),
-        ),
-      );
-      expect(find.text('2:00'), findsNothing);
-      expect(find.bySemanticsLabel('${l10n.netLinkLost} · 2:00'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await stopCountdown(tester, cubit);
-      handle.dispose();
-    });
+        );
+        expect(find.text('2:00'), findsNothing);
+        expect(find.bySemanticsLabel('${l10n.netLinkLost} · 2:00'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await stopCountdown(tester, cubit);
+        handle.dispose();
+      },
+    );
 
     testWidgets('гость: хост пропал — «Переподключаемся…» и одна кнопка «Завершить матч»', (tester) async {
       final (_, guest) = await pair(tester);
