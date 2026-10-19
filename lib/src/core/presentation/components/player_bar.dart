@@ -56,6 +56,7 @@ class PlayerBar extends StatelessWidget {
     this.leading = false,
     this.discardTop,
     this.trailing,
+    this.status,
     this.lifeTotal = 2,
     this.lifeBreak,
     this.mine = true,
@@ -113,6 +114,10 @@ class PlayerBar extends StatelessWidget {
 
   /// Что справа: кнопка «Пас» или метка «Спасовал».
   final Widget? trailing;
+
+  /// Индикатор рядом с камнями и числом карт в руке: связь с соперником в сетевой партии. Занимает только свободное
+  /// место второй строки и не отнимает его у счёта, колоды и сброса: он сам подбирает вид под отданную ширину.
+  final Widget? status;
 
   /// Своя полоса (тёплый фон, граница сверху) или соперника (граница снизу).
   final bool mine;
@@ -218,6 +223,10 @@ class PlayerBar extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (status case final status?)
+                      Flexible(
+                        child: Align(alignment: Alignment.centerLeft, child: status),
+                      ),
                   ],
                 ),
               ],

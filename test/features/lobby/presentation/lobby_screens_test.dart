@@ -35,6 +35,7 @@ import 'package:gwent/src/features/lobby/presentation/host_invite_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/host_qr_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_deck_picker_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/match_connection_indicator.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_layer.dart';
 import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/qr_scan_screen.dart';
@@ -645,10 +646,44 @@ void main() {
       await tester.pump();
     }
 
-    /// Слой связи над игрой; возвращает держатель, чтобы тест остановил его отсчёт до конца теста.
-    Future<MatchConnectionCubit> pumpLayer(WidgetTester tester, NetworkGame game) async {
+    /// Слой связи над игрой и индикатор в узком углу, как в полосе соперника; возвращает держатель, чтобы тест
+    /// остановил его отсчёт до конца теста.
+    Future<MatchConnectionCubit> pumpLayer(WidgetTester tester, NetworkGame game, {double statusWidth = 170}) async {
       useSmallPhone(tester);
       final cubit = MatchConnectionCubit(game);
+      await tester.pumpWidget(
+        localizedScreen(
+          BlocProvider.value(
+            value: cubit,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned(left: 40, top: 20, width: statusWidth, child: const MatchConnectionIndicator()),
+                MatchConnectionLayer(onEnd: () {}),
+              ],
+            ),
+          ),
+        ),
+      );
+      return cubit;
+    }
+
+    testWidgets('связь в норме: один значок без подписи, окна нет', (tester) async {
+      final handle = tester.ensureSemantics();
+      final (host, _) = await pair(tester);
+      await pumpLayer(tester, host);
+
+      expect(find.bySemanticsLabel(l10n.netLinkOk), findsOneWidget);
+      expect(find.text(l10n.netLinkOk), findsNothing);
+      expect(find.text(l10n.netLostTitle), findsNothing);
+      handle.dispose();
+    });
+
+    testWidgets('связь в норме: слой не рисует ничего поверх поля', (tester) async {
+      final (host, _) = await pair(tester);
+      final cubit = MatchConnectionCubit(host);
+      closeAfterTest(tester, cubit);
+      useSmallPhone(tester);
       await tester.pumpWidget(
         localizedScreen(
           BlocProvider.value(
@@ -657,20 +692,14 @@ void main() {
           ),
         ),
       );
-      return cubit;
-    }
 
-    testWidgets('связь в норме: только точка, окна нет', (tester) async {
-      final (host, _) = await pair(tester);
-      await pumpLayer(tester, host);
-
-      expect(find.text(l10n.netLinkOk), findsOneWidget);
-      expect(find.text(l10n.netLostTitle), findsNothing);
+      expect(find.byType(Text), findsNothing);
     });
 
-    testWidgets('хост: гость пропал — окно с «Ждать» и «Завершить матч»; «Ждать» оставляет таймер в углу', (
+    testWidgets('хост: гость пропал — окно с «Ждать» и «Завершить матч»; «Ждать» оставляет таймер в индикаторе', (
       tester,
     ) async {
+      final handle = tester.ensureSemantics();
       final (host, _) = await pair(tester);
       final cubit = await pumpLayer(tester, host);
       lobby.failJoins = 1000;
@@ -685,8 +714,41 @@ void main() {
       await tester.tap(find.text(l10n.netLostWait));
       await tester.pump();
       expect(find.text(l10n.netLostTitle), findsNothing);
-      expect(find.textContaining(l10n.netLinkLost), findsOneWidget);
+      expect(find.bySemanticsLabel('${l10n.netLinkLost} · 2:00'), findsOneWidget);
+      expect(find.text('${l10n.netLinkLost} · 2:00'), findsOneWidget);
       await stopCountdown(tester, cubit);
+      handle.dispose();
+    });
+
+    testWidgets('мало места: вместо «Нет связи · 2:00» остаётся «2:00», а потом один значок', (tester) async {
+      final handle = tester.ensureSemantics();
+      final (host, _) = await pair(tester);
+      final cubit = await pumpLayer(tester, host, statusWidth: 60);
+      lobby.failJoins = 1000;
+
+      await tester.runAsync(() => lobby.hostEnds.single.close());
+      await settleNetwork(tester);
+      await tester.tap(find.text(l10n.netLostWait));
+      await tester.pump();
+      expect(find.text('${l10n.netLinkLost} · 2:00'), findsNothing);
+      expect(find.text('2:00'), findsOneWidget);
+
+      await tester.pumpWidget(
+        localizedScreen(
+          BlocProvider.value(
+            value: cubit,
+            child: const Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(width: 20, child: MatchConnectionIndicator()),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('2:00'), findsNothing);
+      expect(find.bySemanticsLabel('${l10n.netLinkLost} · 2:00'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await stopCountdown(tester, cubit);
+      handle.dispose();
     });
 
     testWidgets('гость: хост пропал — «Переподключаемся…» и одна кнопка «Завершить матч»', (tester) async {
@@ -703,7 +765,7 @@ void main() {
       await stopCountdown(tester, cubit);
     });
 
-    testWidgets('связь нестабильна: янтарная плашка «Нестабильно» без окна', (tester) async {
+    testWidgets('связь нестабильна: янтарная метка «Нестабильно» без окна', (tester) async {
       lobby.faultScheduler = scheduler;
       final (host, _) = await pair(tester);
       await pumpLayer(tester, host);
@@ -718,27 +780,32 @@ void main() {
       expect(find.text(l10n.netAwayText), findsNothing);
     });
 
-    testWidgets('гость: хост свернул приложение — окно «Партия на паузе», «Ждать» оставляет плашку', (tester) async {
+    testWidgets('гость: хост свернул приложение — окно «Партия на паузе», «Ждать» оставляет метку «Пауза»', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
       final (host, guest) = await pair(tester);
       final cubit = await pumpLayer(tester, guest);
 
       host.setAway(away: true);
       await settleNetwork(tester);
       expect(find.text(l10n.netAwayText), findsOneWidget);
-      expect(find.text(l10n.netAwayTitle), findsWidgets);
+      expect(find.text(l10n.netAwayTitle), findsOneWidget);
       expect(find.text(l10n.netLostWait), findsOneWidget);
       expect(find.text(l10n.netLostEnd), findsOneWidget);
 
       await tester.tap(find.text(l10n.netLostWait));
       await tester.pump();
       expect(find.text(l10n.netAwayText), findsNothing);
-      expect(find.text(l10n.netAwayTitle), findsOneWidget);
+      expect(find.text(l10n.netLinkAway), findsOneWidget);
+      expect(find.bySemanticsLabel(l10n.netAwayTitle), findsOneWidget);
 
       host.setAway(away: false);
       await settleNetwork(tester);
-      expect(find.text(l10n.netAwayTitle), findsNothing);
-      expect(find.text(l10n.netLinkOk), findsOneWidget);
+      expect(find.text(l10n.netLinkAway), findsNothing);
+      expect(find.bySemanticsLabel(l10n.netLinkOk), findsOneWidget);
       await stopCountdown(tester, cubit);
+      handle.dispose();
     });
   });
 

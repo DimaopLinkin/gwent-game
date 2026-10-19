@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
@@ -23,6 +25,9 @@ Future<bool> showConfirmDialog(
 }
 
 /// Содержимое диалога подтверждения: заголовок, пояснение и две кнопки.
+///
+/// Кнопки стоят в ряд, пока обе подписи помещаются в одну строку; иначе (длинная подпись, узкий экран, крупный шрифт
+/// системы) они встают столбиком на всю ширину, подтверждение сверху. Подпись никогда не переносится по буквам.
 class ConfirmDialog extends StatelessWidget {
   /// Создаёт диалог.
   const ConfirmDialog({super.key, required this.title, required this.body, required this.confirmLabel});
@@ -86,24 +91,7 @@ class ConfirmDialog extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    spacing: 12,
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          autofocus: true,
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: Text(context.l10n.dialogCancel),
-                        ),
-                      ),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: Text(confirmLabel),
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _Actions(confirmLabel: confirmLabel),
                 ),
               ],
             ),
@@ -111,5 +99,72 @@ class ConfirmDialog extends StatelessWidget {
         ),
       ),
     ),
+  );
+}
+
+/// Кнопки диалога: «Отмена» и подтверждение, в ряд или столбиком в зависимости от ширины подписей.
+class _Actions extends StatelessWidget {
+  const _Actions({required this.confirmLabel});
+
+  final String confirmLabel;
+
+  /// Промежуток между кнопками.
+  static const double _gap = 12;
+
+  @override
+  Widget build(BuildContext context) {
+    final cancelLabel = context.l10n.dialogCancel;
+    final cancel = OutlinedButton(
+      autofocus: true,
+      onPressed: () => Navigator.of(context).pop(false),
+      child: _Label(cancelLabel),
+    );
+    final confirm = FilledButton(onPressed: () => Navigator.of(context).pop(true), child: _Label(confirmLabel));
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final widest = math.max(_width(context, cancelLabel), _width(context, confirmLabel));
+        final rowFits = 2 * (widest + 2 * GwentSpace.buttonPadding) + _gap <= constraints.maxWidth;
+        return rowFits
+            ? Row(
+                spacing: _gap,
+                children: [
+                  Expanded(child: cancel),
+                  Expanded(child: confirm),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: _gap,
+                children: [confirm, cancel],
+              );
+      },
+    );
+  }
+
+  /// Ширина подписи в одну строку с учётом масштаба шрифта системы; стиль тот же, что у кнопок темы.
+  static double _width(BuildContext context, String label) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: GwentText.label),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+}
+
+/// Подпись кнопки: одна строка по центру; если не влезла даже на всю ширину, сжимается, а не переносится.
+class _Label extends StatelessWidget {
+  const _Label(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Text(text, maxLines: 1, softWrap: false, textAlign: TextAlign.center),
   );
 }
