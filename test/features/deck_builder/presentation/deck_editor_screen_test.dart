@@ -184,6 +184,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(l10n.editorPreviewRemove), findsOneWidget);
       expect(find.textContaining(' · в колоде '), findsOneWidget);
+      expectNoFallbackTextStyle(tester);
 
       await tester.tap(find.text(l10n.editorPreviewRemove));
       await tester.pumpAndSettle();

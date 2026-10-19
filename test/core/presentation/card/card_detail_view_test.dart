@@ -11,6 +11,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
+import '../../../support/screen_guards.dart';
 
 const _shortDetail = CardDetail(
   face: UnitCardFace(
@@ -71,6 +72,7 @@ Future<void> _open(WidgetTester tester, CardDetail detail) async {
   );
   await tester.tap(find.text('open'));
   await tester.pumpAndSettle();
+  expectNoFallbackTextStyle(tester);
 }
 
 final Finder _cardSlot = find.byWidgetPredicate((widget) => widget is LayoutId && widget.id == CardDetailSlot.card);
