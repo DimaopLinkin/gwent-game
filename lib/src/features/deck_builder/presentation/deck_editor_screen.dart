@@ -23,13 +23,16 @@ import 'package:gwent/src/features/deck_builder/presentation/editor/editor_stats
 /// вернулся назад или колода сохранена. Несохранённые правки при выходе теряются.
 ///
 /// Чтобы встроить конструктор в другой сценарий (например, подготовку к сетевой партии), [banner] ставит плашку над
-/// шапкой, а [actionsBuilder] заменяет нижние кнопки.
+/// шапкой, [actionsBuilder] заменяет нижние кнопки, а [onSaved] получает сохранённую колоду вместо [onExit].
 class DeckEditorScreen extends StatelessWidget {
   /// Создаёт экран.
-  const DeckEditorScreen({super.key, required this.onExit, this.banner, this.actionsBuilder});
+  const DeckEditorScreen({super.key, required this.onExit, this.onSaved, this.banner, this.actionsBuilder});
 
-  /// Игрок вернулся назад или колода сохранена.
+  /// Игрок вернулся назад или колода сохранена (если не задан [onSaved]).
   final VoidCallback onExit;
+
+  /// Колода сохранена; вместо [onExit] после сохранения. Параметр — идентификатор сохранённой колоды.
+  final ValueChanged<String>? onSaved;
 
   /// Плашка над шапкой или `null`.
   final Widget? banner;
@@ -43,7 +46,10 @@ class DeckEditorScreen extends StatelessWidget {
     return ScreenBackdrop(
       child: BlocConsumer<DeckEditorCubit, DeckEditorState>(
         listenWhen: (previous, current) => current is DeckEditorSaved,
-        listener: (context, state) => onExit(),
+        listener: (context, state) {
+          if (state is! DeckEditorSaved) return;
+          (onSaved ?? (_) => onExit())(state.deckId);
+        },
         builder: (context, state) => Column(
           children: [
             ScreenHeader(eyebrow: l10n.editorEyebrow, onBack: onExit, backLabel: l10n.editorBack),

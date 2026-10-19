@@ -10,6 +10,7 @@ import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
+import '../features/lobby/support/fake_game_lobby.dart';
 import '../support/factories.dart';
 import '../support/fakes.dart';
 import '../support/fonts.dart';
@@ -55,6 +56,7 @@ void main() {
           clock: FakeClock(DateTime.utc(2026, 10, 11)),
           idGenerator: SequentialIdGenerator(),
           seedGenerator: FixedSeedGenerator(1),
+          gameLobby: FakeGameLobby(),
         ),
       ),
     );
@@ -64,16 +66,6 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     }
     await tester.pumpAndSettle();
-  }
-
-  Future<void> openAndReturn(WidgetTester tester, String button, String title) async {
-    await tester.tap(find.text(button));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, title), findsOneWidget);
-
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    expect(find.byType(GwentLogo), findsOneWidget);
   }
 
   /// Настройки: у экрана своя шапка, «назад» — круглая кнопка с подписью для диктора.
@@ -140,7 +132,13 @@ void main() {
     await tester.tap(find.bySemanticsLabel(l10n.setupBack));
     await tester.pumpAndSettle();
 
-    await openAndReturn(tester, l10n.menuNetworkGame, l10n.lobbyTitle);
+    // Игра на двух телефонах: выбор способа, у экрана своя шапка с «назад» в меню.
+    await tester.tap(find.text(l10n.menuNetworkGame));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netPlayTitle), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(GwentLogo), findsOneWidget);
     await openSettingsAndReturn(tester);
   });
 

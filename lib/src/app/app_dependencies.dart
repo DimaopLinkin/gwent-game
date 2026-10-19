@@ -18,6 +18,12 @@ import 'package:gwent/src/features/deck_builder/application/watch_active_decks.d
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
+import 'package:gwent/src/features/lobby/application/active_network_game.dart';
+import 'package:gwent/src/features/lobby/application/discover_network_games.dart';
+import 'package:gwent/src/features/lobby/application/host_network_game.dart';
+import 'package:gwent/src/features/lobby/application/join_network_game.dart';
+import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
+import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
 import 'package:gwent/src/features/match/application/choose_opponent_deck.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
@@ -31,6 +37,7 @@ import 'package:gwent/src/features/settings/application/save_settings.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 import 'package:gwent_content/gwent_content.dart';
+import 'package:gwent_net/gwent_net.dart' show Entropy, Scheduler, SecureEntropy, SystemScheduler;
 
 /// Сценарии приложения, собранные над интерфейсами.
 ///
@@ -47,6 +54,9 @@ final class AppDependencies {
     required Clock clock,
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
+    required GameLobby gameLobby,
+    Entropy? entropy,
+    Scheduler scheduler = const SystemScheduler(),
     Duration botThinkTime = const Duration(milliseconds: 700),
   }) {
     final loadGameContent = LoadGameContent(contentSource);
@@ -65,6 +75,9 @@ final class AppDependencies {
       clock: clock,
       idGenerator: idGenerator,
       seedGenerator: seedGenerator,
+      gameLobby: gameLobby,
+      entropy: entropy ?? SecureEntropy(),
+      scheduler: scheduler,
       botThinkTime: botThinkTime,
     );
   }
@@ -81,6 +94,9 @@ final class AppDependencies {
     required Clock clock,
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
+    required GameLobby gameLobby,
+    required Entropy entropy,
+    required Scheduler scheduler,
     required Duration botThinkTime,
   }) : watchDecks = WatchDecks(deckRepository),
        saveDeck = SaveDeck(deckRepository, clock, idGenerator),
@@ -102,6 +118,11 @@ final class AppDependencies {
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
+    activeNetworkGame = ActiveNetworkGame();
+    loadNetworkSetup = LoadNetworkSetup(loadGameContent, appInfo, watchSettings);
+    hostNetworkGame = HostNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, entropy, scheduler);
+    joinNetworkGame = JoinNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, scheduler);
+    discoverNetworkGames = DiscoverNetworkGames(loadNetworkSetup, gameLobby);
   }
 
   /// Контент для партии и конструктора колод: пакет и справочник движка.
@@ -164,6 +185,21 @@ final class AppDependencies {
   /// Начало местной партии (hot-seat или против бота).
   late final StartMatch startMatch;
 
-  /// Запись законченной местной партии в историю.
+  /// Запись законченной партии в историю.
   late final RecordFinishedMatch recordFinishedMatch;
+
+  /// Сетевая игра, которую сейчас ведёт телефон: общая для лобби и партии.
+  late final ActiveNetworkGame activeNetworkGame;
+
+  /// Контент, набор правил и имя игрока для сетевой игры.
+  late final LoadNetworkSetup loadNetworkSetup;
+
+  /// Создание сетевой игры (хост).
+  late final HostNetworkGame hostNetworkGame;
+
+  /// Подключение к найденной партии (гость).
+  late final JoinNetworkGame joinNetworkGame;
+
+  /// Поиск партий рядом.
+  late final DiscoverNetworkGames discoverNetworkGames;
 }

@@ -33,10 +33,6 @@
       }
     }
   },
-  "lobbyTitle": "Сетевая игра",
-  "@lobbyTitle": {
-    "description": "Заголовок экрана лобби сетевой игры."
-  },
   "screenPendingDesign": "Экран появится по макетам",
   "@screenPendingDesign": {
     "description": "Заглушка экрана, который ещё не свёрстан по макетам."
@@ -2023,5 +2019,384 @@
   "stageSkip": "Пропустить",
   "@stageSkip": {
     "description": "Кнопка в углу поля: перейти к следующему шагу показа конца раунда или матча."
+  },
+  "netPlayTitle": "Играть вдвоём",
+  "@netPlayTitle": {
+    "description": "Заголовок экрана выбора способа соединения для игры на двух телефонах."
+  },
+  "netPlayIntro": "Один телефон создаёт партию, второй находит её рядом. Выберите, как соединиться.",
+  "@netPlayIntro": {
+    "description": "Пояснение на экране выбора способа соединения."
+  },
+  "netMethodWifi": "Wi-Fi (одна сеть)",
+  "@netMethodWifi": {
+    "description": "Способ соединения по Wi-Fi."
+  },
+  "netMethodWifiNote": "Оба телефона подключены к одной Wi-Fi сети.",
+  "@netMethodWifiNote": {
+    "description": "Когда подходит соединение по Wi-Fi."
+  },
+  "netMethodBluetooth": "Bluetooth (рядом)",
+  "@netMethodBluetooth": {
+    "description": "Способ соединения по Bluetooth."
+  },
+  "netMethodBluetoothNote": "Телефоны рядом, Wi-Fi не нужен.",
+  "@netMethodBluetoothNote": {
+    "description": "Когда подойдёт соединение по Bluetooth."
+  },
+  "netMethodSoon": "Скоро",
+  "@netMethodSoon": {
+    "description": "Метка недоступного пока способа соединения."
+  },
+  "netCreateGame": "Создать игру",
+  "@netCreateGame": {
+    "description": "Кнопка: создать партию для второго телефона."
+  },
+  "netFindGame": "Найти рядом",
+  "@netFindGame": {
+    "description": "Кнопка: найти партию, которую создал другой телефон."
+  },
+  "netCreateTitle": "Создать игру",
+  "@netCreateTitle": {
+    "description": "Заголовок экрана создания партии и ожидания соперника."
+  },
+  "netCreateNameLabel": "Название партии",
+  "@netCreateNameLabel": {
+    "description": "Подпись поля названия партии."
+  },
+  "netCreateNameHint": "Например, ваше имя",
+  "@netCreateNameHint": {
+    "description": "Подсказка в пустом поле названия партии."
+  },
+  "netCreateNameNote": "По умолчанию — ваше имя. Соперник увидит его в списке найденных партий.",
+  "@netCreateNameNote": {
+    "description": "Пояснение под полем названия партии."
+  },
+  "netCreateDeckNote": "Колоду вы выберете или соберёте в лобби, когда подключится соперник.",
+  "@netCreateDeckNote": {
+    "description": "Пояснение на экране создания партии: колода выбирается позже."
+  },
+  "netCreateSubmit": "Создать",
+  "@netCreateSubmit": {
+    "description": "Кнопка подтверждения создания партии."
+  },
+  "netWifiOneNetwork": "Способ: Wi-Fi, одна сеть",
+  "@netWifiOneNetwork": {
+    "description": "Подпись способа соединения на экране ожидания соперника."
+  },
+  "netWaitTitle": "Ждём соперника…",
+  "@netWaitTitle": {
+    "description": "Заголовок экрана ожидания соперника."
+  },
+  "netWaitYourGame": "Ваша партия",
+  "@netWaitYourGame": {
+    "description": "Подпись над названием партии на экране ожидания."
+  },
+  "netWaitHint": "Соперник открывает «Найти рядом» в той же Wi-Fi сети.",
+  "@netWaitHint": {
+    "description": "Что должен сделать второй игрок, пока хост ждёт."
+  },
+  "netFindTitle": "Найти рядом",
+  "@netFindTitle": {
+    "description": "Заголовок экрана поиска партий рядом."
+  },
+  "netFindSearching": "Поиск идёт, список обновляется сам",
+  "@netFindSearching": {
+    "description": "Подпись над списком найденных партий."
+  },
+  "netFindEmptyTitle": "Ищем игры поблизости…",
+  "@netFindEmptyTitle": {
+    "description": "Заголовок пустого списка найденных партий."
+  },
+  "netFindEmptyNote": "Телефоны должны быть в одной Wi-Fi сети",
+  "@netFindEmptyNote": {
+    "description": "Пояснение пустого списка найденных партий."
+  },
+  "netFindJoin": "Войти",
+  "@netFindJoin": {
+    "description": "Метка найденной партии, к которой можно присоединиться."
+  },
+  "netFindVersionOk": "версия совпадает",
+  "@netFindVersionOk": {
+    "description": "Подпись найденной партии с той же версией игры."
+  },
+  "netFindProtocolMismatch": "другая версия игры",
+  "@netFindProtocolMismatch": {
+    "description": "Подпись найденной партии с другой версией сетевого протокола."
+  },
+  "netFindRulesetMismatch": "другой набор карт",
+  "@netFindRulesetMismatch": {
+    "description": "Подпись найденной партии с другим набором карт."
+  },
+  "netFindFull": "партия занята",
+  "@netFindFull": {
+    "description": "Подпись найденной партии, в которой нет свободного места."
+  },
+  "netFindJoining": "Подключаемся…",
+  "@netFindJoining": {
+    "description": "Подпись, пока гость подключается к найденной партии."
+  },
+  "netFindGameSemantics": "{name}: {status}. Войти",
+  "@netFindGameSemantics": {
+    "description": "Подпись найденной партии для экранного диктора.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "netRoomTitle": "Лобби",
+  "@netRoomTitle": {
+    "description": "Заголовок экрана лобби."
+  },
+  "netRoomSubtitle": "Партия «{name}» · Wi-Fi",
+  "@netRoomSubtitle": {
+    "description": "Подзаголовок лобби: название партии.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "netRoomLeave": "Покинуть",
+  "@netRoomLeave": {
+    "description": "Кнопка выхода из лобби."
+  },
+  "netRoleYouHost": "Вы · хост",
+  "@netRoleYouHost": {
+    "description": "Подпись своего блока в лобби у хоста."
+  },
+  "netRoleYouGuest": "Вы · гость",
+  "@netRoleYouGuest": {
+    "description": "Подпись своего блока в лобби у гостя."
+  },
+  "netRoleHost": "хост",
+  "@netRoleHost": {
+    "description": "Подпись блока соперника, если он хост."
+  },
+  "netRoleGuest": "гость",
+  "@netRoleGuest": {
+    "description": "Подпись блока соперника, если он гость."
+  },
+  "netOpponentName": "Соперник",
+  "@netOpponentName": {
+    "description": "Имя соперника, пока оно не пришло."
+  },
+  "netLinkOk": "Связь в норме",
+  "@netLinkOk": {
+    "description": "Состояние связи с соперником."
+  },
+  "netLinkLost": "Нет связи",
+  "@netLinkLost": {
+    "description": "Состояние связи с соперником: потеряна."
+  },
+  "netStageChoosing": "Выбирает колоду",
+  "@netStageChoosing": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netStageBuilding": "Собирает колоду",
+  "@netStageBuilding": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netStageChosen": "Колода выбрана",
+  "@netStageChosen": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netStageReady": "Готов",
+  "@netStageReady": {
+    "description": "Что делает игрок в лобби."
+  },
+  "netPlayerPending": "Фракция и лидер появятся после выбора",
+  "@netPlayerPending": {
+    "description": "Подпись игрока в лобби, пока он не выбрал колоду."
+  },
+  "netFactionLeader": "{faction} · {leader}",
+  "@netFactionLeader": {
+    "description": "Фракция и лидер колоды игрока в лобби.",
+    "placeholders": {
+      "faction": {
+        "type": "String"
+      },
+      "leader": {
+        "type": "String"
+      }
+    }
+  },
+  "netMyDeck": "Моя колода",
+  "@netMyDeck": {
+    "description": "Заголовок блока выбранной колоды в лобби."
+  },
+  "netNoDeck": "Колода не выбрана",
+  "@netNoDeck": {
+    "description": "Блок колоды в лобби, пока колода не выбрана."
+  },
+  "netNoDeckNote": "Выберите сохранённую или соберите новую.",
+  "@netNoDeckNote": {
+    "description": "Пояснение блока колоды в лобби."
+  },
+  "netDeckPick": "Выбрать",
+  "@netDeckPick": {
+    "description": "Кнопка выбора сохранённой колоды в лобби."
+  },
+  "netDeckBuild": "Собрать колоду",
+  "@netDeckBuild": {
+    "description": "Кнопка сборки новой колоды в лобби."
+  },
+  "netDeckChange": "Сменить",
+  "@netDeckChange": {
+    "description": "Кнопка выбора другой колоды в лобби."
+  },
+  "netDeckEdit": "Изменить",
+  "@netDeckEdit": {
+    "description": "Кнопка правки выбранной колоды в лобби."
+  },
+  "netRuleUnits": "Отряды · минимум {min}",
+  "@netRuleUnits": {
+    "description": "Правило колоды в лобби.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "netRuleSpecials": "Особые · максимум {max}",
+  "@netRuleSpecials": {
+    "description": "Правило колоды в лобби.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "netRuleLeader": "Лидер · один",
+  "@netRuleLeader": {
+    "description": "Правило колоды в лобби."
+  },
+  "netReady": "Готов",
+  "@netReady": {
+    "description": "Кнопка: игрок готов начать партию."
+  },
+  "netReadyCancel": "Отменить готовность",
+  "@netReadyCancel": {
+    "description": "Кнопка отмены готовности."
+  },
+  "netPickDeckHint": "Выберите колоду, чтобы продолжить",
+  "@netPickDeckHint": {
+    "description": "Подсказка под неактивной кнопкой «Готов»."
+  },
+  "netCountdownTitle": "Оба готовы",
+  "@netCountdownTitle": {
+    "description": "Заголовок отсчёта перед матчем."
+  },
+  "netCountdownStarting": "Матч начинается",
+  "@netCountdownStarting": {
+    "description": "Подпись отсчёта перед матчем."
+  },
+  "netLeaveTitle": "Покинуть лобби?",
+  "@netLeaveTitle": {
+    "description": "Заголовок подтверждения выхода из лобби."
+  },
+  "netLeaveBodyHost": "Партия закроется, соперник вернётся к поиску.",
+  "@netLeaveBodyHost": {
+    "description": "Что будет, если хост покинет лобби."
+  },
+  "netLeaveBodyGuest": "Вы освободите место в партии.",
+  "@netLeaveBodyGuest": {
+    "description": "Что будет, если гость покинет лобби."
+  },
+  "netLeaveConfirm": "Покинуть",
+  "@netLeaveConfirm": {
+    "description": "Подтверждающая кнопка выхода из лобби."
+  },
+  "netPickerTitle": "Мои колоды",
+  "@netPickerTitle": {
+    "description": "Заголовок выбора колоды для лобби."
+  },
+  "netPickerSubtitle": "Выберите одну для матча",
+  "@netPickerSubtitle": {
+    "description": "Подзаголовок выбора колоды для лобби."
+  },
+  "netPickerNew": "Собрать новую",
+  "@netPickerNew": {
+    "description": "Кнопка сборки новой колоды из выбора колоды для лобби."
+  },
+  "netBuilderBanner": "Режим лобби · соперник ждёт",
+  "@netBuilderBanner": {
+    "description": "Плашка над конструктором, открытым из лобби."
+  },
+  "netBuilderDone": "Готово, в лобби",
+  "@netBuilderDone": {
+    "description": "Кнопка сохранения колоды и возврата в лобби."
+  },
+  "netBuilderCancel": "Отмена",
+  "@netBuilderCancel": {
+    "description": "Кнопка возврата в лобби без колоды."
+  },
+  "netNoticeBack": "Назад",
+  "@netNoticeBack": {
+    "description": "Кнопка возврата с экрана сообщения о сети."
+  },
+  "netNoticeRetry": "Повторить",
+  "@netNoticeRetry": {
+    "description": "Кнопка повтора подключения."
+  },
+  "netNoticeIncompatibleTitle": "Несовместимая версия",
+  "@netNoticeIncompatibleTitle": {
+    "description": "Заголовок: игра соперника другой версии."
+  },
+  "netNoticeIncompatibleText": "Обновите приложение, чтобы играть с этим соперником.",
+  "@netNoticeIncompatibleText": {
+    "description": "Пояснение: игра соперника другой версии."
+  },
+  "netNoticeRulesetTitle": "Другой набор карт",
+  "@netNoticeRulesetTitle": {
+    "description": "Заголовок: у соперника другие данные карт."
+  },
+  "netNoticeRulesetText": "Обновите набор карт в настройках, чтобы играть с этим соперником.",
+  "@netNoticeRulesetText": {
+    "description": "Пояснение: у соперника другие данные карт."
+  },
+  "netNoticeFullTitle": "Партия занята",
+  "@netNoticeFullTitle": {
+    "description": "Заголовок: в партии уже есть соперник."
+  },
+  "netNoticeFullText": "В этой партии уже двое игроков.",
+  "@netNoticeFullText": {
+    "description": "Пояснение: в партии уже есть соперник."
+  },
+  "netNoticeFailTitle": "Не удалось подключиться",
+  "@netNoticeFailTitle": {
+    "description": "Заголовок: хост не отвечает."
+  },
+  "netNoticeFailText": "Партия не отвечает. Возможно, хост закрыл её или вышел из сети.",
+  "@netNoticeFailText": {
+    "description": "Пояснение: хост не отвечает."
+  },
+  "netNoticeUnavailableTitle": "Сеть недоступна",
+  "@netNoticeUnavailableTitle": {
+    "description": "Заголовок: поиск и подключение по сети не работают."
+  },
+  "netNoticeUnavailableText": "Включите Wi-Fi и подключитесь к той же сети, что и соперник. Если Wi-Fi включён, разрешите приложению доступ к локальной сети в настройках телефона.",
+  "@netNoticeUnavailableText": {
+    "description": "Пояснение: сеть недоступна."
+  },
+  "netNoticeClosedTitle": "Хост закрыл партию",
+  "@netNoticeClosedTitle": {
+    "description": "Заголовок: хост закрыл лобби."
+  },
+  "netNoticeClosedText": "Вернитесь к поиску и подключитесь к другой партии.",
+  "@netNoticeClosedText": {
+    "description": "Пояснение: хост закрыл лобби."
+  },
+  "netNoticeLostTitle": "Связь потеряна",
+  "@netNoticeLostTitle": {
+    "description": "Заголовок: связь с хостом не удалось вернуть."
+  },
+  "netNoticeLostText": "Не удалось вернуться к хосту. Попробуйте найти партию снова.",
+  "@netNoticeLostText": {
+    "description": "Пояснение: связь с хостом не удалось вернуть."
   }
 }

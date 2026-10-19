@@ -8,6 +8,9 @@ import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/core/database/app_database_connection.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/data/drift_deck_repository.dart';
+import 'package:gwent/src/features/lobby/data/bonsoir_service_directory.dart';
+import 'package:gwent/src/features/lobby/data/game_ad_record.dart';
+import 'package:gwent/src/features/lobby/data/lan_lobby.dart';
 import 'package:gwent/src/features/match_history/data/drift_match_history_repository.dart';
 import 'package:gwent/src/features/settings/data/drift_settings_repository.dart';
 
@@ -26,5 +29,6 @@ AppDependencies createAppDependencies() {
     clock: const SystemClock(),
     idGenerator: const UuidIdGenerator(),
     seedGenerator: SecureSeedGenerator(),
+    gameLobby: LanLobby(directory: const BonsoirServiceDirectory(type: GameAdRecord.serviceType)),
   );
 }

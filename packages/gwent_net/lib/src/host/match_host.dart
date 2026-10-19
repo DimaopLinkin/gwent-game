@@ -259,7 +259,9 @@ final class MatchHost {
       );
       return _refuse(session, RefusalCode.deckRejected, seq, reject);
     }
-    session.deck = deck;
+    session
+      ..deck = deck
+      ..draft = LobbyStatus(LobbyStage.chosen, leader: deck.leader);
     _announceLobby(session.seat);
     _startIfReady();
   }

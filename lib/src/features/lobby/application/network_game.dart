@@ -1,0 +1,353 @@
+import 'dart:async';
+
+import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/lobby/domain/game_address.dart';
+import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
+import 'package:gwent/src/features/match/domain/match_session.dart';
+import 'package:gwent/src/features/match/domain/match_table.dart';
+import 'package:gwent/src/features/match/domain/network_match_table.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/gwent_net.dart';
+
+/// Сетевая игра этого телефона: от комнаты ожидания до конца партии.
+///
+/// Хост держит партию ([MatchHost]) и объявляет её соседям, его собственный игрок подключён к ней тем же клиентом,
+/// что и гость, только через память. Гость подключён по сети. Игра переводит события клиента в комнату
+/// ([LobbyRoom]), пока партия не началась, а после начала отдаёт проекции столу ([openMatch]). Если у гостя
+/// пропала связь, он подключается к хосту заново по тому же адресу, пока не пройдёт [reconnectWindow]. Решение: ADR 0019.
+final class NetworkGame {
+  /// Создаёт игру над клиентом.
+  ///
+  /// Хост передаёт [host] и [hosted]: игра принимает соединения и закрывает их вместе с собой. Гость передаёт
+  /// [lobby] и [address]: по ним он возвращается к хосту после обрыва. Клиент уже должен быть подключён
+  /// к транспорту после создания игры, иначе первые события пропадут.
+  NetworkGame({
+    required MatchClient client,
+    required GameContent content,
+    required Scheduler scheduler,
+    required this.playerName,
+    MatchHost? host,
+    HostedGame? hosted,
+    GameLobby? lobby,
+    GameAddress? address,
+    this.reconnectWindow = const Duration(minutes: 2),
+    this.retryInterval = const Duration(seconds: 2),
+  }) : _client = client,
+       _content = content,
+       _scheduler = scheduler,
+       _host = host,
+       _hosted = hosted,
+       _lobby = lobby,
+       _address = address {
+    _events = client.events.listen(_onEvent);
+    if (host != null && hosted != null) {
+      _connections = hosted.connections.listen(host.accept);
+    }
+  }
+
+  /// Имя этого игрока в игре.
+  final String playerName;
+
+  /// Сколько гость пытается вернуться к хосту после обрыва, прежде чем сдаться.
+  final Duration reconnectWindow;
+
+  /// Как часто гость повторяет попытку.
+  final Duration retryInterval;
+
+  final MatchClient _client;
+  final GameContent _content;
+  final Scheduler _scheduler;
+  final MatchHost? _host;
+  final HostedGame? _hosted;
+  final GameLobby? _lobby;
+  final GameAddress? _address;
+
+  late final StreamSubscription<ClientEvent> _events;
+  StreamSubscription<Transport>? _connections;
+  final StreamController<LobbyRoom> _rooms = StreamController<LobbyRoom>.broadcast();
+
+  /// Обновления для стола партии: копятся, пока стол не открыт, и первым идёт раздача.
+  final StreamController<TableUpdate> _table = StreamController<TableUpdate>();
+  final Map<int, Intent> _intents = {};
+  LobbyRoom _room = const LobbyRoom();
+  PlayerView? _firstView;
+  int? _deckRequest;
+  String? _deckName;
+  Timer? _deadline;
+  bool _reconnecting = false;
+  bool _attempting = false;
+  bool _closed = false;
+  bool _handedOver = false;
+  Completer<void>? _pause;
+  Completer<LobbyRoom>? _settled;
+  Timer? _settleTimer;
+
+  /// Телефон создал эту игру.
+  bool get isHost => _host != null;
+
+  /// Название игры, которое видят соседи; `null` у гостя.
+  String? get title => _hosted?.ad.hostName;
+
+  /// Комната сейчас.
+  LobbyRoom get room => _room;
+
+  /// Изменения комнаты. Подписчик получает только новые; текущая комната — [room].
+  Stream<LobbyRoom> get rooms => _rooms.stream;
+
+  /// Игра закрыта.
+  bool get isClosed => _closed;
+
+  /// Ждёт, пока хост выдаст место или откажет; `null` в результате не бывает.
+  ///
+  /// Не дольше [timeout]: тогда комната заканчивается потерей связи. Нужна при подключении гостя.
+  Future<LobbyRoom> settled(Duration timeout) {
+    if (_isSettled(_room)) return Future.value(_room);
+    final completer = _settled ??= Completer<LobbyRoom>();
+    _settleTimer ??= _scheduler.timer(timeout, () => _setRoom(_room.copyWith(end: const RoomConnectionLost())));
+    return completer.future;
+  }
+
+  bool _isSettled(LobbyRoom room) => room.link == RoomLink.online || room.end != null;
+
+  /// Сообщает хосту, чем игрок занят: выбирает колоду, собирает или выбрал (с лидером [leader]).
+  /// Готовность отменяется.
+  void reportStage(LobbyStage stage, {LeaderId? leader}) {
+    if (_closed || _room.started) return;
+    _client.reportLobbyStatus(stage, leader: leader);
+    _setRoom(_room.copyWith(myStage: stage, myLeader: leader, clearLeader: leader == null, clearCountdown: true));
+  }
+
+  /// Отправляет колоду: игрок готов. Партия начнётся, когда готов и соперник. [deckName] попадёт на экран знакомства.
+  void ready(Deck deck, {String? deckName}) {
+    if (_closed || _room.started) return;
+    _deckName = deckName;
+    _deckRequest = _client.submitDeck(deck);
+    _setRoom(_room.copyWith(myStage: LobbyStage.ready, myLeader: deck.leader));
+  }
+
+  /// Берёт колоду обратно: игрок больше не готов.
+  void cancelReady() {
+    if (_closed || _room.started || _room.myStage != LobbyStage.ready) return;
+    _client.withdrawDeck();
+    _setRoom(_room.copyWith(myStage: LobbyStage.chosen, clearCountdown: true));
+  }
+
+  /// Уходит из лобби. Хост закрывает партию для обоих, гость освобождает место.
+  Future<void> leave() async {
+    if (_closed) return;
+    if (!isHost && !_room.started) _client.leaveLobby();
+    await close();
+  }
+
+  /// Открывает партию для экрана: стол, который ведёт её, и сведения для истории. Игра передаёт стол
+  /// держателю состояния экрана, закрывать её после этого должен он, закрыв стол.
+  ///
+  /// Бросает [StateError], если партия ещё не началась или игра закрыта.
+  MatchSession openMatch() {
+    final view = _firstView;
+    final seat = _room.seat;
+    if (_closed || view == null || seat == null) throw StateError('Партия ещё не началась');
+    if (_handedOver) throw StateError('Партия уже открыта на экране');
+    _handedOver = true;
+    final deckName = _deckName;
+    return MatchSession(
+      mode: MatchMode.wifi,
+      table: NetworkMatchTable(
+        seat: seat,
+        updates: _table.stream,
+        onSubmit: _send,
+        onClose: close,
+      ),
+      content: _content,
+      factionIds: {seat: _factionId(view.me.faction), seat.opponent: _factionId(view.opponent.faction)},
+      deckNames: {seat: ?deckName},
+    );
+  }
+
+  /// Партию открыли для экрана: комната больше не нужна и не закрывает игру.
+  bool get handedOver => _handedOver;
+
+  /// Закрывает игру: соединения, объявление и подписки. Повторный вызов ничего не делает.
+  Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
+    _deadline?.cancel();
+    _settleTimer?.cancel();
+    _wakePause();
+    _reconnecting = false;
+    if (_settled case final settled? when !settled.isCompleted) settled.complete(_room);
+    await _events.cancel();
+    await _connections?.cancel();
+    await _client.close();
+    await _host?.close();
+    try {
+      await _hosted?.close();
+    } on Object {
+      // Объявление могло пропасть вместе с сетью: закрытию это не мешает.
+    }
+    unawaited(_table.close());
+    unawaited(_rooms.close());
+  }
+
+  void _send(Intent intent) {
+    if (_closed) return;
+    _intents[_client.send(intent)] = intent;
+  }
+
+  String _factionId(Faction faction) => _content.factions.entries.firstWhere((entry) => entry.value == faction).key;
+
+  void _onEvent(ClientEvent event) {
+    switch (event) {
+      case Joined(:final seat):
+        _reconnecting = false;
+        _deadline?.cancel();
+        _deadline = null;
+        _setRoom(_room.copyWith(seat: seat, link: RoomLink.online));
+      case JoinRefused(:final reason):
+        _reconnecting = false;
+        _deadline?.cancel();
+        _setRoom(_room.copyWith(end: RoomRefused(reason)));
+      case ConnectionLost():
+        _onConnectionLost();
+      case ViewChanged(:final view, :final events):
+        _onView(view, events);
+      case ActionRefused(:final refusal, :final request):
+        _onRefusal(refusal, request);
+      case OpponentPresenceChanged(:final online, :final name):
+        if (_room.started) return;
+        final opponent = _room.opponent ?? RoomOpponent(name: name, online: online);
+        _setRoom(
+          _room.copyWith(
+            opponent: opponent.copyWith(name: name, online: online),
+          ),
+        );
+      case OpponentLobbyChanged(:final stage, :final leader):
+        if (_room.started) return;
+        final opponent = _room.opponent ?? const RoomOpponent(name: '', online: true);
+        _setRoom(
+          _room.copyWith(
+            opponent: opponent.copyWith(stage: stage, leader: leader, clearLeader: leader == null),
+          ),
+        );
+      case CountdownStarted(:final duration):
+        if (!_room.started) _setRoom(_room.copyWith(countdown: duration));
+      case CountdownCancelled():
+        _setRoom(_room.copyWith(clearCountdown: true));
+      case OpponentLeft():
+        _setRoom(_room.copyWith(clearOpponent: true, clearCountdown: true));
+      case LobbyClosed():
+        _setRoom(_room.copyWith(end: const RoomHostClosed()));
+    }
+  }
+
+  void _onView(PlayerView view, List<GameEvent> events) {
+    final seat = _client.seat ?? _room.seat;
+    if (seat == null) return;
+    _firstView ??= view;
+    if (!_room.started) _setRoom(_room.copyWith(started: true, clearCountdown: true));
+    if (!_table.isClosed) _table.add(ViewsChanged({seat: view}, {seat: events}));
+  }
+
+  void _onRefusal(Refusal refusal, int request) {
+    if (request == _deckRequest) {
+      _deckRequest = null;
+      _setRoom(_room.copyWith(myStage: LobbyStage.chosen, clearCountdown: true));
+      return;
+    }
+    final intent = _intents.remove(request);
+    final reject = refusal.reject;
+    final seat = _room.seat;
+    if (intent != null && reject != null && seat != null && !_table.isClosed) {
+      _table.add(IntentRefused(seat, intent, reject));
+    }
+  }
+
+  void _onConnectionLost() {
+    if (_closed || _room.end != null) return;
+    if (_room.seat == null) {
+      // Хост так и не выдал место: возвращаться не к чему.
+      _setRoom(_room.copyWith(end: const RoomConnectionLost()));
+      return;
+    }
+    _setRoom(_room.copyWith(link: RoomLink.lost));
+    if (_host != null || _lobby == null || _address == null) return;
+    _reconnecting = true;
+    _deadline ??= _scheduler.timer(reconnectWindow, _giveUp);
+    unawaited(_attempt());
+  }
+
+  void _wakePause() {
+    if (_pause case final pause? when !pause.isCompleted) pause.complete();
+  }
+
+  void _giveUp() {
+    _deadline = null;
+    if (!_reconnecting || _closed) return;
+    _reconnecting = false;
+    _wakePause();
+    _setRoom(_room.copyWith(end: const RoomConnectionLost()));
+    if (_room.started && !_table.isClosed) _table.add(const TableFailed(RoomConnectionLost()));
+  }
+
+  /// Пробует подключиться к хосту, пока не получится или не выйдет время. Результат подключения приходит событием
+  /// клиента: `Joined` — вернулись, `ConnectionLost` — попытка не удалась и начнётся следующая.
+  Future<void> _attempt() async {
+    if (_attempting) return;
+    _attempting = true;
+    try {
+      while (_reconnecting && !_closed) {
+        try {
+          final transport = await _lobby!.join(_address!);
+          if (!_reconnecting || _closed) {
+            await transport.close();
+            return;
+          }
+          _client.connect(transport);
+          return;
+        } on LobbyException {
+          // Хост ещё не вернулся: пробуем снова.
+        }
+        final pause = _pause = Completer<void>();
+        final timer = _scheduler.timer(retryInterval, () {
+          if (!pause.isCompleted) pause.complete();
+        });
+        await pause.future;
+        timer.cancel();
+      }
+    } finally {
+      _attempting = false;
+    }
+  }
+
+  void _setRoom(LobbyRoom room) {
+    if (_closed || room == _room) return;
+    _room = room;
+    if (!_rooms.isClosed) _rooms.add(room);
+    _syncAdvertisement();
+    if (_isSettled(room)) {
+      _settleTimer?.cancel();
+      if (_settled case final settled? when !settled.isCompleted) settled.complete(room);
+    }
+  }
+
+  /// Объявление открыто, пока в партии есть свободное место.
+  void _syncAdvertisement() {
+    final hosted = _hosted;
+    if (hosted == null) return;
+    final open = _room.opponent == null && !_room.started;
+    if (hosted.ad.open == open) return;
+    unawaited(
+      hosted
+          .advertise(hosted.ad.copyWith(open: open))
+          .then<void>(
+            (_) {},
+            onError: (Object _) {
+              // Не удалось обновить объявление: игра идёт, соседи просто увидят прежнее.
+            },
+          ),
+    );
+  }
+}

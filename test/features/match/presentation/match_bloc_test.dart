@@ -39,6 +39,7 @@ void main() {
     int seed = 3,
     MatchHistoryRepository? history,
     BotFactory createBot = GreedyBot.new,
+    bool awaitingSession = false,
   }) {
     final bloc = MatchBloc(
       StartMatch(
@@ -55,6 +56,7 @@ void main() {
       RecordFinishedMatch(
         RecordMatch(history ?? matches, FakeClock(DateTime.utc(2026, 10, 12)), SequentialIdGenerator()),
       ),
+      awaitingSession: awaitingSession,
     );
     addTearDown(bloc.close);
     return bloc;
@@ -380,6 +382,27 @@ void main() {
     await pumpEventQueue();
     expect(bloc.state, isA<MatchInProgress>());
   });
+
+  test(
+    'сетевая партия: держатель ждёт стол, а открытый стол ведёт к знакомству; второй стол не принимается и закрывается',
+    () async {
+      final waiting = newBloc(awaitingSession: true);
+      expect(waiting.state, isA<MatchStarting>());
+      final table = _FakeTable();
+      final other = _FakeTable();
+
+      waiting.add(MatchSessionOpened(_session(table, content)));
+      await pumpEventQueue();
+      table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
+      await waiting.stream.firstWhere((state) => state is MatchIntro);
+
+      waiting.add(MatchSessionOpened(_session(other, content)));
+      await pumpEventQueue();
+      expect(waiting.state, isA<MatchIntro>());
+      expect(other.closed, isTrue, reason: 'второй стол закрывается, чтобы сетевая игра не осталась висеть');
+      expect(table.closed, isFalse);
+    },
+  );
 
   test('отказ движка показывается тому, кто держит телефон', () async {
     final refused = Completer<MatchInProgress>();

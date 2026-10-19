@@ -100,7 +100,7 @@ void main() {
       expect(table.eventsOf<CountdownCancelled>(table.guest), [const CountdownCancelled()]);
       expect(
         table.eventsOf<OpponentLobbyChanged>(table.hostClient).last,
-        const OpponentLobbyChanged(LobbyStage.choosing),
+        OpponentLobbyChanged(LobbyStage.chosen, leader: northern.leader),
       );
       await table.scheduler.elapse(const Duration(seconds: 10));
       expect(table.host.state, isNull, reason: 'прерванный отсчёт партию не начинает');
