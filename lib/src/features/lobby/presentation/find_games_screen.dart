@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
@@ -12,6 +14,8 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/lobby/application/discover_network_games.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/domain/game_address.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_state.dart';
 import 'package:gwent/src/features/lobby/presentation/network_notice.dart';
@@ -23,18 +27,27 @@ import 'package:gwent_net/gwent_net.dart' show JoinRefusal;
 /// Когда гость подключился, экран сообщает [onJoined]: комнату показывает отдельный экран.
 class FindGamesScreen extends StatelessWidget {
   /// Создаёт экран.
-  const FindGamesScreen({super.key, required this.onJoined, required this.onBack});
+  const FindGamesScreen({super.key, required this.onJoined, required this.onScan, required this.onBack});
 
   /// Гость подключился к партии.
   final VoidCallback onJoined;
 
+  /// Открывает сканер QR-кода; возвращает адрес партии или `null`, если игрок вернулся без кода.
+  final Future<GameAddress?> Function() onScan;
+
   /// Игрок вернулся назад.
   final VoidCallback onBack;
+
+  Future<void> _scan(FindGamesCubit cubit) async {
+    final address = await onScan();
+    if (address != null) await cubit.joinByCode(address);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final cubit = context.read<FindGamesCubit>();
+    void scan() => unawaited(_scan(cubit));
     return ScreenBackdrop(
       child: BlocConsumer<FindGamesCubit, FindGamesState>(
         listenWhen: (previous, current) => current is FindGamesJoined,
@@ -44,17 +57,35 @@ class FindGamesScreen extends StatelessWidget {
             ScreenHeader(title: l10n.netFindTitle, titleSize: 32, onBack: onBack),
             Expanded(
               child: switch (state) {
-                FindGamesSearching(:final games) => _Games(games: games, joiningId: null, onJoin: cubit.join),
-                FindGamesJoining(:final games, :final gameId) => _Games(games: games, joiningId: gameId, onJoin: null),
-                FindGamesJoined() => const GameLoader(),
-                FindGamesUnavailable() => _Notice(
-                  result: const NetworkUnavailable(),
+                FindGamesSearching(:final games) => _Games(
+                  games: games,
+                  joiningId: null,
+                  onJoin: cubit.join,
+                  onScan: scan,
+                ),
+                FindGamesJoining(:final games, :final gameId) => _Games(
+                  games: games,
+                  joiningId: gameId,
+                  onJoin: null,
+                  onScan: null,
+                ),
+                FindGamesJoiningByCode() || FindGamesJoined() => const GameLoader(),
+                FindGamesUnavailable(:final problem) => _Notice(
+                  result: NetworkUnavailable(problem: problem),
                   onRetry: cubit.search,
+                  onFix: switch (problem) {
+                    null => null,
+                    NetworkProblem.localNetworkExplainer => () => unawaited(cubit.continueAfterExplainer()),
+                    final fixable => () => unawaited(cubit.openSettings(fixable)),
+                  },
+                  onScan: null,
                   onBack: onBack,
                 ),
-                FindGamesFailed(:final result, :final game) => _Notice(
+                FindGamesFailed(:final result) => _Notice(
                   result: result,
-                  onRetry: () => cubit.join(game),
+                  onRetry: () => unawaited(cubit.retry()),
+                  onFix: null,
+                  onScan: scan,
                   onBack: cubit.search,
                 ),
               },
@@ -67,16 +98,38 @@ class FindGamesScreen extends StatelessWidget {
 }
 
 class _Notice extends StatelessWidget {
-  const _Notice({required this.result, required this.onRetry, required this.onBack});
+  const _Notice({
+    required this.result,
+    required this.onRetry,
+    required this.onFix,
+    required this.onScan,
+    required this.onBack,
+  });
 
   final NetworkOpenResult result;
   final VoidCallback onRetry;
+
+  /// Главное действие сообщения о причине сбоя сети: настройки или переход к системному запросу.
+  final VoidCallback? onFix;
+
+  /// Открывает сканер QR-кода; `null`, если QR здесь не поможет.
+  final VoidCallback? onScan;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final notice = noticeOfResult(l10n, result);
+    if (result case NetworkUnavailable(:final problem?) when onFix != null) {
+      return NetworkNotice(
+        title: notice.title,
+        text: notice.text,
+        icon: noticeIcon(problem),
+        steps: noticeSteps(l10n, problem),
+        danger: problem == NetworkProblem.localNetworkDenied,
+        actions: noticeActions(l10n, problem, onFix: onFix!, onBack: onBack),
+      );
+    }
     // Несовместимой версией «Повторить» не помочь.
     final retryable = switch (result) {
       NetworkRefused(:final reason) => reason == JoinRefusal.matchFull || reason == JoinRefusal.unknownResumeToken,
@@ -87,6 +140,8 @@ class _Notice extends StatelessWidget {
       text: notice.text,
       actions: [
         if (retryable) (label: l10n.netNoticeRetry, style: GwentButtonStyle.primary, onPressed: onRetry),
+        if (retryable && onScan != null)
+          (label: l10n.netScanButton, style: GwentButtonStyle.secondary, onPressed: onScan!),
         (
           label: l10n.netNoticeBack,
           style: retryable ? GwentButtonStyle.secondary : GwentButtonStyle.primary,
@@ -98,11 +153,14 @@ class _Notice extends StatelessWidget {
 }
 
 class _Games extends StatelessWidget {
-  const _Games({required this.games, required this.joiningId, required this.onJoin});
+  const _Games({required this.games, required this.joiningId, required this.onJoin, required this.onScan});
 
   final List<DiscoveredGame> games;
   final String? joiningId;
   final ValueChanged<DiscoveredGame>? onJoin;
+
+  /// Открывает сканер QR-кода; `null`, пока идёт подключение.
+  final VoidCallback? onScan;
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +205,12 @@ class _Games extends StatelessWidget {
                         ),
                     ],
                   ),
+          ),
+          GwentButton(
+            label: l10n.netScanButton,
+            style: GwentButtonStyle.secondary,
+            fontSize: 21,
+            onPressed: onScan,
           ),
         ],
       ),

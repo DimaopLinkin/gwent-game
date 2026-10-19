@@ -97,6 +97,27 @@ enum GwentIcon {
   /// Bluetooth: способ соединения в сетевой игре.
   iconBluetooth('bluetooth'),
 
+  /// Wi-Fi выключен или связь потеряна.
+  iconWifiOff('wifi_off'),
+
+  /// Локальная сеть: доступ к ней нужен для поиска соперника.
+  iconLocalNetwork('local_network'),
+
+  /// Замок: доступ запрещён.
+  iconLock('lock'),
+
+  /// Пауза.
+  iconPause('pause'),
+
+  /// Крест: ошибка подключения.
+  iconFail('fail'),
+
+  /// Версия: приложения у игроков не совпадают.
+  iconVersion('version'),
+
+  /// QR-код.
+  iconQr('qr'),
+
   /// Герб Королевств Севера.
   crestNorthernRealms('crest_northern_realms', isCrest: true),
 

@@ -72,8 +72,18 @@ final class MatchHost {
         onEnvelope: _onEnvelope,
         onMalformed: _onMalformed,
         onLost: _onLost,
+        quietAfter: _settings.unstableAfter,
+        onQuiet: _onQuiet,
       ),
     );
+  }
+
+  /// Игрок [seat] свернул приложение ([away]) или вернулся: соперник узнаёт об этом, пока связь жива.
+  void setAway(Seat seat, {required bool away}) {
+    final session = _seats[seat];
+    if (session == null || session.away == away) return;
+    session.away = away;
+    _announce(seat);
   }
 
   /// Закрывает все соединения и таймеры. Партия дальше не идёт.
@@ -133,7 +143,9 @@ final class MatchHost {
     if (_anonymous.remove(link) || _closed) return;
     final session = _sessionOf(link);
     if (session == null) return;
-    session.link = null;
+    session
+      ..link = null
+      ..unstable = false;
     if (_state?.phase == MatchPhase.finished) return;
     _cancelCountdown();
     _announce(session.seat);
@@ -198,11 +210,19 @@ final class MatchHost {
     _startIfReady();
   }
 
+  void _onQuiet(PeerLink link, {required bool quiet}) {
+    final session = _sessionOf(link);
+    if (session == null || session.unstable == quiet) return;
+    session.unstable = quiet;
+    _announce(session.seat);
+  }
+
   void _bind(SeatSession session, PeerLink link) {
     _anonymous.remove(link);
     final previous = session.link;
     session
       ..link = link
+      ..unstable = false
       ..grace?.cancel()
       ..grace = null;
     // Старое соединение могло ещё не заметить обрыв (полуоткрытый сокет): закрываем его, его onLost
@@ -390,7 +410,15 @@ final class MatchHost {
     final subject = _seats[about];
     final target = _seats[about.opponent];
     if (subject != null && target != null) {
-      _send(target, OpponentPresence(online: subject.online, name: subject.playerName));
+      _send(
+        target,
+        OpponentPresence(
+          online: subject.online,
+          name: subject.playerName,
+          unstable: subject.online && subject.unstable,
+          away: subject.away,
+        ),
+      );
     }
   }
 

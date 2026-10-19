@@ -36,6 +36,7 @@ class RoomScreen extends StatelessWidget {
     required this.title,
     required this.onPickDeck,
     required this.onBuildDeck,
+    required this.onShowQr,
     required this.onStarted,
     required this.onLeft,
   });
@@ -51,6 +52,9 @@ class RoomScreen extends StatelessWidget {
 
   /// Открывает конструктор: новую колоду или колоду [deckId]; возвращает идентификатор сохранённой или `null`.
   final Future<String?> Function(String? deckId) onBuildDeck;
+
+  /// Хост хочет показать QR-код партии.
+  final VoidCallback onShowQr;
 
   /// Хост начал партию.
   final VoidCallback onStarted;
@@ -113,7 +117,11 @@ class RoomScreen extends StatelessWidget {
                         null when room.started => const GameLoader(),
                         null when room.opponent == null =>
                           isHost
-                              ? RoomWaiting(title: title, onCancel: () => unawaited(_confirmLeave(context)))
+                              ? RoomWaiting(
+                                  title: title,
+                                  onShowQr: onShowQr,
+                                  onCancel: () => unawaited(_confirmLeave(context)),
+                                )
                               : const GameLoader(caption: ''),
                         null => _Lobby(
                           state: state,

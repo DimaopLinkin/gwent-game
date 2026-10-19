@@ -24,8 +24,14 @@ abstract final class AppRoutes {
   /// Поиск сетевой игры рядом (гость).
   static const String playFind = '$play/find';
 
+  /// Сканер QR-кода партии (гость); возвращает адрес партии.
+  static const String playFindScan = '$playFind/scan';
+
   /// Комната сетевой игры: ожидание соперника, выбор колоды, готовность.
   static const String playRoom = '$play/room';
+
+  /// QR-код партии (хост).
+  static const String playRoomQr = '$playRoom/qr';
 
   /// Выбор сохранённой колоды для комнаты.
   static const String playRoomDecks = '$playRoom/decks';

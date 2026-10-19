@@ -6,6 +6,7 @@ import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent_net/gwent_net.dart';
+import 'package:gwent_net/testing.dart';
 
 /// Лобби в памяти: хосты и гости соединяются через `InMemoryTransport`, поиск видит объявленные партии.
 final class FakeGameLobby implements GameLobby {
@@ -23,6 +24,12 @@ final class FakeGameLobby implements GameLobby {
 
   /// Концы соединений на стороне хоста по порядку подключений: тест рвёт связь, закрывая нужный.
   final List<Transport> hostEnds = [];
+
+  /// Если задан, концы гостей оборачиваются в транспорт с неполадками на этом времени (связь «нестабильна» без обрыва).
+  Scheduler? faultScheduler;
+
+  /// Концы гостей с неполадками, когда задан [faultScheduler]: тест теряет кадры, меняя `faults`.
+  final List<FaultyTransport> guestLinks = [];
 
   final StreamController<void> _changes = StreamController<void>.broadcast(sync: true);
   final StreamController<void> _failures = StreamController<void>.broadcast(sync: true);
@@ -68,7 +75,11 @@ final class FakeGameLobby implements GameLobby {
     final (hostEnd, guestEnd) = InMemoryTransport.pair();
     hostEnds.add(hostEnd);
     game._connections.add(hostEnd);
-    return guestEnd;
+    final scheduler = faultScheduler;
+    if (scheduler == null) return guestEnd;
+    final faulty = FaultyTransport(guestEnd, scheduler: scheduler);
+    guestLinks.add(faulty);
+    return faulty;
   }
 
   /// Служба поиска отказывает во всех идущих поисках.
@@ -97,8 +108,11 @@ final class FakeHostedGame implements HostedGame {
   @override
   Stream<Transport> get connections => _connections.stream;
 
+  /// Адреса хоста в сети.
+  List<String> hosts = const ['10.0.0.2'];
+
   /// Адрес партии в сети.
-  LanAddress get lanAddress => LanAddress(gameId: _ad.id, hosts: const ['10.0.0.2'], port: 4000);
+  LanAddress get lanAddress => LanAddress(gameId: _ad.id, hosts: hosts, port: 4000);
 
   @override
   Future<GameAddress> address() async => lanAddress;

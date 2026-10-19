@@ -17,6 +17,7 @@ final class AppSettings {
     this.musicVolume = defaultMusicVolume,
     this.effectsVolume = defaultEffectsVolume,
     this.contentCheckedAt,
+    this.localNetworkExplained = false,
   }) : assert(musicVolume >= 0 && musicVolume <= maxVolume, 'громкость музыки от 0 до $maxVolume'),
        assert(effectsVolume >= 0 && effectsVolume <= maxVolume, 'громкость эффектов от 0 до $maxVolume');
 
@@ -50,6 +51,9 @@ final class AppSettings {
   /// Когда игрок в последний раз проверял обновление набора карт (UTC). `null`, пока не проверял.
   final DateTime? contentCheckedAt;
 
+  /// Игрок уже видел пояснение перед системным запросом доступа к локальной сети (iOS, ADR 0020).
+  final bool localNetworkExplained;
+
   /// Копия с другим именем игрока; `null` стирает имя.
   AppSettings withPlayerName(String? playerName) => AppSettings(
     playerName: playerName,
@@ -59,6 +63,7 @@ final class AppSettings {
     musicVolume: musicVolume,
     effectsVolume: effectsVolume,
     contentCheckedAt: contentCheckedAt,
+    localNetworkExplained: localNetworkExplained,
   );
 
   /// Копия с другими значениями; не названные поля остаются прежними. Имя игрока меняет [withPlayerName].
@@ -69,6 +74,7 @@ final class AppSettings {
     int? musicVolume,
     int? effectsVolume,
     DateTime? contentCheckedAt,
+    bool? localNetworkExplained,
   }) => AppSettings(
     playerName: playerName,
     confirmPass: confirmPass ?? this.confirmPass,
@@ -77,6 +83,7 @@ final class AppSettings {
     musicVolume: musicVolume ?? this.musicVolume,
     effectsVolume: effectsVolume ?? this.effectsVolume,
     contentCheckedAt: contentCheckedAt ?? this.contentCheckedAt,
+    localNetworkExplained: localNetworkExplained ?? this.localNetworkExplained,
   );
 
   @override
@@ -88,14 +95,24 @@ final class AppSettings {
       other.hints == hints &&
       other.musicVolume == musicVolume &&
       other.effectsVolume == effectsVolume &&
-      other.contentCheckedAt == contentCheckedAt;
+      other.contentCheckedAt == contentCheckedAt &&
+      other.localNetworkExplained == localNetworkExplained;
 
   @override
-  int get hashCode =>
-      Object.hash(playerName, confirmPass, animationSpeed, hints, musicVolume, effectsVolume, contentCheckedAt);
+  int get hashCode => Object.hash(
+    playerName,
+    confirmPass,
+    animationSpeed,
+    hints,
+    musicVolume,
+    effectsVolume,
+    contentCheckedAt,
+    localNetworkExplained,
+  );
 
   @override
   String toString() =>
       'AppSettings(playerName: $playerName, confirmPass: $confirmPass, animationSpeed: $animationSpeed, '
-      'hints: $hints, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt)';
+      'hints: $hints, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt, '
+      'localNetworkExplained: $localNetworkExplained)';
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:gwent/src/features/lobby/data/service_directory.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
+import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent_net/gwent_net.dart';
 
 /// Набор правил для тестов лобби.
@@ -91,4 +92,27 @@ final class _FakeAdvertisement implements ServiceAdvertisement {
   Future<void> stop() async {
     if (_directory.advertised.remove(_name) != null) _directory.emit(ServiceLost(_name));
   }
+}
+
+/// Сеть и настройки телефона в памяти: тест задаёт, включён ли Wi-Fi и спрашивает ли ОС доступ к локальной сети.
+final class FakeNetworkAccess implements NetworkAccess {
+  FakeNetworkAccess({this.wifiOn = true, this.asksLocalNetworkPermission = false});
+
+  /// Телефон подключён к Wi-Fi.
+  bool wifiOn;
+
+  @override
+  bool asksLocalNetworkPermission;
+
+  /// Какие настройки открывали, по порядку: `wifi` или `app`.
+  final List<String> openedSettings = [];
+
+  @override
+  Future<bool> isOnWifi() async => wifiOn;
+
+  @override
+  Future<void> openWifiSettings() async => openedSettings.add('wifi');
+
+  @override
+  Future<void> openAppSettings() async => openedSettings.add('app');
 }

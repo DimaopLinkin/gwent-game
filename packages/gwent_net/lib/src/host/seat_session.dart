@@ -33,5 +33,11 @@ final class SeatSession {
   /// Ожидание переподключения.
   Timer? grace;
 
+  /// Игрок давно не подавал признаков жизни, но обрыв ещё не засчитан.
+  bool unstable = false;
+
+  /// Игрок свернул приложение и ждёт возвращения партии.
+  bool away = false;
+
   bool get online => link != null;
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' show showLicensePage;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,15 +11,19 @@ import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.d
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_screen.dart';
+import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/host_invite_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/host_qr_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_builder_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_deck_picker_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_layer.dart';
 import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/qr_scan_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/room_screen.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart' show LocalMatchMode;
@@ -88,6 +94,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                 create: (_) => CreateGameCubit(
                   dependencies.hostNetworkGame,
                   dependencies.watchSettings,
+                  dependencies.networkReadiness,
                   fallbackName: context.l10n.playerPlateYou,
                 ),
                 child: CreateGameScreen(
@@ -103,13 +110,25 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   dependencies.discoverNetworkGames,
                   dependencies.joinNetworkGame,
                   dependencies.watchSettings,
+                  dependencies.networkReadiness,
                   fallbackName: context.l10n.playerPlateYou,
                 ),
                 child: FindGamesScreen(
                   onJoined: () => context.go(AppRoutes.playRoom),
+                  onScan: () => context.push<GameAddress>(AppRoutes.playFindScan),
                   onBack: () => context.go(AppRoutes.play),
                 ),
               ),
+              routes: [
+                GoRoute(
+                  path: 'scan',
+                  builder: (context, state) => QrScanScreen(
+                    onInvite: (address) => context.pop(address),
+                    onOpenSettings: () => unawaited(dependencies.networkReadiness.openAppSettings()),
+                    onBack: () => context.pop(),
+                  ),
+                ),
+              ],
             ),
             GoRoute(
               path: 'room',
@@ -126,12 +145,25 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                     onBuildDeck: (deckId) => context.push<String>(
                       deckId == null ? AppRoutes.playRoomBuild : AppRoutes.playRoomBuildDeck(deckId),
                     ),
+                    onShowQr: () => context.push(AppRoutes.playRoomQr),
                     onStarted: () => context.go(AppRoutes.playMatch),
                     onLeft: () => context.go(AppRoutes.play),
                   ),
                 );
               },
               routes: [
+                GoRoute(
+                  path: 'qr',
+                  // Код показывает только хост, пока партия жива.
+                  redirect: (context, state) {
+                    final game = dependencies.activeNetworkGame.current;
+                    return game != null && game.isHost ? null : AppRoutes.play;
+                  },
+                  builder: (context, state) => BlocProvider(
+                    create: (_) => HostInviteCubit(dependencies.activeNetworkGame.current!),
+                    child: HostQrScreen(onBack: () => context.pop()),
+                  ),
+                ),
                 GoRoute(
                   path: 'decks',
                   builder: (context, state) => BlocProvider(

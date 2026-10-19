@@ -30,6 +30,8 @@
 	<array>
 		<string>_gwent._tcp</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Нужна, чтобы считать QR-код партии с экрана телефона соперника.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Нужно, чтобы найти партию соседа в той же Wi-Fi сети и сыграть с ним.</string>
 	<key>UIApplicationSceneManifest</key>
