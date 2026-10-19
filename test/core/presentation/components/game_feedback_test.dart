@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/presentation/components/confirm_dialog.dart';
 import 'package:gwent/src/core/presentation/components/deck_counter.dart';
@@ -7,9 +8,12 @@ import 'package:gwent/src/core/presentation/components/game_toast.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 
+import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
 
 void main() {
+  setUpAll(loadDesignFonts);
+
   group('тост', () {
     testWidgets('показывает сообщение, ошибка отличается рамкой и иконкой', (tester) async {
       await tester.pumpWidget(
@@ -154,6 +158,90 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Пас'));
       await tester.pumpAndSettle();
       expect(result, isTrue);
+    });
+
+    group('подпись кнопки не переносится ни на какой ширине', () {
+      Future<void> openAt(
+        WidgetTester tester, {
+        required double width,
+        double textScale = 1,
+        String confirmLabel = 'Покинуть',
+      }) async {
+        tester.view.physicalSize = Size(width, 700);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          localizedApp(
+            MediaQuery(
+              data: MediaQueryData(size: Size(width, 700), textScaler: TextScaler.linear(textScale)),
+              child: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => showConfirmDialog(
+                    context,
+                    title: 'Покинуть лобби?',
+                    body: 'Партия закроется, соперник вернётся к поиску.',
+                    confirmLabel: confirmLabel,
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+      }
+
+      /// Подпись в одну строку: выделение всего текста даёт один прямоугольник.
+      void expectSingleLine(WidgetTester tester, String label) {
+        final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
+        final boxes = paragraph.getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: label.length));
+        expect(boxes, hasLength(1), reason: 'подпись «$label» перенеслась');
+      }
+
+      for (final width in [320.0, 360.0, 375.0, 390.0]) {
+        testWidgets('ширина $width pt: «Покинуть» и «Отмена» в одну строку, кнопки целиком в диалоге', (tester) async {
+          await openAt(tester, width: width);
+          expectSingleLine(tester, 'Покинуть');
+          expectSingleLine(tester, 'Отмена');
+          final dialog = tester.getRect(find.byType(ConfirmDialog));
+          for (final button in [find.byType(FilledButton), find.byType(OutlinedButton)]) {
+            final rect = tester.getRect(button);
+            expect(dialog.contains(rect.topLeft) && dialog.contains(rect.bottomRight), isTrue);
+          }
+          expect(tester.takeException(), isNull);
+        });
+      }
+
+      testWidgets('крупный шрифт системы: подпись остаётся в одну строку, кнопки одна под другой', (tester) async {
+        await openAt(tester, width: 360, textScale: 1.6);
+        expectSingleLine(tester, 'Покинуть');
+        expect(
+          tester.getTopLeft(find.byType(FilledButton)).dy,
+          isNot(tester.getTopLeft(find.byType(OutlinedButton)).dy),
+        );
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('узкий экран: кнопки столбиком на всю ширину, подпись по центру, подтверждение сверху', (
+        tester,
+      ) async {
+        await openAt(tester, width: 320);
+        final confirm = tester.getRect(find.byType(FilledButton));
+        final cancel = tester.getRect(find.byType(OutlinedButton));
+        expect(confirm.width, cancel.width);
+        expect(confirm.top, lessThan(cancel.top));
+        expect(tester.getCenter(find.text('Покинуть')).dx, closeTo(confirm.center.dx, 1));
+      });
+
+      testWidgets('короткая подпись помещается: кнопки в ряд, «Отмена» слева', (tester) async {
+        await openAt(tester, width: 390, confirmLabel: 'Пас');
+        expect(tester.getTopLeft(find.byType(OutlinedButton)).dy, tester.getTopLeft(find.byType(FilledButton)).dy);
+        expect(
+          tester.getTopLeft(find.byType(OutlinedButton)).dx,
+          lessThan(tester.getTopLeft(find.byType(FilledButton)).dx),
+        );
+      });
     });
 
     testWidgets('«Отмена» и тап вне диалога возвращают false', (tester) async {
