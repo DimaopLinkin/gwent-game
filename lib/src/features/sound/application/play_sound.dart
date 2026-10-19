@@ -15,8 +15,8 @@ final class PlaySound {
   PlaySound(this._output, WatchSettings watchSettings) {
     _subscription = watchSettings().listen(
       (settings) => _volume = settings.effectsVolume,
-      // Настройки не читаются: звук остаётся на последней известной громкости.
-      onError: (Object _) {},
+      // Настройки не читаются: звук остаётся на последней известной громкости, а ошибка уходит в обработчик зоны.
+      onError: Zone.current.handleUncaughtError,
     );
   }
 

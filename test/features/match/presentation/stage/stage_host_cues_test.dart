@@ -49,12 +49,25 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(played, [SoundEffect.draw, SoundEffect.horn]);
 
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(played, [SoundEffect.draw, SoundEffect.horn, SoundEffect.frost]);
+
+    await tester.pump(const Duration(milliseconds: 200));
     expect(played, [SoundEffect.draw, SoundEffect.horn, SoundEffect.frost, SoundEffect.roundWon]);
 
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(played, hasLength(5));
     expect(played.last, SoundEffect.pass);
+  });
+
+  testWidgets('после долгой паузы тикера опоздавшие звуки пропадают, а не грянут залпом', (tester) async {
+    await pumpHost(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(played, [SoundEffect.draw]);
+
+    await tester.pump(const Duration(milliseconds: 1700));
+    expect(played, [SoundEffect.draw], reason: 'горн, мороз, плашка и пас опоздали больше чем на четверть секунды');
   });
 
   testWidgets('«Пропустить» не играет звуки, оставшиеся за перескоком, но играет звук начала шага', (tester) async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -112,4 +113,52 @@ void main() {
     await settle();
     expect(output.commands, hasLength(before));
   });
+
+  test('пауза, пришедшая во время запуска, ставится после него: музыка не оживает', () async {
+    output.commandDuration = const Duration(milliseconds: 20);
+    final starting = music.start();
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    final pausing = music.pause();
+    await Future.wait([starting, pausing]);
+    expect(output.commands.last, 'pause');
+    expect(output.commands, isNot(contains('resume')));
+  });
+
+  test('пауза и возврат подряд оставляют музыку звучать и не дублируют запуск', () async {
+    await music.start();
+    output.commandDuration = const Duration(milliseconds: 5);
+    await Future.wait([music.pause(), music.resume()]);
+    expect(output.commands, isNot(contains('pause')));
+    expect(output.tracks, hasLength(1));
+  });
+
+  test('не удавшийся запуск не считается звучащей музыкой: возврат из фона пробует ещё раз', () async {
+    output.playSucceeds = false;
+    await music.start();
+    expect(output.tracks, hasLength(1));
+    output.playSucceeds = true;
+    await music.pause();
+    await music.resume();
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('ошибка потока настроек не роняет музыку и уходит в обработчик зоны', () async {
+    final errors = <Object>[];
+    final failing = FakeMusicOutput();
+    late BackgroundMusic broken;
+    await runZonedGuarded(() async {
+      broken = BackgroundMusic(failing, WatchSettings(_BrokenSettingsRepository()), Random(7));
+      await broken.start();
+      await settle();
+    }, (error, _) => errors.add(error));
+    addTearDown(broken.dispose);
+    expect(errors, [isA<StateError>()]);
+    expect(failing.tracks, hasLength(1), reason: 'музыка играет на громкости по умолчанию');
+  });
+}
+
+/// Настройки, чей поток сразу сообщает об ошибке.
+final class _BrokenSettingsRepository extends InMemorySettingsRepository {
+  @override
+  Stream<AppSettings> watch() => Stream<AppSettings>.error(StateError('настройки не читаются'));
 }

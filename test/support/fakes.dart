@@ -230,6 +230,15 @@ final class FakeMusicOutput implements MusicOutput {
       if (command.startsWith('play:')) MusicTrack.values.byName(command.substring(5)),
   ];
 
+  /// Удаётся ли запустить композицию.
+  bool playSucceeds = true;
+
+  /// Сколько длится каждая команда: так видно, что команды не перемежаются, как у настоящего проигрывателя.
+  Duration commandDuration = Duration.zero;
+
+  Future<void> _takeTime() =>
+      commandDuration == Duration.zero ? Future<void>.value() : Future<void>.delayed(commandDuration);
+
   /// Композиция доиграла до конца.
   void finishTrack() => _ended.add(null);
 
@@ -237,16 +246,29 @@ final class FakeMusicOutput implements MusicOutput {
   Stream<void> get trackEnded => _ended.stream;
 
   @override
-  Future<void> play(MusicTrack track, {required double volume}) async => commands
-    ..add('play:${track.name}')
-    ..add('volume:$volume');
+  Future<bool> play(MusicTrack track, {required double volume}) async {
+    await _takeTime();
+    commands
+      ..add('play:${track.name}')
+      ..add('volume:$volume');
+    return playSucceeds;
+  }
 
   @override
-  Future<void> setVolume(double volume) async => commands.add('volume:$volume');
+  Future<void> setVolume(double volume) async {
+    await _takeTime();
+    commands.add('volume:$volume');
+  }
 
   @override
-  Future<void> pause() async => commands.add('pause');
+  Future<void> pause() async {
+    await _takeTime();
+    commands.add('pause');
+  }
 
   @override
-  Future<void> resume() async => commands.add('resume');
+  Future<void> resume() async {
+    await _takeTime();
+    commands.add('resume');
+  }
 }

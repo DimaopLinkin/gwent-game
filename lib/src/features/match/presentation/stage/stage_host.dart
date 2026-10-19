@@ -46,6 +46,9 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
   int? _playing;
   int _nextCue = 0;
 
+  /// На сколько миллисекунд сценарного времени звук может опоздать и всё же прозвучать.
+  static const double _cueWindow = 250;
+
   @override
   void initState() {
     super.initState();
@@ -100,12 +103,13 @@ class _StageHostState extends State<StageHost> with SingleTickerProviderStateMix
     setState(() => _time = target);
   }
 
-  /// Играет звуки, чьё время уже настало.
+  /// Играет звуки, чьё время уже настало. Звук, опоздавший больше чем на [_cueWindow] (тикер стоял, пока приложение
+  /// было свёрнуто), пропадает: иначе все накопившиеся звуки грянули бы одним залпом.
   void _playCues(StageScript script) {
     final onCue = widget.onCue;
     while (_nextCue < script.cues.length && script.cues[_nextCue].at <= _time) {
       final cue = script.cues[_nextCue++];
-      onCue?.call(cue.effect);
+      if (_time - cue.at <= _cueWindow) onCue?.call(cue.effect);
     }
   }
 

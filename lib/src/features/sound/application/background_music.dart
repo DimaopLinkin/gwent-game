@@ -15,8 +15,12 @@ import 'package:gwent/src/features/sound/domain/music_track.dart';
 final class BackgroundMusic {
   /// Создаёт сценарий над [_output]; [random] выбирает порядок композиций.
   BackgroundMusic(this._output, WatchSettings watchSettings, this._random) {
-    _settings = watchSettings().listen(_onSettings, onError: _ignoreSettingsError);
-    _ended = _output.trackEnded.listen((_) => unawaited(_playNext()));
+    _settings = watchSettings().listen(
+      _onSettings,
+      // Настройки не читаются: музыка остаётся на последней известной громкости, а ошибка уходит в обработчик зоны.
+      onError: Zone.current.handleUncaughtError,
+    );
+    _ended = _output.trackEnded.listen((_) => unawaited(_enqueue(_playNext)));
   }
 
   final MusicOutput _output;
@@ -36,6 +40,10 @@ final class BackgroundMusic {
   /// Проигрыватель сейчас играет.
   bool _playing = false;
 
+  /// Хвост очереди работ: решения о воспроизведении принимаются по одному, на актуальном состоянии, поэтому пауза не
+  /// обгоняет начатый запуск, а запуск не оживляет музыку, которую уже поставили на паузу.
+  Future<void> _tail = Future<void>.value();
+
   /// Музыка должна звучать: запущена, приложение на виду и громкость не нулевая.
   bool get _audible => _started && !_paused && _volume > 0;
 
@@ -45,19 +53,19 @@ final class BackgroundMusic {
   Future<void> start() async {
     if (_started) return;
     _started = true;
-    await _sync();
+    await _enqueue(_sync);
   }
 
   /// Ставит музыку на паузу (приложение ушло в фон).
   Future<void> pause() async {
     _paused = true;
-    await _sync();
+    await _enqueue(_sync);
   }
 
   /// Продолжает музыку (приложение вернулось).
   Future<void> resume() async {
     _paused = false;
-    await _sync();
+    await _enqueue(_sync);
   }
 
   /// Перестаёт следить за настройками и проигрывателем.
@@ -69,11 +77,14 @@ final class BackgroundMusic {
   void _onSettings(AppSettings settings) {
     if (settings.musicVolume == _volume) return;
     _volume = settings.musicVolume;
-    unawaited(_sync());
+    unawaited(_enqueue(_sync));
   }
 
-  // Настройки не читаются: музыка остаётся на последней известной громкости.
-  void _ignoreSettingsError(Object error) {}
+  Future<void> _enqueue(Future<void> Function() job) {
+    final run = _tail.then((_) => job());
+    _tail = run.then((_) {}, onError: (Object _) {});
+    return run;
+  }
 
   Future<void> _sync() async {
     if (!_audible) {
@@ -101,7 +112,11 @@ final class BackgroundMusic {
     final track = _nextTrack();
     _loaded = true;
     _playing = true;
-    await _output.play(track, volume: _level);
+    if (!await _output.play(track, volume: _level)) {
+      // Запуск не удался: следующая смена громкости или возврат из фона попробует ещё раз.
+      _loaded = false;
+      _playing = false;
+    }
   }
 
   MusicTrack _nextTrack() {

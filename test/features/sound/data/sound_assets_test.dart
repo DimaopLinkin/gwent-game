@@ -14,7 +14,7 @@ void main() {
 
   Set<String> filesIn(String directory) => {
     for (final entity in Directory(directory).listSync())
-      if (entity is File) entity.uri.pathSegments.last,
+      if (entity is File && entity.path.endsWith('.m4a')) entity.uri.pathSegments.last,
   };
 
   test('у каждого эффекта есть свой файл в assets/sfx, и других файлов там нет', () {

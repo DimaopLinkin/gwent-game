@@ -57,6 +57,9 @@ final class FieldCubit extends Cubit<FieldState> {
   Seat? _lastTurn;
   bool _dealtAnnounced = false;
 
+  /// Баннер, чей звук уже сыграл: баннер звучит, когда выходит на экран, а не когда встал в очередь.
+  FieldBanner? _voicedBanner;
+
   /// Скоя'таэли выбрали первого игрока, а баннер первого хода ещё не показан: подпись достанется ему.
   bool _firstChoicePending = false;
 
@@ -312,11 +315,17 @@ final class FieldCubit extends Cubit<FieldState> {
   }
 
   /// Звуки того, что появилось на поле: баннер, который вышел на экран, и тост-отказ.
+  ///
+  /// Баннер скрыт, пока идёт анимация, открыт лист итога или пауза (`BannerLayer` в `FieldView`), и звучит, когда
+  /// выходит на экран, а не когда встал в очередь.
   @override
   void onChange(Change<FieldState> change) {
     super.onChange(change);
-    final banner = change.nextState.banners.firstOrNull;
-    if (banner != null && !identical(banner, change.currentState.banners.firstOrNull)) {
+    final next = change.nextState;
+    final shown = next.stage == null && next.summary == null && next.pause == PauseLayer.none;
+    final banner = shown ? next.banners.firstOrNull : null;
+    if (banner != null && !identical(banner, _voicedBanner)) {
+      _voicedBanner = banner;
       final effect = switch (banner) {
         RoundStartBanner(round: 1) => SoundEffect.firstRoundStart,
         RoundStartBanner() => null,

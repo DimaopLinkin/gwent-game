@@ -30,8 +30,8 @@ void main() {
     addTearDown(cubit.close);
   });
 
-  MatchInProgress progress(PlayerView view, {List<GameEvent> events = const []}) =>
-      MatchInProgress(view: view, content: content, roster: rosterOf(cards), events: events);
+  MatchInProgress progress(PlayerView view, {List<GameEvent> events = const [], PlayerView? closing}) =>
+      MatchInProgress(view: view, content: content, roster: rosterOf(cards), events: events, closing: closing);
 
   test('знакомство перед партией звучит один раз', () {
     cubit.onMatchState(MatchIntro(rosterOf(cards)));
@@ -94,6 +94,47 @@ void main() {
     expect(output.effects, [SoundEffect.pass]);
     cubit.dismissBanner();
     expect(output.effects, [SoundEffect.pass, SoundEffect.turnOpponent]);
+  });
+
+  test('баннер вместе со сценарием молчит, пока сценарий не кончился', () {
+    const result = RoundResult(round: 1, scores: {Seat.one: 5, Seat.two: 2}, winner: Seat.one);
+    final closing = viewOf(
+      cards,
+      me: sideOf(
+        cards,
+        Seat.one,
+        rows: {
+          Row.melee: rowOf([cards.unit(Row.melee)], cards),
+        },
+        score: 5,
+      ),
+    );
+    cubit.onMatchState(
+      progress(
+        viewOf(cards, round: 2, turn: Seat.two),
+        closing: closing,
+        events: const [RoundEnded(result), RoundStarted(2, Seat.two), TurnStarted(Seat.two)],
+      ),
+    );
+    expect(cubit.state.stage, isNotNull);
+    expect(output.played, isEmpty, reason: 'баннера на экране ещё нет');
+
+    cubit.endStage(cubit.state.stage!.id);
+    expect(output.played, isEmpty, reason: 'баннер второго раунда без звука');
+    cubit.dismissBanner();
+    expect(output.effects, [SoundEffect.turnOpponent]);
+  });
+
+  test('баннер под паузой звучит, когда пауза закрыта, и один раз', () {
+    cubit
+      ..openPause()
+      ..onMatchState(progress(viewOf(cards), events: const [Passed(Seat.one, auto: false)]));
+    expect(output.played, isEmpty);
+    cubit
+      ..closePause()
+      ..openPause()
+      ..closePause();
+    expect(output.effects, [SoundEffect.pass]);
   });
 
   test('выбор карты звучит, повторный выбор той же карты нет', () {
