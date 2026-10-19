@@ -27,6 +27,14 @@ void main() {
         expect(played(state, difficulty), const CardId('geralt'));
       });
 
+      test('Рог на пустой ряд не кладёт и при малом приросте лучшего хода', () {
+        final state = playing(
+          one: const Side(hand: ['horn', 'archer_medic']),
+          two: const Side(melee: ['footman']),
+        );
+        expect(played(state, difficulty), const CardId('archer_medic'));
+      });
+
       test('погоду, которая бьёт только по своим отрядам, не кладёт', () {
         final state = playing(
           one: const Side(hand: ['frost', 'geralt'], melee: ['vesemir']),
