@@ -21,7 +21,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('внутри'), findsOneWidget);
-    expect(find.ancestor(of: find.text('внутри'), matching: find.byType(Material)), findsWidgets);
+    expect(
+      find.ancestor(
+        of: find.text('внутри'),
+        matching: find.byWidgetPredicate((w) => w is Material && w.type == MaterialType.transparency),
+      ),
+      findsOneWidget,
+    );
     expectNoFallbackTextStyle(tester);
   });
 }
