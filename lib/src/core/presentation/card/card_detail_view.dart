@@ -6,16 +6,15 @@ import 'package:gwent/src/core/presentation/card/card_detail.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/card/parts/card_detail_plaque.dart';
+import 'package:gwent/src/core/presentation/components/gwent_overlay.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
 /// Открывает полный просмотр карты [detail] поверх текущего экрана.
-Future<void> showCardDetail(BuildContext context, CardDetail detail) => showGeneralDialog<void>(
-  context: context,
-  barrierColor: const Color(0x00000000),
+Future<void> showCardDetail(BuildContext context, CardDetail detail) => showGwentOverlay<void>(
+  context,
   transitionDuration: CardDetailView.transitionDuration,
-  pageBuilder: (context, _, _) => CardDetailView(detail: detail),
-  transitionBuilder: (context, animation, _, child) => FadeTransition(opacity: animation, child: child),
+  builder: (context) => CardDetailView(detail: detail),
 );
 
 /// Полный просмотр карты (макет карты, `cardDetailOverlay`): карта и пергамент с описанием внутри безопасной
@@ -49,7 +48,7 @@ class _CardDetailViewState extends State<CardDetailView> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final view = GestureDetector(
+    return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _close,
       onVerticalDragUpdate: (details) => setState(() => _dragOffset = math.max(0, _dragOffset + details.delta.dy)),
@@ -105,8 +104,6 @@ class _CardDetailViewState extends State<CardDetailView> {
         ),
       ),
     );
-    // Маршрут диалога не даёт Material: без него текст получает отладочный стиль.
-    return Material(type: MaterialType.transparency, child: view);
   }
 
   /// Тап по карте или пергаменту не закрывает просмотр.
