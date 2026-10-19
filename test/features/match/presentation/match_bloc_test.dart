@@ -130,6 +130,18 @@ void main() {
     expect(matches.records.single.mode, history.MatchMode.hotSeat);
   });
 
+  test('hot-seat: сдача, пока передача телефона ждёт конца показа, доходит до партии', () async {
+    final states = <MatchScreenState>[];
+    final finished = _playOut(bloc, states, resignAtRoundEndHandover: true);
+    bloc.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.hotSeat, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    final result = await finished;
+    expect(result.outcome.reason, MatchEndReason.resignation);
+  });
+
   group('поле раунда для показа конца раунда', () {
     Future<List<MatchScreenState>> playOut(LocalMatchMode mode) async {
       final states = <MatchScreenState>[];
@@ -190,6 +202,18 @@ void main() {
           reason: 'второй игрок конец не пересматривает',
         );
         expect(received.closing, isNull);
+        final ended = state.events.whereType<RoundEnded>().last.result.round;
+        expect(
+          states.skip(i + 1).whereType<MatchInProgress>().takeWhile((s) => s.view.round == state.view.round + 1),
+          everyElement(
+            isA<MatchInProgress>().having(
+              (s) => s.events.whereType<RoundEnded>().any((e) => e.result.round == ended),
+              'повтор конца раунда $ended',
+              isFalse,
+            ),
+          ),
+          reason: 'ни одно место не пересматривает конец раунда, который уже показан',
+        );
         expect(received.events.whereType<RoundStarted>(), isNotEmpty, reason: 'новый раунд ему остаётся');
       }
       expect(handedAfterRoundEnd, greaterThan(0), reason: 'в партии есть раунд, после которого ходит другой игрок');
@@ -574,6 +598,7 @@ Future<MatchFinished> _playOut(
   List<MatchScreenState> states, {
   bool playCards = false,
   bool recorded = true,
+  bool resignAtRoundEndHandover = false,
 }) {
   final finished = Completer<MatchFinished>();
   Object? decided;
@@ -594,6 +619,11 @@ Future<MatchFinished> _playOut(
       case MatchToss():
         bloc.add(const MatchTossFinished());
       case MatchHandover(:final next):
+        if (resignAtRoundEndHandover && states.length > 1 && _endsRound(states[states.length - 2])) {
+          // Телефон ещё у того, кто кончил раунд: он сдаётся, не дожидаясь передачи.
+          bloc.add(const MatchIntentSubmitted(Resign()));
+          return;
+        }
         holder = next;
         bloc.add(const MatchHandoverAccepted());
       case MatchInProgress(refusal: _?) when playCards:
@@ -619,6 +649,9 @@ Future<MatchFinished> _playOut(
   });
   return finished.future.whenComplete(subscription.cancel);
 }
+
+bool _endsRound(MatchScreenState state) =>
+    state is MatchInProgress && state.view.phase == MatchPhase.playing && state.events.any((e) => e is RoundEnded);
 
 Intent _humanIntent(PlayerView view, {required bool playCards}) {
   if (view.choice case final choice?) return ChooseOption(choice.options.first);

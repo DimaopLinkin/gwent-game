@@ -122,7 +122,8 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
 
   void _onIntentSubmitted(MatchIntentSubmitted event, Emitter<MatchScreenState> emit) {
     final seat = _shown;
-    if (state is! MatchInProgress || seat == null) return;
+    // Передача телефона, которая ждёт конца показа, сдаче не мешает: сдаётся тот, у кого телефон.
+    if ((state is! MatchInProgress && state is! MatchHandover) || seat == null) return;
     _session!.table.submit(seat, event.intent);
   }
 
@@ -231,7 +232,6 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
         // Раунд кончил тот, у кого телефон: поле, подсчёт и плашки остаются у него, а экран передачи ждёт в очереди
         // экрана партии до конца плашки хода (макет 13). Следующему игроку конец раунда не повторяется.
         _show(shown, emit);
-        _forgetRoundEnd(next);
       }
       emit(MatchHandover(next, kind: _handoverKind(_views[next]!), roster: roster));
       return;
@@ -286,15 +286,14 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     final view = _views[seat]!;
     if (view.phase == MatchPhase.playing) _boardShown = true;
     final events = _takeUnseen(seat);
-    emit(
-      MatchInProgress(
-        view: view,
-        content: _session!.content,
-        roster: _roster!,
-        events: events,
-        closing: _takeClosing(seat, events),
-      ),
-    );
+    final closing = _takeClosing(seat, events);
+    if (view.phase == MatchPhase.playing && events.any((event) => event is RoundEnded)) {
+      // Конец раунда увидел этот игрок: другим местам он не повторяется.
+      for (final other in _unseen.keys.where((other) => other != seat).toList()) {
+        _forgetRoundEnd(other);
+      }
+    }
+    emit(MatchInProgress(view: view, content: _session!.content, roster: _roster!, events: events, closing: closing));
   }
 
   /// Поле закончившегося раунда, если оно относится к [events].
