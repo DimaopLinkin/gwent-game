@@ -82,7 +82,7 @@ final class MatchHost {
       ..admitted = true
       ..admission?.cancel();
     session.admission = null;
-    _pending.add(null);
+    if (!_pending.isClosed) _pending.add(null);
     _send(session, const Admitted());
     _announce(seat);
     _announce(seat.opponent);
@@ -106,7 +106,7 @@ final class MatchHost {
     session.grace?.cancel();
     session.link = null;
     _seats.remove(session.seat);
-    _pending.add(null);
+    if (!_pending.isClosed) _pending.add(null);
   }
 
   /// Новое входящее соединение. Первым сообщением в нём должен быть `hello`.
@@ -196,8 +196,8 @@ final class MatchHost {
   }
 
   void _onLost(PeerLink link) {
-    if (_anonymous.remove(link) || _closed) return;
     _trusted.remove(link);
+    if (_anonymous.remove(link) || _closed) return;
     final session = _sessionOf(link);
     if (session == null) return;
     // Ждавший решения игрок ушёл: хост о нём не знал и не ждёт.
@@ -212,6 +212,7 @@ final class MatchHost {
   }
 
   void _onHello(PeerLink link, Envelope envelope, Hello hello) {
+    if (_closed) return;
     if (hello.ruleset != _settings.ruleset) return _reject(link, JoinRefusal.rulesetMismatch);
     final token = hello.resumeToken;
     if (token != null) {
@@ -229,7 +230,7 @@ final class MatchHost {
     link.send(session.channel.control(Welcome(seat: seat, matchId: matchId, resumeToken: session.token, next: 1)));
     if (!session.admitted) {
       session.admission = _scheduler.timer(_settings.admissionTimeout, () => decline(seat));
-      _pending.add(PendingGuest(seat, session.playerName));
+      if (!_pending.isClosed) _pending.add(PendingGuest(seat, session.playerName));
       return;
     }
     _send(session, const Admitted());
@@ -298,6 +299,7 @@ final class MatchHost {
 
   void _reject(PeerLink link, JoinRefusal reason) {
     _anonymous.remove(link);
+    _trusted.remove(link);
     link.send(Envelope(JoinRejected(reason, protocol: protocolVersion)));
     unawaited(link.close());
   }
@@ -322,7 +324,11 @@ final class MatchHost {
   void _onSequenced(SeatSession session, Envelope envelope) {
     if (!session.admitted) {
       // Хост ещё не решил: уйти игрок может, остальное хост не принимает.
-      if (envelope.message is LobbyLeave) decline(session.seat);
+      if (envelope.message is LobbyLeave) {
+        final link = session.link;
+        _dropPending(session);
+        if (link != null) unawaited(link.close());
+      }
       return;
     }
     switch (envelope.message) {
@@ -389,7 +395,9 @@ final class MatchHost {
     final link = session.link;
     session.link = null;
     if (link != null) unawaited(link.close());
-    if (_seats[session.seat.opponent] case final remaining?) _send(remaining, const OpponentLeave());
+    if (_seats[session.seat.opponent] case final remaining? when remaining.admitted) {
+      _send(remaining, const OpponentLeave());
+    }
   }
 
   void _startIfReady() {
@@ -415,7 +423,7 @@ final class MatchHost {
     if (countdown == null) return;
     countdown.cancel();
     _countdown = null;
-    for (final session in _seats.values) {
+    for (final session in _seats.values.where((session) => session.admitted)) {
       _send(session, const CountdownCancel());
     }
   }
@@ -466,14 +474,16 @@ final class MatchHost {
     if (session.online || _seats[session.seat] != session) return;
     if (_state == null) {
       _seats.remove(session.seat);
-      if (_seats[session.seat.opponent] case final remaining?) _send(remaining, const OpponentLeave());
+      if (_seats[session.seat.opponent] case final remaining? when remaining.admitted) {
+        _send(remaining, const OpponentLeave());
+      }
     } else {
       _apply(session.seat, const Resign());
     }
   }
 
   void _broadcast(MatchState state, List<GameEvent> events) {
-    for (final session in _seats.values) {
+    for (final session in _seats.values.where((session) => session.admitted)) {
       final seat = session.seat;
       _send(session, MatchUpdate(_engine.eventsFor(events, seat), _engine.project(state, seat)));
     }

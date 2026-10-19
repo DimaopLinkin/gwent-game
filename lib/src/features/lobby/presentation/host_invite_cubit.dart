@@ -37,7 +37,8 @@ final class HostInviteCubit extends Cubit<HostInviteState> {
     emit(address == null ? const HostInviteFailed() : HostInviteReady(GameInvite.encode(address), _label(address)));
   }
 
-  bool _hasOpponentOrEnd(LobbyRoom room) => room.opponent != null || room.end != null || room.started;
+  bool _hasOpponentOrEnd(LobbyRoom room) =>
+      room.opponent != null || room.pendingGuest != null || room.end != null || room.started;
 
   void _onRoom(LobbyRoom room) {
     if (_hasOpponentOrEnd(room)) emit(const HostInviteDone());

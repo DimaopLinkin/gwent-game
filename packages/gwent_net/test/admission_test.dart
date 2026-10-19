@@ -105,6 +105,72 @@ void main() {
     expect(table.eventsOf<GuestAdmitted>(table.guest), hasLength(1));
   });
 
+  test('принятый гость не отклоняется по таймеру, отклонённый не получает второго отказа', () async {
+    final table = await knocked();
+    table.host.admit(Seat.two);
+    await table.scheduler.elapse(settings.admissionTimeout * 2);
+    expect(table.eventsOf<JoinRefused>(table.guest), isEmpty);
+    expect(table.guest.status, ConnectionStatus.online);
+
+    final other = await knocked();
+    other.host.decline(Seat.two);
+    await other.scheduler.elapse(settings.admissionTimeout * 2);
+    expect(other.eventsOf<JoinRefused>(other.guest), hasLength(1));
+  });
+
+  test('гость ушёл сам: заявка снята без отказа, место свободно', () async {
+    final table = await knocked();
+    table.guest.leaveLobby();
+    await table.scheduler.flush();
+    expect(table.host.pendingGuestNow, isNull);
+    expect(table.eventsOf<JoinRefused>(table.guest), isEmpty);
+    table.connectGuest(table.newClient('Другой'));
+    await table.scheduler.flush();
+    expect(table.host.pendingGuestNow, const PendingGuest(Seat.two, 'Другой'));
+  });
+
+  test('второй стучащийся при ожидающем получает «партия занята»', () async {
+    final table = await knocked();
+    final second = table.newClient('Второй');
+    table.connectGuest(second);
+    await table.scheduler.flush();
+    expect(table.eventsOf<JoinRefused>(second).single.reason, JoinRefusal.matchFull);
+    expect(table.host.pendingGuestNow, const PendingGuest(Seat.two, 'Гость'));
+  });
+
+  test('хост закрыт при ожидающем: гость узнаёт, что возвращаться некуда, поток закрывается', () async {
+    final table = await knocked();
+    var closed = false;
+    table.host.pendingGuest.listen(null, onDone: () => closed = true);
+    await table.host.close();
+    await table.scheduler.flush();
+    expect(table.eventsOf<LobbyClosed>(table.guest), hasLength(1));
+    expect(closed, isTrue);
+  });
+
+  test('ожидающему не рассказывают о том, чего для него нет: выход принятого игрока', () async {
+    final table = Table(hostSettings: settings)..connectGuest();
+    await table.scheduler.flush();
+    table.host.admit(Seat.one);
+    final waiting = table.newClient('Ждущий');
+    table.connectGuest(waiting);
+    await table.scheduler.flush();
+    expect(table.host.pendingGuestNow, const PendingGuest(Seat.two, 'Ждущий'));
+
+    table.guest.leaveLobby();
+    await table.scheduler.flush();
+    expect(table.eventsOf<OpponentLeft>(waiting), isEmpty);
+  });
+
+  test('«принято» и отказ доходят по проводу: кодек знает admitted и declined', () {
+    const codec = EnvelopeCodec();
+    expect(codec.decode(codec.encode(const Envelope(Admitted(), seq: 1))).message, const Admitted());
+    expect(
+      codec.decode(codec.encode(const Envelope(JoinRejected(JoinRefusal.declined, protocol: protocolVersion)))).message,
+      const JoinRejected(JoinRefusal.declined, protocol: protocolVersion),
+    );
+  });
+
   test('без требования хост пускает сразу, как раньше', () async {
     final table = Table(hostSettings: const HostSettings(ruleset: ruleset))
       ..connectHost()
