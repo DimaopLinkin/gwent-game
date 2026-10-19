@@ -31,7 +31,7 @@ final class GreedyBotSettings {
     ),
     BotDifficulty.normal => const GreedyBotSettings(),
     BotDifficulty.hard => const GreedyBotSettings(frugalSlack: 6),
-    BotDifficulty.deathMatch => const GreedyBotSettings(frugalShare: 150),
+    BotDifficulty.deathMatch => const GreedyBotSettings(frugalSlack: 6, frugalShare: 50),
   };
 
   /// Во сколько очков бот ценит карту в руке: примерно средняя сила карты.
@@ -57,7 +57,8 @@ final class GreedyBotSettings {
   final int mistakeChance;
 
   /// Допуск экономии в очках. Когда он больше нуля и бот не пасует, он берёт не лучший ход, а самый дешёвый
-  /// из тех, что хуже лучшего не больше чем на допуск: слабые карты уходят раньше сильных.
+  /// из тех, что хуже лучшего не больше чем на допуск: слабые карты уходят раньше сильных. Ходы, которые ничего
+  /// не прибавляют или вредят (Рог на пустой ряд, погода себе, Казнь своей карты), экономией не считаются.
   final int frugalSlack;
 
   /// Допуск экономии в процентах от прироста лучшего хода; складывается с [frugalSlack].

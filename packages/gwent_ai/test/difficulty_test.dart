@@ -15,6 +15,7 @@ void main() {
     (BotDifficulty.normal, BotDifficulty.easy),
     (BotDifficulty.hard, BotDifficulty.normal),
     (BotDifficulty.deathMatch, BotDifficulty.hard),
+    (BotDifficulty.deathMatch, BotDifficulty.normal),
     (BotDifficulty.deathMatch, BotDifficulty.easy),
   ]) {
     test('${strong.name} выигрывает у ${weak.name} чаще, чем проигрывает', () {
