@@ -55,6 +55,8 @@ final class FindGamesCubit extends Cubit<FindGamesState> {
 
   void _listen() {
     if (isClosed || state is! FindGamesSearching) return;
+    // Два быстрых `search()` подряд проходят проверку вместе: вторая подписка заменяет первую.
+    unawaited(_subscription?.cancel());
     _subscription = _discover().listen(
       (games) {
         if (state is FindGamesSearching) emit(FindGamesSearching(games));

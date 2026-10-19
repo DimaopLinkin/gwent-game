@@ -26,6 +26,16 @@ final class DeviceNetworkAccess implements NetworkAccess {
   }
 
   @override
+  Future<bool> hasNetwork() async {
+    try {
+      final results = await _connectivity.checkConnectivity();
+      return results.any((result) => result != ConnectivityResult.none);
+    } on Object {
+      return true;
+    }
+  }
+
+  @override
   bool get asksLocalNetworkPermission => _platform == TargetPlatform.iOS;
 
   @override

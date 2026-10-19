@@ -14,8 +14,11 @@ final class NetworkReadiness {
   final SettingsRepository _settings;
 
   /// Что мешает начать игру прямо сейчас; `null`, если можно пробовать.
+  ///
+  /// Wi-Fi без интернета ОС может считать неосновной сетью, пока включены мобильные данные, поэтому до попытки
+  /// игре мешает только полное отсутствие сети; выключенный Wi-Fi при мобильной сети выясняет [diagnose] после отказа.
   Future<NetworkProblem?> check() async {
-    if (!await _access.isOnWifi()) return NetworkProblem.wifiOff;
+    if (!await _access.hasNetwork()) return NetworkProblem.wifiOff;
     if (_access.asksLocalNetworkPermission && !(await _current()).localNetworkExplained) {
       return NetworkProblem.localNetworkExplainer;
     }

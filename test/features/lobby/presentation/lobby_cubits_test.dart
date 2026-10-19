@@ -149,6 +149,18 @@ void main() {
       expect(lobby.hosted.values.single.ad.hostName, 'Игрок');
     });
 
+    test('Wi-Fi выключен, но есть мобильная сеть: партия создаётся', () async {
+      final cubit = makeCubit();
+      await cubit.stream.firstWhere((state) => state is CreateGameForm);
+      access
+        ..wifiOn = false
+        ..mobileOn = true;
+
+      await cubit.create('Цири');
+
+      expect(cubit.state, isA<CreateGameCreated>());
+    });
+
     test('Wi-Fi выключен: партия не создаётся, причина названа', () async {
       final cubit = makeCubit();
       await cubit.stream.firstWhere((state) => state is CreateGameForm);
@@ -433,6 +445,17 @@ void main() {
       await settle();
 
       await done;
+    });
+
+    test('соперник подключился, пока открывался экран: код не показывается', () async {
+      final game = await hosted();
+      final found = (await discover().firstWhere((games) => games.isNotEmpty)).single;
+      await joinGame(found: found.found, playerName: 'Вереск');
+      await settle();
+
+      final cubit = makeCubit(game);
+
+      expect(cubit.state, isA<HostInviteDone>());
     });
 
     test('партия закрыта: адреса нет, показывать нечего', () async {

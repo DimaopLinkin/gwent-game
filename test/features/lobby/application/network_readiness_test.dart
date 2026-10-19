@@ -30,6 +30,18 @@ void main() {
       expect(await readiness.check(), NetworkProblem.wifiOff);
     });
 
+    test(
+      'Wi-Fi выключен, но есть мобильная сеть: до попытки не мешаем (Wi-Fi без интернета ОС так и показывает)',
+      () async {
+        access
+          ..wifiOn = false
+          ..mobileOn = true;
+
+        expect(await readiness.check(), isNull);
+        expect(await readiness.diagnose(), NetworkProblem.wifiOff);
+      },
+    );
+
     test('iOS: пояснение перед системным запросом показывается, пока игрок его не прочитал', () async {
       access.asksLocalNetworkPermission = true;
       expect(await readiness.check(), NetworkProblem.localNetworkExplainer);

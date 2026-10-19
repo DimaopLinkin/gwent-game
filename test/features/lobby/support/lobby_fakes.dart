@@ -104,11 +104,17 @@ final class FakeNetworkAccess implements NetworkAccess {
   @override
   bool asksLocalNetworkPermission;
 
+  /// У телефона есть мобильная сеть, даже если Wi-Fi выключен.
+  bool mobileOn = false;
+
   /// Какие настройки открывали, по порядку: `wifi` или `app`.
   final List<String> openedSettings = [];
 
   @override
   Future<bool> isOnWifi() async => wifiOn;
+
+  @override
+  Future<bool> hasNetwork() async => wifiOn || mobileOn;
 
   @override
   Future<void> openWifiSettings() async => openedSettings.add('wifi');

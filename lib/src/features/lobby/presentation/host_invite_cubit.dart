@@ -4,7 +4,6 @@ import 'package:bloc/bloc.dart';
 import 'package:gwent/src/features/lobby/application/network_game.dart';
 import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/domain/game_invite.dart';
-import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
 import 'package:gwent/src/features/lobby/presentation/host_invite_state.dart';
 
@@ -13,7 +12,12 @@ final class HostInviteCubit extends Cubit<HostInviteState> {
   /// Создаёт держатель и сразу узнаёт адрес партии [game].
   HostInviteCubit(this._game) : super(const HostInviteLoading()) {
     _subscription = _game.rooms.listen(_onRoom);
-    unawaited(_load());
+    // Соперник мог подключиться, пока открывался экран: поток `rooms` отдаёт только новое.
+    if (_hasOpponentOrEnd(_game.room)) {
+      emit(const HostInviteDone());
+    } else {
+      unawaited(_load());
+    }
   }
 
   final NetworkGame _game;
@@ -23,7 +27,9 @@ final class HostInviteCubit extends Cubit<HostInviteState> {
     final GameAddress? address;
     try {
       address = await _game.address();
-    } on LobbyException {
+    } on Object catch (error, stackTrace) {
+      // Адрес не узнать (нет сетевых интерфейсов, партия закрыта): код показать нечем.
+      addError(error, stackTrace);
       if (!isClosed && state is HostInviteLoading) emit(const HostInviteFailed());
       return;
     }
@@ -31,8 +37,10 @@ final class HostInviteCubit extends Cubit<HostInviteState> {
     emit(address == null ? const HostInviteFailed() : HostInviteReady(GameInvite.encode(address), _label(address)));
   }
 
+  bool _hasOpponentOrEnd(LobbyRoom room) => room.opponent != null || room.end != null || room.started;
+
   void _onRoom(LobbyRoom room) {
-    if (room.opponent != null || room.end != null || room.started) emit(const HostInviteDone());
+    if (_hasOpponentOrEnd(room)) emit(const HostInviteDone());
   }
 
   /// Адрес для людей: первый адрес хоста и порт, IPv6 в скобках.

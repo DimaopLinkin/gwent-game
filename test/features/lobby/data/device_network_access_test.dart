@@ -20,6 +20,13 @@ void main() {
     expect(await accessWith([ConnectivityResult.none]).isOnWifi(), isFalse);
   });
 
+  test('сеть есть, пока есть хоть одно соединение', () async {
+    expect(await accessWith([ConnectivityResult.mobile]).hasNetwork(), isTrue);
+    expect(await accessWith([ConnectivityResult.wifi]).hasNetwork(), isTrue);
+    expect(await accessWith([ConnectivityResult.none]).hasNetwork(), isFalse);
+    expect(await accessWith(Exception('нет данных')).hasNetwork(), isTrue);
+  });
+
   test('если состояние сети узнать не удалось, игре не мешают', () async {
     expect(await accessWith(Exception('нет данных')).isOnWifi(), isTrue);
   });
