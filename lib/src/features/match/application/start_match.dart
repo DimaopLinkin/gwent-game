@@ -13,13 +13,15 @@ import 'package:gwent_content/gwent_content.dart' show ValidationIssue;
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:meta/meta.dart';
 
-/// Создаёт бота для партии над движком и справочником карт.
-typedef BotFactory = MatchBot Function(MatchEngine engine, CardCatalog catalog);
+/// Создаёт бота уровня `difficulty` для партии над движком и справочником карт; `seed` задаёт ошибки лёгкого уровня
+/// и догадки о руке соперника, поэтому с одним сидом бот играет одинаково.
+typedef BotFactory = MatchBot Function(MatchEngine engine, CardCatalog catalog, BotDifficulty difficulty, int seed);
 
 /// Что выбрал игрок перед местной партией: режим, колоды мест и, если игрок выбрал, лидеры.
 @immutable
 final class LocalMatchRequest {
-  /// Создаёт запрос. Против бота [deckTwo] — колода бота.
+  /// Создаёт запрос. Против бота [deckTwo] — колода бота: если собранной колоды нет ([opponentDeck]), она лежит
+  /// в хранилище.
   ///
   /// [leaderOne] и [leaderTwo] — UUID лидеров, с которыми места идут в эту партию вместо лидера колоды: лидер
   /// выбирается перед партией и не меняет сохранённую колоду. Без них места играют лидерами своих колод.
@@ -29,10 +31,19 @@ final class LocalMatchRequest {
     required this.deckTwo,
     this.leaderOne,
     this.leaderTwo,
+    this.difficulty = BotDifficulty.normal,
+    this.opponentDeck,
   });
 
   /// Режим.
   final LocalMatchMode mode;
+
+  /// Уровень сложности бота; в hot-seat не используется.
+  final BotDifficulty difficulty;
+
+  /// Колода бота, собранная под уровень: в хранилище её нет. `null` — колода второго места берётся из хранилища
+  /// по [deckTwo].
+  final app.Deck? opponentDeck;
 
   /// Идентификатор колоды первого места.
   final String deckOne;
@@ -108,8 +119,9 @@ final class MatchDeckInvalid extends StartMatchResult {
 
 /// Сценарий: начать местную партию (hot-seat или против бота) из сохранённых колод.
 ///
-/// Колоды берутся из хранилища, проверяются и раздаются движком; сид партии даёт [SeedGenerator]. Против бота
-/// второе место занимает [BotAgent] над ботом из [BotFactory] (по умолчанию жадный `GreedyBot`).
+/// Колоды берутся из хранилища (колода бота может прийти собранной в самом запросе), проверяются и раздаются
+/// движком; сид партии даёт [SeedGenerator]. Против бота второе место занимает [BotAgent] над ботом из [BotFactory]
+/// (по умолчанию `GreedyBot` выбранного уровня).
 final class StartMatch {
   /// Создаёт сценарий.
   StartMatch(
@@ -127,7 +139,8 @@ final class StartMatch {
   final BotFactory _createBot;
   final Duration _botThinkTime;
 
-  static MatchBot _greedyBot(MatchEngine engine, CardCatalog catalog) => GreedyBot(engine, catalog);
+  static MatchBot _greedyBot(MatchEngine engine, CardCatalog catalog, BotDifficulty difficulty, int seed) =>
+      GreedyBot.forDifficulty(engine, catalog, difficulty, seed: seed);
 
   /// Начинает партию по запросу [request].
   Future<StartMatchResult> call(LocalMatchRequest request) async {
@@ -140,17 +153,19 @@ final class StartMatch {
     }
     final decks = <Seat, app.Deck>{};
     for (final seat in Seat.values) {
-      final deck = await _decks.findById(request.deck(seat));
+      final built = seat == Seat.two ? request.opponentDeck : null;
+      final deck = built ?? await _decks.findById(request.deck(seat));
       if (deck == null) return MatchDeckNotFound(seat, request.deck(seat));
       decks[seat] = switch (request.leader(seat)) {
         final leaderId? => deck.copyWith(leaderId: leaderId),
         null => deck,
       };
     }
-    return _start(request.mode, content, decks);
+    return _start(request, content, decks);
   }
 
-  StartMatchResult _start(LocalMatchMode mode, GameContent content, Map<Seat, app.Deck> decks) {
+  StartMatchResult _start(LocalMatchRequest request, GameContent content, Map<Seat, app.Deck> decks) {
+    final mode = request.mode;
     final engine = GwentEngine(content.catalog, rules: content.rules);
     final setup = MatchSetup(
       one: decks[Seat.one]!.toEngineDeck(),
@@ -168,7 +183,10 @@ final class StartMatch {
           agents: switch (mode) {
             LocalMatchMode.hotSeat => const {},
             LocalMatchMode.vsBot => {
-              Seat.two: BotAgent(_createBot(engine, content.catalog), thinkTime: _botThinkTime),
+              Seat.two: BotAgent(
+                _createBot(engine, content.catalog, request.difficulty, _seeds.next()),
+                thinkTime: _botThinkTime,
+              ),
             },
           },
         );

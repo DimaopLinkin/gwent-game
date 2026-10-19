@@ -27,17 +27,21 @@ import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
+import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
+import 'package:gwent/src/features/match/presentation/setup/bot_difficulty_text.dart';
 import 'package:gwent/src/features/match/presentation/start/handover_view.dart';
 import 'package:gwent/src/features/match/presentation/start/match_intro_view.dart';
 import 'package:gwent/src/features/match/presentation/start/match_toss_view.dart';
 import 'package:gwent/src/features/match/presentation/start/redraw_view.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' as history;
-import 'package:gwent_ai/gwent_ai.dart';
+import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
+import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_engine/gwent_engine.dart' hide Deck, Row;
 
 import '../../../support/fakes.dart';
@@ -75,7 +79,7 @@ void main() {
         LoadGameContent(AssetContentSource.basePack(rootBundle)),
         decks,
         FixedSeedGenerator(3),
-        createBot: GreedyBot.new,
+        createBot: plainGreedyBot,
         botThinkTime: Duration.zero,
       ),
       RecordFinishedMatch(
@@ -97,6 +101,7 @@ void main() {
     LocalMatchMode mode = LocalMatchMode.vsBot,
     VoidCallback? onSettings,
     Size size = const Size(390, 844),
+    bool passDifficulty = true,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -109,12 +114,15 @@ void main() {
       CreateStarterDeck(decks, FakeClock(DateTime.utc(2026, 10, 12)), SequentialIdGenerator()),
       lock,
     );
+    final settings = InMemorySettingsRepository();
     final setup = MatchSetupCubit(
       watchDecks: WatchDecks(decks),
       loadDeckRules: LoadDeckRules(rules),
       getActiveDeck: getActiveDeck,
       setActiveDeck: SetActiveDeck(decks, rules, lock),
-      chooseOpponentDeck: ChooseOpponentDeck(rules, getActiveDeck),
+      chooseOpponentDeck: ChooseOpponentDeck(rules, FixedSeedGenerator(3)),
+      loadBotDifficulty: LoadBotDifficulty(settings),
+      saveBotDifficulty: SaveBotDifficulty(settings),
       mode: mode,
     );
     addTearDown(setup.close);
@@ -138,6 +146,11 @@ void main() {
       ),
     );
     await settleSetup(tester);
+    // Против бота выбор начинается со сложности: остальные тесты начинаются с выбора фракции.
+    if (mode == LocalMatchMode.vsBot && passDifficulty) {
+      await tester.tap(find.text(l10n.difficultySelectConfirm));
+      await settleSetup(tester);
+    }
   }
 
   /// Проходит три шага выбора для места: фракция с ключом [factionKey], её первый лидер, первая колода.
@@ -194,16 +207,26 @@ void main() {
   }
 
   group('выбор фракции, лидера и колоды', () {
-    testWidgets('против бота: фракция, лидер, колода; второго места нет', (tester) async {
-      await pumpScreen(tester);
-      expect(find.text(l10n.setupStep(1, 2).toUpperCase()), findsOneWidget);
+    testWidgets('против бота: сложность, фракция, лидер, колода; второго места нет', (tester) async {
+      await pumpScreen(tester, passDifficulty: false);
+      expect(find.text(l10n.setupStep(1, 3).toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.difficultySelectTitle), findsOneWidget);
+      for (final difficulty in BotDifficulty.values) {
+        expect(find.text(botDifficultyName(l10n, difficulty)), findsOneWidget);
+      }
+      await tester.tap(find.text(botDifficultyName(l10n, BotDifficulty.deathMatch)));
+      await tester.pump();
+      await tester.tap(find.text(l10n.difficultySelectConfirm));
+      await settleSetup(tester);
+
+      expect(find.text(l10n.setupStep(2, 3).toUpperCase()), findsOneWidget);
       expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
 
       setupCubit.showFaction(2);
       await tester.pump();
       await tester.tap(find.text(l10n.factionSelectConfirm));
       await settleSetup(tester);
-      expect(find.text(l10n.setupStep(2, 2).toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.setupStep(3, 3).toUpperCase()), findsOneWidget);
       expect(find.text(l10n.leaderSelectConfirm), findsOneWidget);
 
       await tester.tap(find.text(l10n.leaderSelectConfirm));
@@ -233,6 +256,11 @@ void main() {
       await tester.tap(find.bySemanticsLabel(l10n.setupBack));
       await settleSetup(tester);
       expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+      expect(exits, 0);
+
+      await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+      await settleSetup(tester);
+      expect(find.text(l10n.difficultySelectConfirm), findsOneWidget, reason: 'против бота перед фракцией сложность');
       expect(exits, 0);
 
       await tester.tap(find.bySemanticsLabel(l10n.setupBack));
@@ -291,10 +319,11 @@ void main() {
 
       expect(find.byType(MatchIntroView), findsOneWidget);
       expect(find.text('ПРОТИВ'), findsOneWidget);
-      expect(find.text('Чудовища'), findsOneWidget);
-      expect(find.text('Королевства Севера'), findsOneWidget);
+      // Фракция бота случайна (ADR 0021): игрок за Чудовищ, колода бота названа по её фракции.
+      final botDeck = (bloc.state as MatchIntro).roster.players[Seat.two]!.deckName!;
+      expect(find.text('Чудовища'), findsWidgets);
       expect(find.textContaining('«monsters»', findRichText: true), findsOneWidget);
-      expect(find.textContaining('«northernRealms»', findRichText: true), findsOneWidget);
+      expect(find.textContaining('«$botDeck»', findRichText: true), findsOneWidget);
       expect(find.text('Вы'), findsOneWidget);
       expect(find.text('Противник'), findsOneWidget);
       expect(find.text('Пересдача'), findsNothing);

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 
 void main() {
   test('значения по умолчанию', () {
@@ -13,6 +14,7 @@ void main() {
     expect(settings.musicVolume, 70);
     expect(settings.effectsVolume, 85);
     expect(settings.contentCheckedAt, isNull);
+    expect(settings.botDifficulty, BotDifficulty.normal);
   });
 
   test('copyWith меняет названные поля и оставляет имя игрока', () {
@@ -48,6 +50,7 @@ void main() {
     expect(base, isNot(base.copyWith(animationSpeed: AnimationSpeed.fast)));
     expect(base, isNot(base.copyWith(hints: false)));
     expect(base, isNot(base.copyWith(musicVolume: 0)));
+    expect(base, isNot(base.copyWith(botDifficulty: BotDifficulty.hard)));
     expect(base, isNot(base.copyWith(effectsVolume: 0)));
     expect(base, isNot(base.copyWith(contentCheckedAt: DateTime.utc(2026))));
     expect(base, isNot(base.withPlayerName('Б')));

@@ -12,13 +12,17 @@ import 'package:gwent/src/features/match/application/choose_opponent_deck.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
+import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
+import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_engine/gwent_engine.dart' show Seat;
 
 /// Держатель выбора перед партией (макет 7): фракция, лидер и колода каждого места.
 ///
 /// Места выбирают по очереди: в hot-seat сначала первое, потом второе, против бота только первое, а колоду бота
 /// даёт [ChooseOpponentDeck]. Каждое место проходит три шага: фракция → лидер → колода этой фракции. Лидер,
-/// выбранный на втором шаге, идёт в партию вместо лидера колоды и не меняет сохранённую колоду.
+/// выбранный на втором шаге, идёт в партию вместо лидера колоды и не меняет сохранённую колоду. Против бота
+/// перед ними стоит шаг сложности бота: выбранный уровень запоминается (ADR 0021).
 ///
 /// Когда выбрано последнее место, состояние становится `MatchSetupDone` с запросом на партию.
 final class MatchSetupCubit extends Cubit<MatchSetupState> {
@@ -29,29 +33,35 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     required GetActiveDeck getActiveDeck,
     required SetActiveDeck setActiveDeck,
     required ChooseOpponentDeck chooseOpponentDeck,
+    required LoadBotDifficulty loadBotDifficulty,
+    required SaveBotDifficulty saveBotDifficulty,
     required LocalMatchMode mode,
   }) : _getActiveDeck = getActiveDeck,
        _setActiveDeck = setActiveDeck,
        _chooseOpponentDeck = chooseOpponentDeck,
+       _saveBotDifficulty = saveBotDifficulty,
        _mode = mode,
+       _step = mode == LocalMatchMode.vsBot ? SetupStep.difficulty : SetupStep.faction,
        super(const MatchSetupLoading()) {
     _subscription = watchDecks().listen(
       _onDecks,
       onError: _fail,
     );
-    unawaited(_loadRules(loadDeckRules));
+    unawaited(_loadRules(loadDeckRules, loadBotDifficulty));
   }
 
   final GetActiveDeck _getActiveDeck;
   final SetActiveDeck _setActiveDeck;
   final ChooseOpponentDeck _chooseOpponentDeck;
+  final SaveBotDifficulty _saveBotDifficulty;
   final LocalMatchMode _mode;
   late final StreamSubscription<void> _subscription;
 
   DeckRules? _rules;
   List<Deck>? _decks;
   Seat _seat = Seat.one;
-  SetupStep _step = SetupStep.faction;
+  SetupStep _step;
+  BotDifficulty _difficulty = BotDifficulty.normal;
   int _factionIndex = 0;
   String? _leaderId;
   String? _deckId;
@@ -60,6 +70,31 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
 
   /// Что выбрало первое место, когда выбирает второе.
   ({String deckId, String leaderId, String factionId})? _firstSeat;
+
+  /// Выбирает уровень сложности бота [difficulty] на шаге сложности.
+  void selectDifficulty(BotDifficulty difficulty) {
+    if (_step != SetupStep.difficulty || difficulty == _difficulty) return;
+    _difficulty = difficulty;
+    _emit();
+  }
+
+  /// Подтверждает уровень сложности: запоминает его и открывает выбор фракции.
+  Future<void> confirmDifficulty() async {
+    if (_rules == null || _step != SetupStep.difficulty || _busy) return;
+    _busy = true;
+    _emit();
+    try {
+      await _saveBotDifficulty(_difficulty);
+      if (isClosed) return;
+      _step = SetupStep.faction;
+    } on Object catch (error, stackTrace) {
+      _fail(error, stackTrace);
+      return;
+    } finally {
+      _busy = false;
+    }
+    _emit();
+  }
 
   /// Показывает фракцию номер [index] среди фракций пакета. Лидер и колода прежней фракции сбрасываются.
   void showFaction(int index) {
@@ -151,12 +186,19 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
           _leaderId = null;
           _deckId = null;
         case Seat.one:
-          final opponent = await _chooseOpponentDeck(deck.factionId);
+          final opponent = await _chooseOpponentDeck(_difficulty);
           if (isClosed) return;
           _done = true;
           emit(
             MatchSetupDone(
-              LocalMatchRequest(mode: _mode, deckOne: deck.id, deckTwo: opponent.id, leaderOne: leaderId),
+              LocalMatchRequest(
+                mode: _mode,
+                deckOne: deck.id,
+                deckTwo: opponent.id,
+                leaderOne: leaderId,
+                difficulty: _difficulty,
+                opponentDeck: opponent,
+              ),
             ),
           );
           return;
@@ -204,21 +246,29 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
         _factionIndex = _rules!.factionInfos.indexWhere((faction) => faction.id == first.factionId);
         _leaderId = first.leaderId;
         _deckId = first.deckId;
-      case SetupStep.faction:
+      case SetupStep.faction when _mode == LocalMatchMode.vsBot:
+        _step = SetupStep.difficulty;
+      case SetupStep.faction || SetupStep.difficulty:
         return false;
     }
     _emit();
     return true;
   }
 
-  bool get _canStepBack => !(_seat == Seat.one && _step == SetupStep.faction);
+  bool get _canStepBack => !(_seat == Seat.one && _step == _firstStep);
 
-  Future<void> _loadRules(LoadDeckRules loadDeckRules) async {
+  /// Первый шаг выбора: против бота сложность, в hot-seat фракция.
+  SetupStep get _firstStep => _mode == LocalMatchMode.vsBot ? SetupStep.difficulty : SetupStep.faction;
+
+  Future<void> _loadRules(LoadDeckRules loadDeckRules, LoadBotDifficulty loadBotDifficulty) async {
     try {
       final rules = await loadDeckRules();
+      // Уровень нужен только против бота.
+      final difficulty = _mode == LocalMatchMode.vsBot ? await loadBotDifficulty() : BotDifficulty.normal;
       if (isClosed) return;
       if (rules.factionInfos.isEmpty) throw StateError('в пакете нет фракций с колодой');
       _rules = rules;
+      _difficulty = difficulty;
       _emit();
     } on Object catch (error, stackTrace) {
       _fail(error, stackTrace);
@@ -282,6 +332,7 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     emit(
       MatchSetupReady(
         mode: _mode,
+        difficulty: _difficulty,
         seat: _seat,
         step: _step,
         rules: rules,

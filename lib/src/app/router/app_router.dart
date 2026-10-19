@@ -196,6 +196,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                     getActiveDeck: dependencies.getActiveDeck,
                     setActiveDeck: dependencies.setActiveDeck,
                     chooseOpponentDeck: dependencies.chooseOpponentDeck,
+                    loadBotDifficulty: dependencies.loadBotDifficulty,
+                    saveBotDifficulty: dependencies.saveBotDifficulty,
                     mode: _matchMode(state),
                   ),
                 ),

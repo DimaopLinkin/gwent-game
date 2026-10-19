@@ -1490,6 +1490,46 @@
   "@settingsFanProject": {
     "description": "Отметка внизу группы «О приложении»."
   },
+  "difficultySelectTitle": "Сложность бота",
+  "@difficultySelectTitle": {
+    "description": "Заголовок экрана выбора сложности бота перед партией против него."
+  },
+  "difficultySelectConfirm": "Выбрать сложность",
+  "@difficultySelectConfirm": {
+    "description": "Кнопка подтверждения сложности бота."
+  },
+  "botDifficultyEasy": "Лёгкий",
+  "@botDifficultyEasy": {
+    "description": "Название самого слабого уровня бота."
+  },
+  "botDifficultyEasyHint": "Бот иногда ходит наугад, рано пасует и собирает колоду из слабых карт.",
+  "@botDifficultyEasyHint": {
+    "description": "Описание лёгкого уровня бота."
+  },
+  "botDifficultyNormal": "Нормальный",
+  "@botDifficultyNormal": {
+    "description": "Название обычного уровня бота."
+  },
+  "botDifficultyNormalHint": "Играет честно и по расчёту очков; колода собрана из случайных карт фракции.",
+  "@botDifficultyNormalHint": {
+    "description": "Описание нормального уровня бота."
+  },
+  "botDifficultyHard": "Тяжёлый",
+  "@botDifficultyHard": {
+    "description": "Название сильного уровня бота."
+  },
+  "botDifficultyHardHint": "Бережёт сильные карты и тратит слабые первыми; колода из сильных карт.",
+  "@botDifficultyHardHint": {
+    "description": "Описание тяжёлого уровня бота."
+  },
+  "botDifficultyDeathMatch": "НА СМЕРТЬ!",
+  "@botDifficultyDeathMatch": {
+    "description": "Название самого сильного уровня бота."
+  },
+  "botDifficultyDeathMatchHint": "Не тратит ни одной лишней карты и собирает лучшую колоду фракции. Пощады не будет.",
+  "@botDifficultyDeathMatchHint": {
+    "description": "Описание самого сильного уровня бота."
+  },
   "setupStep": "Шаг {step} из {total}",
   "@setupStep": {
     "description": "Надпись над заголовком шага выбора фракции и лидера.",

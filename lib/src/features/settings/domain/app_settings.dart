@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/settings/domain/animation_speed.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:meta/meta.dart';
 
 /// Настройки игрока.
@@ -17,6 +18,7 @@ final class AppSettings {
     this.musicVolume = defaultMusicVolume,
     this.effectsVolume = defaultEffectsVolume,
     this.contentCheckedAt,
+    this.botDifficulty = BotDifficulty.normal,
   }) : assert(musicVolume >= 0 && musicVolume <= maxVolume, 'громкость музыки от 0 до $maxVolume'),
        assert(effectsVolume >= 0 && effectsVolume <= maxVolume, 'громкость эффектов от 0 до $maxVolume');
 
@@ -50,6 +52,9 @@ final class AppSettings {
   /// Когда игрок в последний раз проверял обновление набора карт (UTC). `null`, пока не проверял.
   final DateTime? contentCheckedAt;
 
+  /// Уровень сложности бота, выбранный в прошлый раз: в следующей партии против бота он выбран заранее.
+  final BotDifficulty botDifficulty;
+
   /// Копия с другим именем игрока; `null` стирает имя.
   AppSettings withPlayerName(String? playerName) => AppSettings(
     playerName: playerName,
@@ -59,6 +64,7 @@ final class AppSettings {
     musicVolume: musicVolume,
     effectsVolume: effectsVolume,
     contentCheckedAt: contentCheckedAt,
+    botDifficulty: botDifficulty,
   );
 
   /// Копия с другими значениями; не названные поля остаются прежними. Имя игрока меняет [withPlayerName].
@@ -69,6 +75,7 @@ final class AppSettings {
     int? musicVolume,
     int? effectsVolume,
     DateTime? contentCheckedAt,
+    BotDifficulty? botDifficulty,
   }) => AppSettings(
     playerName: playerName,
     confirmPass: confirmPass ?? this.confirmPass,
@@ -77,6 +84,7 @@ final class AppSettings {
     musicVolume: musicVolume ?? this.musicVolume,
     effectsVolume: effectsVolume ?? this.effectsVolume,
     contentCheckedAt: contentCheckedAt ?? this.contentCheckedAt,
+    botDifficulty: botDifficulty ?? this.botDifficulty,
   );
 
   @override
@@ -88,14 +96,24 @@ final class AppSettings {
       other.hints == hints &&
       other.musicVolume == musicVolume &&
       other.effectsVolume == effectsVolume &&
-      other.contentCheckedAt == contentCheckedAt;
+      other.contentCheckedAt == contentCheckedAt &&
+      other.botDifficulty == botDifficulty;
 
   @override
-  int get hashCode =>
-      Object.hash(playerName, confirmPass, animationSpeed, hints, musicVolume, effectsVolume, contentCheckedAt);
+  int get hashCode => Object.hash(
+    playerName,
+    confirmPass,
+    animationSpeed,
+    hints,
+    musicVolume,
+    effectsVolume,
+    contentCheckedAt,
+    botDifficulty,
+  );
 
   @override
   String toString() =>
       'AppSettings(playerName: $playerName, confirmPass: $confirmPass, animationSpeed: $animationSpeed, '
-      'hints: $hints, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt)';
+      'hints: $hints, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt, '
+      'botDifficulty: $botDifficulty)';
 }

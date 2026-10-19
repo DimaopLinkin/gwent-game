@@ -8,6 +8,7 @@ import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_content/gwent_content.dart' show InMemoryContentSource;
 import 'package:gwent_engine/gwent_engine.dart' hide Deck;
 
@@ -55,6 +56,44 @@ void main() {
       Seat.one: (await decks.findById('skellige'))!.name,
       Seat.two: (await decks.findById('monsters'))!.name,
     });
+  });
+
+  test('колода бота берётся из запроса, а не из хранилища', () async {
+    final bot = realDeck(content, Faction.nilfgaard, id: 'bot-opponent');
+    final session = await started(
+      LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: bot.id, opponentDeck: bot),
+    );
+
+    expect(await decks.findById(bot.id), isNull);
+    expect(session.factionIds[Seat.two], bot.factionId);
+    expect(session.deckNames[Seat.two], bot.name);
+  });
+
+  test('бот получает уровень сложности из запроса и свой сид', () async {
+    final asked = <(BotDifficulty, int)>[];
+    final start = StartMatch(
+      load,
+      decks,
+      FixedSeedGenerator(10),
+      botThinkTime: Duration.zero,
+      createBot: (engine, catalog, difficulty, seed) {
+        asked.add((difficulty, seed));
+        return plainGreedyBot(engine, catalog, difficulty, seed);
+      },
+    );
+
+    final result = await start(
+      const LocalMatchRequest(
+        mode: LocalMatchMode.vsBot,
+        deckOne: 'skellige',
+        deckTwo: 'monsters',
+        difficulty: BotDifficulty.deathMatch,
+      ),
+    );
+
+    expect(result, isA<MatchStarted>());
+    addTearDown((result as MatchStarted).session.table.close);
+    expect(asked, [(BotDifficulty.deathMatch, 11)], reason: 'сид партии 10, сид бота следующий');
   });
 
   test('hot-seat: оба места здешние', () async {

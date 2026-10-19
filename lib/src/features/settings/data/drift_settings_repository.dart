@@ -2,11 +2,12 @@ import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
+import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 
 /// Настройки в таблице «ключ — значение» базы Drift.
 ///
 /// Ключи и форматы значений ниже хранятся в базе: переименование ключа требует миграции. Булевы значения хранятся как
-/// `true`/`false`, перечисления по имени, громкость целым, момент проверки набора как ISO 8601 в UTC. Нечитаемое
+/// `true`/`false`, перечисления (скорость анимаций, сложность бота) по имени, громкость целым, момент проверки набора как ISO 8601 в UTC. Нечитаемое
 /// значение читается как значение по умолчанию.
 final class DriftSettingsRepository implements SettingsRepository {
   /// Создаёт репозиторий над [database].
@@ -19,6 +20,7 @@ final class DriftSettingsRepository implements SettingsRepository {
   static const String _musicVolumeKey = 'music_volume';
   static const String _effectsVolumeKey = 'effects_volume';
   static const String _contentCheckedAtKey = 'content_checked_at';
+  static const String _botDifficultyKey = 'bot_difficulty';
 
   final AppDatabase _db;
 
@@ -35,6 +37,7 @@ final class DriftSettingsRepository implements SettingsRepository {
     await _put(_musicVolumeKey, _differs(settings.musicVolume, defaults.musicVolume));
     await _put(_effectsVolumeKey, _differs(settings.effectsVolume, defaults.effectsVolume));
     await _put(_contentCheckedAtKey, settings.contentCheckedAt?.toUtc().toIso8601String());
+    await _put(_botDifficultyKey, _differs(settings.botDifficulty, defaults.botDifficulty)?.name);
   });
 
   /// Значение в виде, пригодном для записи, или `null`, если оно равно значению по умолчанию и ключ не нужен.
@@ -61,6 +64,7 @@ final class DriftSettingsRepository implements SettingsRepository {
       musicVolume: _volume(values[_musicVolumeKey]) ?? defaults.musicVolume,
       effectsVolume: _volume(values[_effectsVolumeKey]) ?? defaults.effectsVolume,
       contentCheckedAt: DateTime.tryParse(values[_contentCheckedAtKey] ?? '')?.toUtc(),
+      botDifficulty: BotDifficulty.values.asNameMap()[values[_botDifficultyKey]] ?? defaults.botDifficulty,
     );
   }
 
