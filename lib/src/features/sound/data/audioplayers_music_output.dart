@@ -75,6 +75,14 @@ final class AudioplayersMusicOutput implements MusicOutput {
     await configureGameAudioContext().timeout(commandTimeout);
     final player = AudioPlayer()..positionUpdater = null;
     player.onPlayerComplete.listen((_) => _ended.add(null));
+    try {
+      // Режим по умолчанию (release) после конца композиции ещё освобождает ресурсы на платформе, и это может
+      // случиться уже после запуска следующей композиции. В режиме stop доигравший проигрыватель просто стоит.
+      await player.setReleaseMode(ReleaseMode.stop).timeout(commandTimeout);
+    } on Object {
+      unawaited(player.dispose().then<void>((_) {}, onError: (Object _) {}));
+      rethrow;
+    }
     return player;
   }
 

@@ -57,6 +57,36 @@ void main() {
     expect(output.played.single.volume, 1);
   });
 
+  test('в фоне звуки не играют, а после возврата включаются не сразу', () async {
+    final delayed = PlaySound(output, WatchSettings(settings), resumeDelay: const Duration(milliseconds: 30));
+    addTearDown(delayed.dispose);
+    delayed.suspend();
+    delayed(SoundEffect.select);
+    expect(output.played, isEmpty);
+    delayed.resume();
+    delayed(SoundEffect.select);
+    expect(
+      output.played,
+      isEmpty,
+      reason: 'таймеры, накопившиеся за блокировку, отрабатывают сразу после разблокировки',
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    delayed(SoundEffect.select);
+    expect(output.played, hasLength(1));
+  });
+
+  test('повторный уход в фон во время задержки возврата снова глушит звук', () async {
+    final delayed = PlaySound(output, WatchSettings(settings), resumeDelay: const Duration(milliseconds: 30));
+    addTearDown(delayed.dispose);
+    delayed
+      ..suspend()
+      ..resume()
+      ..suspend();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    delayed(SoundEffect.select);
+    expect(output.played, isEmpty);
+  });
+
   test('подготовка уходит в вывод', () async {
     await sound.preload();
     expect(output.preloads, 1);
