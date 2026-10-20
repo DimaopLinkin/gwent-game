@@ -101,6 +101,28 @@ void main() {
       expect(online.hostRooms.calls.where((call) => call == 'create'), hasLength(1));
     });
 
+    test('назад и новая комната, пока первая ещё создаётся: старая игра не закрывает новую', () async {
+      final gate = Completer<void>();
+      online.hostRooms.createGate = gate;
+      final first = cubit();
+      await online.scheduler.flush();
+      await first.close();
+
+      online.hostRooms.createGate = null;
+      final second = cubit();
+      addTearDown(second.close);
+      await second.stream.firstWhere((state) => state is CreateGameCreated);
+      final current = online.hostActive.current;
+      expect(current, isNotNull);
+
+      gate.complete();
+      await online.scheduler.flush();
+      await online.scheduler.flush();
+
+      expect(online.hostActive.current, same(current), reason: 'новая комната осталась');
+      expect(current!.isClosed, isFalse);
+    });
+
     test('экран закрыт, пока комната создавалась: комната закрывается на сервере', () async {
       final gate = Completer<void>();
       online.hostRooms.createGate = gate;
@@ -255,15 +277,19 @@ void main() {
     });
 
     test('экран закрыт во время входа: гость не остаётся в игре', () async {
-      await openRoom();
+      final host = await openRoom();
       final code = (await online.codeOf(online.hostActive)).code.value;
       final join = cubit();
 
       final joining = join.join(code);
       await join.close();
       await online.elapseUntil(joining);
+      await online.settle();
 
       expect(online.guestActive.current, isNull);
+      // Гость ушёл из лобби, а не оборвал связь: хост сразу свободен, запрос погас.
+      expect(host.room.pendingGuest, isNull);
+      expect(host.room.opponent, isNull);
     });
   });
 

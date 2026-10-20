@@ -30,7 +30,7 @@ class _OnlineRoomWaitingState extends State<OnlineRoomWaiting> {
   static const Duration _copiedFor = Duration(seconds: 2);
 
   Timer? _reset;
-  bool _copied = false;
+  RoomCode? _copiedCode;
 
   @override
   void dispose() {
@@ -41,10 +41,10 @@ class _OnlineRoomWaitingState extends State<OnlineRoomWaiting> {
   Future<void> _copy(RoomCode code) async {
     await Clipboard.setData(ClipboardData(text: code.formatted));
     if (!mounted) return;
-    setState(() => _copied = true);
+    setState(() => _copiedCode = code);
     _reset?.cancel();
     _reset = Timer(_copiedFor, () {
-      if (mounted) setState(() => _copied = false);
+      if (mounted) setState(() => _copiedCode = null);
     });
   }
 
@@ -100,7 +100,8 @@ class _OnlineRoomWaitingState extends State<OnlineRoomWaiting> {
           SizedBox(
             width: double.infinity,
             child: GwentButton(
-              label: _copied ? l10n.netOnlineCodeCopied : l10n.netOnlineCodeCopy,
+              // Подпись относится к скопированному коду: новый код ещё не скопирован.
+              label: code != null && code == _copiedCode ? l10n.netOnlineCodeCopied : l10n.netOnlineCodeCopy,
               fontSize: 21,
               onPressed: code == null ? null : () => unawaited(_copy(code)),
             ),

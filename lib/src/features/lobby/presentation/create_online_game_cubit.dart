@@ -46,7 +46,7 @@ final class CreateOnlineGameCubit extends Cubit<CreateGameState> {
     }
     if (isClosed) {
       // Игрок ушёл с экрана, пока комната создавалась: она никому не нужна, и закрыться она должна на сервере.
-      if (result case NetworkGameOpened(:final game)) await game.close();
+      if (result case NetworkGameOpened(:final game)) await game.leave();
       return;
     }
     emit(switch (result) {

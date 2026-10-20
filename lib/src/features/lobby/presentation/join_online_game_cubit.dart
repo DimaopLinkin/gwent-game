@@ -40,8 +40,8 @@ final class JoinOnlineGameCubit extends Cubit<JoinOnlineGameState> {
       return;
     }
     if (isClosed) {
-      // Игрок ушёл с экрана, пока входил: место в комнате не держим.
-      if (result case NetworkGameOpened(:final game)) await game.close();
+      // Игрок ушёл с экрана, пока входил: уходит и из лобби, чтобы хост сразу освободил место, а не ждал возвращения.
+      if (result case NetworkGameOpened(:final game)) await game.leave();
       return;
     }
     emit(switch (result) {

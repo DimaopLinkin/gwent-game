@@ -207,6 +207,7 @@ void main() {
       await settle(tester);
       expect(find.text(l10n.netNoticeTooManyRoomsTitle), findsOneWidget);
 
+      expect(find.text(l10n.netNoticeRetry), findsNothing, reason: 'лимит часовой: повтор бесполезен');
       await tester.tap(find.text(l10n.netNoticeBack));
       expect(backs, 1);
     });
@@ -326,13 +327,23 @@ void main() {
       expect(online.guestRooms.calls, isEmpty);
     });
 
-    testWidgets('слишком много неверных кодов: сообщение про лимит', (tester) async {
+    testWidgets('«Войти» неактивна после «комнаты нет», пока код не исправлен; восемь неверных: лимит попыток', (
+      tester,
+    ) async {
       await openRoom(tester);
       await pumpJoin(tester);
+
       await tester.enterText(find.byType(TextField), 'ZZZZZZ');
       await tester.pump();
+      await tester.tap(find.text(l10n.netOnlineJoin));
+      await settle(tester, rounds: 3);
+      expect(find.text(l10n.netNoticeCodeNotFoundTitle), findsOneWidget);
+      expect(buttonLabelled(tester, l10n.netOnlineJoin).onPressed, isNull, reason: 'тот же код не повторяют');
+      expect(online.guestRooms.calls, hasLength(1));
 
-      for (var i = 0; i < 9; i++) {
+      for (var i = 0; i < 8; i++) {
+        await tester.enterText(find.byType(TextField), i.isEven ? 'YYYYYY' : 'ZZZZZZ');
+        await tester.pump();
         await tester.tap(find.text(l10n.netOnlineJoin));
         await settle(tester, rounds: 3);
       }

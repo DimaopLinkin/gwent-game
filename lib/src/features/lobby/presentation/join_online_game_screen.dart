@@ -9,6 +9,8 @@ import 'package:gwent/src/core/presentation/components/screen_backdrop.dart';
 import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
+import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/room_code.dart';
 import 'package:gwent/src/features/lobby/presentation/join_online_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/join_online_game_state.dart';
@@ -79,6 +81,11 @@ class _FormState extends State<_Form> {
     final form = state is JoinOnlineGameForm ? state : null;
     final problem = form != null && form.badCode ? l10n.netOnlineBadCode : null;
     final failure = form?.failure;
+    final retryPointless = switch (failure) {
+      NetworkRoomRefused(failure: LobbyFailure.codeNotFound) => true,
+      _ => false,
+    };
+    final canSubmit = !busy && !retryPointless && _controller.text.length >= RoomCode.length;
     final notice = failure == null ? null : noticeOfResult(l10n, failure, link: NoticeLink.onlineGuest);
     const noteStyle = TextStyle(fontFamily: GwentText.alegreya, fontSize: 14, height: 1.3, color: Color(0xFF8A7D64));
     OutlineInputBorder border(Color color, [double width = 1]) => OutlineInputBorder(
@@ -117,34 +124,39 @@ class _FormState extends State<_Form> {
                 Semantics(
                   label: l10n.netOnlineCodeLabel,
                   textField: true,
-                  child: TextField(
-                    controller: _controller,
-                    enabled: !busy,
-                    autofocus: true,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textAlign: TextAlign.center,
-                    textCapitalization: TextCapitalization.characters,
-                    textInputAction: TextInputAction.go,
-                    inputFormatters: [_CodeFormatter()],
-                    onChanged: (_) {
-                      setState(() {});
-                      context.read<JoinOnlineGameCubit>().edited();
-                    },
-                    onSubmitted: (_) => _submit(),
-                    style: codeStyle,
-                    cursorColor: GwentColors.gold,
-                    decoration: InputDecoration(
-                      hintText: l10n.netOnlineCodeHint,
-                      hintStyle: codeStyle.copyWith(color: GwentColors.muted),
-                      filled: true,
-                      fillColor: const Color(0xFF0B0907),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                      enabledBorder: border(
-                        problem != null || notice != null ? GwentColors.errorText : GwentColors.muted,
+                  // Шесть знаков с разрядкой должны умещаться и при крупном шрифте системы.
+                  child: MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.2,
+                    child: TextField(
+                      controller: _controller,
+                      readOnly: busy,
+                      autofocus: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      textAlign: TextAlign.center,
+                      textCapitalization: TextCapitalization.characters,
+                      textInputAction: TextInputAction.go,
+                      inputFormatters: [_CodeFormatter()],
+                      onChanged: (_) {
+                        setState(() {});
+                        context.read<JoinOnlineGameCubit>().edited();
+                      },
+                      onSubmitted: (_) {
+                        if (canSubmit) _submit();
+                      },
+                      style: codeStyle,
+                      cursorColor: GwentColors.gold,
+                      decoration: InputDecoration(
+                        hintText: l10n.netOnlineCodeHint,
+                        hintStyle: codeStyle.copyWith(color: GwentColors.muted),
+                        filled: true,
+                        fillColor: const Color(0xFF0B0907),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        enabledBorder: border(
+                          problem != null || notice != null ? GwentColors.errorText : GwentColors.muted,
+                        ),
+                        focusedBorder: border(GwentColors.gold, 1.5),
                       ),
-                      disabledBorder: border(GwentColors.panelLine),
-                      focusedBorder: border(GwentColors.gold, 1.5),
                     ),
                   ),
                 ),
@@ -161,7 +173,8 @@ class _FormState extends State<_Form> {
             width: double.infinity,
             child: GwentButton(
               label: busy ? l10n.netOnlineJoining : l10n.netOnlineJoin,
-              onPressed: busy || _controller.text.length < RoomCode.length ? null : _submit,
+              // Тот же код после «комнаты нет» не повторяют: каждая такая попытка тратит лимит (ADR 0025).
+              onPressed: canSubmit ? _submit : null,
             ),
           ),
         ),

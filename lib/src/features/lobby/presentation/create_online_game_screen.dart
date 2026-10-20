@@ -9,6 +9,7 @@ import 'package:gwent/src/core/presentation/components/screen_backdrop.dart';
 import 'package:gwent/src/core/presentation/components/screen_header.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_state.dart';
 import 'package:gwent/src/features/lobby/presentation/create_online_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/network_notice.dart';
@@ -60,16 +61,22 @@ class _Failed extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final notice = noticeOfResult(l10n, result, link: NoticeLink.onlineHost);
+    final retryPointless = switch (result) {
+      NetworkRoomRefused(failure: LobbyFailure.tooManyRooms) => true,
+      _ => false,
+    };
     return NetworkNotice(
       title: notice.title,
       text: notice.text,
       icon: GwentIcon.iconGlobe,
       actions: [
-        (
-          label: l10n.netNoticeRetry,
-          style: GwentButtonStyle.primary,
-          onPressed: () => unawaited(context.read<CreateOnlineGameCubit>().create()),
-        ),
+        // Лимит комнат часовой: повтор тут же получил бы тот же отказ.
+        if (!retryPointless)
+          (
+            label: l10n.netNoticeRetry,
+            style: GwentButtonStyle.primary,
+            onPressed: () => unawaited(context.read<CreateOnlineGameCubit>().create()),
+          ),
         (label: l10n.netNoticeBack, style: GwentButtonStyle.secondary, onPressed: onBack),
       ],
     );
