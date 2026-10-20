@@ -3,6 +3,7 @@ import 'package:gwent/src/core/database/app_database.steps.dart';
 import 'package:gwent/src/core/database/tables/decks_table.dart';
 import 'package:gwent/src/core/database/tables/match_records_table.dart';
 import 'package:gwent/src/core/database/tables/settings_table.dart';
+import 'package:meta/meta.dart';
 
 part 'app_database.g.dart';
 
@@ -19,15 +20,27 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 2;
 
+  /// Шаги обновления по версиям. Отдельно от [migration], чтобы тест мог подставить сбойный шаг.
+  @visibleForTesting
+  OnUpgrade get upgradeSteps => stepByStep(
+    // Версия 2: активная колода фракции.
+    from1To2: (m, schema) => m.createTable(schema.activeDecks),
+  );
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) => m.createAll(),
-    onUpgrade: stepByStep(
-      // Версия 2: активная колода фракции.
-      from1To2: (m, schema) => m.createTable(schema.activeDecks),
-    ),
+    // Создание и обновление идут одной транзакцией: сбой посреди шага не оставляет базу на полпути
+    // и не сдвигает версию, а следующая сборка с исправленным шагом открывает прежние данные (ADR 0024).
+    onCreate: (m) => transaction(m.createAll),
+    onUpgrade: (m, from, to) => transaction(() async {
+      await upgradeSteps(m, from, to);
+      // Версию пишем в той же транзакции (в SQLite она транзакционна): иначе обрыв процесса между коммитом
+      // и записью версии повторил бы уже выполненные шаги.
+      await customStatement('PRAGMA user_version = $to');
+    }),
     beforeOpen: (details) async {
       // SQLite по умолчанию не проверяет внешние ключи, а каскадное удаление карт колоды на них держится.
+      // Включается после миграции: внутри транзакции этот PRAGMA не действует.
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
