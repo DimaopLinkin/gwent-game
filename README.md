@@ -33,6 +33,7 @@
 | `tools/app_icon` | исходники иконки приложения и скрипт растеризации |
 | `tools/audio` | скрипты перевода звуков и музыки в AAC, откуда файлы и под какой лицензией ([ADR 0023](docs/adr/0023-sound-and-music.md)) |
 | `tools/scripts/setup.sh` | подготовка: зависимости и кодогенерация |
+| `supabase` | серверная часть игры через интернет: миграции Supabase и тесты политик ([ADR 0025](docs/adr/0025-online-play-supabase-backend.md), [supabase/README.md](supabase/README.md)) |
 | `docs/hand` | данные карт и правила игры |
 | `docs/adr`, `docs/spec` | архитектурные решения и требования к фичам |
 | `drift_schemas/` | схемы базы пользовательских данных всех версий для миграций |

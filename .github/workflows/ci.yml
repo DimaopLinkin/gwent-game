@@ -76,3 +76,33 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze --fatal-infos
       - run: flutter test
+
+  supabase:
+    name: supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      # Нужна история: миграции Supabase, уже попавшие в базовую ветку, не меняются (ADR 0025).
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - if: github.event_name == 'pull_request'
+        run: tools/scripts/check_schemas_immutable.sh origin/${{ github.base_ref }} supabase/migrations/
+      # Миграции и политики на обычном PostgreSQL с имитацией ролей, auth и realtime; в облако CI не ходит.
+      - run: tools/scripts/test_supabase.sh

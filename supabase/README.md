@@ -1,0 +1,43 @@
+# Supabase: игра через интернет
+
+Серверная часть игры через интернет ([ADR 0025](../docs/adr/0025-online-play-supabase-backend.md)): таблица комнат, функции создания комнаты и входа по коду, доступ к приватному каналу Realtime. Секретов здесь нет и быть не должно: репозиторий открыт, а адрес проекта и publishable-ключ публичны по замыслу Supabase. Секретный ключ и пароль базы никому не передаются и в репозиторий не попадают.
+
+## Что лежит в папке
+
+| Путь | Что |
+|---|---|
+| `migrations/` | SQL-миграции, применяются по порядку имён. После слияния в `dev` не редактируются (проверяет CI), ошибку исправляет следующий файл |
+| `tests/` | тесты политик и функций на обычном PostgreSQL: `bootstrap.sql` имитирует Supabase, `rooms_test.sql` проверяет |
+| `config.toml` | настройки локального стека Supabase CLI |
+
+## Проверка без облака
+
+Нужен `psql` и сервер PostgreSQL 15+ под суперпользователем (подключение берётся из `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`). Скрипт сам создаёт и удаляет базу `gwent_supabase_test`:
+
+```sh
+tools/scripts/test_supabase.sh
+```
+
+CI запускает тот же скрипт (задача `supabase`).
+
+## Как применить к проекту (один раз, делает владелец проекта)
+
+1. Поставить Supabase CLI: `brew install supabase/tap/supabase` (macOS).
+2. Войти и привязать проект: `supabase login`, затем из корня репозитория `supabase link --project-ref dduuljprudykffghxytl`. CLI спросит пароль базы, который задан при создании проекта; он остаётся только на вашем компьютере.
+3. Применить миграции: `supabase db push` (покажет список и спросит подтверждение).
+   Без CLI можно открыть SQL Editor в дашборде и выполнить три файла из `migrations/` по порядку имён.
+4. В дашборде: Authentication → Sign In / Providers → включить **Anonymous sign-ins**. Без этого приложение не сможет войти.
+5. В дашборде: Realtime → Settings → выключить **Allow public access** (если пункт есть): тогда каналы только приватные, с проверкой политик.
+6. Проверить в SQL Editor: запрос
+   ```sql
+   select (select count(*) from pg_policies where schemaname = 'realtime' and policyname like 'gwent:%') as policies,
+          (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname in
+             ('create_room','join_room','set_room_open','kick_guest','leave_room','close_room')) as functions;
+   ```
+   должен вернуть `policies = 2`, `functions = 6`.
+
+Новые миграции применяются так же: `supabase db push`.
+
+## Лимиты и ключи
+
+Что ограничивают функции, что можно включить в дашборде (лимит анонимных входов, CAPTCHA) и как сменить ключ, описано в ADR 0025, раздел «Что включает и меняет пользователь в дашборде».
