@@ -32,7 +32,12 @@ class AppDatabase extends _$AppDatabase {
     // Создание и обновление идут одной транзакцией: сбой посреди шага не оставляет базу на полпути
     // и не сдвигает версию, а следующая сборка с исправленным шагом открывает прежние данные (ADR 0024).
     onCreate: (m) => transaction(m.createAll),
-    onUpgrade: (m, from, to) => transaction(() => upgradeSteps(m, from, to)),
+    onUpgrade: (m, from, to) => transaction(() async {
+      await upgradeSteps(m, from, to);
+      // Версию пишем в той же транзакции (в SQLite она транзакционна): иначе обрыв процесса между коммитом
+      // и записью версии повторил бы уже выполненные шаги.
+      await customStatement('PRAGMA user_version = $to');
+    }),
     beforeOpen: (details) async {
       // SQLite по умолчанию не проверяет внешние ключи, а каскадное удаление карт колоды на них держится.
       // Включается после миграции: внутри транзакции этот PRAGMA не действует.

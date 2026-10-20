@@ -59,6 +59,7 @@ void main() {
     expect((record.id, record.opponentName, record.roundsWon, record.roundsLost), ('m1', 'Геральт', 2, 1));
     expect(record.finishedAt.toUtc(), DateTime.utc(2026, 10, 11, 13));
     expect(await db.select(db.activeDecks).get(), isEmpty);
+    expect(schema.rawDatabase.select('PRAGMA user_version').single['user_version'], db.schemaVersion);
   });
 
   test('сбой шага откатывает всё обновление и не двигает версию', () async {
@@ -75,6 +76,13 @@ void main() {
     expect(schema.rawDatabase.select("SELECT name FROM sqlite_master WHERE name = 'active_decks'"), isEmpty);
     expect(schema.rawDatabase.select('PRAGMA user_version').single['user_version'], 1);
     expect(schema.rawDatabase.select('SELECT value FROM settings').single['value'], '40');
+
+    // Сборка с исправленным шагом открывает те же данные и доводит базу до текущей версии.
+    final fixed = AppDatabase(schema.newConnection());
+    addTearDown(fixed.close);
+    expect((await fixed.select(fixed.settings).getSingle()).value, '40');
+    expect(await fixed.select(fixed.activeDecks).get(), isEmpty);
+    expect(schema.rawDatabase.select('PRAGMA user_version').single['user_version'], fixed.schemaVersion);
   });
 }
 
