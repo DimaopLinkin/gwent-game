@@ -9,32 +9,60 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
-/// Выбор способа соединения для игры на двух телефонах (макет 9, экран 1a): Wi-Fi доступен, Bluetooth «скоро».
+/// Способ соединения двух телефонов, который игрок выбирает на экране «Играть вдвоём».
+enum PlayMethod {
+  /// Одна Wi-Fi сеть: партию ищут рядом.
+  wifi,
+
+  /// Через интернет: комната с кодом.
+  internet,
+}
+
+/// Выбор способа соединения для игры на двух телефонах (макет 9, экран 1a): Wi-Fi и интернет доступны, Bluetooth
+/// «скоро».
 ///
-/// Кнопки внизу ведут на экраны хоста и гостя.
-class PlayMethodScreen extends StatelessWidget {
-  /// Создаёт экран.
-  const PlayMethodScreen({super.key, required this.onCreate, required this.onFind, required this.onBack});
+/// Кнопки внизу зависят от выбранного способа: в Wi-Fi создают партию и ищут её рядом, через интернет создают комнату
+/// и вводят её код.
+class PlayMethodScreen extends StatefulWidget {
+  /// Создаёт экран. [initial] — способ, выбранный при открытии.
+  const PlayMethodScreen({
+    super.key,
+    required this.onCreate,
+    required this.onFind,
+    required this.onBack,
+    this.initial = PlayMethod.wifi,
+  });
 
-  /// Игрок хочет создать партию.
-  final VoidCallback onCreate;
+  /// Игрок хочет создать партию выбранным способом.
+  final ValueChanged<PlayMethod> onCreate;
 
-  /// Игрок хочет найти партию рядом.
-  final VoidCallback onFind;
+  /// Игрок хочет найти партию: рядом (Wi-Fi) или по коду (интернет).
+  final ValueChanged<PlayMethod> onFind;
 
   /// Игрок вернулся назад.
   final VoidCallback onBack;
 
+  /// Способ, выбранный при открытии.
+  final PlayMethod initial;
+
+  @override
+  State<PlayMethodScreen> createState() => _PlayMethodScreenState();
+}
+
+class _PlayMethodScreenState extends State<PlayMethodScreen> {
+  late PlayMethod _method = widget.initial;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final online = _method == PlayMethod.internet;
     return ScreenBackdrop(
       child: Column(
         children: [
-          ScreenHeader(title: l10n.netPlayTitle, titleSize: 32, onBack: onBack),
+          ScreenHeader(title: l10n.netPlayTitle, titleSize: 32, onBack: widget.onBack),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 spacing: 14,
@@ -53,6 +81,16 @@ class PlayMethodScreen extends StatelessWidget {
                     title: l10n.netMethodWifi,
                     note: l10n.netMethodWifiNote,
                     available: true,
+                    selected: _method == PlayMethod.wifi,
+                    onTap: () => setState(() => _method = PlayMethod.wifi),
+                  ),
+                  _MethodCard(
+                    icon: GwentIcon.iconGlobe,
+                    title: l10n.netMethodInternet,
+                    note: l10n.netMethodInternetNote,
+                    available: true,
+                    selected: online,
+                    onTap: () => setState(() => _method = PlayMethod.internet),
                   ),
                   _MethodCard(
                     icon: GwentIcon.iconBluetooth,
@@ -61,11 +99,26 @@ class PlayMethodScreen extends StatelessWidget {
                     available: false,
                     soon: l10n.netMethodSoon,
                   ),
-                  const Spacer(),
-                  GwentButton(label: l10n.netCreateGame, onPressed: onCreate),
-                  GwentButton(label: l10n.netFindGame, style: GwentButtonStyle.secondary, onPressed: onFind),
                 ],
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 14,
+              children: [
+                GwentButton(
+                  label: online ? l10n.netCreateRoom : l10n.netCreateGame,
+                  onPressed: () => widget.onCreate(_method),
+                ),
+                GwentButton(
+                  label: online ? l10n.netEnterCode : l10n.netFindGame,
+                  style: GwentButtonStyle.secondary,
+                  onPressed: () => widget.onFind(_method),
+                ),
+              ],
             ),
           ),
         ],
@@ -75,24 +128,39 @@ class PlayMethodScreen extends StatelessWidget {
 }
 
 class _MethodCard extends StatelessWidget {
-  const _MethodCard({required this.icon, required this.title, required this.note, required this.available, this.soon});
+  const _MethodCard({
+    required this.icon,
+    required this.title,
+    required this.note,
+    required this.available,
+    this.selected = false,
+    this.onTap,
+    this.soon,
+  });
 
   final GwentIcon icon;
   final String title;
   final String note;
   final bool available;
+
+  /// Способ выбран: золотая рамка. Недоступный способ не выбирается.
+  final bool selected;
+  final VoidCallback? onTap;
   final String? soon;
 
   @override
   Widget build(BuildContext context) {
     final soon = this.soon;
-    return Opacity(
+    final card = Opacity(
       opacity: available ? 1 : 0.55,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: GwentColors.rowSurface,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: available ? GwentColors.brass : GwentColors.panelLine, width: available ? 1.5 : 1),
+          border: Border.all(
+            color: selected ? GwentColors.goldHighlight : (available ? GwentColors.brass : GwentColors.panelLine),
+            width: selected ? 2 : (available ? 1.5 : 1),
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -102,7 +170,9 @@ class _MethodCard extends StatelessWidget {
               DecoratedBox(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: available ? GwentColors.brassHighlight : GwentColors.surfaceSunken,
+                  color: selected
+                      ? GwentColors.goldHighlight
+                      : (available ? GwentColors.brassHighlight : GwentColors.surfaceSunken),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -138,11 +208,48 @@ class _MethodCard extends StatelessWidget {
                 ),
               ),
               if (soon != null)
-                StatusTag(soon, background: GwentColors.surfaceSunken, color: GwentColors.textSecondary),
+                StatusTag(soon, background: GwentColors.surfaceSunken, color: GwentColors.textSecondary)
+              else
+                _Radio(selected: selected),
             ],
           ),
         ),
       ),
     );
+    if (!available) return card;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$title. $note',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: card),
+    );
   }
+}
+
+/// Кружок выбора справа в карточке способа: заполнен у выбранного.
+class _Radio extends StatelessWidget {
+  const _Radio({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border: Border.all(color: selected ? GwentColors.goldHighlight : GwentColors.muted, width: 1.5),
+    ),
+    child: SizedBox.square(
+      dimension: 20,
+      child: selected
+          ? const Padding(
+              padding: EdgeInsets.all(4),
+              child: DecoratedBox(
+                decoration: BoxDecoration(shape: BoxShape.circle, color: GwentColors.goldHighlight),
+              ),
+            )
+          : null,
+    ),
+  );
 }

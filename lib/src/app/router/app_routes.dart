@@ -18,8 +18,23 @@ abstract final class AppRoutes {
   /// Игра на двух телефонах: выбор способа соединения.
   static const String play = '/play';
 
+  /// Параметр пути `/play`: способ соединения, выбранный при открытии (`internet`); без него выбран Wi-Fi.
+  static const String playMethodParam = 'method';
+
+  /// Значение параметра способа соединения: через интернет.
+  static const String playMethodInternet = 'internet';
+
+  /// Игра на двух телефонах с выбранным способом «Через интернет»: туда возвращаются из онлайн-комнаты.
+  static const String playInternet = '$play?$playMethodParam=$playMethodInternet';
+
   /// Создание сетевой игры (хост).
   static const String playCreate = '$play/create';
+
+  /// Создание комнаты для игры через интернет (хост).
+  static const String playOnlineCreate = '$play/online/create';
+
+  /// Ввод кода комнаты для игры через интернет (гость).
+  static const String playOnlineJoin = '$play/online/join';
 
   /// Поиск сетевой игры рядом (гость).
   static const String playFind = '$play/find';

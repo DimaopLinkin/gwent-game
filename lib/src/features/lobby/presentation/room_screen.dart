@@ -17,6 +17,7 @@ import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_issue_text.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
 import 'package:gwent/src/features/lobby/presentation/network_notice.dart';
+import 'package:gwent/src/features/lobby/presentation/online_room_waiting.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/room_state.dart';
 import 'package:gwent/src/features/lobby/presentation/room_widgets.dart';
@@ -34,6 +35,7 @@ class RoomScreen extends StatelessWidget {
     super.key,
     required this.isHost,
     required this.title,
+    this.online = false,
     required this.onPickDeck,
     required this.onBuildDeck,
     required this.onShowQr,
@@ -46,6 +48,9 @@ class RoomScreen extends StatelessWidget {
 
   /// Название партии.
   final String title;
+
+  /// Партия идёт через интернет: у хоста вместо QR-кода код комнаты, тексты говорят про комнату и сервис.
+  final bool online;
 
   /// Открывает выбор сохранённой колоды; возвращает идентификатор выбранной или `null`.
   final Future<String?> Function(String? currentDeckId) onPickDeck;
@@ -68,7 +73,12 @@ class RoomScreen extends StatelessWidget {
     final confirmed = await showConfirmDialog(
       context,
       title: l10n.netLeaveTitle,
-      body: isHost ? l10n.netLeaveBodyHost : l10n.netLeaveBodyGuest,
+      body: switch ((isHost, online)) {
+        (true, false) => l10n.netLeaveBodyHost,
+        (false, false) => l10n.netLeaveBodyGuest,
+        (true, true) => l10n.netLeaveBodyHostOnline,
+        (false, true) => l10n.netLeaveBodyGuestOnline,
+      },
       confirmLabel: l10n.netLeaveConfirm,
     );
     // Пока диалог был открыт, мог кончиться отсчёт: партия уже идёт, и уходить из неё отсюда нельзя.
@@ -106,24 +116,32 @@ class RoomScreen extends StatelessWidget {
                 Column(
                   children: [
                     ScreenHeader(
-                      title: room.opponent == null && !room.started ? l10n.netCreateTitle : l10n.netRoomTitle,
+                      title: room.opponent == null && !room.started
+                          ? (online
+                                ? (isHost ? l10n.netOnlineCreateTitle : l10n.netOnlineJoinTitle)
+                                : l10n.netCreateTitle)
+                          : l10n.netRoomTitle,
                       subtitle: room.opponent == null
                           ? null
-                          : l10n.netRoomSubtitle(isHost ? title : _hostName(room, l10n)),
+                          : (online ? l10n.netRoomSubtitleOnline : l10n.netRoomSubtitle)(
+                              isHost ? title : _hostName(room, l10n),
+                            ),
                       titleSize: 32,
                       onBack: end != null ? onLeft : () => unawaited(_confirmLeave(context)),
                     ),
                     Expanded(
                       child: switch (end) {
-                        final end? => _Ended(end: end, onBack: onLeft),
+                        final end? => _Ended(end: end, link: _link, onBack: onLeft),
                         null when room.started => const GameLoader(),
                         null when room.opponent == null =>
                           isHost
-                              ? RoomWaiting(
-                                  title: title,
-                                  onShowQr: onShowQr,
-                                  onCancel: () => unawaited(_confirmLeave(context)),
-                                )
+                              ? (online
+                                    ? OnlineRoomWaiting(onCancel: () => unawaited(_confirmLeave(context)))
+                                    : RoomWaiting(
+                                        title: title,
+                                        onShowQr: onShowQr,
+                                        onCancel: () => unawaited(_confirmLeave(context)),
+                                      ))
                               : GameLoader(caption: room.admitted ? '' : l10n.netGuestWaiting),
                         null => _Lobby(
                           state: state,
@@ -154,6 +172,12 @@ class RoomScreen extends StatelessWidget {
     );
   }
 
+  NoticeLink get _link => switch ((online, isHost)) {
+    (false, _) => NoticeLink.wifi,
+    (true, true) => NoticeLink.onlineHost,
+    (true, false) => NoticeLink.onlineGuest,
+  };
+
   String _hostName(LobbyRoom room, AppLocalizations l10n) {
     final name = room.opponent?.name ?? '';
     return name.isEmpty ? l10n.netOpponentName : name;
@@ -161,15 +185,16 @@ class RoomScreen extends StatelessWidget {
 }
 
 class _Ended extends StatelessWidget {
-  const _Ended({required this.end, required this.onBack});
+  const _Ended({required this.end, required this.link, required this.onBack});
 
   final RoomEnd end;
+  final NoticeLink link;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final notice = noticeOfEnd(l10n, end);
+    final notice = noticeOfEnd(l10n, end, link: link);
     return NetworkNotice(
       title: notice.title,
       text: notice.text,
