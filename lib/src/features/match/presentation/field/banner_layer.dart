@@ -109,6 +109,8 @@ class MatchBannerStrip extends StatelessWidget {
         };
     final titleText = Text(
       title,
+      maxLines: 1,
+      softWrap: false,
       textAlign: TextAlign.center,
       textScaler: TextScaler.noScaling,
       style: TextStyle(
@@ -151,7 +153,10 @@ class MatchBannerStrip extends StatelessWidget {
                     spacing: 14,
                     children: [
                       if (round) _Diamond(color: titleColor, size: 8),
-                      Flexible(child: titleText),
+                      // Заголовок в одну строку: если не влезает в ширину экрана, сжимается, а не переносится по буквам.
+                      Flexible(
+                        child: FittedBox(fit: BoxFit.scaleDown, child: titleText),
+                      ),
                       if (round) _Diamond(color: titleColor, size: 8),
                     ],
                   ),
