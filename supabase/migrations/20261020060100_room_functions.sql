@@ -6,7 +6,7 @@
 -- клиента: нет входа (28000) и неверные параметры (22023).
 --
 -- Лимиты против злоупотреблений (репозиторий открыт, ключ публичный):
---   * у игрока одна живая комната-хост и одна живая комната-гость;
+--   * у хоста одна живая комната;
 --   * не больше 20 созданий комнаты в час;
 --   * не больше 8 неверных кодов за 10 минут;
 --   * комната без гостя живёт 30 минут, с гостем 6 часов.
@@ -56,7 +56,7 @@ $$;
 
 -- Комната для ответа клиенту. Для гостя в ответе то же, что для хоста: код он и так знает.
 create function private.room_json(p_room public.rooms) returns jsonb
-language sql immutable
+language sql stable
 set search_path = ''
 as $$
   select jsonb_build_object(
@@ -98,6 +98,7 @@ declare
   v_room public.rooms;
 begin
   if char_length(v_name) not between 1 and 64
+     or v_name ~ '[[:cntrl:]\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]'
      or p_protocol is null or p_protocol not between 1 and 32767
      or p_ruleset_id is null or char_length(p_ruleset_id) not between 1 and 64
      or p_ruleset_hash is null or char_length(p_ruleset_hash) not between 1 and 128
@@ -145,7 +146,9 @@ $$;
 -- Тот, кто уже гость этой комнаты, получает её снова (возвращение после обрыва) даже при open = false.
 -- Отказы: not_found (нет живой комнаты с таким кодом), own_room, full (место занято другим гостем),
 -- closed (хост не принимает гостей), too_many_attempts (8 неверных кодов за 10 минут).
--- Если игрок был гостем другой живой комнаты, он уходит из неё.
+-- Место гостя занято до конца жизни комнаты. Освободить его нельзя: хост закрывает комнату (close_room) и создаёт
+-- новую, с новым кодом и новым каналом. Так канал никогда не переходит от одного гостя к другому, а бывший гость,
+-- у которого соединение с каналом ещё живо, ничего не узнаёт про следующего.
 create function public.join_room(p_code text) returns jsonb
 language plpgsql
 security definer
@@ -183,9 +186,6 @@ begin
     return private.refuse('closed');
   end if;
 
-  update public.rooms set guest_uid = null, expires_at = now() + interval '30 minutes'
-   where guest_uid = v_uid and closed_at is null;
-
   update public.rooms set guest_uid = v_uid, expires_at = now() + interval '6 hours'
    where id = v_room.id
    returning * into v_room;
@@ -212,49 +212,6 @@ begin
     return private.refuse('not_found');
   end if;
   return jsonb_build_object('ok', true, 'room', private.room_json(v_room));
-end;
-$$;
-
--- Хост освобождает место гостя. Гость теряет доступ к каналу комнаты при следующей проверке Realtime
--- (вход в канал и обновление токена); хост разрывает его соединение протоколом сам. Отказ: not_found.
-create function public.kick_guest(p_room_id uuid) returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_uid uuid := private.require_user();
-  v_room public.rooms;
-begin
-  perform private.expire_rooms();
-  update public.rooms set guest_uid = null, expires_at = now() + interval '30 minutes'
-   where id = p_room_id and host_uid = v_uid and closed_at is null
-   returning * into v_room;
-  if not found then
-    return private.refuse('not_found');
-  end if;
-  return jsonb_build_object('ok', true, 'room', private.room_json(v_room));
-end;
-$$;
-
--- Гость уходит из комнаты. Отказ: not_found (он не гость живой комнаты).
-create function public.leave_room(p_room_id uuid) returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_uid uuid := private.require_user();
-  v_room public.rooms;
-begin
-  perform private.expire_rooms();
-  update public.rooms set guest_uid = null, expires_at = now() + interval '30 minutes'
-   where id = p_room_id and guest_uid = v_uid and closed_at is null
-   returning * into v_room;
-  if not found then
-    return private.refuse('not_found');
-  end if;
-  return jsonb_build_object('ok', true);
 end;
 $$;
 
@@ -286,13 +243,9 @@ revoke all on function private.refuse(text) from public, anon, authenticated;
 revoke all on function public.create_room(text, integer, text, text, integer) from public, anon, authenticated;
 revoke all on function public.join_room(text) from public, anon, authenticated;
 revoke all on function public.set_room_open(uuid, boolean) from public, anon, authenticated;
-revoke all on function public.kick_guest(uuid) from public, anon, authenticated;
-revoke all on function public.leave_room(uuid) from public, anon, authenticated;
 revoke all on function public.close_room(uuid) from public, anon, authenticated;
 
 grant execute on function public.create_room(text, integer, text, text, integer) to authenticated;
 grant execute on function public.join_room(text) to authenticated;
 grant execute on function public.set_room_open(uuid, boolean) to authenticated;
-grant execute on function public.kick_guest(uuid) to authenticated;
-grant execute on function public.leave_room(uuid) to authenticated;
 grant execute on function public.close_room(uuid) to authenticated;

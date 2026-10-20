@@ -114,8 +114,6 @@ begin
   perform t.throws('select public.create_room(''A'', 1, ''r'', ''h'', 1)', '42501', 'anon не вызывает create_room');
   perform t.throws('select public.join_room(''ABCDEF'')', '42501', 'anon не вызывает join_room');
   perform t.throws('select public.set_room_open(gen_random_uuid(), true)', '42501', 'anon не вызывает set_room_open');
-  perform t.throws('select public.kick_guest(gen_random_uuid())', '42501', 'anon не вызывает kick_guest');
-  perform t.throws('select public.leave_room(gen_random_uuid())', '42501', 'anon не вызывает leave_room');
   perform t.throws('select public.close_room(gen_random_uuid())', '42501', 'anon не вызывает close_room');
 
   perform t.login(v_host);
@@ -167,6 +165,8 @@ begin
   perform t.throws('select public.create_room(''A'', 0, ''r'', ''h'', 1)', '22023', 'версия протокола 0');
   perform t.throws('select public.create_room(''A'', 1, '''', ''h'', 1)', '22023', 'пустой id правил');
   perform t.throws('select public.create_room(''A'', 1, ''r'', repeat(''h'', 129), 1)', '22023', 'хеш правил слишком длинный');
+  perform t.throws('select public.create_room(E''A\u202eB'', 1, ''r'', ''h'', 1)', '22023', 'знак направления письма в имени');
+  perform t.throws('select public.create_room(E''A\nB'', 1, ''r'', ''h'', 1)', '22023', 'перевод строки в имени');
   perform t.throws('select public.create_room(''A'', 1, ''r'', ''h'', -1)', '22023', 'версия движка -1');
   perform t.ok(
     (select count(*) from public.rooms where closed_at is null) = 1, 'ошибочные вызовы комнат не создают');
@@ -364,33 +364,55 @@ end
 $$;
 rollback;
 
--- Гость уходит из прежней комнаты, когда входит в новую.
+-- Журнал неудач одного игрока не блокирует другого; пустой ввод не падает.
 begin;
 do $$
 declare
-  v_host_a uuid := t.new_user();
-  v_host_b uuid := t.new_user();
+  v_host uuid := t.new_user();
   v_guest uuid := t.new_user();
-  v_room_a jsonb;
-  v_room_b jsonb;
+  v_noisy uuid := t.new_user();
+  v_room jsonb;
 begin
-  perform t.login(v_host_a);
-  v_room_a := t.create_room('A');
-  perform t.login(v_host_b);
-  v_room_b := t.create_room('B');
+  perform t.login(v_host);
+  v_room := t.create_room();
+  perform t.login(v_noisy);
+  for i in 1..8 loop
+    perform public.join_room('BBBBB' || i);
+  end loop;
+  perform t.ok(public.join_room(v_room -> 'room' ->> 'code') ->> 'reason' = 'too_many_attempts', 'перебиравший заблокирован');
   perform t.login(v_guest);
-  perform public.join_room(v_room_a -> 'room' ->> 'code');
-  perform public.join_room(v_room_b -> 'room' ->> 'code');
-  perform t.ok(
-    t.admin_int('select count(*) from public.rooms where guest_uid = ''' || v_guest || '''') = 1 and
-    (select guest_uid from public.rooms where id = (v_room_b -> 'room' ->> 'id')::uuid) = v_guest,
-    'гость сидит только в новой комнате');
+  perform t.ok((public.join_room(v_room -> 'room' ->> 'code') ->> 'ok')::boolean, 'другой игрок входит');
+  perform t.ok(public.join_room(null) ->> 'reason' = 'not_found', 'join_room(null): not_found');
+  perform t.ok(public.join_room('') ->> 'reason' = 'not_found', 'join_room(''): not_found');
+  perform t.login(v_host);
+  perform t.ok(public.set_room_open((v_room -> 'room' ->> 'id')::uuid, null) -> 'room' ->> 'open' = 'false', 'set_room_open(null) закрывает приём');
+end
+$$;
+rollback;
+
+-- Повторный вход гостя не продлевает срок комнаты.
+begin;
+do $$
+declare
+  v_host uuid := t.new_user();
+  v_guest uuid := t.new_user();
+  v_room jsonb;
+  v_before timestamptz;
+begin
+  perform t.login(v_host);
+  v_room := t.create_room();
+  perform t.login(v_guest);
+  perform public.join_room(v_room -> 'room' ->> 'code');
+  perform t.admin('update public.rooms set expires_at = now() + interval ''1 hour''');
+  v_before := (select expires_at from public.rooms);
+  perform public.join_room(v_room -> 'room' ->> 'code');
+  perform t.ok((select expires_at from public.rooms) = v_before, 'возвращение гостя срок не продлевает');
 end
 $$;
 rollback;
 
 -- ---------------------------------------------------------------------------------------------------------------
--- set_room_open, kick_guest, leave_room, close_room
+-- set_room_open, close_room
 -- ---------------------------------------------------------------------------------------------------------------
 begin;
 do $$
@@ -401,7 +423,6 @@ declare
   v_room jsonb;
   v_id uuid;
   v_code text;
-  v_result jsonb;
 begin
   perform t.login(v_host);
   v_room := t.create_room();
@@ -414,38 +435,26 @@ begin
   for who in 1..2 loop
     perform t.login(case who when 1 then v_guest else v_stranger end);
     perform t.ok(public.set_room_open(v_id, false) ->> 'reason' = 'not_found', 'set_room_open: не хост, ' || who);
-    perform t.ok(public.kick_guest(v_id) ->> 'reason' = 'not_found', 'kick_guest: не хост, ' || who);
     perform t.ok(public.close_room(v_id) ->> 'reason' = 'not_found', 'close_room: не хост, ' || who);
   end loop;
-  perform t.login(v_stranger);
-  perform t.ok(public.leave_room(v_id) ->> 'reason' = 'not_found', 'leave_room: не гость');
-  perform t.login(v_host);
-  perform t.ok(public.leave_room(v_id) ->> 'reason' = 'not_found', 'leave_room: хост не гость');
   perform t.ok(t.admin_int('select count(*) from public.rooms where closed_at is null and open') = 1, 'чужие вызовы ничего не изменили');
 
-  -- Выгнать гостя
-  perform t.login(v_host);
-  perform t.ok((public.kick_guest(v_id) ->> 'ok')::boolean, 'хост выгоняет гостя');
-  perform t.ok(t.admin_int('select count(*) from public.rooms where guest_uid is not null') = 0, 'место свободно');
-  perform t.login(v_guest);
-  perform t.ok((select count(*) from public.rooms) = 0, 'выгнанный не видит комнату');
-  perform t.login(v_stranger);
-  perform t.ok((public.join_room(v_code) ->> 'ok')::boolean, 'на освободившееся место входит другой');
-
-  -- Гость уходит сам
-  perform t.ok((public.leave_room(v_id) ->> 'ok')::boolean, 'гость уходит');
-  perform t.login(v_guest);
-  perform t.ok((public.join_room(v_code) ->> 'ok')::boolean, 'и место снова свободно');
-  perform t.ok(
-    (select expires_at from public.rooms) > now() + interval '5 hours', 'с гостем срок снова 6 часов');
-
-  -- Закрыть комнату
+  -- Хост закрывает комнату; гость с неё уходит вместе со всем доступом
   perform t.login(v_host);
   perform t.ok((public.close_room(v_id) ->> 'ok')::boolean, 'хост закрывает комнату');
   perform t.ok(public.close_room(v_id) ->> 'reason' = 'not_found', 'повторное закрытие: not_found');
   perform t.ok(public.set_room_open(v_id, true) ->> 'reason' = 'not_found', 'закрытую нельзя открыть');
   perform t.login(v_guest);
-  perform t.ok(public.leave_room(v_id) ->> 'reason' = 'not_found', 'из закрытой не уйти: not_found');
+  perform t.ok(public.join_room(v_code) ->> 'reason' = 'not_found', 'в закрытую комнату гость не возвращается');
+  perform t.login(v_stranger);
+  perform t.ok(public.join_room(v_code) ->> 'reason' = 'not_found', 'и чужой не занимает её');
+
+  -- У хоста после закрытия новая комната с новым кодом и каналом
+  perform t.login(v_host);
+  v_room := t.create_room();
+  perform t.ok(v_room -> 'room' ->> 'id' <> v_id::text, 'новая комната — новый id');
+  perform t.login(v_stranger);
+  perform t.ok((public.join_room(v_room -> 'room' ->> 'code') ->> 'ok')::boolean, 'в новую комнату входит другой гость');
 end
 $$;
 rollback;
@@ -485,7 +494,7 @@ begin
   perform t.login(v_guest);
   perform public.join_room(v_room -> 'room' ->> 'code');
   perform t.admin('delete from auth.users where id = ''' || v_guest || '''');
-  perform t.ok(t.admin_int('select count(*) from public.rooms where guest_uid is null') = 1, 'удалённый гость освободил место');
+  perform t.ok(t.admin_int('select count(*) from public.rooms where guest_uid is null') = 1, 'удалённый гость не оставил ссылки на себя');
   perform t.admin('delete from auth.users where id = ''' || v_host || '''');
   perform t.ok(t.admin_int('select count(*) from public.rooms') = 0, 'комнаты удалённого хоста ушли');
 end
@@ -554,16 +563,12 @@ begin
 
   -- Выгнанный и закрытая комната теряют доступ.
   perform t.login(v_host);
-  perform public.kick_guest(v_id);
-  perform t.login(v_guest);
-  perform t.throws(v_send, '42501', 'выгнанный гость не пишет в канал');
-  perform t.ok((select count(*) from realtime.messages) = 0, 'выгнанный гость не читает канал');
-
-  perform t.login(v_host);
-  perform t.ok((select count(*) from realtime.messages) > 0, 'хост всё ещё в канале');
   perform public.close_room(v_id);
   perform t.throws(v_send, '42501', 'после закрытия хост не пишет в канал');
   perform t.ok((select count(*) from realtime.messages) = 0, 'после закрытия хост не читает канал');
+  perform t.login(v_guest);
+  perform t.throws(v_send, '42501', 'после закрытия гость не пишет в канал');
+  perform t.ok((select count(*) from realtime.messages) = 0, 'после закрытия гость не читает канал');
 end
 $$;
 rollback;

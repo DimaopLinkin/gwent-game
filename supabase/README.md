@@ -32,9 +32,9 @@ CI запускает тот же скрипт (задача `supabase`).
    ```sql
    select (select count(*) from pg_policies where schemaname = 'realtime' and policyname like 'gwent:%') as policies,
           (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname in
-             ('create_room','join_room','set_room_open','kick_guest','leave_room','close_room')) as functions;
+             ('create_room','join_room','set_room_open','close_room')) as functions;
    ```
-   должен вернуть `policies = 2`, `functions = 6`.
+   должен вернуть `policies = 2`, `functions = 4`.
 
 Новые миграции применяются так же: `supabase db push`.
 
