@@ -6,6 +6,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
 import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent_net/gwent_net.dart' show JoinRefusal;
@@ -19,8 +20,27 @@ NoticeText noticeOfResult(AppLocalizations l10n, NetworkOpenResult result) => sw
   NetworkUnavailable(:final problem?) => noticeOfProblem(l10n, problem),
   NetworkUnavailable() => (title: l10n.netNoticeUnavailableTitle, text: l10n.netNoticeUnavailableText),
   NetworkUnreachable() => (title: l10n.netNoticeFailTitle, text: l10n.netNoticeFailText),
+  NetworkRoomRefused(:final failure) => noticeOfRoomFailure(l10n, failure),
   NetworkContentUnavailable() => (title: l10n.menuContentFailed, text: ''),
   NetworkGameOpened() => (title: '', text: ''),
+};
+
+/// Что сказать игроку об отказе комнаты в игре через интернет. Остальные причины ([LobbyFailure.unavailable],
+/// [LobbyFailure.unreachable]) в такие итоги не попадают, но получают общий текст о неудачном подключении.
+NoticeText noticeOfRoomFailure(AppLocalizations l10n, LobbyFailure failure) => switch (failure) {
+  LobbyFailure.codeNotFound => (title: l10n.netNoticeCodeNotFoundTitle, text: l10n.netNoticeCodeNotFoundText),
+  LobbyFailure.roomFull => (title: l10n.netNoticeRoomFullTitle, text: l10n.netNoticeRoomFullText),
+  LobbyFailure.roomClosed => (title: l10n.netNoticeRoomClosedTitle, text: l10n.netNoticeRoomClosedText),
+  LobbyFailure.ownRoom => (title: l10n.netNoticeOwnRoomTitle, text: l10n.netNoticeOwnRoomText),
+  LobbyFailure.tooManyAttempts => (
+    title: l10n.netNoticeTooManyAttemptsTitle,
+    text: l10n.netNoticeTooManyAttemptsText,
+  ),
+  LobbyFailure.tooManyRooms => (title: l10n.netNoticeTooManyRoomsTitle, text: l10n.netNoticeTooManyRoomsText),
+  LobbyFailure.unavailable || LobbyFailure.unreachable => (
+    title: l10n.netNoticeFailTitle,
+    text: l10n.netNoticeFailText,
+  ),
 };
 
 /// Что сказать игроку о причине, из-за которой сеть не работает (макет 9, экраны 7c–7e).

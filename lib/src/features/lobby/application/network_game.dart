@@ -35,6 +35,7 @@ final class NetworkGame {
     GameAddress? address,
     this.reconnectWindow = const Duration(minutes: 2),
     this.retryInterval = const Duration(seconds: 2),
+    this.mode = MatchMode.wifi,
   }) : _client = client,
        _content = content,
        _scheduler = scheduler,
@@ -66,6 +67,9 @@ final class NetworkGame {
   /// Как часто гость повторяет попытку.
   final Duration retryInterval;
 
+  /// Каким способом идёт партия: записывается в историю.
+  final MatchMode mode;
+
   final MatchClient _client;
   final GameContent _content;
   final Scheduler _scheduler;
@@ -85,6 +89,10 @@ final class NetworkGame {
 
   /// Последнее запрошенное состояние объявления хоста (открыто или занято); `null`, пока не менялось.
   bool? _requestedOpen;
+
+  /// Хост пустил игрока, но о соперника в лобби ещё не объявлено: место занято. Без этого между «ожидающий снят»
+  /// и «соперник появился» объявление открылось бы снова, а через интернет хост пересоздал бы комнату.
+  bool _admitting = false;
   LobbyRoom _room = const LobbyRoom();
   PlayerView? _firstView;
   int? _deckRequest;
@@ -159,7 +167,10 @@ final class NetworkGame {
   /// Хост пускает игрока, который ждёт решения. Без ожидающего ничего не делает.
   void admitGuest() {
     if (_closed || _room.pendingGuest == null) return;
-    if (_host?.pendingGuestNow?.seat case final seat?) _host?.admit(seat);
+    if (_host?.pendingGuestNow?.seat case final seat?) {
+      _admitting = true;
+      _host?.admit(seat);
+    }
   }
 
   /// Хост не пускает игрока, который ждёт решения: тот получает отказ. Без ожидающего ничего не делает.
@@ -187,7 +198,7 @@ final class NetworkGame {
     _handedOver = true;
     final deckName = _deckName;
     return MatchSession(
-      mode: MatchMode.wifi,
+      mode: mode,
       table: NetworkMatchTable(
         seat: seat,
         updates: _table.stream,
@@ -398,6 +409,7 @@ final class NetworkGame {
   void _setRoom(LobbyRoom room) {
     if (_closed || room == _room) return;
     _room = room;
+    if (room.opponent != null) _admitting = false;
     if (!_rooms.isClosed) _rooms.add(room);
     _syncAdvertisement();
     if (_isSettled(room)) {
@@ -406,11 +418,12 @@ final class NetworkGame {
     }
   }
 
-  /// Объявление открыто, пока в партии есть свободное место.
+  /// Объявление открыто, пока в партии есть свободное место. Игрок, который ждёт решения хоста, место уже занял:
+  /// отказ ему снова открывает объявление (через интернет это значит, что хост создаёт комнату заново, ADR 0026).
   void _syncAdvertisement() {
     final hosted = _hosted;
     if (hosted == null) return;
-    final open = _room.opponent == null && !_room.started;
+    final open = _room.opponent == null && _room.pendingGuest == null && !_admitting && !_room.started;
     // Сравниваем с последним запрошенным, а не с объявленным: объявление обновляется после `await`, и быстрый вход
     // с выходом гостя иначе оставил бы партию «занятой» при пустой комнате.
     if ((_requestedOpen ?? hosted.ad.open) == open) return;

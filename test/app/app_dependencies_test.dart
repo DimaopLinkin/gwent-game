@@ -23,6 +23,7 @@ void main() {
       idGenerator: SequentialIdGenerator(),
       seedGenerator: FixedSeedGenerator(1),
       gameLobby: FakeGameLobby(),
+      onlineLobby: FakeGameLobby(),
       networkAccess: FakeNetworkAccess(),
       soundOutput: RecordingSoundOutput(),
       musicOutput: FakeMusicOutput(),
