@@ -79,6 +79,32 @@ void main() {
     expect(guest.room.opponent?.name, 'Цири');
   });
 
+  test('объявление закрыто, пока гость ждёт решения, и не открывается на пути между «принять» и соперником', () async {
+    final (host, _) = await knocked();
+    final hosted = lobby.hosted.values.single;
+    expect(hosted.ad.open, isFalse);
+    final before = hosted.advertiseCalls;
+
+    host.admitGuest();
+    await scheduler.flush();
+    await scheduler.flush();
+
+    expect(host.room.opponent?.name, 'Вереск');
+    expect(hosted.ad.open, isFalse);
+    expect(hosted.advertiseCalls, before);
+  });
+
+  test('отказ гостю снова открывает объявление', () async {
+    final (host, _) = await knocked();
+    final hosted = lobby.hosted.values.single;
+
+    host.declineGuest();
+    await scheduler.flush();
+    await scheduler.flush();
+
+    expect(hosted.ad.open, isTrue);
+  });
+
   test('«отклонить»: гость получает отказ хоста, у хоста никого нет', () async {
     final (host, guest) = await knocked();
     host.declineGuest();

@@ -12,10 +12,15 @@ import 'package:gwent/src/features/lobby/data/bonsoir_service_directory.dart';
 import 'package:gwent/src/features/lobby/data/device_network_access.dart';
 import 'package:gwent/src/features/lobby/data/game_ad_record.dart';
 import 'package:gwent/src/features/lobby/data/lan_lobby.dart';
+import 'package:gwent/src/features/lobby/data/online/drift_online_session_store.dart';
+import 'package:gwent/src/features/lobby/data/online/online_config.dart';
+import 'package:gwent/src/features/lobby/data/online/online_lobby.dart';
+import 'package:gwent/src/features/lobby/data/online/supabase_online_rooms.dart';
 import 'package:gwent/src/features/match_history/data/drift_match_history_repository.dart';
 import 'package:gwent/src/features/settings/data/drift_settings_repository.dart';
 import 'package:gwent/src/features/sound/data/audioplayers_music_output.dart';
 import 'package:gwent/src/features/sound/data/audioplayers_sound_output.dart';
+import 'package:gwent_net/gwent_net.dart' show SystemScheduler;
 
 /// Точка сборки: единственное место, где интерфейсы связываются с реализациями.
 ///
@@ -23,16 +28,27 @@ import 'package:gwent/src/features/sound/data/audioplayers_sound_output.dart';
 /// База живёт столько же, сколько процесс приложения, и не закрывается явно: процесс завершает ОС.
 AppDependencies createAppDependencies() {
   final database = AppDatabase(openAppDatabaseConnection());
+  const clock = SystemClock();
   return AppDependencies(
     contentSource: AssetContentSource.basePack(rootBundle),
     appInfo: const PackageAppInfo(),
     deckRepository: DriftDeckRepository(database),
     settingsRepository: DriftSettingsRepository(database),
     matchHistoryRepository: DriftMatchHistoryRepository(database),
-    clock: const SystemClock(),
+    clock: clock,
     idGenerator: const UuidIdGenerator(),
     seedGenerator: SecureSeedGenerator(),
     gameLobby: LanLobby(directory: const BonsoirServiceDirectory(type: GameAdRecord.serviceType)),
+    // Клиент Supabase создаётся при первом обращении к комнатам, поэтому сборка остаётся синхронной и лёгкой.
+    onlineLobby: OnlineLobby(
+      rooms: SupabaseOnlineRooms(
+        config: OnlineConfig.gwentMobile,
+        sessions: DriftOnlineSessionStore(database),
+        clock: clock,
+      ),
+      scheduler: const SystemScheduler(),
+      clock: clock,
+    ),
     networkAccess: DeviceNetworkAccess(),
     soundOutput: AudioplayersSoundOutput(),
     musicOutput: AudioplayersMusicOutput(),

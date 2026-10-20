@@ -47,6 +47,7 @@ final class HostInviteCubit extends Cubit<HostInviteState> {
   /// Адрес для людей: первый адрес хоста и порт, IPv6 в скобках.
   String _label(GameAddress address) => switch (address) {
     LanAddress(:final hosts, :final port) => '${hosts.first.contains(':') ? '[${hosts.first}]' : hosts.first}:$port',
+    OnlineAddress(:final code) => code.formatted,
   };
 
   @override

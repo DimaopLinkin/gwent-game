@@ -1,0 +1,9 @@
+# Настройки локального стека Supabase CLI (`supabase start`). К облачному проекту они не применяются:
+# там Anonymous sign-ins включаются в дашборде (см. supabase/README.md и ADR 0025).
+project_id = "gwent-game"
+
+[db]
+major_version = 17
+
+[auth]
+enable_anonymous_sign_ins = true

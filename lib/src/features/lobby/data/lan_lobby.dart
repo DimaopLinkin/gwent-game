@@ -83,6 +83,8 @@ final class LanLobby implements GameLobby {
   @override
   Future<Transport> join(GameAddress address) => switch (address) {
     LanAddress() => _connector.connect(address),
+    // Комната с кодом живёт на сервере, в локальной сети её нет.
+    OnlineAddress() => Future.error(const LobbyException(LobbyFailure.unreachable)),
   };
 
   /// IPv4-адреса сетевых интерфейсов без петли: в Wi-Fi сети гость доберётся до хоста по IPv4.

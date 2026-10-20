@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/lobby/application/network_game.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent_net/gwent_net.dart' show JoinRefusal;
 
@@ -44,4 +45,13 @@ final class NetworkRefused extends NetworkOpenResult {
 
   /// Причина отказа.
   final JoinRefusal reason;
+}
+
+/// Сервер комнат отказал по правилам игры через интернет: неверный код, место занято, слишком много попыток.
+final class NetworkRoomRefused extends NetworkOpenResult {
+  /// Создаёт итог. [failure] — одна из причин отказа комнаты, не `unavailable` и не `unreachable`.
+  const NetworkRoomRefused(this.failure);
+
+  /// Причина отказа.
+  final LobbyFailure failure;
 }

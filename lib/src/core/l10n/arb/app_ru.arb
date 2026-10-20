@@ -2085,7 +2085,7 @@
   "@netPlayTitle": {
     "description": "Заголовок экрана выбора способа соединения для игры на двух телефонах."
   },
-  "netPlayIntro": "Один телефон создаёт партию, второй находит её рядом. Выберите, как соединиться.",
+  "netPlayIntro": "Один телефон создаёт партию, второй подключается к ней. Выберите, как соединиться.",
   "@netPlayIntro": {
     "description": "Пояснение на экране выбора способа соединения."
   },
@@ -2352,7 +2352,7 @@
   "@netReconnectTitle": {
     "description": "Заголовок окна у гостя, пока он возвращается к хосту посреди сетевой партии."
   },
-  "netReconnectText": "Ищем хост в сети",
+  "netReconnectText": "Пробуем вернуться к хосту",
   "@netReconnectText": {
     "description": "Пояснение в окне обрыва у гостя."
   },
@@ -2408,6 +2408,54 @@
   "netNoticeDeclinedText": "Хост отклонил приглашение или не ответил вовремя. Можно попробовать снова.",
   "@netNoticeDeclinedText": {
     "description": "Пояснение: хост отказал гостю или не ответил."
+  },
+  "netNoticeCodeNotFoundTitle": "Комната не найдена",
+  "@netNoticeCodeNotFoundTitle": {
+    "description": "Заголовок: код комнаты не найден (игра через интернет)."
+  },
+  "netNoticeCodeNotFoundText": "Комнаты с таким кодом нет: проверьте код или попросите хозяина создать комнату заново.",
+  "@netNoticeCodeNotFoundText": {
+    "description": "Пояснение: код комнаты не найден (игра через интернет)."
+  },
+  "netNoticeRoomFullTitle": "В комнате уже есть игрок",
+  "@netNoticeRoomFullTitle": {
+    "description": "Заголовок: в комнате уже занято место гостя (игра через интернет)."
+  },
+  "netNoticeRoomFullText": "Попросите хозяина создать комнату заново: у неё будет новый код.",
+  "@netNoticeRoomFullText": {
+    "description": "Пояснение: в комнате уже занято место гостя (игра через интернет)."
+  },
+  "netNoticeRoomClosedTitle": "Комната закрыта для гостей",
+  "@netNoticeRoomClosedTitle": {
+    "description": "Заголовок: хозяин не принимает гостей (игра через интернет)."
+  },
+  "netNoticeRoomClosedText": "Хозяин сейчас никого не принимает. Попросите его создать комнату заново.",
+  "@netNoticeRoomClosedText": {
+    "description": "Пояснение: хозяин не принимает гостей (игра через интернет)."
+  },
+  "netNoticeOwnRoomTitle": "Это ваша комната",
+  "@netNoticeOwnRoomTitle": {
+    "description": "Заголовок: игрок ввёл код своей комнаты (игра через интернет)."
+  },
+  "netNoticeOwnRoomText": "Код должен ввести другой игрок.",
+  "@netNoticeOwnRoomText": {
+    "description": "Пояснение: игрок ввёл код своей комнаты (игра через интернет)."
+  },
+  "netNoticeTooManyAttemptsTitle": "Слишком много попыток",
+  "@netNoticeTooManyAttemptsTitle": {
+    "description": "Заголовок: слишком много неверных кодов подряд (игра через интернет)."
+  },
+  "netNoticeTooManyAttemptsText": "Подождите около десяти минут и попробуйте снова.",
+  "@netNoticeTooManyAttemptsText": {
+    "description": "Пояснение: слишком много неверных кодов подряд (игра через интернет)."
+  },
+  "netNoticeTooManyRoomsTitle": "Слишком много комнат",
+  "@netNoticeTooManyRoomsTitle": {
+    "description": "Заголовок: слишком много созданных комнат за час (игра через интернет)."
+  },
+  "netNoticeTooManyRoomsText": "За последний час создано много комнат. Подождите немного и попробуйте снова.",
+  "@netNoticeTooManyRoomsText": {
+    "description": "Пояснение: слишком много созданных комнат за час (игра через интернет)."
   },
   "netLeaveTitle": "Покинуть лобби?",
   "@netLeaveTitle": {
@@ -2660,5 +2708,127 @@
   "netWaitQrHint": "Если телефоны не видят друг друга, покажите QR-код.",
   "@netWaitQrHint": {
     "description": "Вторая фраза подсказки ожидания соперника (макет 9, 2b)"
+  },
+  "netMethodInternet": "Через интернет",
+  "@netMethodInternet": {
+    "description": "Способ соединения через интернет: телефоны в разных местах."
+  },
+  "netMethodInternetNote": "Телефоны в разных местах: игра по коду комнаты.",
+  "@netMethodInternetNote": {
+    "description": "Когда подходит соединение через интернет."
+  },
+  "netCreateRoom": "Создать комнату",
+  "@netCreateRoom": {
+    "description": "Кнопка: создать комнату для игры через интернет."
+  },
+  "netEnterCode": "Ввести код",
+  "@netEnterCode": {
+    "description": "Кнопка: перейти к вводу кода комнаты (игра через интернет)."
+  },
+  "netOnlineCreateTitle": "Новая комната",
+  "@netOnlineCreateTitle": {
+    "description": "Заголовок экрана, пока создаётся комната для игры через интернет."
+  },
+  "netOnlineCreating": "Создаём комнату…",
+  "@netOnlineCreating": {
+    "description": "Подпись загрузки: комната создаётся на сервере."
+  },
+  "netOnlineJoinTitle": "Ввести код",
+  "@netOnlineJoinTitle": {
+    "description": "Заголовок экрана ввода кода комнаты."
+  },
+  "netOnlineCodeLabel": "Код комнаты",
+  "@netOnlineCodeLabel": {
+    "description": "Подпись поля ввода кода комнаты."
+  },
+  "netOnlineCodeHint": "ABC-DEF",
+  "@netOnlineCodeHint": {
+    "description": "Подсказка в пустом поле кода комнаты: пример формата."
+  },
+  "netOnlineCodeNote": "Шесть букв и цифр. Код продиктует тот, кто создал комнату.",
+  "@netOnlineCodeNote": {
+    "description": "Пояснение под полем кода комнаты."
+  },
+  "netOnlineJoin": "Войти",
+  "@netOnlineJoin": {
+    "description": "Кнопка: войти в комнату по коду."
+  },
+  "netOnlineJoining": "Подключаемся…",
+  "@netOnlineJoining": {
+    "description": "Подпись кнопки, пока гость подключается к комнате."
+  },
+  "netOnlineBadCode": "Так код не выглядит: нужно шесть букв и цифр, без 0, 1, I и O.",
+  "@netOnlineBadCode": {
+    "description": "Ошибка: введённая строка не может быть кодом комнаты."
+  },
+  "netOnlineCodeCaption": "Код комнаты",
+  "@netOnlineCodeCaption": {
+    "description": "Подпись над кодом на экране ожидания у хоста."
+  },
+  "netOnlineCodeCopy": "Скопировать код",
+  "@netOnlineCodeCopy": {
+    "description": "Кнопка: скопировать код комнаты."
+  },
+  "netOnlineCodeCopied": "Код скопирован",
+  "@netOnlineCodeCopied": {
+    "description": "Подпись кнопки после копирования кода комнаты."
+  },
+  "netOnlineCodeSemantics": "Код комнаты: {code}",
+  "@netOnlineCodeSemantics": {
+    "description": "Подпись кода комнаты для экранного диктора; код передаётся по знакам через пробел.",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "netOnlineCodeFailed": "Не удалось узнать код комнаты. Выйдите и создайте комнату заново.",
+  "@netOnlineCodeFailed": {
+    "description": "Ошибка: хост не смог получить код своей комнаты."
+  },
+  "netOnlineWaitHint": "Соперник выбирает «Через интернет», затем «Ввести код» и вводит эти знаки. Код можно скопировать или продиктовать.",
+  "@netOnlineWaitHint": {
+    "description": "Что должен сделать второй игрок, пока хост ждёт (игра через интернет)."
+  },
+  "netRoomSubtitleOnline": "Партия «{name}» · Интернет",
+  "@netRoomSubtitleOnline": {
+    "description": "Подзаголовок лобби при игре через интернет.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "netLeaveBodyHostOnline": "Комната закроется, а её код перестанет работать.",
+  "@netLeaveBodyHostOnline": {
+    "description": "Что будет, если хост покинет лобби (игра через интернет)."
+  },
+  "netLeaveBodyGuestOnline": "Прежний код перестанет работать: чтобы вернуться, понадобится новый.",
+  "@netLeaveBodyGuestOnline": {
+    "description": "Что будет, если гость покинет лобби (игра через интернет)."
+  },
+  "netNoticeServiceTitle": "Сервис недоступен",
+  "@netNoticeServiceTitle": {
+    "description": "Заголовок: сервис игры через интернет не отвечает."
+  },
+  "netNoticeServiceText": "Не удалось связаться с сервисом игры. Проверьте интернет и попробуйте ещё раз. Если интернет есть, сервис мог уснуть: подождите минуту и повторите.",
+  "@netNoticeServiceText": {
+    "description": "Пояснение: сервис игры через интернет не отвечает (бесплатный проект мог уснуть)."
+  },
+  "netNoticeOnlineFailText": "Хост не отвечает. Возможно, он закрыл комнату или потерял связь.",
+  "@netNoticeOnlineFailText": {
+    "description": "Пояснение: хост комнаты не отвечает (игра через интернет)."
+  },
+  "netNoticeOnlineClosedText": "Попросите создать комнату заново и введите её новый код.",
+  "@netNoticeOnlineClosedText": {
+    "description": "Пояснение: хост закрыл комнату (игра через интернет)."
+  },
+  "netNoticeOnlineGuestLostText": "Не удалось вернуться к хосту. Если он ещё в игре, введите код комнаты снова.",
+  "@netNoticeOnlineGuestLostText": {
+    "description": "Пояснение: гость не смог вернуться к хосту (игра через интернет)."
+  },
+  "netNoticeOnlineHostLostText": "Комната закрылась: вышел срок её жизни или пропала связь с сервисом. Создайте комнату заново.",
+  "@netNoticeOnlineHostLostText": {
+    "description": "Пояснение: хост потерял комнату до начала партии (игра через интернет)."
   }
 }

@@ -6,6 +6,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
+import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
 import 'package:gwent/src/features/lobby/domain/network_access.dart';
 import 'package:gwent_net/gwent_net.dart' show JoinRefusal;
@@ -13,14 +14,55 @@ import 'package:gwent_net/gwent_net.dart' show JoinRefusal;
 /// Заголовок и пояснение сообщения о сети (макет 9, раздел 7).
 typedef NoticeText = ({String title, String text});
 
+/// Как связаны телефоны: от этого зависят слова в сообщениях о сети. Через интернет нет ни Wi-Fi, ни поиска рядом,
+/// зато есть сервис комнат, который может не отвечать, и код комнаты.
+enum NoticeLink {
+  /// Wi-Fi: одна сеть, поиск рядом.
+  wifi,
+
+  /// Через интернет, этот телефон создал комнату.
+  onlineHost,
+
+  /// Через интернет, этот телефон вошёл в комнату по коду.
+  onlineGuest,
+}
+
 /// Что сказать игроку о неудачной попытке создать игру или подключиться к ней.
-NoticeText noticeOfResult(AppLocalizations l10n, NetworkOpenResult result) => switch (result) {
-  NetworkRefused(:final reason) => noticeOfRefusal(l10n, reason),
-  NetworkUnavailable(:final problem?) => noticeOfProblem(l10n, problem),
-  NetworkUnavailable() => (title: l10n.netNoticeUnavailableTitle, text: l10n.netNoticeUnavailableText),
-  NetworkUnreachable() => (title: l10n.netNoticeFailTitle, text: l10n.netNoticeFailText),
-  NetworkContentUnavailable() => (title: l10n.menuContentFailed, text: ''),
-  NetworkGameOpened() => (title: '', text: ''),
+NoticeText noticeOfResult(AppLocalizations l10n, NetworkOpenResult result, {NoticeLink link = NoticeLink.wifi}) =>
+    switch (result) {
+      NetworkRefused(:final reason) => noticeOfRefusal(l10n, reason),
+      NetworkUnavailable(:final problem?) => noticeOfProblem(l10n, problem),
+      NetworkUnavailable() when link != NoticeLink.wifi => (
+        title: l10n.netNoticeServiceTitle,
+        text: l10n.netNoticeServiceText,
+      ),
+      NetworkUnavailable() => (title: l10n.netNoticeUnavailableTitle, text: l10n.netNoticeUnavailableText),
+      NetworkUnreachable() when link != NoticeLink.wifi => (
+        title: l10n.netNoticeFailTitle,
+        text: l10n.netNoticeOnlineFailText,
+      ),
+      NetworkUnreachable() => (title: l10n.netNoticeFailTitle, text: l10n.netNoticeFailText),
+      NetworkRoomRefused(:final failure) => noticeOfRoomFailure(l10n, failure),
+      NetworkContentUnavailable() => (title: l10n.menuContentFailed, text: ''),
+      NetworkGameOpened() => (title: '', text: ''),
+    };
+
+/// Что сказать игроку об отказе комнаты в игре через интернет. Остальные причины ([LobbyFailure.unavailable],
+/// [LobbyFailure.unreachable]) в такие итоги не попадают, но получают общий текст о неудачном подключении.
+NoticeText noticeOfRoomFailure(AppLocalizations l10n, LobbyFailure failure) => switch (failure) {
+  LobbyFailure.codeNotFound => (title: l10n.netNoticeCodeNotFoundTitle, text: l10n.netNoticeCodeNotFoundText),
+  LobbyFailure.roomFull => (title: l10n.netNoticeRoomFullTitle, text: l10n.netNoticeRoomFullText),
+  LobbyFailure.roomClosed => (title: l10n.netNoticeRoomClosedTitle, text: l10n.netNoticeRoomClosedText),
+  LobbyFailure.ownRoom => (title: l10n.netNoticeOwnRoomTitle, text: l10n.netNoticeOwnRoomText),
+  LobbyFailure.tooManyAttempts => (
+    title: l10n.netNoticeTooManyAttemptsTitle,
+    text: l10n.netNoticeTooManyAttemptsText,
+  ),
+  LobbyFailure.tooManyRooms => (title: l10n.netNoticeTooManyRoomsTitle, text: l10n.netNoticeTooManyRoomsText),
+  LobbyFailure.unavailable || LobbyFailure.unreachable => (
+    title: l10n.netNoticeFailTitle,
+    text: l10n.netNoticeFailText,
+  ),
 };
 
 /// Что сказать игроку о причине, из-за которой сеть не работает (макет 9, экраны 7c–7e).
@@ -80,10 +122,20 @@ NoticeText noticeOfRefusal(AppLocalizations l10n, JoinRefusal reason) => switch 
 };
 
 /// Что сказать игроку о том, почему комната закончилась без партии.
-NoticeText noticeOfEnd(AppLocalizations l10n, RoomEnd end) => switch (end) {
+NoticeText noticeOfEnd(AppLocalizations l10n, RoomEnd end, {NoticeLink link = NoticeLink.wifi}) => switch (end) {
   RoomRefused(:final reason) => noticeOfRefusal(l10n, reason),
-  RoomHostClosed() => (title: l10n.netNoticeClosedTitle, text: l10n.netNoticeClosedText),
-  RoomConnectionLost() => (title: l10n.netNoticeLostTitle, text: l10n.netNoticeLostText),
+  RoomHostClosed() => (
+    title: l10n.netNoticeClosedTitle,
+    text: link == NoticeLink.wifi ? l10n.netNoticeClosedText : l10n.netNoticeOnlineClosedText,
+  ),
+  RoomConnectionLost() => (
+    title: l10n.netNoticeLostTitle,
+    text: switch (link) {
+      NoticeLink.wifi => l10n.netNoticeLostText,
+      NoticeLink.onlineHost => l10n.netNoticeOnlineHostLostText,
+      NoticeLink.onlineGuest => l10n.netNoticeOnlineGuestLostText,
+    },
+  ),
   RoomHostInvalid() => (title: l10n.netNoticeInvalidTitle, text: l10n.netNoticeInvalidText),
 };
 

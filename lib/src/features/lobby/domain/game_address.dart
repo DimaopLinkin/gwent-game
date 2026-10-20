@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:gwent/src/features/lobby/domain/room_code.dart';
 import 'package:meta/meta.dart';
 
 /// Куда подключаться к объявленной партии. Вид адреса задаёт вид связи.
@@ -42,4 +43,26 @@ final class LanAddress extends GameAddress {
 
   @override
   String toString() => 'LanAddress($gameId, $hosts, $port)';
+}
+
+/// Партия через интернет: комната с кодом (ADR 0025). Хост узнаёт код при создании партии, гость вводит его.
+final class OnlineAddress extends GameAddress {
+  /// Создаёт адрес комнаты с кодом [code].
+  const OnlineAddress(this.code);
+
+  /// Код комнаты.
+  final RoomCode code;
+
+  /// Комнату определяет её код: идентификатор партии (`GameAd.id`) гость не знает.
+  @override
+  String get gameId => code.value;
+
+  @override
+  bool operator ==(Object other) => other is OnlineAddress && other.code == code;
+
+  @override
+  int get hashCode => code.hashCode;
+
+  @override
+  String toString() => 'OnlineAddress($code)';
 }

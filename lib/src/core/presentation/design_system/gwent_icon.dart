@@ -97,6 +97,9 @@ enum GwentIcon {
   /// Bluetooth: способ соединения в сетевой игре.
   iconBluetooth('bluetooth'),
 
+  /// Глобус: игра через интернет.
+  iconGlobe('globe'),
+
   /// Wi-Fi выключен или связь потеряна.
   iconWifiOff('wifi_off'),
 
