@@ -201,8 +201,8 @@ final class _GuestRoom {
   Future<void> _closeChannel(Future<RoomChannel> channel) async {
     try {
       await (await channel).close();
-    } on LobbyException {
-      // Вход не удался: закрывать нечего.
+    } on Exception {
+      // Вход не удался или канал уже недоступен: закрывать нечего.
       return;
     }
   }
@@ -217,6 +217,12 @@ final class _OnlineHostedGame implements HostedGame {
     _attach(_channel);
     _watchExpiry();
   }
+
+  /// Сколько закрытых номеров соединений хост помнит: запоздавший кадр закрытого соединения не оживляет его.
+  static const int _rememberedCids = 16;
+
+  /// Сколько раз хост входит в канал новой комнаты, прежде чем сдаться.
+  static const int _renewAttempts = 3;
 
   /// Сколько подряд соединений гостя хост держит открытыми: честный гость держит одно, новое подключение
   /// заменяет прежнее, а лишние от одного гостя не должны копиться в памяти.
@@ -233,6 +239,8 @@ final class _OnlineHostedGame implements HostedGame {
   StreamSubscription<void>? _trouble;
   Timer? _expiry;
   Timer? _linger;
+  Timer? _reopenRetry;
+  final List<int> _closedCids = [];
   bool _guestSeen = false;
   bool _closed = false;
   bool _gone = false;
@@ -259,7 +267,14 @@ final class _OnlineHostedGame implements HostedGame {
       if (_closed) throw StateError('Партия закрыта');
       if (_gone) throw const LobbyException(LobbyFailure.unavailable);
       if (ad.open && _guestSeen) {
-        await _renew();
+        // Желаемое состояние запоминается до попытки: при сбое её повторит таймер.
+        _ad = ad;
+        try {
+          await _renew();
+        } on LobbyException {
+          _scheduleReopen();
+          rethrow;
+        }
       } else if (ad.open != _room.open) {
         await _lobby._rooms.setOpen(_room.id, open: ad.open);
         _room = _room.copyWith(open: ad.open);
@@ -273,6 +288,7 @@ final class _OnlineHostedGame implements HostedGame {
     if (_closed) return;
     _closed = true;
     _expiry?.cancel();
+    _reopenRetry?.cancel();
     unawaited(_connections.close());
     _lobby._closeQuietly(_room.id);
     if (_live.isEmpty) {
@@ -299,7 +315,12 @@ final class _OnlineHostedGame implements HostedGame {
       await _messages?.cancel();
       await _trouble?.cancel();
     }
-    await channel.close();
+    try {
+      await channel.close();
+    } on Exception {
+      // Канал уже недоступен: закрывать нечего, а ошибка не должна уйти необработанной.
+      return;
+    }
   }
 
   void _onMessage(RoomMessage message) {
@@ -316,7 +337,7 @@ final class _OnlineHostedGame implements HostedGame {
   /// Новое соединение гостя: его кадры идут новому `Transport`, который хост партии принимает как обычное
   /// подключение. Закрытая партия новых соединений не принимает.
   RoomTransport? _accept(int cid) {
-    if (_closed || _gone) return null;
+    if (_closed || _gone || _closedCids.contains(cid)) return null;
     while (_live.length >= _maxConnections) {
       _live.values.first.close().ignore();
     }
@@ -335,31 +356,83 @@ final class _OnlineHostedGame implements HostedGame {
 
   void _onClosed(RoomTransport transport) {
     if (identical(_live[transport.cid], transport)) _live.remove(transport.cid);
-    if (_closed && _live.isEmpty) unawaited(_release(_channel));
+    _closedCids.add(transport.cid);
+    if (_closedCids.length > _rememberedCids) _closedCids.removeAt(0);
+    if (_closed && _live.isEmpty) {
+      unawaited(_release(_channel));
+    } else {
+      unawaited(_reopen());
+    }
   }
 
-  /// Создаёт комнату заново для нового гостя. Сервер закрывает прежнюю при создании новой, поэтому при сбое хост
-  /// остаётся в прежней комнате.
+  /// Гость занял место на сервере, но в лобби не остался (хост партии отказал ему по версии или данным карт, он
+  /// оборвал связь до рукопожатия), а партия при этом считается открытой: комната для других гостей закрыта, и её
+  /// нужно создать заново.
+  Future<void> _reopen() => _serially(() async {
+    if (_closed || _gone || !_guestSeen || !_ad.open) return;
+    try {
+      await _renew();
+    } on LobbyException {
+      _scheduleReopen();
+    }
+  });
+
+  void _scheduleReopen() {
+    _reopenRetry?.cancel();
+    if (_closed || _gone) return;
+    _reopenRetry = _lobby._scheduler.timer(_lobby.standingRetry, () => unawaited(_reopen()));
+  }
+
+  /// Создаёт комнату заново для нового гостя. Если создать не удалось, хост остаётся в прежней комнате. Сервер
+  /// закрывает прежнюю при создании новой, поэтому, когда новая создана, а войти в её канал не получилось, возвращаться
+  /// некуда: партия заканчивается, а не остаётся в комнате с мёртвым кодом.
   Future<void> _renew() async {
     final room = await _lobby._rooms.create(_ad);
-    final RoomChannel channel;
-    try {
-      channel = await _lobby._rooms.connect(room.id);
-    } on LobbyException {
+    if (_closed || _gone) {
       _lobby._closeQuietly(room.id);
-      rethrow;
+      return;
+    }
+    RoomChannel? channel;
+    for (var attempt = 0; attempt < _renewAttempts && channel == null; attempt++) {
+      if (attempt > 0) await _pause(const Duration(seconds: 1));
+      if (_closed || _gone) break;
+      try {
+        channel = await _lobby._rooms.connect(room.id);
+      } on LobbyException {
+        // Повторим: прежняя комната уже закрыта, другого пути нет.
+        channel = null;
+      }
+    }
+    if (_closed || _gone) {
+      _lobby._closeQuietly(room.id);
+      await channel?.close();
+      return;
+    }
+    if (channel == null) {
+      _lobby._closeQuietly(room.id);
+      await _end();
+      return;
     }
     final previous = _channel;
     await _messages?.cancel();
     await _trouble?.cancel();
+    // Прежние соединения принадлежали прежнему гостю: сначала сбрасывается признак гостя, чтобы их закрытие не
+    // запустило пересоздание ещё раз.
+    _guestSeen = false;
+    _reopenRetry?.cancel();
     for (final transport in _live.values.toList()) {
       transport.abandon();
     }
     _room = room;
-    _guestSeen = false;
     _attach(channel);
     _watchExpiry();
     await previous.close();
+  }
+
+  Future<void> _pause(Duration duration) {
+    final done = Completer<void>();
+    _lobby._scheduler.timer(duration, done.complete);
+    return done.future;
   }
 
   /// Комната закрывается сама по сроку, но канал об этом не узнаёт до очередной проверки доступа. В срок хост
@@ -378,8 +451,12 @@ final class _OnlineHostedGame implements HostedGame {
     if (throttle && _checkedAt != null && now.difference(_checkedAt!) < _lobby.standingRetry) return;
     _checking = true;
     _checkedAt = now;
+    final roomId = _room.id;
     try {
-      switch (await _lobby._rooms.standing(_room.id)) {
+      final standing = await _lobby._rooms.standing(roomId);
+      // Пока шёл запрос, хост мог создать комнату заново: ответ о прежней комнате к новой не относится.
+      if (_closed || _gone || _room.id != roomId) return;
+      switch (standing) {
         case RoomGone():
           unawaited(_end());
         case RoomAlive(:final expiresAt):
@@ -400,6 +477,7 @@ final class _OnlineHostedGame implements HostedGame {
     if (_gone || _closed) return;
     _gone = true;
     _expiry?.cancel();
+    _reopenRetry?.cancel();
     unawaited(_connections.close());
     await _release(_channel);
   }

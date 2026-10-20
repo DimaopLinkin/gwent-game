@@ -9,6 +9,7 @@ import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent_net/gwent_net.dart';
 
 /// Сценарий: подключиться к найденной партии гостем.
@@ -17,7 +18,14 @@ import 'package:gwent_net/gwent_net.dart';
 /// `LinkTimings.joinTimeout`, возвращает причину и ничего не оставляет открытым.
 final class JoinNetworkGame {
   /// Создаёт сценарий.
-  JoinNetworkGame(this._setup, this._lobby, this._active, this._scheduler, {this.timings = LinkTimings.local});
+  JoinNetworkGame(
+    this._setup,
+    this._lobby,
+    this._active,
+    this._scheduler, {
+    this.timings = LinkTimings.local,
+    this.mode = MatchMode.wifi,
+  });
 
   final LoadNetworkSetup _setup;
   final GameLobby _lobby;
@@ -26,6 +34,9 @@ final class JoinNetworkGame {
 
   /// Сроки проверки связи с хостом: для интернета они длиннее, чем для Wi-Fi (ADR 0026).
   final LinkTimings timings;
+
+  /// Способ связи для истории партий.
+  final MatchMode mode;
 
   /// Подключается к [found]; в игре телефон называется [playerName].
   Future<NetworkOpenResult> call({required FoundGame found, required String playerName}) =>
@@ -80,6 +91,8 @@ final class JoinNetworkGame {
       lobby: _lobby,
       address: address,
       reconnectWindow: timings.reconnectWindow,
+      retryInterval: timings.retryInterval,
+      mode: mode,
     );
     client.connect(transport);
     final room = await game.settled(timings.joinTimeout);

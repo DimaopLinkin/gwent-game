@@ -35,6 +35,7 @@ import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/application/watch_match_history.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent/src/features/menu/application/load_menu.dart';
 import 'package:gwent/src/features/settings/application/check_content_update.dart';
 import 'package:gwent/src/features/settings/application/load_about_info.dart';
@@ -158,6 +159,7 @@ final class AppDependencies {
       entropy,
       scheduler,
       timings: LinkTimings.internet,
+      mode: MatchMode.server,
     );
     joinOnlineGame = JoinNetworkGame(
       loadNetworkSetup,
@@ -165,6 +167,7 @@ final class AppDependencies {
       activeNetworkGame,
       scheduler,
       timings: LinkTimings.internet,
+      mode: MatchMode.server,
     );
     networkReadiness = NetworkReadiness(networkAccess, settingsRepository);
     playSound = PlaySound(soundOutput, watchSettings);

@@ -129,6 +129,9 @@ final class FakeSupabaseServer {
   /// Анонимный вход отвечает ошибкой сервера.
   bool authFails = false;
 
+  /// Обновление сессии отвечает отказом: refresh-токен не годится.
+  bool refreshFails = false;
+
   /// Все запросы к функциям.
   final List<RpcCall> rpcCalls = [];
 
@@ -194,7 +197,11 @@ final class FakeSupabaseServer {
       }
     } else if (path == '/auth/v1/token') {
       refreshes++;
-      reply(200, session('player-refreshed'));
+      if (refreshFails) {
+        reply(400, {'code': 400, 'error_code': 'refresh_token_not_found', 'msg': 'Invalid Refresh Token'});
+      } else {
+        reply(200, session('player-refreshed'));
+      }
     } else if (path.startsWith('/rest/v1/rpc/')) {
       final function = path.substring('/rest/v1/rpc/'.length);
       final params = body.isEmpty ? <String, dynamic>{} : Map<String, dynamic>.from(jsonDecode(body) as Map);

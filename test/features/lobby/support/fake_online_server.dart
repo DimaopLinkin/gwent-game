@@ -100,6 +100,13 @@ final class FakeOnlineRooms implements OnlineRooms {
   /// Следующий вход в канал откажет.
   bool failConnect = false;
 
+  /// Сколько следующих входов в канал откажут подряд.
+  int failConnects = 0;
+
+  /// Пока не завершено, создание комнаты не отвечает (комната на сервере уже создана): так тесты ловят закрытие
+  /// партии посреди пересоздания.
+  Completer<void>? createGate;
+
   /// Создание комнаты отказывает по правилам сервера, например `tooManyRooms`.
   LobbyFailure? createFailure;
 
@@ -127,6 +134,7 @@ final class FakeOnlineRooms implements OnlineRooms {
       expiresAt: _server.clock.now().add(const Duration(minutes: 30)),
     );
     _server.rooms[room.id] = room;
+    if (createGate case final gate?) await gate.future;
     return room.info();
   }
 
@@ -192,6 +200,10 @@ final class FakeOnlineRooms implements OnlineRooms {
     _guard();
     final room = _server.rooms[roomId];
     final allowed = room != null && (room.hostUid == uid || room.guestUid == uid) && _server.isAlive(room);
+    if (failConnects > 0) {
+      failConnects--;
+      throw const LobbyException(LobbyFailure.unavailable, 'доступ к каналу закрыт');
+    }
     if (failConnect || !allowed) {
       failConnect = false;
       throw const LobbyException(LobbyFailure.unavailable, 'доступ к каналу закрыт');

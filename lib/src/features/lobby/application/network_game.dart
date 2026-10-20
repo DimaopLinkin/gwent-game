@@ -35,6 +35,7 @@ final class NetworkGame {
     GameAddress? address,
     this.reconnectWindow = const Duration(minutes: 2),
     this.retryInterval = const Duration(seconds: 2),
+    this.mode = MatchMode.wifi,
   }) : _client = client,
        _content = content,
        _scheduler = scheduler,
@@ -65,6 +66,9 @@ final class NetworkGame {
 
   /// Как часто гость повторяет попытку.
   final Duration retryInterval;
+
+  /// Каким способом идёт партия: записывается в историю.
+  final MatchMode mode;
 
   final MatchClient _client;
   final GameContent _content;
@@ -194,7 +198,7 @@ final class NetworkGame {
     _handedOver = true;
     final deckName = _deckName;
     return MatchSession(
-      mode: MatchMode.wifi,
+      mode: mode,
       table: NetworkMatchTable(
         seat: seat,
         updates: _table.stream,

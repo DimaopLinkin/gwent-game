@@ -183,14 +183,24 @@ final class SupabaseOnlineRooms implements OnlineRooms {
   }
 
   /// Сбой сервиса: нет сети, проект не ответил, вход отклонён. Если сервер сказал, что сессия не годится, она
-  /// забывается, и следующая попытка войдёт заново.
+  /// обновляется, а если и это не вышло, забывается: следующая попытка войдёт заново.
   Future<LobbyException> _unavailable(Exception error) async {
     final rejected = switch (error) {
       PostgrestException(:final code) => code == '28000' || code == 'PGRST301' || code == 'PGRST303',
       _ => false,
     };
-    if (rejected) await _forgetSession();
+    if (rejected) await _refreshOrForget();
     return LobbyException(LobbyFailure.unavailable, error);
+  }
+
+  /// Сервер не принял токен: сначала он обновляется, чтобы игрок остался тем же (иначе он потеряет свою комнату), и
+  /// только если обновить не вышло, сессия забывается и игрок входит заново.
+  Future<void> _refreshOrForget() async {
+    try {
+      await _client.auth.refreshSession();
+    } on Exception {
+      await _forgetSession();
+    }
   }
 
   /// Сессия игрока: сохранённая, а если её нет или она не годится, то новый анонимный вход.

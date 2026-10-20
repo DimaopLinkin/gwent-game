@@ -203,7 +203,20 @@ void main() {
       await expectLater(rooms.create(ad), failure(LobbyFailure.unavailable));
     });
 
-    test('сервер не признал сессию: она забывается, следующая попытка входит заново', () async {
+    test('сервер не признал токен: он обновляется, игрок остаётся тем же и не входит заново', () async {
+      server.rpcFailure = (401, {'code': 'PGRST301', 'message': 'JWT expired'});
+      await expectLater(rooms.create(ad), failure(LobbyFailure.unavailable));
+
+      server.rpcFailure = null;
+      server.functions['create_room'] = (_) => roomReply();
+      await rooms.create(ad);
+
+      expect(server.refreshes, 1);
+      expect(server.signUps, 1);
+    });
+
+    test('токен не обновить: сессия забывается, следующая попытка входит заново', () async {
+      server.refreshFails = true;
       server.rpcFailure = (401, {'code': 'PGRST301', 'message': 'JWT expired'});
       await expectLater(rooms.create(ad), failure(LobbyFailure.unavailable));
 

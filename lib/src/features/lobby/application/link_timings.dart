@@ -14,6 +14,7 @@ final class LinkTimings {
     required this.unstableAfter,
     required this.reconnectWindow,
     required this.joinTimeout,
+    required this.retryInterval,
   });
 
   /// Игра в локальной сети (Wi-Fi).
@@ -23,6 +24,7 @@ final class LinkTimings {
     unstableAfter: Duration(seconds: 5),
     reconnectWindow: Duration(minutes: 2),
     joinTimeout: Duration(seconds: 8),
+    retryInterval: Duration(seconds: 2),
   );
 
   /// Игра через интернет.
@@ -32,6 +34,7 @@ final class LinkTimings {
     unstableAfter: Duration(seconds: 15),
     reconnectWindow: Duration(minutes: 3),
     joinTimeout: Duration(seconds: 15),
+    retryInterval: Duration(seconds: 6),
   );
 
   /// Как часто гость проверяет связь с хостом.
@@ -48,4 +51,7 @@ final class LinkTimings {
 
   /// Сколько гость ждёт ответа хоста после соединения.
   final Duration joinTimeout;
+
+  /// Как часто гость повторяет попытку вернуться к хосту. Через интернет каждая попытка идёт на сервер с лимитами.
+  final Duration retryInterval;
 }

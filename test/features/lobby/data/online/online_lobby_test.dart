@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -226,6 +227,8 @@ void main() {
       final accepted = collect(hosted);
       final address = await hosted.address();
       final guests = [for (var i = 0; i < 4; i++) await guestLobby.join(address)];
+      // Как в партии: гость уже занял место, поэтому объявление закрыто и комната не пересоздаётся.
+      await hosted.advertise(ad.copyWith(open: false));
       final closed = List.filled(4, false);
 
       for (final (index, guest) in guests.indexed) {
@@ -346,6 +349,98 @@ void main() {
 
       await hosted.advertise(ad.copyWith(open: true));
       expect(await addressOf(hosted), isNot(address));
+    });
+
+    test('хост отказал гостю на рукопожатии и закрыл соединение: комната пересоздаётся без объявления', () async {
+      final hosted = await hostLobby.host(ad);
+      final accepted = collect(hosted);
+      final oldAddress = await addressOf(hosted);
+      final guest = await guestLobby.join(oldAddress);
+      guest.send(bytes('hello'));
+      await settle();
+
+      await accepted.single.close();
+      await settle();
+
+      final newAddress = await addressOf(hosted);
+      expect(newAddress, isNot(oldAddress));
+      final other = OnlineLobby(rooms: server.phone('other'), scheduler: scheduler, clock: clock);
+      expect(await other.join(newAddress), isA<Transport>());
+    });
+
+    test('пересоздание не удалось по сети: таймер повторяет попытку', () async {
+      final hosted = await hostLobby.host(ad);
+      final accepted = collect(hosted);
+      final oldAddress = await addressOf(hosted);
+      final guest = await guestLobby.join(oldAddress);
+      guest.send(bytes('hello'));
+      await settle();
+
+      server.offline = true;
+      await accepted.single.close();
+      await settle();
+      server.offline = false;
+      await scheduler.elapse(hostLobby.standingRetry);
+      await settle();
+
+      expect(await addressOf(hosted), isNot(oldAddress));
+    });
+
+    test(
+      'новая комната создана, но в её канал не войти: партия заканчивается, а не остаётся в мёртвой комнате',
+      () async {
+        final hosted = await hostLobby.host(ad);
+        final accepted = <Transport>[];
+        var done = false;
+        hosted.connections.listen(accepted.add, onDone: () => done = true);
+        final guest = await guestLobby.join(await addressOf(hosted));
+        guest.send(bytes('hello'));
+        await settle();
+
+        hostRooms.failConnects = 3;
+        await accepted.single.close();
+        await scheduler.elapse(const Duration(seconds: 5));
+        await settle();
+
+        expect(done, isTrue);
+        expect(server.rooms.values.where(server.isAlive), isEmpty);
+      },
+    );
+
+    test('партию закрыли, пока создавалась новая комната: новая комната не остаётся открытой', () async {
+      final hosted = await hostLobby.host(ad);
+      collect(hosted);
+      final guest = await guestLobby.join(await addressOf(hosted));
+      guest.send(bytes('hello'));
+      await settle();
+
+      final gate = hostRooms.createGate = Completer<void>();
+      final renewing = hosted.advertise(ad.copyWith(open: true));
+      await settle();
+      await hosted.close();
+      gate.complete();
+      await renewing;
+      await settle();
+      await scheduler.elapse(const Duration(seconds: 30));
+
+      expect(server.rooms.values.where(server.isAlive), isEmpty);
+      expect(server.rooms['room-2']!.channels, isEmpty);
+    });
+
+    test('запоздавший кадр закрытого соединения нового соединения не создаёт', () async {
+      final hosted = await hostLobby.host(ad);
+      final accepted = collect(hosted);
+      final guest = await guestLobby.join(await addressOf(hosted));
+      await hosted.advertise(ad.copyWith(open: false));
+      guest.send(bytes('hello'));
+      await settle();
+      await accepted.single.close();
+      await settle();
+
+      guest.send(bytes('поздно'));
+      await settle();
+
+      expect(accepted, hasLength(1));
     });
 
     test('идентификатор партии менять нельзя, закрытая партия не объявляется', () async {

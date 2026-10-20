@@ -6,6 +6,7 @@ import 'package:gwent/src/features/lobby/application/network_open_result.dart';
 import 'package:gwent/src/features/lobby/domain/game_ad.dart';
 import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
+import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:gwent_net/gwent_net.dart';
 
@@ -24,6 +25,7 @@ final class HostNetworkGame {
     this.startDelay = const Duration(seconds: 3),
     this.requireAdmission = true,
     this.timings = LinkTimings.local,
+    this.mode = MatchMode.wifi,
   });
 
   final LoadNetworkSetup _setup;
@@ -40,6 +42,9 @@ final class HostNetworkGame {
 
   /// Сроки проверки связи с гостем: для интернета они длиннее, чем для Wi-Fi (ADR 0026).
   final LinkTimings timings;
+
+  /// Способ связи для истории партий.
+  final MatchMode mode;
 
   /// Создаёт игру с названием [gameName] для списка найденных партий; в игре телефон называется [playerName].
   Future<NetworkOpenResult> call({required String gameName, required String playerName}) async {
@@ -86,6 +91,7 @@ final class HostNetworkGame {
       playerName: playerName,
       host: host,
       hosted: hosted,
+      mode: mode,
     );
     final (hostEnd, clientEnd) = InMemoryTransport.pair();
     host.accept(hostEnd, trusted: true);
