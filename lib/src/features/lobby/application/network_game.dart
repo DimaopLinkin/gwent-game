@@ -109,6 +109,9 @@ final class NetworkGame {
   /// Телефон создал эту игру.
   bool get isHost => _host != null;
 
+  /// Игра идёт через интернет (комната с кодом), а не по Wi-Fi.
+  bool get isOnline => mode == MatchMode.server;
+
   /// Название игры, которое видят соседи; `null` у гостя.
   String? get title => _hosted?.ad.hostName;
 

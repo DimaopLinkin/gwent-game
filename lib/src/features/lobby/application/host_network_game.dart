@@ -33,6 +33,7 @@ final class HostNetworkGame {
   final ActiveNetworkGame _active;
   final Entropy _entropy;
   final Scheduler _scheduler;
+  int _calls = 0;
 
   /// Сколько идёт отсчёт между готовностью обоих игроков и началом партии.
   final Duration startDelay;
@@ -48,6 +49,7 @@ final class HostNetworkGame {
 
   /// Создаёт игру с названием [gameName] для списка найденных партий; в игре телефон называется [playerName].
   Future<NetworkOpenResult> call({required String gameName, required String playerName}) async {
+    final call = ++_calls;
     final NetworkSetup setup;
     switch (await _setup()) {
       case NetworkSetupReady(setup: final ready):
@@ -78,6 +80,13 @@ final class HostNetworkGame {
         LobbyFailure.tooManyRooms => NetworkRoomRefused(error.failure),
         _ => const NetworkUnavailable(),
       };
+    }
+    if (call != _calls) {
+      // Пока партия создавалась (интернет может отвечать десятки секунд), игрок ушёл и начал новую: старая игра
+      // не должна занять место и закрыть новую.
+      await host.close();
+      await hosted.close();
+      return const NetworkUnavailable();
     }
     final client = MatchClient(
       settings: ClientSettings(ruleset: setup.ruleset, playerName: playerName, appVersion: setup.appVersion),

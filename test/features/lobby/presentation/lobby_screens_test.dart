@@ -141,11 +141,11 @@ void main() {
   group('выбор способа', () {
     testWidgets('Wi-Fi доступен, Bluetooth «скоро»; кнопки ведут к созданию и поиску, «назад» у края', (tester) async {
       useSmallPhone(tester);
-      var created = 0;
-      var found = 0;
+      final created = <PlayMethod>[];
+      final found = <PlayMethod>[];
       var backs = 0;
       await tester.pumpWidget(
-        localizedScreen(PlayMethodScreen(onCreate: () => created++, onFind: () => found++, onBack: () => backs++)),
+        localizedScreen(PlayMethodScreen(onCreate: created.add, onFind: found.add, onBack: () => backs++)),
       );
 
       expectNoFallbackTextStyle(tester);
@@ -157,7 +157,9 @@ void main() {
       await tester.tap(find.text(l10n.netCreateGame));
       await tester.tap(find.text(l10n.netFindGame));
       await tester.tap(find.bySemanticsLabel(l10n.setupBack));
-      expect((created, found, backs), (1, 1, 1));
+      expect(created, [PlayMethod.wifi]);
+      expect(found, [PlayMethod.wifi]);
+      expect(backs, 1);
     });
   });
 

@@ -206,6 +206,36 @@ void main() {
     expect(find.byType(GwentLogo), findsOneWidget);
   });
 
+  testWidgets('игра через интернет: способ запоминается при возврате, «Создать комнату» ведёт в комнату с кодом', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text(l10n.menuNetworkGame));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.netMethodInternet));
+    await tester.pump();
+    await tester.tap(find.text(l10n.netEnterCode));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netOnlineCodeLabel), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.netCreateRoom), findsOneWidget, reason: 'выбран «Через интернет»');
+
+    await tester.tap(find.text(l10n.netCreateRoom));
+    await settleReal(tester);
+    expect(find.text(l10n.netOnlineCodeCaption), findsOneWidget);
+    expect(find.text(l10n.netOnlineCodeCopy), findsOneWidget);
+
+    // Уход из комнаты закрывает игру, а с ней и таймеры связи хоста.
+    await tester.tap(find.text(l10n.dialogCancel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.netLeaveConfirm));
+    await settleReal(tester);
+    expect(find.text(l10n.netCreateRoom), findsOneWidget, reason: 'после выхода выбран «Через интернет»');
+  });
+
   testWidgets('колоды: список, новая колода в конструкторе, возврат по шагам в меню', (tester) async {
     await pumpApp(tester);
 

@@ -14,10 +14,14 @@ import 'package:gwent/src/features/deck_builder/presentation/deck_list_screen.da
 import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/create_online_game_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/create_online_game_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/find_games_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/host_invite_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/host_qr_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/join_online_game_cubit.dart';
+import 'package:gwent/src/features/lobby/presentation/join_online_game_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_builder_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/lobby_deck_picker_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/match_connection_cubit.dart';
@@ -25,6 +29,7 @@ import 'package:gwent/src/features/lobby/presentation/match_connection_indicator
 import 'package:gwent/src/features/lobby/presentation/match_connection_layer.dart';
 import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/qr_scan_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/room_code_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/room_screen.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart' show LocalMatchMode;
@@ -84,11 +89,48 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         GoRoute(
           path: _child(AppRoutes.play),
           builder: (context, state) => PlayMethodScreen(
-            onCreate: () => context.go(AppRoutes.playCreate),
-            onFind: () => context.go(AppRoutes.playFind),
+            initial: state.uri.queryParameters[AppRoutes.playMethodParam] == AppRoutes.playMethodInternet
+                ? PlayMethod.internet
+                : PlayMethod.wifi,
+            onCreate: (method) => context.go(switch (method) {
+              PlayMethod.wifi => AppRoutes.playCreate,
+              PlayMethod.internet => AppRoutes.playOnlineCreate,
+            }),
+            onFind: (method) => context.go(switch (method) {
+              PlayMethod.wifi => AppRoutes.playFind,
+              PlayMethod.internet => AppRoutes.playOnlineJoin,
+            }),
             onBack: () => context.go(AppRoutes.menu),
           ),
           routes: [
+            GoRoute(
+              path: 'online/create',
+              builder: (context, state) => BlocProvider(
+                create: (_) => CreateOnlineGameCubit(
+                  dependencies.hostOnlineGame,
+                  dependencies.watchSettings,
+                  fallbackName: context.l10n.playerPlateYou,
+                ),
+                child: CreateOnlineGameScreen(
+                  onCreated: () => context.go(AppRoutes.playRoom),
+                  onBack: () => context.go(AppRoutes.playInternet),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: 'online/join',
+              builder: (context, state) => BlocProvider(
+                create: (_) => JoinOnlineGameCubit(
+                  dependencies.joinOnlineGame,
+                  dependencies.watchSettings,
+                  fallbackName: context.l10n.playerPlateYou,
+                ),
+                child: JoinOnlineGameScreen(
+                  onJoined: () => context.go(AppRoutes.playRoom),
+                  onBack: () => context.go(AppRoutes.playInternet),
+                ),
+              ),
+            ),
             GoRoute(
               path: 'create',
               builder: (context, state) => BlocProvider(
@@ -137,10 +179,16 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               redirect: (context, state) => dependencies.activeNetworkGame.current == null ? AppRoutes.play : null,
               builder: (context, state) {
                 final game = dependencies.activeNetworkGame.current!;
-                return BlocProvider(
-                  create: (_) => RoomCubit(game, dependencies.loadDeckRules, dependencies.getDeck),
+                final online = game.isOnline;
+                return MultiBlocProvider(
+                  providers: [
+                    BlocProvider(create: (_) => RoomCubit(game, dependencies.loadDeckRules, dependencies.getDeck)),
+                    // Код комнаты нужен только хосту игры через интернет.
+                    if (online && game.isHost) BlocProvider(create: (_) => RoomCodeCubit(game)),
+                  ],
                   child: RoomScreen(
                     isHost: game.isHost,
+                    online: online,
                     title: game.title ?? '',
                     onPickDeck: (deckId) => context.push<String>(AppRoutes.playRoomDecks, extra: deckId),
                     onBuildDeck: (deckId) => context.push<String>(
@@ -148,7 +196,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                     ),
                     onShowQr: () => context.push(AppRoutes.playRoomQr),
                     onStarted: () => context.go(AppRoutes.playMatch),
-                    onLeft: () => context.go(AppRoutes.play),
+                    onLeft: () => context.go(online ? AppRoutes.playInternet : AppRoutes.play),
                   ),
                 );
               },
