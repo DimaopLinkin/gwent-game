@@ -199,6 +199,76 @@ void main() {
     expect(log.last, 'play:select#1');
   });
 
+  test('запуски, простоявшие в очереди за зависшим вызовом, после его возврата не звучат залпом', () async {
+    final pool = poolOf(voicesPerEffect: 1)..play(SoundEffect.select, 1);
+    await settle();
+    final gate = Completer<void>();
+    voices.single.playGate = gate;
+    pool.play(SoundEffect.select, 1);
+    await settle();
+    clock = clock.add(const Duration(milliseconds: 100));
+    pool
+      ..play(SoundEffect.select, 1)
+      ..play(SoundEffect.select, 1);
+    log.clear();
+    clock = clock.add(const Duration(seconds: 30));
+    gate.complete();
+    await settle();
+    await settle();
+    expect(log, isEmpty, reason: 'запуски устарели: экран был заблокирован');
+  });
+
+  test('запуски, чья подготовка застряла, устаревают и не звучат после неё', () async {
+    final gate = createGate = Completer<void>();
+    final pool = poolOf()
+      ..play(SoundEffect.select, 1)
+      ..play(SoundEffect.draw, 1)
+      ..play(SoundEffect.pass, 1);
+    await settle();
+    clock = clock.add(const Duration(seconds: 20));
+    gate.complete();
+    await settle();
+    await settle();
+    expect(log.where((entry) => entry.startsWith('play:')), isEmpty);
+    createGate = null;
+    log.clear();
+    pool.play(SoundEffect.select, 1);
+    await settle();
+    expect(
+      log.where((entry) => entry.startsWith('play:select')),
+      hasLength(1),
+      reason: 'свежий запуск звучит как обычно',
+    );
+  });
+
+  test('медленное первое создание проигрывателя звук не теряет', () async {
+    final gate = createGate = Completer<void>();
+    poolOf().play(SoundEffect.select, 1);
+    await settle();
+    clock = clock.add(const Duration(milliseconds: 900));
+    gate.complete();
+    await settle();
+    await settle();
+    expect(log.where((entry) => entry.startsWith('play:')), ['play:select#0']);
+  });
+
+  test('запуск, дождавшийся очереди недолго, звучит', () async {
+    final pool = poolOf(voicesPerEffect: 1)..play(SoundEffect.select, 1);
+    await settle();
+    final gate = Completer<void>();
+    voices.single.playGate = gate;
+    pool.play(SoundEffect.select, 1);
+    await settle();
+    voices.single.playGate = null;
+    pool.play(SoundEffect.select, 1);
+    clock = clock.add(const Duration(milliseconds: 200));
+    log.clear();
+    gate.complete();
+    await settle();
+    await settle();
+    expect(log, ['play:select#0']);
+  });
+
   test('warm готовит эффект заранее, а играет он сразу', () async {
     final pool = poolOf();
     await pool.warm(SoundEffect.select);

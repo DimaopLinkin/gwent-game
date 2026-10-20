@@ -14,12 +14,26 @@ void main() {
   late FakeMusicOutput output;
   late BackgroundMusic music;
 
+  BackgroundMusic buildMusic({required Duration trackGap, required Duration retryDelay}) {
+    final created = BackgroundMusic(
+      output,
+      WatchSettings(settings),
+      Random(7),
+      trackGap: trackGap,
+      retryDelay: retryDelay,
+    );
+    addTearDown(created.dispose);
+    return created;
+  }
+
   setUp(() {
     settings = InMemorySettingsRepository();
     output = FakeMusicOutput();
-    music = BackgroundMusic(output, WatchSettings(settings), Random(7));
-    addTearDown(music.dispose);
+    // Паузы между композициями и перед повтором в обычных тестах не нужны, повтор «через минуту» не наступает.
+    music = buildMusic(trackGap: Duration.zero, retryDelay: const Duration(minutes: 1));
   });
+
+  Future<void> wait(int milliseconds) => Future<void>.delayed(Duration(milliseconds: milliseconds));
 
   Future<void> settle() => Future<void>.delayed(Duration.zero);
 
@@ -140,6 +154,128 @@ void main() {
     await music.pause();
     await music.resume();
     expect(output.tracks, hasLength(2));
+  });
+
+  test('не удавшийся запуск повторяется сам, без смены громкости и возврата из фона', () async {
+    music = buildMusic(trackGap: Duration.zero, retryDelay: const Duration(milliseconds: 10));
+    output.playSucceeds = false;
+    await music.start();
+    output.playSucceeds = true;
+    await wait(60);
+    expect(output.tracks.length, greaterThanOrEqualTo(2));
+    final started = output.tracks.length;
+    await finishTrack();
+    expect(output.tracks, hasLength(started + 1), reason: 'после удачного повтора музыка идёт дальше сама');
+  });
+
+  test('следующая композиция, не запустившаяся после конца прежней, повторяется сама', () async {
+    music = buildMusic(trackGap: Duration.zero, retryDelay: const Duration(milliseconds: 10));
+    await music.start();
+    output.playSucceeds = false;
+    await finishTrack();
+    output.playSucceeds = true;
+    await wait(60);
+    expect(output.tracks.length, greaterThanOrEqualTo(3));
+    expect(output.commands.last, startsWith('volume:'));
+  });
+
+  test('повторы ограничены: сломанный проигрыватель не крутится вечно', () async {
+    music = buildMusic(trackGap: Duration.zero, retryDelay: Duration.zero);
+    output.playSucceeds = false;
+    await music.start();
+    await wait(60);
+    expect(output.tracks, hasLength(1 + BackgroundMusic.maxRetries));
+  });
+
+  test('успешный запуск обнуляет счёт повторов', () async {
+    music = buildMusic(trackGap: Duration.zero, retryDelay: Duration.zero);
+    output.playSucceeds = false;
+    await music.start();
+    await wait(60);
+    final first = output.tracks.length;
+    output.playSucceeds = true;
+    await music.pause();
+    await music.resume();
+    expect(output.tracks, hasLength(first + 1));
+    output.playSucceeds = false;
+    await finishTrack();
+    await wait(60);
+    expect(output.tracks, hasLength(first + 2 + BackgroundMusic.maxRetries));
+  });
+
+  test('следующая композиция начинается после паузы trackGap, а не мгновенно', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 40), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await wait(10);
+    expect(output.tracks, hasLength(1), reason: 'платформа ещё заканчивает прежнюю композицию');
+    await wait(80);
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('пауза во время промежутка между композициями не даёт новой начаться', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 30), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await music.pause();
+    await wait(80);
+    expect(output.tracks, hasLength(1));
+  });
+
+  test('два события конца подряд не пропускают композицию и не запускают её дважды', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 20), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output
+      ..finishTrack()
+      ..finishTrack();
+    await wait(80);
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('пауза и возврат внутри промежутка между композициями не оживляют доигравшую и не дублируют запуск', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 30), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await music.pause();
+    await music.resume();
+    await wait(80);
+    expect(output.commands, isNot(contains('resume')), reason: 'доигравшая композиция не продолжается');
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('сброс громкости в ноль и возврат внутри промежутка запускают следующую композицию один раз', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 30), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await settings.save(const AppSettings(musicVolume: 0));
+    await settle();
+    await settings.save(const AppSettings(musicVolume: 40));
+    await wait(80);
+    expect(output.tracks, hasLength(2));
+  });
+
+  test('конец композиции после dispose ничего не запускает', () async {
+    music = buildMusic(trackGap: const Duration(milliseconds: 20), retryDelay: const Duration(minutes: 1));
+    await music.start();
+    output.finishTrack();
+    await music.dispose();
+    await wait(60);
+    expect(output.tracks, hasLength(1));
+  });
+
+  test('неудачи при ручных запусках не расходуют запас автоповторов', () async {
+    music = buildMusic(trackGap: Duration.zero, retryDelay: const Duration(minutes: 1));
+    output.playSucceeds = false;
+    await music.start();
+    for (var i = 0; i < BackgroundMusic.maxRetries + 2; i++) {
+      await music.pause();
+      await music.resume();
+    }
+    output.playSucceeds = true;
+    final failed = output.tracks.length;
+    await music.pause();
+    await music.resume();
+    expect(output.tracks, hasLength(failed + 1));
   });
 
   test('ошибка потока настроек не роняет музыку и уходит в обработчик зоны', () async {

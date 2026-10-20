@@ -36,10 +36,12 @@ class _GwentAppState extends State<GwentApp> {
     _lifecycle = AppLifecycleListener(
       onHide: () {
         dependencies.activeNetworkGame.current?.setAway(away: true);
+        dependencies.playSound.suspend();
         unawaited(dependencies.backgroundMusic.pause());
       },
       onShow: () {
         dependencies.activeNetworkGame.current?.setAway(away: false);
+        dependencies.playSound.resume();
         unawaited(dependencies.backgroundMusic.resume());
       },
     );
