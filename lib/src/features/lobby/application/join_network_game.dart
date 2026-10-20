@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/lobby/application/active_network_game.dart';
+import 'package:gwent/src/features/lobby/application/link_timings.dart';
 import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
 import 'package:gwent/src/features/lobby/application/network_game.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
@@ -12,25 +13,19 @@ import 'package:gwent_net/gwent_net.dart';
 
 /// Сценарий: подключиться к найденной партии гостем.
 ///
-/// Возвращает игру, когда хост выдал место. Если хост отказал, недоступен или молчит дольше [joinTimeout],
-/// возвращает причину и ничего не оставляет открытым.
+/// Возвращает игру, когда хост выдал место. Если хост отказал, недоступен или молчит дольше
+/// `LinkTimings.joinTimeout`, возвращает причину и ничего не оставляет открытым.
 final class JoinNetworkGame {
   /// Создаёт сценарий.
-  JoinNetworkGame(
-    this._setup,
-    this._lobby,
-    this._active,
-    this._scheduler, {
-    this.joinTimeout = const Duration(seconds: 8),
-  });
+  JoinNetworkGame(this._setup, this._lobby, this._active, this._scheduler, {this.timings = LinkTimings.local});
 
   final LoadNetworkSetup _setup;
   final GameLobby _lobby;
   final ActiveNetworkGame _active;
   final Scheduler _scheduler;
 
-  /// Сколько ждать ответа хоста после соединения.
-  final Duration joinTimeout;
+  /// Сроки проверки связи с хостом: для интернета они длиннее, чем для Wi-Fi (ADR 0026).
+  final LinkTimings timings;
 
   /// Подключается к [found]; в игре телефон называется [playerName].
   Future<NetworkOpenResult> call({required FoundGame found, required String playerName}) =>
@@ -57,10 +52,23 @@ final class JoinNetworkGame {
       return switch (error.failure) {
         LobbyFailure.unavailable => const NetworkUnavailable(),
         LobbyFailure.unreachable => const NetworkUnreachable(),
+        LobbyFailure.codeNotFound ||
+        LobbyFailure.roomFull ||
+        LobbyFailure.roomClosed ||
+        LobbyFailure.ownRoom ||
+        LobbyFailure.tooManyAttempts ||
+        LobbyFailure.tooManyRooms => NetworkRoomRefused(error.failure),
       };
     }
     final client = MatchClient(
-      settings: ClientSettings(ruleset: setup.ruleset, playerName: playerName, appVersion: setup.appVersion),
+      settings: ClientSettings(
+        ruleset: setup.ruleset,
+        playerName: playerName,
+        appVersion: setup.appVersion,
+        pingInterval: timings.pingInterval,
+        linkTimeout: timings.linkTimeout,
+        unstableAfter: timings.unstableAfter,
+      ),
       scheduler: _scheduler,
       catalog: setup.content.catalog,
     );
@@ -71,9 +79,10 @@ final class JoinNetworkGame {
       playerName: playerName,
       lobby: _lobby,
       address: address,
+      reconnectWindow: timings.reconnectWindow,
     );
     client.connect(transport);
-    final room = await game.settled(joinTimeout);
+    final room = await game.settled(timings.joinTimeout);
     switch (room.end) {
       case RoomRefused(:final reason):
         await game.close();

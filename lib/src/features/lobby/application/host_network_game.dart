@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/lobby/application/active_network_game.dart';
+import 'package:gwent/src/features/lobby/application/link_timings.dart';
 import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
 import 'package:gwent/src/features/lobby/application/network_game.dart';
 import 'package:gwent/src/features/lobby/application/network_open_result.dart';
@@ -22,6 +23,7 @@ final class HostNetworkGame {
     this._scheduler, {
     this.startDelay = const Duration(seconds: 3),
     this.requireAdmission = true,
+    this.timings = LinkTimings.local,
   });
 
   final LoadNetworkSetup _setup;
@@ -36,6 +38,9 @@ final class HostNetworkGame {
   /// Хост принимает каждого гостя сам (ADR 0022); тесты, которым нужен быстрый вход, выключают.
   final bool requireAdmission;
 
+  /// Сроки проверки связи с гостем: для интернета они длиннее, чем для Wi-Fi (ADR 0026).
+  final LinkTimings timings;
+
   /// Создаёт игру с названием [gameName] для списка найденных партий; в игре телефон называется [playerName].
   Future<NetworkOpenResult> call({required String gameName, required String playerName}) async {
     final NetworkSetup setup;
@@ -48,16 +53,26 @@ final class HostNetworkGame {
     final content = setup.content;
     final host = MatchHost(
       engine: GwentEngine(content.catalog, rules: content.rules),
-      settings: HostSettings(ruleset: setup.ruleset, startDelay: startDelay, requireAdmission: requireAdmission),
+      settings: HostSettings(
+        ruleset: setup.ruleset,
+        reconnectGrace: timings.reconnectWindow,
+        linkTimeout: timings.linkTimeout,
+        unstableAfter: timings.unstableAfter,
+        startDelay: startDelay,
+        requireAdmission: requireAdmission,
+      ),
       scheduler: _scheduler,
       entropy: _entropy,
     );
     final HostedGame hosted;
     try {
       hosted = await _lobby.host(GameAd(id: _entropy.token(), hostName: gameName, ruleset: setup.ruleset));
-    } on LobbyException {
+    } on LobbyException catch (error) {
       await host.close();
-      return const NetworkUnavailable();
+      return switch (error.failure) {
+        LobbyFailure.tooManyRooms => NetworkRoomRefused(error.failure),
+        _ => const NetworkUnavailable(),
+      };
     }
     final client = MatchClient(
       settings: ClientSettings(ruleset: setup.ruleset, playerName: playerName, appVersion: setup.appVersion),

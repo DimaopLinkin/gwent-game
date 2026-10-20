@@ -40,6 +40,8 @@ dependencies:
   package_info_plus: ^10.2.2
   # QR-код адреса партии на экране хоста (ADR 0020).
   qr_flutter: ^4.1.0
+  # Клиент Supabase для игры через интернет (ADR 0026): чистый Dart, без supabase_flutter и его нативных плагинов.
+  supabase: ^2.16.5
   uuid: ^4.5.3
 
   gwent_ai:

@@ -24,6 +24,7 @@ import 'package:gwent/src/features/lobby/application/active_network_game.dart';
 import 'package:gwent/src/features/lobby/application/discover_network_games.dart';
 import 'package:gwent/src/features/lobby/application/host_network_game.dart';
 import 'package:gwent/src/features/lobby/application/join_network_game.dart';
+import 'package:gwent/src/features/lobby/application/link_timings.dart';
 import 'package:gwent/src/features/lobby/application/load_network_setup.dart';
 import 'package:gwent/src/features/lobby/application/network_readiness.dart';
 import 'package:gwent/src/features/lobby/domain/game_lobby.dart';
@@ -65,6 +66,7 @@ final class AppDependencies {
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
+    required GameLobby onlineLobby,
     required NetworkAccess networkAccess,
     required SoundOutput soundOutput,
     required MusicOutput musicOutput,
@@ -90,6 +92,7 @@ final class AppDependencies {
       idGenerator: idGenerator,
       seedGenerator: seedGenerator,
       gameLobby: gameLobby,
+      onlineLobby: onlineLobby,
       networkAccess: networkAccess,
       soundOutput: soundOutput,
       musicOutput: musicOutput,
@@ -113,6 +116,7 @@ final class AppDependencies {
     required IdGenerator idGenerator,
     required SeedGenerator seedGenerator,
     required GameLobby gameLobby,
+    required GameLobby onlineLobby,
     required NetworkAccess networkAccess,
     required SoundOutput soundOutput,
     required MusicOutput musicOutput,
@@ -147,6 +151,21 @@ final class AppDependencies {
     hostNetworkGame = HostNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, entropy, scheduler);
     joinNetworkGame = JoinNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, scheduler);
     discoverNetworkGames = DiscoverNetworkGames(loadNetworkSetup, gameLobby);
+    hostOnlineGame = HostNetworkGame(
+      loadNetworkSetup,
+      onlineLobby,
+      activeNetworkGame,
+      entropy,
+      scheduler,
+      timings: LinkTimings.internet,
+    );
+    joinOnlineGame = JoinNetworkGame(
+      loadNetworkSetup,
+      onlineLobby,
+      activeNetworkGame,
+      scheduler,
+      timings: LinkTimings.internet,
+    );
     networkReadiness = NetworkReadiness(networkAccess, settingsRepository);
     playSound = PlaySound(soundOutput, watchSettings);
     backgroundMusic = BackgroundMusic(musicOutput, watchSettings, random);
@@ -238,6 +257,14 @@ final class AppDependencies {
 
   /// Поиск партий рядом.
   late final DiscoverNetworkGames discoverNetworkGames;
+
+  /// Создание игры через интернет (хост): комната с кодом на сервере, адрес игры `OnlineAddress` с кодом для гостя
+  /// берётся из `NetworkGame.address()` и меняется, когда хост создаёт комнату заново (ADR 0026).
+  late final HostNetworkGame hostOnlineGame;
+
+  /// Вход в игру через интернет (гость) по коду: `joinOnlineGame.byAddress(OnlineAddress(code), playerName: …)`. Код
+  /// из ввода игрока разбирает `RoomCode.tryParse`.
+  late final JoinNetworkGame joinOnlineGame;
 
   /// Звуковые эффекты с громкостью из настроек (ADR 0023).
   late final PlaySound playSound;
