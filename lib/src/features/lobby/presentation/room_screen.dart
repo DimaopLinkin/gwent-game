@@ -246,7 +246,6 @@ class _Lobby extends StatelessWidget {
     final rules = state.rules;
     final deck = state.deck;
     final ready = room.myStage == LobbyStage.ready;
-    final theirs = _describe(rules, opponent.leader);
     final mine = _describe(rules, room.myLeader);
     final online = room.link == RoomLink.online;
     final hint = room.deckRefused
@@ -265,8 +264,7 @@ class _Lobby extends StatelessWidget {
           RoomPlayerCard(
             name: opponent.name.isEmpty ? l10n.netOpponentName : opponent.name,
             role: isHost ? l10n.netRoleGuest : l10n.netRoleHost,
-            faction: theirs?.faction,
-            description: theirs == null ? null : l10n.netFactionLeader(theirs.factionName, theirs.leaderName),
+            description: l10n.netOpponentSecret,
             stage: opponent.stage,
             online: opponent.online,
           ),

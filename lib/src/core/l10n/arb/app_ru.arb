@@ -2266,6 +2266,10 @@
   "@netPlayerPending": {
     "description": "Подпись игрока в лобби, пока он не выбрал колоду."
   },
+  "netOpponentSecret": "Фракция и лидер скрыты до начала партии",
+  "@netOpponentSecret": {
+    "description": "Подпись соперника в лобби: его фракцию и лидера не показывают, чтобы колоду нельзя было подстроить."
+  },
   "netFactionLeader": "{faction} · {leader}",
   "@netFactionLeader": {
     "description": "Фракция и лидер колоды игрока в лобби.",

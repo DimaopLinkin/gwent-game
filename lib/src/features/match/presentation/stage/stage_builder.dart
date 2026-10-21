@@ -407,6 +407,14 @@ final class StageScriptBuilder {
     return _assemble(id);
   }
 
+  /// Собирает сценарий последнего хода раунда: [next] — поле после этого хода, до подсчёта (его собрал
+  /// `boardAfterLastMove`), и сценарий держит его на экране ([StageScript.board]). Подсчёт идёт следующим сценарием.
+  StageScript? buildLastMove(int id, List<GameEvent> events) {
+    if (events.any(_isOutsideCardScenes)) return null;
+    _walk(events);
+    return _assemble(id, board: next);
+  }
+
   /// Собирает сценарий конца раунда или матча (макет 13) по событиям от [RoundEnded] и дальше.
   ///
   /// [prev] здесь — поле раунда перед последним действием, а не то, что игрок видел в прошлый раз: подсчёт и уход
@@ -426,7 +434,7 @@ final class StageScriptBuilder {
     return _assemble(id);
   }
 
-  StageScript? _assemble(int id) {
+  StageScript? _assemble(int id, {PlayerView? board}) {
     if (_beats.isEmpty) return null;
     _applySettle();
     _reconcile();
@@ -462,6 +470,7 @@ final class StageScriptBuilder {
       steps: List.unmodifiable(_steps),
       locks: List.unmodifiable(_locks),
       cues: _orderedCues(),
+      board: board,
     );
   }
 
