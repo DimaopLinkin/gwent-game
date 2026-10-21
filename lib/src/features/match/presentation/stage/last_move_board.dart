@@ -7,7 +7,8 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// между суммой рядов и счётом из [result] ложится на ряд последнего вышедшего отряда, так что счёт сторон точный.
 /// Сила соседей по ряду (бонусы, погода) при этом не пересчитывается.
 ///
-/// Возвращает `null`, если ход не сводится к отрядам (особая карта, лидер, выбор): тогда остаётся показ из [closing].
+/// Возвращает `null`, если ход не сводится к отрядам, вышедшим из руки (особая карта, лидер, выбор, Двойник, Медик):
+/// тогда остаётся показ из [closing].
 PlayerView? boardAfterLastMove({
   required PlayerView closing,
   required List<GameEvent> moves,
@@ -19,11 +20,19 @@ PlayerView? boardAfterLastMove({
   final shown = moves.every(
     (event) => switch (event) {
       CardPlayed(:final card) => isUnit(card),
-      UnitPlaced() || CardsDrawn() || CardsDrawnHidden() || Passed() || TurnStarted() => true,
+      UnitPlaced(:final source) => source == EntrySource.hand,
+      CardsDrawn() || CardsDrawnHidden() || Passed() || TurnStarted() => true,
       _ => false,
     },
   );
   if (plays.isEmpty || !shown) return null;
+  // Ходы относятся ровно к одному обновлению после [closing]: карта, уже лежащая на поле, значит, события повторяются.
+  final onField = {
+    for (final side in [closing.me, closing.opponent])
+      for (final row in side.rows.values)
+        for (final view in row.cards) view.card.id,
+  };
+  if (moves.any((event) => event is UnitPlaced && onField.contains(event.card.id))) return null;
 
   SideView sideOf(Seat seat) => seat == closing.viewer ? closing.me : closing.opponent;
   final sides = {for (final seat in Seat.values) seat: _Draft(sideOf(seat))};

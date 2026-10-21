@@ -264,7 +264,7 @@ class _Lobby extends StatelessWidget {
           RoomPlayerCard(
             name: opponent.name.isEmpty ? l10n.netOpponentName : opponent.name,
             role: isHost ? l10n.netRoleGuest : l10n.netRoleHost,
-            description: l10n.netOpponentSecret,
+            description: opponent.leader == null ? null : l10n.netOpponentSecret,
             stage: opponent.stage,
             online: opponent.online,
           ),
