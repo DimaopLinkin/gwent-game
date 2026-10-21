@@ -40,6 +40,9 @@ class MatchRedrawView extends StatefulWidget {
 }
 
 class _MatchRedrawViewState extends State<MatchRedrawView> {
+  static const int _columns = 3;
+  static final double _cardWidth = CardSize.grid.metrics.width;
+
   FieldContent? _content;
   AppLocalizations? _l10n;
 
@@ -65,7 +68,8 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
     final factionName = content.factionName(me.faction);
     final hand = me.hand ?? const <CardInstance>[];
     final rows = [
-      for (var i = 0; i < hand.length; i += 3) hand.sublist(i, i + 3 > hand.length ? hand.length : i + 3),
+      for (var i = 0; i < hand.length; i += _columns)
+        hand.sublist(i, i + _columns > hand.length ? hand.length : i + _columns),
     ];
     return StartBackdrop(
       child: Column(
@@ -114,8 +118,7 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                     children: [
                       for (final row in rows)
                         Row(
-                          mainAxisAlignment: row.length == 3 ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
-                          spacing: row.length == 3 ? 0 : 10,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             for (final card in row)
                               GwentCard(
@@ -126,6 +129,8 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                                 onTap: left > 0 ? () => widget.onIntent(RedrawCard(card.id)) : null,
                                 onLongPress: () => unawaited(showCardDetail(context, content.detail(card))),
                               ),
+                            // Неполный ряд занимает свои места колонок, иначе карты в нём сползли бы друг к другу.
+                            for (var i = row.length; i < _columns; i++) SizedBox(width: _cardWidth),
                           ],
                         ),
                     ],

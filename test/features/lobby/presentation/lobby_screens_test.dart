@@ -42,6 +42,7 @@ import 'package:gwent/src/features/lobby/presentation/play_method_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/qr_scan_screen.dart';
 import 'package:gwent/src/features/lobby/presentation/room_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/room_screen.dart';
+import 'package:gwent/src/features/lobby/presentation/room_widgets.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent_engine/gwent_engine.dart' as engine;
@@ -606,6 +607,23 @@ void main() {
       expect(host.room.myStage, LobbyStage.ready);
       expect(guest.room.opponent?.stage, LobbyStage.ready);
       expect(find.text(l10n.netReadyCancel), findsOneWidget);
+    });
+
+    testWidgets('фракцию и лидера соперника в лобби не показывают, свои показывают', (tester) async {
+      final (host, guest) = await pair(tester);
+      await pumpRoom(tester, game: host, pickDeck: 'north');
+      await tester.tap(find.text(l10n.netDeckPick));
+      await settleNetwork(tester);
+
+      guest.ready((await decks.findById('north'))!.toEngineDeck());
+      await settleNetwork(tester);
+
+      expect(host.room.opponent?.leader, isNotNull, reason: 'лидер соперника дошёл до экрана');
+      final opponentCard = find.byType(RoomPlayerCard).first;
+      final myCard = find.byType(RoomPlayerCard).last;
+      expect(find.descendant(of: opponentCard, matching: find.text(l10n.netOpponentSecret)), findsOneWidget);
+      expect(find.descendant(of: opponentCard, matching: find.textContaining('Фольтест')), findsNothing);
+      expect(find.descendant(of: myCard, matching: find.textContaining('Фольтест')), findsOneWidget);
     });
 
     testWidgets('колода, нарушающая правила, показана с причиной, и «Готов» ей закрыт', (tester) async {

@@ -292,6 +292,21 @@ void main() {
       expect(intents.last, const FinishRedraw());
     });
 
+    testWidgets('неполный последний ряд занимает места колонок: 11-я карта не прижата к 10-й', (tester) async {
+      final view = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: [for (var i = 0; i < 11; i++) cards.unit(Row.melee)], redrawsLeft: 2),
+      );
+      await pumpView(tester, MatchRedrawView(view: view, roster: rosterOf(cards), onIntent: (_) {}));
+      final lefts = [
+        for (final card in tester.widgetList(find.byType(GwentCard))) tester.getTopLeft(find.byWidget(card)).dx,
+      ];
+      expect(lefts, hasLength(11));
+      expect(lefts[9], lefts[0], reason: '10-я карта стоит в первой колонке');
+      expect(lefts[10], lefts[1], reason: '11-я карта стоит во второй колонке, а не рядом с 10-й');
+    });
+
     testWidgets('замены кончились: карты неактивны, надпись «Можно заменить: 0»', (tester) async {
       final intents = <Intent>[];
       final view = viewOf(

@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/stage/last_move_board.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
@@ -49,6 +50,9 @@ final class FieldCubit extends Cubit<FieldState> {
   final PlaySound? _sound;
   Timer? _finishTimer;
   Timer? _stageTimer;
+
+  /// Сценарий итогов раунда, который ждёт конца сценария последнего хода; `null`, если ждать нечего.
+  StageScript? _queuedStage;
   int _stageCount = 0;
   final Map<Seat, PlayerView> _seen = {};
   int _toastCount = 0;
@@ -121,6 +125,13 @@ final class FieldCubit extends Cubit<FieldState> {
   void endStage(int id) {
     if (state.stage?.id != id) return;
     _stageTimer?.cancel();
+    if (_queuedStage case final queued?) {
+      // Последний ход раунда доигран: следом идут итоги, поле остаётся занятым.
+      _queuedStage = null;
+      emit(state.copyWith(stage: queued));
+      _stageTimer = Timer(Duration(milliseconds: queued.duration.ceil()) + stageGrace, () => endStage(queued.id));
+      return;
+    }
     emit(state.copyWith(clearStage: true));
   }
 
@@ -168,6 +179,7 @@ final class FieldCubit extends Cubit<FieldState> {
         // Телефон ушёл другому игроку или партия закончилась: чужие выбор, листы, тосты и баннеры не переносятся.
         _finishTimer?.cancel();
         _stageTimer?.cancel();
+        _queuedStage = null;
         if (!state.isClean) emit(const FieldState());
         if (match is MatchIntro || match is MatchStarting) _forget();
         if (match is MatchIntro) playSound(SoundEffect.matchOpening);
@@ -197,10 +209,19 @@ final class FieldCubit extends Cubit<FieldState> {
     _playDealSounds(view, events);
     // Конец раунда или матча показывает по полю перед последним действием; остальное — по прошлой увиденной проекции.
     final roundSummary = closing == null ? null : _roundSummaryFor(view, events);
-    final script = closing != null && roundSummary != null
-        ? _roundStageFor(closing, view, events, content, style, roundSummary)
-        : _resignationStageFor(view, events, content, style) ?? _stageFor(view, events, content, style);
+    StageScript? script;
+    StageScript? queued;
+    if (closing != null && roundSummary != null) {
+      // Подсчёт начинается после того, как доиграл последний ход раунда (ADR 0018): сначала сценарий хода, итоги ждут.
+      final lastMove = _lastMoveFor(closing, view, events, content, style);
+      final round = _roundStageFor(lastMove?.board ?? closing, view, events, content, style, roundSummary);
+      script = lastMove?.script ?? round;
+      if (lastMove != null) queued = round;
+    } else {
+      script = _resignationStageFor(view, events, content, style) ?? _stageFor(view, events, content, style);
+    }
     if (script != null) {
+      _queuedStage = queued;
       next = next.copyWith(stage: script);
       // Сдача обрывает партию: баннер хода, пауза и выбор, которые ещё висят, итога не задерживают.
       if (events.any(_isResignation)) {
@@ -212,7 +233,8 @@ final class FieldCubit extends Cubit<FieldState> {
         );
       }
       _stageTimer?.cancel();
-      _stageTimer = Timer(Duration(milliseconds: script.duration.ceil()) + stageGrace, () => endStage(script.id));
+      final id = script.id;
+      _stageTimer = Timer(Duration(milliseconds: script.duration.ceil()) + stageGrace, () => endStage(id));
     }
     if (next.selected case final selected? when !view.me.playable.contains(selected)) {
       next = next.copyWith(clearSelected: true);
@@ -286,6 +308,32 @@ final class FieldCubit extends Cubit<FieldState> {
     if (endIndex < 0) return null;
     final result = (events[endIndex] as RoundEnded).result;
     return _summarizedRounds.add(result.round) ? _buildSummary(view, events, endIndex) : null;
+  }
+
+  /// Последний ход раунда, если он состоял из хода отрядами: его сценарий и поле после него; иначе `null`.
+  ({StageScript script, PlayerView board})? _lastMoveFor(
+    PlayerView closing,
+    PlayerView view,
+    List<GameEvent> events,
+    GameContent content,
+    StageStyle style,
+  ) {
+    final endIndex = events.lastIndexWhere((event) => event is RoundEnded);
+    final moves = events.sublist(0, endIndex);
+    final board = boardAfterLastMove(
+      closing: closing,
+      moves: moves,
+      result: (events[endIndex] as RoundEnded).result,
+      catalog: content.catalog,
+    );
+    if (board == null) return null;
+    final script = StageScriptBuilder(
+      prev: closing,
+      next: board,
+      catalog: content.catalog,
+      style: style,
+    ).buildLastMove(++_stageCount, moves);
+    return script == null ? null : (script: script, board: board);
   }
 
   StageScript? _roundStageFor(

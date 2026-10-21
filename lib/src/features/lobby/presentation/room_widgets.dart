@@ -211,7 +211,7 @@ class RoomPlayerCard extends StatelessWidget {
   /// Фракция колоды; `null`, пока колода не выбрана.
   final GwentFaction? faction;
 
-  /// «Фракция · лидер»; `null`, пока колода не выбрана.
+  /// «Фракция · лидер» или подпись, что соперник скрыт; `null`, пока колода не выбрана.
   final String? description;
 
   /// Что игрок делает.
