@@ -43,7 +43,7 @@ class CompactPower extends StatelessWidget {
       PowerLook.base || PowerLook.hero => null,
     };
     // Между таблетками остаётся зазор 1 pt, чтобы кольца соседних карт не сливались.
-    final pill = (width - 1).clamp(8.0, double.infinity);
+    final pill = width - 1;
     return Container(
       width: pill,
       height: arrow == null ? plainHeight : height,

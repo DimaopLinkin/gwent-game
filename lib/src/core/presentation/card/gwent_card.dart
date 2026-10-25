@@ -37,6 +37,9 @@ class GwentCard extends StatelessWidget {
     this.onLongPress,
   });
 
+  /// Отступ сжатой силы от левого края карты: таблетка занимает всю видимую полоску.
+  static const double compactInset = 0.5;
+
   /// Сколько держать палец, чтобы открыть полный просмотр.
   static const Duration longPressDuration = Duration(milliseconds: 450);
 
@@ -181,7 +184,11 @@ class GwentCard extends StatelessWidget {
         ),
       ),
       if (size.hasColumn && face is! CardBackFace)
-        Positioned(left: compactWidth == null ? m.columnInset : 0.5, top: m.columnInset, child: _column(face, m)),
+        Positioned(
+          left: compactWidth == null ? m.columnInset : compactInset,
+          top: m.columnInset,
+          child: _column(face, m),
+        ),
       if (size == CardSize.mini) ?_miniCenter(face, m),
       if (face case LeaderCardFace(:final abilityUsed))
         Positioned(

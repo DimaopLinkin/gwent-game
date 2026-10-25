@@ -7,6 +7,7 @@ import 'package:gwent/src/core/presentation/card/card_detail_view.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/card/parts/compact_power.dart';
+import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
 import 'package:gwent/src/core/presentation/components/card_pile.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
 import 'package:gwent/src/core/presentation/components/row_score_pill.dart';
@@ -124,13 +125,14 @@ void main() {
   }
 
   group('тесный ряд', () {
-    /// Ряд из [count] карт: сила `base + i % 5`, поэтому есть и базовая, и усиленная.
+    /// Ряд из [count] карт: по кругу базовая, усиленная, ещё сильнее, ослабленная и герой.
     RowView crowded(int count) {
-      final units = [for (var i = 0; i < count; i++) cards.unit(Row.melee)];
-      final views = [
-        for (var i = 0; i < count; i++)
-          FieldCardView(card: units[i], strength: cards.strength(units[i]) + (i % 5 == 0 ? 0 : i % 5)),
-      ];
+      final views = <FieldCardView>[];
+      for (var i = 0; i < count; i++) {
+        final card = i % 5 == 4 ? cards.hero() : cards.unit(Row.melee);
+        final base = cards.strength(card);
+        views.add(FieldCardView(card: card, strength: base + const [0, 1, 3, -1, 0][i % 5]));
+      }
       return RowView(cards: views, slot: null, weather: false, strength: views.fold(0, (sum, v) => sum + v.strength));
     }
 
@@ -146,35 +148,38 @@ void main() {
         );
         expect(tester.takeException(), isNull);
         final field = FieldGeometry(width: size.width);
-        final rowCards = find.descendant(
-          of: find.byType(FieldView),
-          matching: find.byType(GwentCard),
-        );
         final compact = find.byType(CompactPower);
         expect(compact, findsNWidgets(18), reason: 'последняя карта открыта целиком');
         final step = field.cardStep(19);
-        final pills = [for (final element in compact.evaluate()) tester.getRect(find.byWidget(element.widget))];
-        pills.sort((a, b) => a.left.compareTo(b.left));
+        final pills = tester.widgetList<CompactPower>(compact).toList();
+        final rects = [for (final element in compact.evaluate()) tester.getRect(find.byWidget(element.widget))];
         for (var i = 0; i < pills.length; i++) {
-          final pill = pills[i];
+          final view = row.cards[i];
+          final base = cards.strength(view.card);
           // Таблетка внутри видимой полоски карты: следующая карта её не закрывает.
-          expect(pill.width, closeTo(step - 1, 0.5));
-          if (i > 0) expect(pill.left, greaterThanOrEqualTo(pills[i - 1].right));
-        }
-        // Усиленные карты показывают стрелку, и у каждой в сжатом виде.
-        final boosted = row.cards.where((view) => view.strength > cards.strength(view.card)).length;
-        expect(
-          find.byWidgetPredicate((w) => w is GwentIconView && w.icon == GwentIcon.iconPowerUp),
-          findsNWidgets(boosted),
-        );
-        expect(rowCards, findsWidgets);
-        for (final power in row.cards.take(18)) {
+          expect(rects[i].width, closeTo(step - 1, 0.5));
+          if (i > 0) expect(rects[i].left, greaterThanOrEqualTo(rects[i - 1].right));
+          expect(pills[i].power, view.strength, reason: 'карта $i');
           expect(
-            find.descendant(of: compact, matching: find.text('${power.strength}')),
-            findsWidgets,
-            reason: 'сила ${power.strength}',
+            pills[i].look,
+            i % 5 == 4
+                ? PowerLook.hero
+                : view.strength > base
+                ? PowerLook.buffed
+                : view.strength < base
+                ? PowerLook.debuffed
+                : PowerLook.base,
+            reason: 'карта $i',
           );
         }
+        // Стрелки усиления и ослабления есть у каждой сжатой карты, которая изменилась.
+        int arrows(GwentIcon icon) => find
+            .descendant(of: compact, matching: find.byWidgetPredicate((w) => w is GwentIconView && w.icon == icon))
+            .evaluate()
+            .length;
+        expect(arrows(GwentIcon.iconPowerUp), pills.where((p) => p.look == PowerLook.buffed).length);
+        expect(arrows(GwentIcon.iconPowerDown), pills.where((p) => p.look == PowerLook.debuffed).length);
+        expect(arrows(GwentIcon.iconPowerDown), greaterThan(0));
       });
     }
 

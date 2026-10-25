@@ -75,7 +75,8 @@ void main() {
     expect(geometry.cardStep(3), 56);
     expect(geometry.isRowCompact(1), isFalse);
     expect(geometry.isRowCompact(9), isFalse, reason: 'шаг 35 pt: медальон со стрелкой виден');
-    expect(geometry.isRowCompact(12), isTrue);
+    expect(geometry.isRowCompact(10), isFalse, reason: 'шаг 31 pt');
+    expect(geometry.isRowCompact(11), isTrue, reason: 'шаг 28 pt');
     final step = geometry.cardStep(19);
     expect(step, closeTo((334 - 52) / 18, 0.001));
     expect(geometry.isRowCompact(19), isTrue);
