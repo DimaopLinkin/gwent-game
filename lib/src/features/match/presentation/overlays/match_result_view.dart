@@ -45,8 +45,8 @@ class MatchResultView extends StatefulWidget {
   /// Сколько затемняется поле (токен `sheet.dim`).
   static const Duration fieldDim = Duration(milliseconds: 300);
 
-  /// Высота листа макета.
-  static const double sheetHeight = 540;
+  /// Высота листа: выше макета (540), чтобы середина с прокруткой не сжималась из-за кнопок «Реванш» и «Другая колода».
+  static const double sheetHeight = 640;
 
   /// Высота шапки; свёрнутый лист показывает только её.
   static const double headerHeight = 64;
