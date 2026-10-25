@@ -170,6 +170,10 @@ class FieldRowView extends StatelessWidget {
                       view: cards[i],
                       content: content,
                       rect: geometry.cardRect(row, i, cards.length, mine: mine).shift(-rect.topLeft),
+                      // Следующая карта закрывает медальон: в тесном ряду сила сжимается до видимой полоски.
+                      compactWidth: i < cards.length - 1 && geometry.isRowCompact(cards.length)
+                          ? geometry.cardStep(cards.length)
+                          : null,
                       frosted: hasWeather && row == Row.melee,
                       hidden: staging?[i].hidden ?? false,
                       opacity: staging?[i].opacity ?? 1,
@@ -281,6 +285,7 @@ class _FieldCard extends StatelessWidget {
     required this.view,
     required this.content,
     required this.rect,
+    required this.compactWidth,
     required this.frosted,
     required this.hidden,
     required this.opacity,
@@ -294,6 +299,7 @@ class _FieldCard extends StatelessWidget {
   final FieldCardView view;
   final FieldContent content;
   final Rect rect;
+  final double? compactWidth;
   final bool frosted;
   final bool hidden;
   final double opacity;
@@ -339,6 +345,7 @@ class _FieldCard extends StatelessWidget {
             child: GwentCard(
               face: detail.face,
               size: CardSize.row,
+              compactWidth: compactWidth,
               highlight: justPlayed ? CardHighlight.justPlayed : CardHighlight.normal,
               onTap: onTap == null ? null : () => onTap!(card),
               onLongPress: onLongPress == null ? null : () => onLongPress!(card, view.strength),
