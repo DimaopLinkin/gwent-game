@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/lobby/data/lan_connector.dart';
 import 'package:gwent/src/features/lobby/data/lan_server.dart';
@@ -114,6 +115,58 @@ void main() {
       }
       await _until(() => received.length == 40);
       await socket.close();
+    });
+  });
+
+  group('защита гостя от огромных сообщений хоста', () {
+    /// Чужой «хост»: честное рукопожатие, а потом одно двоичное сообщение [size] байт. Возвращает порт.
+    Future<(ServerSocket, int)> hostileHost(int size) async {
+      final listener = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      listener.listen((socket) async {
+        final request = await utf8.decoder
+            .bind(socket)
+            .transform(const LineSplitter())
+            .firstWhere(
+              (line) => line.toLowerCase().startsWith('sec-websocket-key:'),
+            );
+        final key = request.substring(request.indexOf(':') + 1).trim();
+        final accept = base64.encode(sha1.convert(utf8.encode('${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11')).bytes);
+        socket.add(
+          ascii.encode(
+            'HTTP/1.1 101 Switching Protocols\r\nconnection: Upgrade\r\nupgrade: websocket\r\n'
+            'sec-websocket-accept: $accept\r\n\r\n',
+          ),
+        );
+        // Кадр без маски: 0x82 — конец сообщения, двоичные данные; 127 — длина в восьми байтах.
+        final header = ByteData(10)
+          ..setUint8(0, 0x82)
+          ..setUint8(1, 127)
+          ..setUint64(2, size);
+        socket.add(header.buffer.asUint8List());
+        socket.add(Uint8List(size));
+        await socket.flush().onError((_, _) {});
+      });
+      return (listener, listener.port);
+    }
+
+    test('сообщение больше лимита рвёт соединение, не доходя до приложения', () async {
+      final (listener, port) = await hostileHost(2 * 1024 * 1024);
+      addTearDown(listener.close);
+      final guest = await connector.connect(LanAddress(gameId: 'game-1', hosts: const ['127.0.0.1'], port: port));
+      final received = <Uint8List>[];
+      final done = Completer<void>();
+      guest.incoming.listen(received.add, onDone: done.complete);
+      await done.future.timeout(const Duration(seconds: 10));
+      expect(received, isEmpty);
+    });
+
+    test('сообщение в пределах лимита доходит', () async {
+      final (listener, port) = await hostileHost(60 * 1024);
+      addTearDown(listener.close);
+      final guest = await connector.connect(LanAddress(gameId: 'game-1', hosts: const ['127.0.0.1'], port: port));
+      final received = await guest.incoming.first.timeout(const Duration(seconds: 10));
+      expect(received, hasLength(60 * 1024));
+      await guest.close();
     });
   });
 

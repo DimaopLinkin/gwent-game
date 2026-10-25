@@ -23,7 +23,7 @@ void main() {
       );
       expect(
         utf8.decode(bytes),
-        '{"v":1,"t":"intent","seq":3,"ack":2,"m":"m1","p":{"intent":{"type":"play_card","card":42,"row":"melee"}}}',
+        '{"v":2,"t":"intent","seq":3,"ack":2,"m":"m1","p":{"intent":{"type":"play_card","card":42,"row":"melee"}}}',
       );
     });
 
@@ -37,7 +37,7 @@ void main() {
       );
       expect(
         utf8.decode(bytes),
-        '{"v":1,"t":"error","seq":7,"ack":4,"p":{"code":"intent_rejected","reply_to":4,'
+        '{"v":2,"t":"error","seq":7,"ack":4,"p":{"code":"intent_rejected","reply_to":4,'
         '"reject":{"reason":"not_your_turn","violations":[]}}}',
       );
     });
@@ -203,12 +203,12 @@ void main() {
     test('не JSON, не объект, неизвестный тип', () {
       expect(() => codec.decode(utf8.encode('{')), malformed('не JSON'));
       expect(() => codec.decode(utf8.encode('[]')), malformed(r'$: ожидался объект'));
-      expect(() => codec.decode(frame({'v': 1, 't': 'dance', 'seq': 0, 'ack': 0, 'p': {}})), malformed('dance'));
+      expect(() => codec.decode(frame({'v': 2, 't': 'dance', 'seq': 0, 'ack': 0, 'p': {}})), malformed('dance'));
     });
 
     test('поле не того типа называется по пути', () {
       final json = {
-        'v': 1,
+        'v': 2,
         't': 'intent',
         'seq': 1,
         'ack': 0,
@@ -221,13 +221,13 @@ void main() {
 
     test('номер должен быть у номерных сообщений и только у них', () {
       expect(
-        () => codec.decode(frame({'v': 1, 't': 'resend', 'seq': 4, 'ack': 0, 'p': <String, Object?>{}})),
+        () => codec.decode(frame({'v': 2, 't': 'resend', 'seq': 4, 'ack': 0, 'p': <String, Object?>{}})),
         malformed('номер 4'),
       );
       expect(
         () => codec.decode(
           frame({
-            'v': 1,
+            'v': 2,
             't': 'opponent',
             'seq': 0,
             'ack': 0,
@@ -237,35 +237,35 @@ void main() {
         malformed('нет номера'),
       );
       expect(
-        () => codec.decode(frame({'v': 1, 't': 'resend', 'seq': 0, 'ack': -1, 'p': <String, Object?>{}})),
+        () => codec.decode(frame({'v': 2, 't': 'resend', 'seq': 0, 'ack': -1, 'p': <String, Object?>{}})),
         malformed('отрицательный'),
       );
     });
 
     test('другая версия протокола: отдельная ошибка, а reject понятен любой версии', () {
       expect(
-        () => codec.decode(frame({'v': 2, 't': 'hello', 'seq': 0, 'ack': 0, 'p': <String, Object?>{}})),
-        throwsA(isA<UnsupportedProtocol>().having((error) => error.version, 'version', 2)),
+        () => codec.decode(frame({'v': 3, 't': 'hello', 'seq': 0, 'ack': 0, 'p': <String, Object?>{}})),
+        throwsA(isA<UnsupportedProtocol>().having((error) => error.version, 'version', 3)),
       );
       expect(
-        () => codec.decode(frame({'v': 2, 'type': 'hello'})),
+        () => codec.decode(frame({'v': 3, 'type': 'hello'})),
         throwsA(isA<UnsupportedProtocol>()),
         reason: 'кадр будущей версии без поля t',
       );
       final reject = codec.decode(
         frame({
-          'v': 2,
+          'v': 3,
           't': 'reject',
           'seq': 0,
           'ack': 0,
-          'p': {'reason': 'protocol_mismatch', 'protocol': 2},
+          'p': {'reason': 'protocol_mismatch', 'protocol': 3},
         }),
       );
-      expect(reject.message, const JoinRejected(JoinRefusal.protocolMismatch, protocol: 2));
+      expect(reject.message, const JoinRejected(JoinRefusal.protocolMismatch, protocol: 3));
     });
 
     test('слишком большой кадр не разбирается', () {
-      expect(() => const EnvelopeCodec(maxFrameBytes: 10).decode(utf8.encode('{"v":1,"t":"ping"}')), malformed('байт'));
+      expect(() => const EnvelopeCodec(maxFrameBytes: 10).decode(utf8.encode('{"v":2,"t":"ping"}')), malformed('байт'));
     });
   });
 }

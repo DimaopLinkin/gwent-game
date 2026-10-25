@@ -117,6 +117,10 @@ abstract interface class OnlineRooms {
   /// Хост закрывает комнату; гость тоже теряет доступ.
   Future<void> close(String roomId);
 
+  /// Хост подтверждает гостя: тот вошёл в канал и прислал кадр. Подтверждённое место гостя никому не отдаётся, пока
+  /// комната жива (ADR 0028).
+  Future<void> confirmGuest(String roomId);
+
   /// Жива ли комната. Видят её только участники.
   Future<RoomStanding> standing(String roomId);
 

@@ -121,6 +121,9 @@ final class MatchClient {
   /// Уходит из лобби: хост освобождает место сразу. Соединение закрывает приложение.
   int leaveLobby() => _sendSequenced(const LobbyLeave());
 
+  /// Просит реванш или соглашается на него. Хост принимает это только после конца партии.
+  int requestRematch() => _sendSequenced(const RematchRequest());
+
   /// Закрывает соединение и поток событий.
   Future<void> close() async {
     _ping?.cancel();
@@ -221,6 +224,11 @@ final class MatchClient {
         _emit(const OpponentLeft());
       case Admitted():
         _emit(const GuestAdmitted());
+      case RematchStatus(:final phase, :final window):
+        _emit(RematchChanged(phase, window: window));
+      case RematchStart():
+        _view = null;
+        _emit(const RematchStarted());
       case LobbyClose():
         // Хост закроет соединение сам; обрыв после этого сообщения не повод переподключаться.
         _status = ConnectionStatus.closed;
@@ -247,7 +255,15 @@ final class MatchClient {
     if (link != null && _status == ConnectionStatus.online) link.send(_channel.control(Ping(sent: _channel.sent)));
   }
 
-  void _onMalformed(PeerLink link, ProtocolException error) => unawaited(link.close());
+  void _onMalformed(PeerLink link, ProtocolException error) {
+    if (link != _link) return;
+    if (error is UnsupportedProtocol && _status == ConnectionStatus.joining) {
+      // Хост ответил кадром другой версии (не `reject`, который понятен всем): игроку надо обновить приложение.
+      _status = ConnectionStatus.refused;
+      _emit(JoinRefused(JoinRefusal.protocolMismatch, hostProtocol: error.version));
+    }
+    unawaited(link.close());
+  }
 
   void _onQuiet(PeerLink link, {required bool quiet}) {
     if (link != _link || _status != ConnectionStatus.online) return;

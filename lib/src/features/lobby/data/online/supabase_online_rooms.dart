@@ -95,6 +95,11 @@ final class SupabaseOnlineRooms implements OnlineRooms {
   }
 
   @override
+  Future<void> confirmGuest(String roomId) async {
+    await _call('confirm_guest', {'p_room_id': roomId});
+  }
+
+  @override
   Future<RoomStanding> standing(String roomId) async {
     await _ensureSession();
     final Map<String, dynamic>? row;

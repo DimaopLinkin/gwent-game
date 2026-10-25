@@ -60,6 +60,12 @@ final class MatchHost {
   /// Отсчёт до старта партии: идёт, пока оба игрока готовы и на связи.
   Timer? _countdown;
 
+  /// Время на ответ о реванше: идёт с первой просьбы, пока соперник не согласился.
+  Timer? _rematchTimer;
+
+  /// Время на ответ о реванше вышло.
+  bool _rematchExpired = false;
+
   /// Полное состояние партии; `null` до начала. Его видит только хост, игрокам уходят проекции.
   MatchState? get state => _state;
 
@@ -147,10 +153,17 @@ final class MatchHost {
       for (final session in _seats.values) {
         _send(session, const LobbyClose());
       }
+    } else if (_state?.phase == MatchPhase.finished) {
+      // На экране итога хост уходит: реванша не будет, об этом гость узнаёт сразу, а не по обрыву связи.
+      for (final session in _seats.values.where((session) => session.admitted && session.online)) {
+        _send(session, RematchStatus(RematchPhase.opponentGone, window: _settings.rematchWindow));
+      }
     }
     _closed = true;
     _countdown?.cancel();
     _countdown = null;
+    _rematchTimer?.cancel();
+    _rematchTimer = null;
     unawaited(_pending.close());
     final links = [..._anonymous, for (final session in _seats.values) ?session.link];
     _anonymous.clear();
@@ -205,7 +218,7 @@ final class MatchHost {
     session
       ..link = null
       ..unstable = false;
-    if (_state?.phase == MatchPhase.finished) return;
+    if (_state?.phase == MatchPhase.finished) return _announceRematch();
     _cancelCountdown();
     _announce(session.seat);
     session.grace = _scheduler.timer(_settings.reconnectGrace, () => _expire(session));
@@ -274,6 +287,12 @@ final class MatchHost {
     _announce(session.seat);
     _announce(session.seat.opponent);
     _announceLobby(session.seat);
+    if (_state?.phase == MatchPhase.finished) {
+      // Вернувшийся игрок сам объявил соперника ушедшим, пока был без связи: ему нужна текущая фаза, даже если для
+      // хоста она не менялась.
+      session.rematchShown = RematchPhase.opponentGone;
+      _announceRematch();
+    }
     _startIfReady();
   }
 
@@ -342,6 +361,8 @@ final class MatchHost {
         _onWithdrawal(session, envelope.seq);
       case LobbyLeave():
         _onLeave(session);
+      case RematchRequest():
+        _onRematch(session, envelope.seq);
       case ControlMessage() || HostMessage():
         // Нарушение протокола: сообщение хоста от клиента.
         unawaited(session.link?.close());
@@ -397,6 +418,62 @@ final class MatchHost {
     if (link != null) unawaited(link.close());
     if (_seats[session.seat.opponent] case final remaining? when remaining.admitted) {
       _send(remaining, const OpponentLeave());
+    }
+  }
+
+  /// Игрок просит реванш или соглашается на него. Когда согласны оба, партия сбрасывается до лобби.
+  void _onRematch(SeatSession session, int seq) {
+    if (_state?.phase != MatchPhase.finished) return _refuse(session, RefusalCode.matchNotFinished, seq);
+    final other = _seats[session.seat.opponent];
+    if (_rematchExpired || session.rematch || other == null || !other.online || !other.admitted) return;
+    session.rematch = true;
+    if (other.rematch) return _startRematch();
+    // Время идёт с первой просьбы: соперник успевает ответить, но не вечно.
+    _rematchTimer ??= _scheduler.timer(_settings.rematchWindow, () {
+      _rematchTimer = null;
+      _rematchExpired = true;
+      _announceRematch();
+    });
+    _announceRematch();
+  }
+
+  /// Оба согласны: партия забыта, игроки снова в лобби без колод. Места, токены и соединения остаются прежними.
+  void _startRematch() {
+    _rematchTimer?.cancel();
+    _rematchTimer = null;
+    _rematchExpired = false;
+    _state = null;
+    for (final session in _seats.values) {
+      session
+        ..rematch = false
+        ..rematchShown = null
+        ..deck = null
+        ..draft = const LobbyStatus(LobbyStage.choosing);
+    }
+    for (final session in _seats.values.where((session) => session.admitted)) {
+      _send(session, const RematchStart());
+    }
+    _announceLobby(Seat.one);
+    _announceLobby(Seat.two);
+  }
+
+  /// Фаза реванша для игрока [session]: что он видит на экране итога.
+  RematchPhase _rematchPhase(SeatSession session) {
+    final other = _seats[session.seat.opponent];
+    if (other == null || !other.online) return RematchPhase.opponentGone;
+    if (_rematchExpired) return RematchPhase.expired;
+    if (session.rematch) return RematchPhase.asked;
+    if (other.rematch) return RematchPhase.invited;
+    return RematchPhase.idle;
+  }
+
+  /// Сообщает каждому игроку, на связи которого хост, как идёт реванш. Повтор прежней фазы не отправляется.
+  void _announceRematch() {
+    for (final session in _seats.values.where((session) => session.admitted && session.online)) {
+      final phase = _rematchPhase(session);
+      if ((session.rematchShown ?? RematchPhase.idle) == phase) continue;
+      session.rematchShown = phase;
+      _send(session, RematchStatus(phase, window: _settings.rematchWindow));
     }
   }
 
@@ -463,7 +540,12 @@ final class MatchHost {
           for (final session in _seats.values) {
             session.grace?.cancel();
             session.grace = null;
+            session.rematch = false;
+            session.rematchShown = null;
           }
+          _rematchExpired = false;
+          // Партия могла кончиться сдачей ушедшего игрока: оставшийся узнаёт, что реванша не будет.
+          _announceRematch();
         }
     }
   }

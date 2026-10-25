@@ -13,6 +13,7 @@ final class HostSettings extends Value {
     this.resendCooldown = const Duration(seconds: 1),
     this.requireAdmission = false,
     this.admissionTimeout = const Duration(seconds: 30),
+    this.rematchWindow = const Duration(seconds: 30),
   });
 
   /// Набор правил хоста: гость с другим набором не подключится.
@@ -49,6 +50,9 @@ final class HostSettings extends Value {
   /// Сколько хост может решать, пускать ли игрока: потом игрок отклоняется.
   final Duration admissionTimeout;
 
+  /// Сколько соперник может думать над реваншем после того, как его предложил другой игрок (ADR 0028).
+  final Duration rematchWindow;
+
   @override
   List<Object?> get props => [
     ruleset,
@@ -60,5 +64,6 @@ final class HostSettings extends Value {
     resendCooldown,
     requireAdmission,
     admissionTimeout,
+    rematchWindow,
   ];
 }

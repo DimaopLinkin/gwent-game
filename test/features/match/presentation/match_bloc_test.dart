@@ -13,6 +13,7 @@ import 'package:gwent/src/features/match/application/record_finished_match.dart'
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
@@ -122,7 +123,7 @@ void main() {
             );
           case MatchInProgress() || MatchFinished() || MatchCrashed():
             if (!done.isCompleted) done.complete();
-          case MatchIdle() || MatchStarting() || MatchStartFailed() || MatchRedrawSettled():
+          case MatchIdle() || MatchStarting() || MatchStartFailed() || MatchRedrawSettled() || MatchRematchAgreed():
         }
       });
       bloc.add(MatchStartRequested(LocalMatchRequest(mode: mode, deckOne: 'skellige', deckTwo: 'monsters')));
@@ -495,6 +496,75 @@ void main() {
     expect(bloc.state, isA<MatchInProgress>());
   });
 
+  group('реванш сетевой партии', () {
+    Future<_RematchFakeTable> finishedOnline(MatchBloc bloc) async {
+      final table = _RematchFakeTable();
+      bloc.add(MatchSessionOpened(_session(table, content, opponentName: 'Геральт')));
+      await pumpEventQueue();
+      table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
+      await pumpEventQueue();
+      bloc.add(const MatchIntroFinished());
+      await pumpEventQueue();
+      table.push(ViewsChanged({Seat.one: _finishedView(content)}, const {Seat.one: []}));
+      await bloc.stream.firstWhere((state) => state is MatchFinished);
+      return table;
+    }
+
+    test(
+      'итог несёт предложение реванша, имя соперника, и «Реванш» просит его у стола, а не открывает новую партию',
+      () async {
+        final online = newBloc(awaitingSession: true);
+        final table = await finishedOnline(online);
+        final finished = online.state as MatchFinished;
+        expect(finished.rematch, RematchOffer.idle);
+        expect(finished.roster.opponentName, 'Геральт');
+        online.add(const MatchRematchRequested());
+        await pumpEventQueue();
+        expect(table.rematchRequests, 1);
+        expect(online.state, isA<MatchFinished>());
+      },
+    );
+
+    test('предложение соперника доходит до итога, ответить можно, пока оно не закончилось', () async {
+      final online = newBloc(awaitingSession: true);
+      final table = await finishedOnline(online);
+      const invited = RematchOffer(RematchStage.invited, window: Duration(seconds: 30));
+      table.push(const TableRematchChanged(invited));
+      await pumpEventQueue();
+      expect((online.state as MatchFinished).rematch, invited);
+      online.add(const MatchRematchRequested());
+      await pumpEventQueue();
+      expect(table.rematchRequests, 1);
+
+      table.push(const TableRematchChanged(RematchOffer(RematchStage.expired)));
+      await pumpEventQueue();
+      expect((online.state as MatchFinished).rematch?.stage, RematchStage.expired);
+      online.add(const MatchRematchRequested());
+      await pumpEventQueue();
+      expect(table.rematchRequests, 1, reason: 'после конца времени предлагать нечего');
+    });
+
+    test('оба согласны: состояние «реванш согласован», дальше стол экран не двигает', () async {
+      final online = newBloc(awaitingSession: true);
+      final table = await finishedOnline(online);
+      table.push(const TableRematchAgreed());
+      await online.stream.firstWhere((state) => state is MatchRematchAgreed);
+      table.push(const TableRematchChanged(RematchOffer(RematchStage.opponentGone)));
+      await pumpEventQueue();
+      expect(online.state, isA<MatchRematchAgreed>());
+    });
+
+    test('согласие вне итога игнорируется', () async {
+      final online = newBloc(awaitingSession: true);
+      final table = _RematchFakeTable();
+      online.add(MatchSessionOpened(_session(table, content)));
+      await pumpEventQueue();
+      table.push(const TableRematchAgreed());
+      await pumpEventQueue();
+      expect(online.state, isNot(isA<MatchRematchAgreed>()));
+    });
+  });
+
   test(
     'сетевая партия: держатель ждёт стол, а открытый стол ведёт к знакомству; второй стол не принимается и закрывается',
     () async {
@@ -706,7 +776,12 @@ Future<MatchFinished> _playOut(
         fail(error);
       case MatchStartFailed(:final reason):
         fail(StateError('партия не начата: $reason'));
-      case MatchIdle() || MatchStarting() || MatchInProgress() || MatchRedrawSettled() || MatchFinished():
+      case MatchIdle() ||
+          MatchStarting() ||
+          MatchInProgress() ||
+          MatchRedrawSettled() ||
+          MatchFinished() ||
+          MatchRematchAgreed():
     }
   });
   return finished.future.whenComplete(subscription.cancel);
@@ -723,11 +798,12 @@ Intent _humanIntent(PlayerView view, {required bool playCards}) {
 }
 
 /// Начатая партия против бота на поддельном столе.
-MatchSession _session(MatchTable table, GameContent content) => MatchSession(
+MatchSession _session(MatchTable table, GameContent content, {String? opponentName}) => MatchSession(
   mode: history.MatchMode.ai,
   table: table,
   content: content,
   factionIds: const {Seat.one: 'skellige', Seat.two: 'monsters'},
+  opponentName: opponentName,
 );
 
 /// Проекция первого места сразу после раздачи.
@@ -764,6 +840,30 @@ final class _FakeTable implements MatchTable {
 
   @override
   Future<void> close() async => closed = true;
+}
+
+/// Проекция первого места после сдачи: партия закончена.
+PlayerView _finishedView(GameContent content) {
+  final engine = GwentEngine(content.catalog, rules: content.rules);
+  final start =
+      engine.start(
+            MatchSetup(
+              one: realDeck(content, Faction.skellige, id: 'one').toEngineDeck(),
+              two: realDeck(content, Faction.monsters, id: 'two').toEngineDeck(),
+              rng: const SeededRng(7),
+            ),
+          )
+          as Accepted;
+  final end = engine.apply(start.state, Seat.one, const Resign()) as Accepted;
+  return engine.project(end.state, Seat.one);
+}
+
+/// Стол сетевой партии: считает запросы реванша.
+final class _RematchFakeTable extends _FakeTable implements RematchTable {
+  int rematchRequests = 0;
+
+  @override
+  void requestRematch() => rematchRequests++;
 }
 
 /// Колоды, которые отдаются, только когда завершится [gate].

@@ -9,6 +9,7 @@ void main() {
   late StreamController<TableUpdate> updates;
   late List<Intent> sent;
   late int closes;
+  late int rematches;
 
   NetworkMatchTable table({Seat seat = Seat.two}) {
     final table = NetworkMatchTable(
@@ -16,6 +17,7 @@ void main() {
       updates: updates.stream,
       onSubmit: sent.add,
       onClose: () async => closes++,
+      onRematch: () => rematches++,
     );
     addTearDown(table.close);
     return table;
@@ -25,6 +27,7 @@ void main() {
     updates = StreamController<TableUpdate>();
     sent = [];
     closes = 0;
+    rematches = 0;
     addTearDown(() => unawaited(updates.close()));
   });
 
@@ -61,5 +64,16 @@ void main() {
 
     expect(closes, 1);
     expect(() => network.submit(Seat.two, const Pass()), throwsStateError);
+  });
+
+  test('просьба о реванше уходит сетевой игре, а после закрытия — нет', () async {
+    final network = table();
+
+    network.requestRematch();
+    expect(rematches, 1);
+
+    await network.close();
+    network.requestRematch();
+    expect(rematches, 1);
   });
 }

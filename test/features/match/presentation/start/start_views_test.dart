@@ -44,6 +44,28 @@ void main() {
   }
 
   group('знакомство', () {
+    testWidgets('в сетевой партии соперника зовут по имени, пустое имя заменяет «Противник»', (tester) async {
+      await pumpView(
+        tester,
+        MatchIntroView(
+          roster: rosterOf(cards, opponentName: ' Геральт '),
+          onFinished: () {},
+        ),
+      );
+      expect(find.text('Геральт'), findsOneWidget);
+      expect(find.text('Противник'), findsNothing);
+      await tester.pump(MatchIntroView.duration);
+      await pumpView(
+        tester,
+        MatchIntroView(
+          roster: rosterOf(cards, opponentName: '  '),
+          onFinished: () {},
+        ),
+      );
+      expect(find.text('Противник'), findsOneWidget);
+      await tester.pump(MatchIntroView.duration);
+    });
+
     testWidgets('соперник сверху, «ПРОТИВ» посередине, я снизу; у каждого фракция и колода', (tester) async {
       final roster = rosterOf(
         cards,

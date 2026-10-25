@@ -25,6 +25,10 @@ final class FakeServerRoom {
   final GameAd ad;
   DateTime expiresAt;
   String? guestUid;
+
+  /// Когда гость занял место и подтвердил ли его хост (как `guest_joined_at` и `guest_seen_at`).
+  DateTime? guestJoinedAt;
+  bool guestSeen = false;
   bool open = true;
   DateTime? closedAt;
 
@@ -94,7 +98,7 @@ final class FakeOnlineRooms implements OnlineRooms {
   final FakeOnlineServer _server;
   final String uid;
 
-  /// Что телефон вызывал, по порядку: `create`, `join:КОД`, `setOpen:ID:open`, `close:ID`, `standing:ID`, `connect:ID`.
+  /// Что телефон вызывал, по порядку: `create`, `join:КОД`, `setOpen:ID:open`, `close:ID`, `confirmGuest:ID`, `standing:ID`, `connect:ID`.
   final List<String> calls = [];
 
   /// Следующий вход в канал откажет.
@@ -150,11 +154,20 @@ final class FakeOnlineRooms implements OnlineRooms {
     }
     if (room.hostUid == uid) throw const LobbyException(LobbyFailure.ownRoom);
     if (room.guestUid == uid) return room.info();
-    if (room.guestUid != null) throw const LobbyException(LobbyFailure.roomFull);
+    final taken = room.guestUid != null;
+    // Место гостя, которого хост не видел, через минуту уступается (ADR 0028).
+    final free =
+        taken &&
+        room.ad.protocol >= 2 &&
+        !room.guestSeen &&
+        _server.clock.now().difference(room.guestJoinedAt!) >= const Duration(minutes: 1);
+    if (taken && !free) throw const LobbyException(LobbyFailure.roomFull);
     if (!room.open) throw const LobbyException(LobbyFailure.roomClosed);
     room
       ..guestUid = uid
-      ..expiresAt = _server.clock.now().add(const Duration(hours: 6));
+      ..guestJoinedAt = _server.clock.now()
+      ..guestSeen = false;
+    if (!taken) room.expiresAt = _server.clock.now().add(const Duration(hours: 6));
     return room.info();
   }
 
@@ -173,6 +186,15 @@ final class FakeOnlineRooms implements OnlineRooms {
     _hostRoom(roomId)
       ..open = false
       ..closedAt = _server.clock.now();
+  }
+
+  @override
+  Future<void> confirmGuest(String roomId) async {
+    calls.add('confirmGuest:$roomId');
+    _guard();
+    final room = _hostRoom(roomId);
+    if (room.guestUid == null) throw const LobbyException(LobbyFailure.codeNotFound);
+    room.guestSeen = true;
   }
 
   FakeServerRoom _hostRoom(String roomId) {
