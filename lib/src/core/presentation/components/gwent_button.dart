@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:gwent/src/core/presentation/components/button_sound_scope.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_space.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
@@ -75,11 +76,12 @@ class _GwentButtonState extends State<GwentButton> {
   @override
   Widget build(BuildContext context) {
     final enabled = _enabled;
+    final onPressed = ButtonSoundScope.wrap(context, widget.onPressed);
     return Semantics(
       button: true,
       enabled: enabled,
       label: widget.semanticsLabel ?? widget.label,
-      onTap: widget.onPressed,
+      onTap: onPressed,
       excludeSemantics: true,
       child: Focus(
         canRequestFocus: enabled,
@@ -89,7 +91,7 @@ class _GwentButtonState extends State<GwentButton> {
           onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
           onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
           onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
-          onTap: widget.onPressed,
+          onTap: onPressed,
           child: Transform.translate(
             offset: Offset(0, _pressed ? 1 : 0),
             child: DecoratedBox(

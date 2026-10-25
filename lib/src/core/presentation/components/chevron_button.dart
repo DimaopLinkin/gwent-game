@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:gwent/src/core/presentation/components/button_sound_scope.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 
 /// Круглая кнопка со стрелкой-шевроном: «назад» в шапке и стрелки карусели фракций. Зона нажатия 44×44 pt.
@@ -25,30 +26,33 @@ class ChevronButton extends StatelessWidget {
   final Color ring;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    enabled: onPressed != null,
-    label: label,
-    onTap: onPressed,
-    excludeSemantics: true,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onPressed,
-      child: Opacity(
-        opacity: onPressed == null ? 0.3 : 1,
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xEB14110E),
-            border: Border.all(color: ring),
+  Widget build(BuildContext context) {
+    final action = ButtonSoundScope.wrap(context, onPressed);
+    return Semantics(
+      button: true,
+      enabled: onPressed != null,
+      label: label,
+      onTap: action,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: action,
+        child: Opacity(
+          opacity: onPressed == null ? 0.3 : 1,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xEB14110E),
+              border: Border.all(color: ring),
+            ),
+            child: CustomPaint(painter: _ChevronPainter(forward: forward)),
           ),
-          child: CustomPaint(painter: _ChevronPainter(forward: forward)),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ChevronPainter extends CustomPainter {

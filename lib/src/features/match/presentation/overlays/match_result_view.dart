@@ -34,6 +34,7 @@ class MatchResultView extends StatefulWidget {
     required this.roster,
     required this.onExit,
     this.onRematch,
+    this.onChangeDeck,
     this.rematch,
     this.field,
   });
@@ -61,6 +62,10 @@ class MatchResultView extends StatefulWidget {
 
   /// Реванш; `null` — сыграть заново нельзя.
   final VoidCallback? onRematch;
+
+  /// «Другая колода» в местной партии: вернуться к выбору фракции и колоды. `null` — кнопки нет (сетевая партия:
+  /// колоды там выбирают в комнате после согласия на реванш).
+  final VoidCallback? onChangeDeck;
 
   /// Договорённость о реванше в сетевой партии: кнопка доступна, пока можно предложить реванш или согласиться, а
   /// над кнопками пишется, что сейчас происходит. `null` — местная партия, где реванш не требует согласия.
@@ -205,30 +210,7 @@ class _MatchResultViewState extends State<MatchResultView> {
                         ),
                       ExcludeSemantics(
                         excluding: _collapsed,
-                        child: Row(
-                          spacing: 12,
-                          children: [
-                            if (widget.onRematch != null)
-                              Expanded(
-                                flex: 12,
-                                child: GwentButton(
-                                  label: l10n.matchResultRematch,
-                                  height: 56,
-                                  fontSize: 24,
-                                  onPressed: widget.rematch?.canRequest ?? true ? widget.onRematch : null,
-                                ),
-                              ),
-                            Expanded(
-                              flex: 10,
-                              child: GwentButton(
-                                label: l10n.matchExit,
-                                style: GwentButtonStyle.secondary,
-                                height: 56,
-                                onPressed: widget.onExit,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: widget.onChangeDeck == null ? _buttonsRow(l10n) : _buttonsColumn(l10n),
                       ),
                     ],
                   ),
@@ -240,6 +222,53 @@ class _MatchResultViewState extends State<MatchResultView> {
       },
     );
   }
+
+  /// «Реванш» и «В меню» в одном ряду.
+  Widget _buttonsRow(AppLocalizations l10n) => Row(
+    spacing: 12,
+    children: [
+      if (widget.onRematch != null) Expanded(flex: 12, child: _rematchButton(l10n)),
+      Expanded(flex: 10, child: _exitButton(l10n)),
+    ],
+  );
+
+  /// Местная партия: «Реванш» и «Другая колода» в первом ряду, «В меню» во втором на всю ширину.
+  Widget _buttonsColumn(AppLocalizations l10n) => Column(
+    spacing: 12,
+    children: [
+      Row(
+        spacing: 12,
+        children: [
+          if (widget.onRematch != null) Expanded(child: _rematchButton(l10n)),
+          Expanded(
+            child: GwentButton(
+              label: l10n.matchResultChangeDeck,
+              style: GwentButtonStyle.secondary,
+              height: 56,
+              fontSize: 20,
+              maxLines: 2,
+              onPressed: widget.onChangeDeck,
+            ),
+          ),
+        ],
+      ),
+      SizedBox(width: double.infinity, child: _exitButton(l10n)),
+    ],
+  );
+
+  Widget _rematchButton(AppLocalizations l10n) => GwentButton(
+    label: l10n.matchResultRematch,
+    height: 56,
+    fontSize: 24,
+    onPressed: widget.rematch?.canRequest ?? true ? widget.onRematch : null,
+  );
+
+  Widget _exitButton(AppLocalizations l10n) => GwentButton(
+    label: l10n.matchExit,
+    style: GwentButtonStyle.secondary,
+    height: 56,
+    onPressed: widget.onExit,
+  );
 
   /// Кривая выезда макета, `cubic-bezier(.22, 1, .36, 1)`.
   static const Curve _sheetCurve = Cubic(0.22, 1, 0.36, 1);

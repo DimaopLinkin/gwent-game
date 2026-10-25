@@ -70,14 +70,11 @@ void main() {
 
   MatchSetupReady now(MatchSetupCubit cubit) => cubit.state as MatchSetupReady;
 
-  /// Доходит до шага колод: фракция [factionIndex], лидер [leader] (без него — первый).
-  Future<void> toDeckStep(MatchSetupCubit cubit, {int factionIndex = 0, String? leader}) async {
+  /// Доходит до шага колод фракции с номером [factionIndex].
+  Future<void> toDeckStep(MatchSetupCubit cubit, {int factionIndex = 0}) async {
     await ready(cubit);
-    cubit
-      ..showFaction(factionIndex)
-      ..confirmFaction();
-    if (leader != null) cubit.selectLeader(leader);
-    await cubit.confirmLeader();
+    cubit.showFaction(factionIndex);
+    await cubit.confirmFaction();
   }
 
   Deck monstersDeck({String id = 'deck-monsters'}) => Deck(
@@ -89,7 +86,7 @@ void main() {
     updatedAt: DateTime.utc(2026, 10, 12),
   );
 
-  group('фракция и лидер', () {
+  group('фракция', () {
     test('пока правила читаются, загрузка; потом первая фракция пакета на первом месте', () async {
       final cubit = build(LocalMatchMode.vsBot);
       expect(cubit.state, isA<MatchSetupLoading>());
@@ -104,7 +101,7 @@ void main() {
       expect(state.isLastSeat, isTrue);
     });
 
-    test('листание меняет фракцию и сбрасывает лидера; за пределы списка и мимо шага не листает', () async {
+    test('листание меняет фракцию; за пределы списка и мимо шага не листает', () async {
       final cubit = build(LocalMatchMode.vsBot);
       await ready(cubit);
 
@@ -116,58 +113,41 @@ void main() {
       cubit.showFaction(1);
       expect(now(cubit).faction.id, Small.monsters);
 
-      cubit.confirmFaction();
+      await cubit.confirmFaction();
       cubit.showFaction(0);
-      expect(now(cubit).factionIndex, 1, reason: 'на шаге лидера фракцию не листают');
+      expect(now(cubit).factionIndex, 1, reason: 'на шаге колоды фракцию не листают');
     });
 
-    test('подтверждение фракции открывает лидеров; выбран первый лидер фракции', () async {
+    test('пока колоды готовятся, фракцию листать нельзя', () async {
       final cubit = build(LocalMatchMode.vsBot);
       await ready(cubit);
 
-      cubit.confirmFaction();
+      final confirming = cubit.confirmFaction();
+      cubit.showFaction(1);
+      await confirming;
+
+      expect(now(cubit).faction.id, Small.skellige);
+      expect(now(cubit).decks.every((choice) => choice.deck.factionId == Small.skellige), isTrue);
+    });
+
+    test('подтверждение фракции сразу открывает её колоды, без выбора лидера', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit);
+
+      await cubit.confirmFaction();
 
       final state = now(cubit);
-      expect(state.step, SetupStep.leader);
-      expect(state.leaderId, Small.crach);
-      expect(state.leader?.id, Small.crach);
+      expect(state.step, SetupStep.deck);
       expect(state.canStepBack, isTrue);
-    });
-
-    test('лидера чужой фракции выбрать нельзя, своего можно', () async {
-      final cubit = build(LocalMatchMode.vsBot);
-      await ready(cubit);
-      cubit.confirmFaction();
-
-      cubit.selectLeader(Small.eredin);
-      expect(now(cubit).leaderId, Small.crach);
-
-      cubit.selectLeader(Small.bran);
-      expect(now(cubit).leaderId, Small.bran);
-    });
-
-    test('вернувшись на фракцию и обратно, игрок находит прежнего лидера', () async {
-      final cubit = build(LocalMatchMode.vsBot);
-      await ready(cubit);
-      cubit
-        ..confirmFaction()
-        ..selectLeader(Small.bran);
-
-      expect(cubit.back(), isTrue);
-      expect(now(cubit).step, SetupStep.faction);
-      cubit.confirmFaction();
-
-      expect(now(cubit).leaderId, Small.bran);
     });
   });
 
   group('колода', () {
-    test('двойное подтверждение лидера открывает колоды один раз', () async {
+    test('двойное подтверждение фракции открывает колоды один раз', () async {
       await repository.save(smallSkelligeDeck());
       final cubit = build(LocalMatchMode.vsBot);
       await ready(cubit);
-      cubit.confirmFaction();
-      await Future.wait([cubit.confirmLeader(), cubit.confirmLeader()]);
+      await Future.wait([cubit.confirmFaction(), cubit.confirmFaction()]);
       await pumpEventQueue();
 
       expect(now(cubit).step, SetupStep.deck);
@@ -211,16 +191,24 @@ void main() {
       expect(state.deckId, 'active');
     });
 
-    test('лидер партии заменяет лидера колоды: колода годится с любым лидером своей фракции', () async {
-      await repository.save(smallSkelligeDeck());
+    test('лидер берётся из колоды: у каждой колоды свой, и все годятся в партию', () async {
+      await repository.save(smallSkelligeDeck(id: 'crach', updatedAt: DateTime.utc(2026, 10, 11)));
+      await repository.save(
+        smallSkelligeDeck(id: 'bran', updatedAt: DateTime.utc(2026, 10, 10)).copyWith(leaderId: Small.bran),
+      );
       final cubit = build(LocalMatchMode.vsBot);
 
-      await toDeckStep(cubit, leader: Small.bran);
+      await toDeckStep(cubit);
 
-      final choice = now(cubit).decks.single;
-      expect(choice.deck.leaderId, Small.crach, reason: 'сохранённая колода не меняется');
-      expect(choice.ready, isTrue);
-      expect(now(cubit).leaderId, Small.bran);
+      final choices = now(cubit).decks;
+      expect(
+        {for (final choice in choices) choice.deck.id: choice.deck.leaderId},
+        {
+          'crach': Small.crach,
+          'bran': Small.bran,
+        },
+      );
+      expect(choices.every((choice) => choice.ready), isTrue);
     });
 
     test('негодная колода: причины видны, выбрать можно, подтвердить нельзя', () async {
@@ -290,6 +278,7 @@ void main() {
       expect(state.canStepBack, isFalse, reason: 'первый шаг: назад только в меню');
       expect(state.stepTotal, 3);
       expect(state.stepNumber(SetupStep.faction), 2);
+      expect(state.stepNumber(SetupStep.deck), 3);
     });
 
     test('в hot-seat шага сложности нет', () async {
@@ -297,6 +286,7 @@ void main() {
 
       expect(state.step, SetupStep.faction);
       expect(state.stepTotal, 2);
+      expect(state.stepNumber(SetupStep.deck), 2);
     });
 
     test('уровень запоминается при подтверждении и выбран заранее в следующий раз', () async {
@@ -359,13 +349,13 @@ void main() {
   });
 
   group('партия против бота', () {
-    test('подтверждённая колода готовит запрос: лидер игрока, уровень и собранная колода бота', () async {
+    test('подтверждённая колода готовит запрос: колода игрока, уровень и собранная колода бота', () async {
       await repository.save(smallSkelligeDeck(id: 'mine'));
       final cubit = build(LocalMatchMode.vsBot);
       await ready(cubit, pastDifficulty: false);
       cubit.selectDifficulty(BotDifficulty.hard);
       await cubit.confirmDifficulty();
-      await toDeckStep(cubit, leader: Small.bran);
+      await toDeckStep(cubit);
 
       final done = cubit.stream.firstWhere((state) => state is MatchSetupDone);
       await cubit.confirmDeck();
@@ -373,8 +363,6 @@ void main() {
       final request = (await done as MatchSetupDone).request;
       expect(request.mode, LocalMatchMode.vsBot);
       expect(request.deckOne, 'mine');
-      expect(request.leaderOne, Small.bran);
-      expect(request.leaderTwo, isNull, reason: 'бот играет лидером своей колоды');
       expect(request.difficulty, BotDifficulty.hard);
       final bot = request.opponentDeck!;
       expect(request.deckTwo, bot.id);
@@ -452,11 +440,11 @@ void main() {
   });
 
   group('партия вдвоём на одном телефоне', () {
-    test('места выбирают по очереди, запрос несёт колоды и лидеров обоих', () async {
+    test('места выбирают по очереди, запрос несёт колоды обоих', () async {
       await repository.save(smallSkelligeDeck(id: 'one'));
       await repository.save(monstersDeck(id: 'two'));
       final cubit = build(LocalMatchMode.hotSeat);
-      await toDeckStep(cubit, leader: Small.bran);
+      await toDeckStep(cubit);
       expect(now(cubit).isHotSeat, isTrue);
       expect(now(cubit).isLastSeat, isFalse);
 
@@ -464,29 +452,23 @@ void main() {
       final state = now(cubit);
       expect(state.seat, Seat.two);
       expect(state.step, SetupStep.faction);
-      expect(state.leaderId, isNull);
       expect(state.isLastSeat, isTrue);
       expect(state.canStepBack, isTrue, reason: 'со второго места можно вернуться к колоде первого');
 
-      cubit
-        ..showFaction(1)
-        ..confirmFaction();
-      await cubit.confirmLeader();
+      cubit.showFaction(1);
+      await cubit.confirmFaction();
       expect(now(cubit).deckId, 'two');
       final done = cubit.stream.firstWhere((state) => state is MatchSetupDone);
       await cubit.confirmDeck();
 
       final request = (await done as MatchSetupDone).request;
-      expect(
-        (request.mode, request.deckOne, request.deckTwo, request.leaderOne, request.leaderTwo),
-        (LocalMatchMode.hotSeat, 'one', 'two', Small.bran, Small.eredin),
-      );
+      expect((request.mode, request.deckOne, request.deckTwo), (LocalMatchMode.hotSeat, 'one', 'two'));
     });
 
     test('«назад» со второго места возвращает к колоде первого, выбор которого сохранён', () async {
       await repository.save(smallSkelligeDeck(id: 'one'));
       final cubit = build(LocalMatchMode.hotSeat);
-      await toDeckStep(cubit, leader: Small.bran);
+      await toDeckStep(cubit);
       await cubit.confirmDeck();
 
       expect(cubit.back(), isTrue);
@@ -495,7 +477,6 @@ void main() {
       expect(state.seat, Seat.one);
       expect(state.step, SetupStep.deck);
       expect(state.faction.id, Small.skellige);
-      expect(state.leaderId, Small.bran);
       expect(state.deckId, 'one');
     });
 
@@ -513,13 +494,94 @@ void main() {
     });
   });
 
+  group('выбор заново после партии', () {
+    test(
+      'против бота: выбор начинается с фракции, прежние фракция, лидер и колода выбраны, сложность сохранена',
+      () async {
+        await repository.save(smallSkelligeDeck(id: 'first'));
+        await repository.save(smallSkelligeDeck(id: 'second'));
+        final cubit = build(LocalMatchMode.vsBot);
+        await ready(cubit, pastDifficulty: false);
+        cubit.selectDifficulty(BotDifficulty.hard);
+        await cubit.confirmDifficulty();
+        await toDeckStep(cubit, leader: Small.bran);
+        cubit.selectDeck('second');
+        await cubit.confirmDeck();
+        expect(cubit.state, isA<MatchSetupDone>());
+
+        cubit.restart();
+
+        final state = now(cubit);
+        expect((state.seat, state.step, state.difficulty), (Seat.one, SetupStep.faction, BotDifficulty.hard));
+        expect(state.faction.id, Small.skellige);
+        expect(state.canStepBack, isTrue, reason: 'назад можно вернуться к сложности');
+        cubit.confirmFaction();
+        expect(now(cubit).leaderId, Small.bran);
+        await cubit.confirmLeader();
+        expect(now(cubit).deckId, 'second', reason: 'выбранная прошлый раз колода стала активной');
+      },
+    );
+
+    test('новый выбор доходит до нового запроса: другая колода и другая фракция', () async {
+      await repository.save(smallSkelligeDeck(id: 'mine'));
+      await repository.save(monstersDeck());
+      final cubit = build(LocalMatchMode.vsBot);
+      await toDeckStep(cubit);
+      await cubit.confirmDeck();
+      cubit.restart();
+
+      cubit
+        ..showFaction(1)
+        ..confirmFaction();
+      await cubit.confirmLeader();
+      final done = cubit.stream.firstWhere((state) => state is MatchSetupDone);
+      await cubit.confirmDeck();
+
+      final request = (await done as MatchSetupDone).request;
+      expect(request.deckOne, 'deck-monsters');
+      expect(request.leaderOne, Small.eredin);
+      expect(request.opponentDeck, isNotNull, reason: 'бот получает новую колоду');
+    });
+
+    test('в hot-seat выбор снова идёт с первого места и его фракции', () async {
+      await repository.save(smallSkelligeDeck(id: 'one'));
+      await repository.save(monstersDeck(id: 'two'));
+      final cubit = build(LocalMatchMode.hotSeat);
+      await toDeckStep(cubit, leader: Small.bran);
+      await cubit.confirmDeck();
+      cubit
+        ..showFaction(1)
+        ..confirmFaction();
+      await cubit.confirmLeader();
+      await cubit.confirmDeck();
+      expect(cubit.state, isA<MatchSetupDone>());
+
+      cubit.restart();
+
+      final state = now(cubit);
+      expect((state.seat, state.step), (Seat.one, SetupStep.faction));
+      expect(state.faction.id, Small.skellige, reason: 'выбор первого места, а не второго');
+      expect(state.leaderId, Small.bran);
+      expect(state.deckId, 'one');
+    });
+
+    test('пока выбор не закончен, ничего не меняет', () async {
+      await repository.save(smallSkelligeDeck());
+      final cubit = build(LocalMatchMode.vsBot);
+      await toDeckStep(cubit);
+      final before = now(cubit);
+
+      cubit.restart();
+
+      expect(identical(cubit.state, before), isTrue);
+    });
+  });
+
   group('«назад»', () {
     test('шаги возвращаются по одному; с первого шага первого места назад некуда', () async {
       final cubit = build(LocalMatchMode.vsBot);
       await toDeckStep(cubit);
 
-      expect(cubit.back(), isTrue);
-      expect(now(cubit).step, SetupStep.leader);
       expect(cubit.back(), isTrue);
       expect(now(cubit).step, SetupStep.faction);
       expect(cubit.back(), isTrue, reason: 'против бота перед фракцией стоит сложность');
@@ -564,9 +626,8 @@ void main() {
     test('сбой подготовки колоды: ошибка вместо вечной загрузки', () async {
       final cubit = build(LocalMatchMode.vsBot, source: _RulesOnce(smallDeckRules));
       await ready(cubit);
-      cubit.confirmFaction();
 
-      await cubit.confirmLeader();
+      await cubit.confirmFaction();
 
       expect(cubit.state, isA<MatchSetupFailed>());
     });
@@ -575,9 +636,8 @@ void main() {
       await repository.save(smallSkelligeDeck());
       final cubit = build(LocalMatchMode.vsBot);
       await ready(cubit);
-      cubit.confirmFaction();
 
-      final pending = cubit.confirmLeader();
+      final pending = cubit.confirmFaction();
       await cubit.close();
 
       await expectLater(pending, completes);

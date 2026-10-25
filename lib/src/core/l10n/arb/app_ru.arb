@@ -966,6 +966,10 @@
   "@matchResultRematch": {
     "description": "Кнопка итога матча: сыграть заново."
   },
+  "matchResultChangeDeck": "Другая колода",
+  "@matchResultChangeDeck": {
+    "description": "Кнопка итога местного матча: вернуться к выбору фракции, лидера и колоды перед новой партией."
+  },
   "matchRematchRequested": "Ждём ответа соперника · {seconds} с",
   "@matchRematchRequested": {
     "description": "Итог сетевого матча: игрок предложил реванш, соперник ещё не ответил; сколько секунд осталось.",
@@ -1537,7 +1541,7 @@
   },
   "setupStep": "Шаг {step} из {total}",
   "@setupStep": {
-    "description": "Надпись над заголовком шага выбора фракции и лидера.",
+    "description": "Надпись над заголовком шага выбора фракции и колоды.",
     "placeholders": {
       "step": {
         "type": "int"
@@ -1588,7 +1592,7 @@
   },
   "leaderSelectTitle": "Выбор лидера",
   "@leaderSelectTitle": {
-    "description": "Заголовок экрана выбора лидера."
+    "description": "Заголовок листа выбора лидера в конструкторе колод."
   },
   "leaderSelectAbility": "Способность лидера",
   "@leaderSelectAbility": {
@@ -1596,23 +1600,7 @@
   },
   "leaderSelectConfirm": "Подтвердить лидера",
   "@leaderSelectConfirm": {
-    "description": "Кнопка подтверждения лидера."
-  },
-  "leaderSelectUnavailable": "Лидер недоступен",
-  "@leaderSelectUnavailable": {
-    "description": "Кнопка на недоступном лидере: подтвердить его нельзя."
-  },
-  "leaderStatusAvailable": "Доступен",
-  "@leaderStatusAvailable": {
-    "description": "Метка лидера, который есть в коллекции."
-  },
-  "leaderStatusLocked": "Нет в коллекции",
-  "@leaderStatusLocked": {
-    "description": "Метка лидера, которого ещё нет в коллекции."
-  },
-  "deckSelectEyebrow": "Перед матчем",
-  "@deckSelectEyebrow": {
-    "description": "Надпись над заголовком выбора колоды."
+    "description": "Кнопка подтверждения лидера в конструкторе колод."
   },
   "deckSelectTitle": "Выбор колоды",
   "@deckSelectTitle": {
@@ -1713,15 +1701,6 @@
       },
       "count": {
         "type": "int"
-      }
-    }
-  },
-  "deckSelectEyebrowSeat": "{player} · перед матчем",
-  "@deckSelectEyebrowSeat": {
-    "description": "Надпись над заголовком выбора колоды, когда играют вдвоём на одном телефоне: чей выбор.",
-    "placeholders": {
-      "player": {
-        "type": "String"
       }
     }
   },

@@ -511,6 +511,77 @@ void main() {
     expect(bloc.state, isA<MatchInProgress>());
   });
 
+  test('«Другая колода» на итоге: партия закрывается, экран возвращается к выбору, бот новый не создаётся', () async {
+    var bots = 0;
+    final counted = newBloc(
+      createBot: (engine, catalog, difficulty, seed) {
+        bots++;
+        return GreedyBot(engine, catalog);
+      },
+    );
+    final finished = _playOut(counted, <MatchScreenState>[]);
+    counted.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+
+    counted
+      ..add(const MatchDeckChangeRequested())
+      ..add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    expect(counted.state, isA<MatchIdle>());
+    expect(bots, 1);
+
+    // Выбор закончился новым запросом: партия начинается как с главного экрана, а «Реванш» повторяет уже его.
+    final second = <MatchScreenState>[];
+    final secondFinished = _playOut(counted, second);
+    counted.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'monsters', deckTwo: 'skellige'),
+      ),
+    );
+    final result = await secondFinished;
+    expect(result.canRematch, isTrue);
+    expect(bots, 2);
+    expect(matches.records, hasLength(2));
+  });
+
+  test('«Другая колода» до записи в историю: итог прежней партии не затирает выбор', () async {
+    final gate = Completer<void>();
+    final slow = newBloc(history: _GatedHistory(gate.future));
+    final finished = _playOut(slow, <MatchScreenState>[], recorded: false);
+    slow.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+
+    slow.add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    gate.complete();
+    await pumpEventQueue();
+
+    expect(slow.state, isA<MatchIdle>());
+  });
+
+  test('«Другая колода» вне итога местной партии игнорируется', () async {
+    bloc.add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    expect(bloc.state, isA<MatchIdle>());
+
+    final table = _FakeTable();
+    bloc.add(MatchSessionOpened(_session(table, content)));
+    await pumpEventQueue();
+    table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
+    await pumpEventQueue();
+    bloc.add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    expect(bloc.state, isNot(isA<MatchIdle>()));
+  });
+
   group('реванш сетевой партии', () {
     Future<_RematchFakeTable> finishedOnline(MatchBloc bloc) async {
       final table = _RematchFakeTable();
@@ -539,6 +610,14 @@ void main() {
         expect(online.state, isA<MatchFinished>());
       },
     );
+
+    test('«Другая колода» в сетевой партии не работает: колоды там выбирают в комнате', () async {
+      final online = newBloc(awaitingSession: true);
+      await finishedOnline(online);
+      online.add(const MatchDeckChangeRequested());
+      await pumpEventQueue();
+      expect(online.state, isA<MatchFinished>());
+    });
 
     test('предложение соперника доходит до итога, ответить можно, пока оно не закончилось', () async {
       final online = newBloc(awaitingSession: true);

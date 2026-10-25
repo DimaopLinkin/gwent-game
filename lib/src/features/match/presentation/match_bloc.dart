@@ -40,6 +40,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     on<MatchIntroFinished>(_onIntroFinished);
     on<MatchTossFinished>(_onTossFinished);
     on<MatchRematchRequested>(_onRematchRequested);
+    on<MatchDeckChangeRequested>(_onDeckChangeRequested);
     on<MatchPauseChanged>(_onPauseChanged);
     on<MatchTableUpdated>(_onTableUpdated);
   }
@@ -165,6 +166,22 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     if (state is! MatchFinished || request == null) return;
     // Состояние меняется до первого await: повторное нажатие «Реванш» уже не пройдёт проверку выше.
     emit(const MatchStarting());
+    await _closeSession();
+    await _start(request, emit);
+  }
+
+  /// «Другая колода» на итоге местной партии: партия закрывается, экран возвращается к выбору фракции и колоды (его
+  /// заново открывает `MatchSetupCubit.restart`, это делает экран).
+  Future<void> _onDeckChangeRequested(MatchDeckChangeRequested event, Emitter<MatchScreenState> emit) async {
+    if (state is! MatchFinished || _request == null || _session?.table is RematchTable) return;
+    // Как у реванша: состояние меняется до первого await, повторное нажатие уже не пройдёт.
+    emit(const MatchIdle());
+    _request = null;
+    await _closeSession();
+  }
+
+  /// Отпускает стол и всё, что накопилось за партию, чтобы следующая начиналась с чистого листа.
+  Future<void> _closeSession() async {
     final subscription = _subscription;
     final oldSession = _session;
     _subscription = null;
@@ -179,7 +196,6 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     _boardShown = false;
     await subscription?.cancel();
     await oldSession?.table.close();
-    await _start(request, emit);
   }
 
   Future<void> _onTableUpdated(MatchTableUpdated event, Emitter<MatchScreenState> emit) async {

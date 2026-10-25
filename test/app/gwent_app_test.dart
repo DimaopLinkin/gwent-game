@@ -14,6 +14,7 @@ import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../features/lobby/support/fake_game_lobby.dart';
@@ -43,6 +44,7 @@ void main() {
     bool reduceMotion = true,
     bool settle = true,
     InMemorySettingsRepository? settings,
+    RecordingSoundOutput? sound,
   }) async {
     if (reduceMotion) {
       tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
@@ -67,7 +69,7 @@ void main() {
           gameLobby: FakeGameLobby(),
           onlineLobby: FakeGameLobby(),
           networkAccess: FakeNetworkAccess(),
-          soundOutput: RecordingSoundOutput(),
+          soundOutput: sound ?? RecordingSoundOutput(),
           hapticOutput: RecordingHapticOutput(),
           musicOutput: FakeMusicOutput(),
         ),
@@ -120,6 +122,20 @@ void main() {
     expect(find.text(l10n.menuNetworkGame), findsOneWidget);
     expect(find.text(l10n.menuDecks), findsOneWidget);
     expect(find.text(l10n.menuSettings), findsOneWidget);
+  });
+
+  testWidgets('нажатие кнопки меню и стрелки «назад» звучит как выбор карты', (tester) async {
+    final sound = RecordingSoundOutput();
+    await pumpApp(tester, sound: sound);
+    final before = sound.effects.where((effect) => effect == SoundEffect.select).length;
+
+    await tester.tap(find.text(l10n.menuSettings));
+    await tester.pumpAndSettle();
+    expect(sound.effects.where((effect) => effect == SoundEffect.select).length, before + 1);
+
+    await tester.tap(find.bySemanticsLabel(l10n.settingsBack));
+    await tester.pumpAndSettle();
+    expect(sound.effects.where((effect) => effect == SoundEffect.select).length, before + 2);
   });
 
   testWidgets('меню называет версию приложения и версию набора карт', (tester) async {
@@ -298,8 +314,6 @@ void main() {
 
     await openVsBotSetup(tester);
     await tester.tap(find.text(l10n.factionSelectConfirm));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.leaderSelectConfirm));
     await tester.pumpAndSettle();
     expect(find.text(l10n.deckSelectTitle), findsOneWidget);
 

@@ -12,6 +12,7 @@ import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_stages.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/setup/match_setup_stage.dart';
@@ -298,6 +299,13 @@ class _MatchScreenState extends State<MatchScreen> {
         roster: roster,
         onExit: widget.onExit,
         onRematch: canRematch || rematch != null ? () => bloc.add(const MatchRematchRequested()) : null,
+        // Выбор колоды заново открывается раньше, чем экран партии уходит с итога: иначе он увидел бы старый запрос.
+        onChangeDeck: canRematch
+            ? () {
+                context.read<MatchSetupCubit>().restart();
+                bloc.add(const MatchDeckChangeRequested());
+              }
+            : null,
         rematch: rematch,
         // Поле, на котором кончилась партия, видно за листом и по кнопке «Показать поле» (макет 13).
         field: FieldView(view: view, content: roster.content, roster: roster, onIntent: (_) {}, readOnly: true),
