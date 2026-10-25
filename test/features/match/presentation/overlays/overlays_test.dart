@@ -310,6 +310,17 @@ void main() {
       expect(find.text('В меню'), findsOneWidget);
     });
 
+    testWidgets('с «Реваншем», «Другой колодой» и «В меню» прокручиваемая середина не ниже 400 pt', (tester) async {
+      await pumpResult(
+        tester,
+        finished(winner: Seat.one),
+        onRematch: () {},
+        onChangeDeck: () {},
+      );
+      expect(tester.getSize(find.byType(SingleChildScrollView)).height, greaterThanOrEqualTo(400));
+      expect(tester.getTopLeft(find.text('Победа')).dy, greaterThan(0), reason: 'лист не заходит под верх экрана');
+    });
+
     testWidgets('на низком экране середина листа прокручивается без переполнения', (tester) async {
       await pumpView(
         tester,
