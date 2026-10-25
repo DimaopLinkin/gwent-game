@@ -56,6 +56,10 @@ void main() {
 
     final keys = {for (final row in await db.select(db.settings).get()) row.key};
     expect(keys, {'confirm_pass'});
+    expect((await db.select(db.settings).getSingle()).value, 'true');
+
+    await repository.save(const AppSettings());
+    expect(await db.select(db.settings).get(), isEmpty, reason: 'выключили — ключ удалён, как у умолчания');
   });
 
   test('нечитаемые значения читаются как значения по умолчанию, громкость зажимается в границы', () async {
@@ -78,5 +82,8 @@ void main() {
     expect(settings.effectsVolume, 100);
     expect(settings.contentCheckedAt, isNull);
     expect(settings.botDifficulty, BotDifficulty.normal);
+
+    await put('confirm_pass', 'true');
+    expect((await repository.watch().first).confirmPass, isTrue);
   });
 }
