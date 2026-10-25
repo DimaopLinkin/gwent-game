@@ -27,6 +27,7 @@ import 'package:gwent/src/features/match/presentation/field/field_row_view.dart'
 import 'package:gwent/src/features/match/presentation/field/field_sheets.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
+import 'package:gwent/src/features/match/presentation/field/lifted_card.dart';
 import 'package:gwent/src/features/match/presentation/field/play_targets.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
@@ -281,6 +282,38 @@ class _FieldViewState extends State<FieldView> {
     if (PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) case final intent?) _play(intent);
   }
 
+  /// Захваченный Чучелом отряд, приподнятый над рядом (макет 14); без захвата ничего не рисует.
+  Widget _liftedCard(FieldGeometry geometry) => ValueListenableBuilder<Object?>(
+    valueListenable: _hover.target,
+    builder: (context, target, _) {
+      // Показ розыгрыша посреди наведения убирает зоны без сообщения о выходе: подъёма над перестроенным рядом нет.
+      if (target is! CardTarget || _blocked) return const SizedBox.shrink();
+      for (final MapEntry(key: row, value: rowView) in _view.me.rows.entries) {
+        final index = rowView.cards.indexWhere((view) => view.card.id == target.card);
+        if (index < 0) continue;
+        final view = rowView.cards[index];
+        final face = _fieldContent
+            .detail(
+              view.card,
+              power: view.strength,
+              frosted: rowView.weather && row == Row.melee,
+            )
+            .face;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            LiftedCard(
+              key: ValueKey(target.card),
+              face: face,
+              rect: geometry.cardRect(row, index, rowView.cards.length, mine: true),
+            ),
+          ],
+        );
+      }
+      return const SizedBox.shrink();
+    },
+  );
+
   bool _canDropOnCard(CardInstance card, CardInstance target) =>
       !widget.readOnly && !_blocked && PlayTargets.forCard(_view, card, _catalog).atFieldCard(target.id) != null;
 
@@ -516,6 +549,7 @@ class _FieldViewState extends State<FieldView> {
               rect: geometry.myBar,
               child: _bar(l10n, mine: true, frame: frame),
             ),
+            Positioned.fill(child: _liftedCard(geometry)),
             Positioned.fromRect(
               rect: geometry.hand,
               child: DecoratedBox(

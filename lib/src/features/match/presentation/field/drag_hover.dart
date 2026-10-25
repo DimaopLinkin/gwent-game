@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
+import 'package:gwent_engine/gwent_engine.dart' show CardInstanceId;
+
+/// Как зона карты ряда называет себя перед [DragHover] (Чучело, макет 14): по ней поле находит захваченный отряд.
+typedef CardTarget = ({CardInstanceId card});
 
 /// Вибрация прицеливания (макет 14, ADR 0031).
 abstract final class TargetHaptics {
@@ -37,6 +41,10 @@ class DragHover extends ValueNotifier<bool> {
   /// менялось. На ту же цель (в том числе через вложенную отвергающую карту) не зовётся.
   final VoidCallback? onSwitched;
 
+  /// Цель под пальцем (после того, как отработали все сообщения движения); `null` — палец не над целью. Когда целей
+  /// несколько сразу, берётся та, в которую палец вошёл последней. По ней поле поднимает захваченный отряд (Чучело).
+  final ValueNotifier<Object?> target = ValueNotifier<Object?>(null);
+
   final Set<Object> _targets = {};
   Set<Object> _settled = {};
   bool _settling = false;
@@ -59,12 +67,14 @@ class DragHover extends ValueNotifier<bool> {
   void reset() {
     _targets.clear();
     _settled = {};
+    target.value = null;
     value = false;
   }
 
   @override
   void dispose() {
     _disposed = true;
+    target.dispose();
     super.dispose();
   }
 
@@ -77,6 +87,7 @@ class DragHover extends ValueNotifier<bool> {
       final before = _settled;
       final now = {..._targets};
       _settled = now;
+      target.value = now.isEmpty ? null : now.last;
       final over = now.isNotEmpty;
       if (over == value) {
         final same = before.length == now.length && before.containsAll(now);

@@ -11,6 +11,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
+import 'package:gwent/src/features/match/presentation/field/drag_hover.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
 import 'package:gwent/src/features/match/presentation/field/field_overlays.dart';
@@ -77,7 +78,8 @@ class FieldRowView extends StatelessWidget {
   /// Микро-подпись призрака рога («×2»); `null` — без подписи (Мардрём).
   final String? hornLabel;
 
-  /// Мои карты на этом ряду, на которые можно положить Чучело.
+  /// Мои карты на этом ряду, на которые можно положить Чучело. Каждую ловит своя зона магнита
+  /// (`FieldGeometry.magnetZones`): палец рядом с картой или между картами захватывает ближайшую допустимую.
   final Set<CardInstanceId> decoyTargets;
 
   /// Карты, которые только что легли на стол.
@@ -137,6 +139,10 @@ class FieldRowView extends StatelessWidget {
         ? RowScoreTone.weakened
         : RowScoreTone.neutral;
     final area = geometry.cardsArea(row, mine: mine).shift(-rect.topLeft);
+    // Пока карты в пути (показ розыгрыша), их порядок и места условны, а ход игроку недоступен: зон нет.
+    final zones = decoyTargets.isEmpty || staging != null
+        ? const <Rect>[]
+        : geometry.magnetZones(row, cards.length, mine: mine);
     return Positioned.fromRect(
       rect: rect,
       child: DragTarget<CardInstance>(
@@ -207,15 +213,21 @@ class FieldRowView extends StatelessWidget {
                       hidden: staging?[i].hidden ?? false,
                       opacity: staging?[i].opacity ?? 1,
                       flash: flashes[cards[i].card.id],
-                      isDecoyTarget: decoyTargets.contains(cards[i].card.id),
-                      canDrop: canDropOnCard,
-                      onDrop: onDropOnCard,
-                      onDragEnter: onDragEnter,
-                      onDragLeave: onDragLeave,
                       justPlayed: recent.contains(cards[i].card.id) && !(staging?[i].hidden ?? false),
                       onTap: onCardTap,
                       onLongPress: onCardLongPress,
                     ),
+                  for (var i = 0; i < zones.length; i++)
+                    if (decoyTargets.contains(cards[i].card.id))
+                      _MagnetZone(
+                        key: ValueKey((#zone, cards[i].card.id)),
+                        rect: zones[i].shift(-rect.topLeft),
+                        card: cards[i].card,
+                        canDrop: canDropOnCard,
+                        onDrop: onDropOnCard,
+                        onDragEnter: onDragEnter,
+                        onDragLeave: onDragLeave,
+                      ),
                   if (weather != null)
                     Positioned(
                       left: area.left - 6,
@@ -362,11 +374,6 @@ class _FieldCard extends StatelessWidget {
     required this.hidden,
     required this.opacity,
     required this.flash,
-    required this.isDecoyTarget,
-    required this.canDrop,
-    required this.onDrop,
-    required this.onDragEnter,
-    required this.onDragLeave,
     required this.justPlayed,
     required this.onTap,
     required this.onLongPress,
@@ -380,11 +387,6 @@ class _FieldCard extends StatelessWidget {
   final bool hidden;
   final double opacity;
   final CardFlash? flash;
-  final bool isDecoyTarget;
-  final bool Function(CardInstance card, CardInstance target)? canDrop;
-  final void Function(CardInstance card, CardInstance target)? onDrop;
-  final void Function(Object target)? onDragEnter;
-  final void Function(Object target)? onDragLeave;
   final bool justPlayed;
   final void Function(CardInstance card)? onTap;
   final void Function(CardInstance card, int strength)? onLongPress;
@@ -418,39 +420,70 @@ class _FieldCard extends StatelessWidget {
                   ),
               ],
             ),
-            child: DragTarget<CardInstance>(
-              onWillAcceptWithDetails: (details) {
-                final accepts = isDecoyTarget && (canDrop?.call(details.data, card) ?? false);
-                if (accepts) onDragEnter?.call(card.id.value);
-                return accepts;
-              },
-              onLeave: (_) => onDragLeave?.call(card.id.value),
-              onAcceptWithDetails: (details) => onDrop?.call(details.data, card),
-              builder: (context, candidates, _) => Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  GwentCard(
-                    face: detail.face,
-                    size: CardSize.row,
-                    compactWidth: compactWidth,
-                    highlight: justPlayed ? CardHighlight.justPlayed : CardHighlight.normal,
-                    onTap: onTap == null ? null : () => onTap!(card),
-                    onLongPress: onLongPress == null ? null : () => onLongPress!(card, view.strength),
-                  ),
-                  TargetHighlight(
-                    radius: 3,
-                    look: candidates.isNotEmpty
-                        ? TargetLook.hot
-                        : isDecoyTarget
-                        ? TargetLook.candidate
-                        : TargetLook.none,
-                  ),
-                ],
-              ),
+            child: GwentCard(
+              face: detail.face,
+              size: CardSize.row,
+              compactWidth: compactWidth,
+              highlight: justPlayed ? CardHighlight.justPlayed : CardHighlight.normal,
+              onTap: onTap == null ? null : () => onTap!(card),
+              onLongPress: onLongPress == null ? null : () => onLongPress!(card, view.strength),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Зона магнита карты ряда (Чучело, макет 14): ловит бросок и называет себя перед `DragHover`.
+///
+/// Зона шире карты, но не пересекается с соседними (`FieldGeometry.magnetZones`), поэтому палец в щели или у края
+/// ряда достаётся ближайшей допустимой карте, а над картой, на которую играть нельзя (герой), зоны нет и ничего не
+/// горит. Касания зона не берёт (`HitTestBehavior.translucent`): нажатия и долгое нажатие достаются карте под ней.
+class _MagnetZone extends StatelessWidget {
+  const _MagnetZone({
+    super.key,
+    required this.rect,
+    required this.card,
+    required this.canDrop,
+    required this.onDrop,
+    required this.onDragEnter,
+    required this.onDragLeave,
+  });
+
+  final Rect rect;
+  final CardInstance card;
+  final bool Function(CardInstance card, CardInstance target)? canDrop;
+  final void Function(CardInstance card, CardInstance target)? onDrop;
+  final void Function(Object target)? onDragEnter;
+  final void Function(Object target)? onDragLeave;
+
+  CardTarget get _target => (card: card.id);
+
+  @override
+  Widget build(BuildContext context) => AnimatedPositioned(
+    duration: const Duration(milliseconds: 180),
+    curve: Curves.easeOut,
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+    child: DragTarget<CardInstance>(
+      onWillAcceptWithDetails: (details) {
+        final accepts = canDrop?.call(details.data, card) ?? false;
+        if (accepts) onDragEnter?.call(_target);
+        return accepts;
+      },
+      onLeave: (_) => onDragLeave?.call(_target),
+      onAcceptWithDetails: (details) => onDrop?.call(details.data, card),
+      builder: (context, candidates, _) => Stack(
+        children: [
+          TargetHighlight(
+            radius: 3,
+            look: candidates.isNotEmpty ? TargetLook.hot : TargetLook.candidate,
+          ),
+        ],
+      ),
+    ),
+  );
 }
