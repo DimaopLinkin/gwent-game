@@ -13,12 +13,12 @@ void main() {
   int rowStrength(MatchState state, Seat seat, Row row) => engine.project(state, seat).me.rows[row]!.strength;
 
   group('контрольные примеры раздела 8', () {
-    test('пример пользователя: 2 Прочной связи и Прилив сил под погодой с рогом дают 6 каждой', () {
+    test('пример пользователя: 2 Прочной связи и Прилив сил под погодой с рогом дают 8 каждой', () {
       final state = playing(
         one: const Side(melee: ['blue_stripes', 'blue_stripes', 'olaf'], slots: {Row.melee: 'horn'}),
         weather: [('frost', Seat.two)],
       );
-      expect(strengths(state, Seat.one, Row.melee), [6, 6, 2]);
+      expect(strengths(state, Seat.one, Row.melee), [8, 8, 2]);
     });
 
     test('3 Бойца Синих Полосок под Морозом с рогом: каждый 6, ряд 18', () {
@@ -36,6 +36,16 @@ void main() {
       );
       expect(strengths(state, Seat.one, Row.siege), [6, 6, 6]);
       expect(rowStrength(state, Seat.one, Row.siege), 18);
+    });
+
+    test('Прилив сил добавляется до Прочной связи, связь до рога: ((8 + 3) · 2) · 2 = 44', () {
+      final state = playing(
+        one: const Side(
+          siege: ['bond_catapult', 'bond_catapult', 'kaedwen_siege', 'kaedwen_siege', 'kaedwen_siege'],
+          slots: {Row.siege: 'horn'},
+        ),
+      );
+      expect(strengths(state, Seat.one, Row.siege), [44, 44, 6, 6, 6]);
     });
 
     test('Лютик не удваивает себя, а спецкарта рога удваивает и его', () {

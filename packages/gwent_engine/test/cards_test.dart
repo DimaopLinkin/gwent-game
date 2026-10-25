@@ -267,6 +267,29 @@ void main() {
     });
   });
 
+  group('Пират из клана Димун', () {
+    test('Казнь действует на всё поле: сильнейший отряд в любом ряду обоих игроков', () {
+      final state = playing(
+        one: const Side(hand: ['pirate'], melee: ['footman']),
+        two: const Side(hand: ['archer'], melee: ['footman'], ranged: ['archer'], siege: ['catapult']),
+      );
+      final result = play(state, 'pirate');
+      expect(rowCards(result.state, Seat.two, Row.siege), isEmpty);
+      expect(rowCards(result.state, Seat.one, Row.ranged), ['pirate']);
+      expect(rowCards(result.state, Seat.two, Row.melee), ['footman']);
+      expect(rowCards(result.state, Seat.two, Row.ranged), ['archer']);
+    });
+
+    test('Казнь действует и на свои ряды, не только на дальний', () {
+      final state = playing(
+        one: const Side(hand: ['pirate'], siege: ['catapult']),
+        two: const Side(hand: ['archer'], melee: ['footman']),
+      );
+      final result = play(state, 'pirate');
+      expect(rowCards(result.state, Seat.one, Row.siege), isEmpty);
+    });
+  });
+
   group('Приманка', () {
     test('уничтоженная Камби сразу призывает Хеймдалля на своё место', () {
       final state = playing(
