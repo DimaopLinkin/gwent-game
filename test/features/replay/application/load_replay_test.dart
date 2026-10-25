@@ -93,6 +93,53 @@ void main() {
     );
   });
 
+  group('кадры гостя сетевой партии', () {
+    late net.Ruleset ruleset;
+    late List<net.ViewFrame> frames;
+
+    setUp(() async {
+      final data = ((await loadReplay(played.id)) as ReplayLoaded).data;
+      ruleset = (history.replays[played.id]! as JournalReplayLog).journal.ruleset;
+      frames = [
+        for (final frame in data.timeline.frames) (view: frame.views[Seat.one]!, events: frame.events[Seat.one]!),
+      ];
+    });
+
+    Future<LoadReplayResult> loadFrames(List<net.ViewFrame> frames, net.Ruleset ruleset) async {
+      final repository = InMemoryMatchHistoryRepository();
+      await repository.add(
+        played,
+        replay: FramesReplayLog(frames, ruleset: ruleset, perspective: Seat.one),
+      );
+      return LoadReplay(repository, loader)(played.id);
+    }
+
+    test('реплей открывается глазами одного места и доходит до того же итога', () async {
+      final data = ((await loadFrames(frames, ruleset)) as ReplayLoaded).data;
+
+      expect(data.timeline.seats, {Seat.one});
+      expect(data.timeline.matches(played), isTrue);
+      final steps = data.timeline.stepsFor(Seat.one);
+      expect(steps.first.view.phase, MatchPhase.playing);
+      expect(steps.last.view.outcome, isNotNull);
+    });
+
+    test('набор карт или движок другой: реплей недоступен из-за изменения набора', () async {
+      final other = net.Ruleset(id: ruleset.id, hash: 'старый-набор', engineVersion: ruleset.engineVersion);
+      expect(
+        await loadFrames(frames, other),
+        isA<ReplayUnavailable>().having((result) => result.reason, 'reason', ReplayUnavailableReason.contentChanged),
+      );
+    });
+
+    test('кадры оборваны до конца партии: реплей не сходится со сводкой и недоступен', () async {
+      expect(
+        await loadFrames(frames.sublist(0, frames.length - 2), ruleset),
+        isA<ReplayUnavailable>().having((result) => result.reason, 'reason', ReplayUnavailableReason.corrupted),
+      );
+    });
+  });
+
   test('нет партии, нет реплея у старой партии, повреждённая запись', () async {
     expect(await loadReplay('нет такой'), isA<ReplayMissing>());
 

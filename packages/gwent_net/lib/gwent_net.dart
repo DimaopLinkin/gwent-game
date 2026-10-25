@@ -10,6 +10,7 @@ export 'src/client/client_settings.dart';
 export 'src/client/match_client.dart';
 export 'src/client/resume_ticket.dart';
 export 'src/codec/envelope_codec.dart';
+export 'src/codec/frame_json.dart';
 export 'src/codec/protocol_exception.dart';
 export 'src/codec/record_json.dart';
 export 'src/entropy/entropy.dart';

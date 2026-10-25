@@ -5,7 +5,22 @@ import 'package:gwent/src/features/match_history/data/drift_match_history_reposi
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
 import 'package:gwent/src/features/match_history/domain/replay_log.dart';
-import 'package:gwent_engine/gwent_engine.dart' show CardId, Deck, LeaderId, Pass, Seat;
+import 'package:gwent_engine/gwent_engine.dart'
+    show
+        CardId,
+        Deck,
+        Faction,
+        LeaderId,
+        MatchEndReason,
+        MatchPhase,
+        Pass,
+        Passed,
+        PlayerView,
+        RoundResult,
+        RoundStarted,
+        Seat,
+        SideView;
+import 'package:gwent_engine/gwent_engine.dart' as engine show MatchOutcome;
 import 'package:gwent_net/gwent_net.dart' as net;
 
 import '../../../support/test_database.dart';
@@ -126,6 +141,52 @@ void main() {
       expect(await repository.findById('нет'), isNull);
     });
 
+    test('кадры гостя сетевой партии читаются без изменений вместе с набором правил', () async {
+      const ruleset = net.Ruleset(id: 'pack', hash: 'abc', engineVersion: 1);
+      final view = PlayerView(
+        viewer: Seat.two,
+        phase: MatchPhase.finished,
+        round: 2,
+        me: _side(Seat.two),
+        opponent: _side(Seat.one),
+        weather: const [],
+        history: const [
+          RoundResult(round: 1, scores: {Seat.one: 3, Seat.two: 5}, winner: Seat.two),
+        ],
+        outcome: const engine.MatchOutcome(winner: Seat.two, reason: MatchEndReason.crystals),
+      );
+      final log = FramesReplayLog(
+        [
+          (view: view, events: const [RoundStarted(1, Seat.one), Passed(Seat.one, auto: false)]),
+          (view: view, events: const []),
+        ],
+        ruleset: ruleset,
+        perspective: Seat.two,
+      );
+      await repository.add(record('f', DateTime.utc(2026, 10, 3)), replay: log);
+
+      expect(await repository.findReplay('f'), log);
+      final row = await (db.select(db.matchReplays)..where((row) => row.recordId.equals('f'))).getSingle();
+      expect((row.perspective, row.kind, row.formatVersion), ('two', 'frames', 1));
+    });
+
+    test('повреждённые кадры и чужая версия формата дают ReplayCorrupted', () async {
+      await repository.add(record('f', DateTime.utc(2026, 10, 3)), replay: journal());
+      Future<void> store(String payload, {int version = 1}) =>
+          (db.update(db.matchReplays)..where((row) => row.recordId.equals('f'))).write(
+            MatchReplaysCompanion(kind: const Value('frames'), formatVersion: Value(version), payload: Value(payload)),
+          );
+
+      await store('{"ruleset": {"id": "p", "hash": "h", "engine": 1}, "frames": []}');
+      await expectLater(repository.findReplay('f'), throwsA(isA<ReplayCorrupted>()));
+      await store('{"ruleset": {"id": "p", "hash": "h"}, "frames": [{}]}');
+      await expectLater(repository.findReplay('f'), throwsA(isA<ReplayCorrupted>()));
+      await store('{"frames": [{"view": 1}]}');
+      await expectLater(repository.findReplay('f'), throwsA(isA<ReplayCorrupted>()));
+      await store('{}', version: 9);
+      await expectLater(repository.findReplay('f'), throwsA(isA<ReplayCorrupted>()));
+    });
+
     test('партия и реплей пишутся вместе: сбой записи реплея не оставляет сводку', () async {
       await db
           .into(db.matchReplays)
@@ -171,3 +232,20 @@ void main() {
     });
   });
 }
+
+SideView _side(Seat seat) => SideView(
+  seat: seat,
+  leader: const LeaderId('leader'),
+  faction: Faction.skellige,
+  leaderAvailable: false,
+  leaderUsed: false,
+  leaderDisabled: false,
+  crystals: 1,
+  passed: true,
+  handCount: 0,
+  deckCount: 0,
+  discard: const [],
+  rows: const {},
+  score: 0,
+  redrawDone: true,
+);

@@ -134,7 +134,8 @@ class _StageState extends State<_Stage> {
     final views = timeline.frames.first.views;
     final hotSeat = record.mode == MatchMode.hotSeat;
     MatchPlayer player(Seat seat) {
-      final side = views[seat]!.me;
+      // У гостя сетевой партии кадры только его: сторону соперника берём из его проекции.
+      final side = views[seat]?.me ?? views[seat.opponent]!.opponent;
       return MatchPlayer(seat: seat, faction: side.faction, leader: side.leader);
     }
 

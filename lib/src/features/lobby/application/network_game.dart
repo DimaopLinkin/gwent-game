@@ -10,6 +10,7 @@ import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/network_match_table.dart';
 import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent/src/features/match_history/domain/replay_recorder.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:gwent_net/gwent_net.dart';
 
@@ -32,6 +33,7 @@ final class NetworkGame {
     required this.playerName,
     MatchHost? host,
     HostedGame? hosted,
+    InMemoryMatchJournal? journal,
     GameLobby? lobby,
     GameAddress? address,
     this.reconnectWindow = const Duration(minutes: 2),
@@ -41,6 +43,7 @@ final class NetworkGame {
        _content = content,
        _scheduler = scheduler,
        _host = host,
+       _journal = journal,
        _hosted = hosted,
        _lobby = lobby,
        _address = address {
@@ -75,6 +78,7 @@ final class NetworkGame {
   final GameContent _content;
   final Scheduler _scheduler;
   final MatchHost? _host;
+  final InMemoryMatchJournal? _journal;
   final HostedGame? _hosted;
   final GameLobby? _lobby;
   final GameAddress? _address;
@@ -100,6 +104,9 @@ final class NetworkGame {
   bool _admitting = false;
   LobbyRoom _room = const LobbyRoom();
   PlayerView? _firstView;
+
+  /// Запись идущей партии для истории: у хоста по журналу, у гостя по кадрам (ADR 0029). Новая на каждую партию.
+  NetworkReplayRecorder? _recorder;
   int? _deckRequest;
   String? _deckName;
   Timer? _deadline;
@@ -223,6 +230,7 @@ final class NetworkGame {
       factionIds: {seat: _factionId(view.me.faction), seat.opponent: _factionId(view.opponent.faction)},
       deckNames: {seat: ?deckName},
       opponentName: _room.opponent?.name,
+      recorder: _recorder,
     );
   }
 
@@ -274,6 +282,11 @@ final class NetworkGame {
   void _send(Intent intent) {
     if (_closed) return;
     _intents[_client.send(intent)] = intent;
+  }
+
+  Ruleset get _ruleset {
+    final manifest = _content.pack.manifest;
+    return Ruleset(id: manifest.packId, hash: manifest.contentHash, engineVersion: engineVersion);
   }
 
   String _factionId(Faction faction) => _content.factions.entries.firstWhere((entry) => entry.value == faction).key;
@@ -368,6 +381,7 @@ final class NetworkGame {
     _matchFinished = false;
     _handedOver = false;
     _firstView = null;
+    _recorder = null;
     _deckRequest = null;
     _deckName = null;
     _intents.clear();
@@ -392,6 +406,12 @@ final class NetworkGame {
     final seat = _client.seat ?? _room.seat;
     if (seat == null) return;
     _firstView ??= view;
+    (_recorder ??= NetworkReplayRecorder(
+      perspective: seat,
+      ruleset: _ruleset,
+      // Журнал хоста принадлежит партии, которая идёт сейчас; следующую партию начнёт реванш.
+      journal: _journal,
+    )).add(view, events);
     _matchFinished = view.phase == MatchPhase.finished;
     if (!_room.started) _setRoom(_room.copyWith(started: true, clearCountdown: true));
     if (!_table.isClosed) _table.add(ViewsChanged({seat: view}, {seat: events}));
