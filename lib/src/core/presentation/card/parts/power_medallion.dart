@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
@@ -23,7 +25,13 @@ enum PowerLook {
 /// Медальон силы в колонке слева сверху (L6).
 class PowerMedallion extends StatelessWidget {
   /// Создаёт медальон силы [power].
-  const PowerMedallion({super.key, required this.power, required this.look, required this.metrics});
+  const PowerMedallion({
+    super.key,
+    required this.power,
+    required this.look,
+    required this.metrics,
+    this.compactWidth,
+  });
 
   /// Текущая сила.
   final int power;
@@ -33,6 +41,9 @@ class PowerMedallion extends StatelessWidget {
 
   /// Размеры карты.
   final CardMetrics metrics;
+
+  /// Ширина сжатого медальона в тесном ряду: без стрелки, число ужимается, кольца те же. `null` — обычный медальон.
+  final double? compactWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -84,15 +95,28 @@ class PowerMedallion extends StatelessWidget {
         ],
       ),
     };
-    final arrow = switch (look) {
-      PowerLook.buffed => GwentIcon.iconPowerUp,
-      PowerLook.debuffed => GwentIcon.iconPowerDown,
-      PowerLook.base || PowerLook.hero => null,
-    };
+    final compactWidth = this.compactWidth;
+    final arrow = compactWidth != null
+        ? null
+        : switch (look) {
+            PowerLook.buffed => GwentIcon.iconPowerUp,
+            PowerLook.debuffed => GwentIcon.iconPowerDown,
+            PowerLook.base || PowerLook.hero => null,
+          };
+    // Кольца рисуются тенями за пределами диска: в сжатом виде они тоже должны уложиться в [compactWidth].
+    final discWidth = compactWidth == null
+        ? null
+        : math.max(0.0, compactWidth - 2 * (look == PowerLook.hero ? r3 : r2));
+    final label = Text(
+      '$power',
+      textScaler: TextScaler.noScaling,
+      style: GwentText.powerCard.copyWith(fontWeight: FontWeight.w900, fontSize: m.powerFontSize, color: text),
+    );
     return Container(
-      constraints: BoxConstraints(minWidth: m.disc),
+      width: discWidth,
+      constraints: BoxConstraints(minWidth: discWidth ?? m.disc),
       height: m.disc,
-      padding: EdgeInsets.symmetric(horizontal: m.discPadding),
+      padding: EdgeInsets.symmetric(horizontal: discWidth == null ? m.discPadding : 0),
       decoration: BoxDecoration(
         color: fill,
         gradient: gradient,
@@ -105,11 +129,12 @@ class PowerMedallion extends StatelessWidget {
         spacing: m.arrowGap,
         children: [
           if (arrow != null) GwentIconView(arrow, size: m.arrow, color: text),
-          Text(
-            '$power',
-            textScaler: TextScaler.noScaling,
-            style: GwentText.powerCard.copyWith(fontWeight: FontWeight.w900, fontSize: m.powerFontSize, color: text),
-          ),
+          if (discWidth == null)
+            label
+          else
+            Flexible(
+              child: FittedBox(fit: BoxFit.scaleDown, child: label),
+            ),
         ],
       ),
     );

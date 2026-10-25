@@ -8,6 +8,7 @@ import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/core/presentation/card/parts/card_coin.dart';
 import 'package:gwent/src/core/presentation/card/parts/compact_power.dart';
 import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
 import 'package:gwent/src/core/presentation/components/card_pile.dart';
@@ -188,8 +189,8 @@ void main() {
               .face;
           expect(face, isA<UnitCardFace>());
           final ability = (face as UnitCardFace).ability;
-          expect(pills[i].ability, ability, reason: 'карта $i');
-          if (i % 5 == 1) expect(ability, isNotNull, reason: 'шпион имеет способность');
+          expect(pills[i].abilities, [?ability], reason: 'карта $i');
+          if (i % 5 == 1) expect(pills[i].abilities, [GwentIcon.abilitySpy], reason: 'шпион имеет способность');
           expect(
             pills[i].look,
             i % 5 == 4
@@ -202,20 +203,25 @@ void main() {
             reason: 'карта $i',
           );
         }
-        // Стрелки усиления и ослабления есть у каждой сжатой карты, которая изменилась.
-        int arrows(GwentIcon icon) => find
-            .descendant(of: compact, matching: find.byWidgetPredicate((w) => w is GwentIconView && w.icon == icon))
-            .evaluate()
-            .length;
-        expect(arrows(GwentIcon.iconPowerUp), pills.where((p) => p.look == PowerLook.buffed).length);
-        expect(arrows(GwentIcon.iconPowerDown), pills.where((p) => p.look == PowerLook.debuffed).length);
-        expect(arrows(GwentIcon.iconPowerDown), greaterThan(0));
+        // Усиление и ослабление видно по цвету медальона, стрелок в сжатом виде нет.
+        bool hasArrow(Widget w) =>
+            w is GwentIconView && (w.icon == GwentIcon.iconPowerUp || w.icon == GwentIcon.iconPowerDown);
+        expect(find.descendant(of: compact, matching: find.byWidgetPredicate(hasArrow)), findsNothing);
+        expect(pills.where((p) => p.look == PowerLook.debuffed), isNotEmpty);
       });
     }
 
     testWidgets('в ряду из шести карт медальоны остаются полными', (tester) async {
       await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, rows: {Row.melee: crowded(6)})));
       expect(find.byType(CompactPower), findsNothing);
+    });
+
+    testWidgets('на столе нет значка ряда ни в тесном, ни в свободном ряду', (tester) async {
+      for (final count in const [6, 19]) {
+        await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, rows: {Row.melee: crowded(count)})));
+        const rows = {GwentIcon.rowMelee, GwentIcon.rowRanged, GwentIcon.rowSiege};
+        expect(find.byWidgetPredicate((w) => w is CardCoin && rows.contains(w.icon)), findsNothing, reason: '$count');
+      }
     });
   });
 
