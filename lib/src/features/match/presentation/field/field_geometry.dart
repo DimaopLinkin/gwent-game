@@ -47,6 +47,9 @@ final class FieldGeometry {
   /// Промежуток между картами, пока ряд не переполнен.
   static const double cardGap = 4;
 
+  /// Шаг карт ряда меньше этого значения: перекрытая карта уже не показывает медальон силы со стрелкой (до 30 pt).
+  static const double compactStep = 30;
+
   /// Высота бюджета макета: 48 + 240 + 40 + 240 + 48 + 135.
   static const double budgetHeight = barHeight * 2 + rowHeight * 6 + stripHeight + minHandHeight;
 
@@ -121,17 +124,24 @@ final class FieldGeometry {
     return ((area + cardGap) / (cardWidth + cardGap)).floor();
   }
 
+  /// Шаг между левыми краями карт ряда из [count] карт: 56 pt, пока ряд не переполнен, затем общий `(A − 52) / (n − 1)`.
+  double cardStep(int count) {
+    final area = cardsArea(Row.melee, mine: true).width;
+    final total = count * cardWidth + math.max(0, count - 1) * cardGap;
+    return count > 1 && total > area ? (area - cardWidth) / (count - 1) : cardWidth + cardGap;
+  }
+
+  /// Ряд из [count] карт настолько сжат, что у перекрытых карт медальон силы не помещается: они показывают
+  /// сжатую силу (см. `GwentCard.compactWidth`), а полную карту видно только у последней.
+  bool isRowCompact(int count) => count > 1 && cardStep(count) < compactStep;
+
   /// Карта номер [index] из [count] в ряду: без перекрытия по центру с промежутком 4 pt, а при переполнении — с
   /// общим шагом `(A − 52) / (n − 1)`; каждая следующая карта лежит поверх предыдущей.
   Rect cardRect(Row row, int index, int count, {required bool mine}) {
     final area = cardsArea(Row.melee, mine: mine).width;
     final total = count * cardWidth + math.max(0, count - 1) * cardGap;
-    var step = cardWidth + cardGap;
-    var offset = (area - total) / 2;
-    if (count > 1 && total > area) {
-      step = (area - cardWidth) / (count - 1);
-      offset = 0;
-    }
+    final step = cardStep(count);
+    final offset = count > 1 && total > area ? 0 : (area - total) / 2;
     final base = cardsArea(row, mine: mine);
     return Rect.fromLTWH((base.left + offset + index * step).roundToDouble(), base.top, cardWidth, cardHeight);
   }

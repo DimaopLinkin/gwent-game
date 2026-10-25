@@ -71,6 +71,20 @@ void main() {
     }
   });
 
+  test('ряд сжимается до сжатой силы, когда шаг меньше медальона, и только у перекрытых карт', () {
+    expect(geometry.cardStep(3), 56);
+    expect(geometry.isRowCompact(1), isFalse);
+    expect(geometry.isRowCompact(9), isFalse, reason: 'шаг 35 pt: медальон со стрелкой виден');
+    expect(geometry.isRowCompact(12), isTrue);
+    final step = geometry.cardStep(19);
+    expect(step, closeTo((334 - 52) / 18, 0.001));
+    expect(geometry.isRowCompact(19), isTrue);
+    // Шаг совпадает с положением карт, а последняя карта открыта целиком.
+    final first = geometry.cardRect(Row.melee, 0, 19, mine: true);
+    final second = geometry.cardRect(Row.melee, 1, 19, mine: true);
+    expect((second.left - first.left - step).abs(), lessThanOrEqualTo(1));
+  });
+
   test('одна карта стоит по центру зоны', () {
     final area = geometry.cardsArea(Row.siege, mine: false);
     final rect = geometry.cardRect(Row.siege, 0, 1, mine: false);

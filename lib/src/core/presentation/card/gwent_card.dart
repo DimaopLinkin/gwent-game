@@ -10,6 +10,7 @@ import 'package:gwent/src/core/presentation/card/parts/card_back_layer.dart';
 import 'package:gwent/src/core/presentation/card/parts/card_coin.dart';
 import 'package:gwent/src/core/presentation/card/parts/card_frame_painter.dart';
 import 'package:gwent/src/core/presentation/card/parts/card_plaque.dart';
+import 'package:gwent/src/core/presentation/card/parts/compact_power.dart';
 import 'package:gwent/src/core/presentation/card/parts/dashed_rrect_painter.dart';
 import 'package:gwent/src/core/presentation/card/parts/leader_marker.dart';
 import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
@@ -31,6 +32,7 @@ class GwentCard extends StatelessWidget {
     required this.size,
     this.highlight = CardHighlight.normal,
     this.spyOwner,
+    this.compactWidth,
     this.onTap,
     this.onLongPress,
   });
@@ -55,6 +57,10 @@ class GwentCard extends StatelessWidget {
 
   /// Фракция владельца шпиона: цвет ленты и пунктира при [CardHighlight.spy]. По умолчанию Скеллиге.
   final GwentFaction? spyOwner;
+
+  /// Ширина видимой полоски отряда в тесном ряду: пока карту закрывает следующая, вместо медальона и значков
+  /// рисуется сжатая сила ([CompactPower]) этой ширины. Только для отряда размера [CardSize.row].
+  final double? compactWidth;
 
   /// Касание.
   final VoidCallback? onTap;
@@ -175,7 +181,7 @@ class GwentCard extends StatelessWidget {
         ),
       ),
       if (size.hasColumn && face is! CardBackFace)
-        Positioned(left: m.columnInset, top: m.columnInset, child: _column(face, m)),
+        Positioned(left: compactWidth == null ? m.columnInset : 0.5, top: m.columnInset, child: _column(face, m)),
       if (size == CardSize.mini) ?_miniCenter(face, m),
       if (face case LeaderCardFace(:final abilityUsed))
         Positioned(
@@ -205,17 +211,15 @@ class GwentCard extends StatelessWidget {
       padding: EdgeInsets.only(left: coinOffset),
       child: child,
     );
+    final compactWidth = this.compactWidth;
     final children = switch (face) {
+      UnitCardFace(:final power, :final basePower, :final isHero) when compactWidth != null && size == CardSize.row => [
+        CompactPower(power: power, look: _powerLook(power, basePower, isHero), width: compactWidth),
+      ],
       UnitCardFace(:final power, :final basePower, :final isHero, :final row, :final ability) => [
         PowerMedallion(
           power: power,
-          look: isHero
-              ? PowerLook.hero
-              : power > basePower
-              ? PowerLook.buffed
-              : power < basePower
-              ? PowerLook.debuffed
-              : PowerLook.base,
+          look: _powerLook(power, basePower, isHero),
           metrics: m,
         ),
         coin(CardCoin(icon: row, look: CoinLook.dark, diameter: m.coin, iconSize: m.coinIcon)),
@@ -248,6 +252,14 @@ class GwentCard extends StatelessWidget {
       children: children,
     );
   }
+
+  static PowerLook _powerLook(int power, int basePower, bool isHero) => isHero
+      ? PowerLook.hero
+      : power > basePower
+      ? PowerLook.buffed
+      : power < basePower
+      ? PowerLook.debuffed
+      : PowerLook.base;
 
   /// Мини-карта: эффект или герб по центру; у отряда только арт и рамка.
   Widget? _miniCenter(CardFace face, CardMetrics m) {
