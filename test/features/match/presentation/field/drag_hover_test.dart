@@ -3,11 +3,13 @@ import 'package:gwent/src/features/match/presentation/field/drag_hover.dart';
 
 void main() {
   late List<bool> changes;
+  late int switches;
   late DragHover hover;
 
   setUp(() {
     changes = [];
-    hover = DragHover(onChanged: ({required over}) => changes.add(over));
+    switches = 0;
+    hover = DragHover(onChanged: ({required over}) => changes.add(over), onSwitched: () => switches++);
     addTearDown(hover.dispose);
   });
 
@@ -32,6 +34,26 @@ void main() {
     await settle();
     expect(hover.value, isTrue);
     expect(changes, [true]);
+    expect(switches, 1, reason: 'смену цели игрок должен почувствовать');
+  });
+
+  test('переход в обратном порядке (сначала вход, потом выход) тоже смена цели', () async {
+    hover.enter();
+    await settle();
+    hover
+      ..enter()
+      ..leave();
+    await settle();
+    expect(changes, [true]);
+    expect(switches, 1);
+  });
+
+  test('первый вход и выход из цели не смена цели', () async {
+    hover.enter();
+    await settle();
+    hover.leave();
+    await settle();
+    expect(switches, 0);
   });
 
   test('лишний выход не уходит в минус', () async {

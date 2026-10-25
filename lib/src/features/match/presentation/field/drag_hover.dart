@@ -26,24 +26,32 @@ abstract final class TargetHaptics {
 /// поэтому вибрация входа и выхода не дребезжит.
 class DragHover extends ValueNotifier<bool> {
   /// Создаёт трекер без цели под пальцем.
-  DragHover({this.onChanged}) : super(false);
+  DragHover({this.onChanged, this.onSwitched}) : super(false);
 
   /// Состояние сменилось: палец вошёл в цель (`true`) или вышел из всех целей (`false`).
   final void Function({required bool over})? onChanged;
 
+  /// Палец перешёл с одной цели на другую, не побывав вне целей: игрок должен это почувствовать, хотя «над целью» не
+  /// менялось.
+  final VoidCallback? onSwitched;
+
   int _targets = 0;
+  bool _entered = false;
+  bool _left = false;
   bool _settling = false;
   bool _disposed = false;
 
   /// Палец вошёл в цель.
   void enter() {
     _targets++;
+    _entered = true;
     _settle();
   }
 
   /// Палец вышел из цели.
   void leave() {
     if (_targets > 0) _targets--;
+    _left = true;
     _settle();
   }
 
@@ -51,6 +59,8 @@ class DragHover extends ValueNotifier<bool> {
   /// узнаёт по своей вибрации, поэтому [onChanged] не зовётся.
   void reset() {
     _targets = 0;
+    _entered = false;
+    _left = false;
     value = false;
   }
 
@@ -67,7 +77,13 @@ class DragHover extends ValueNotifier<bool> {
       _settling = false;
       if (_disposed) return;
       final over = _targets > 0;
-      if (over == value) return;
+      final switched = _entered && _left;
+      _entered = false;
+      _left = false;
+      if (over == value) {
+        if (over && switched) onSwitched?.call();
+        return;
+      }
       value = over;
       onChanged?.call(over: over);
     });

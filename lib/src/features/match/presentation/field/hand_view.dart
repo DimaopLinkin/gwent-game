@@ -139,7 +139,7 @@ class _HandViewState extends State<HandView> {
               duration: const Duration(milliseconds: 180),
               turns: cards[i].instance.id == widget.selected ? 0 : (i - center) * rotationStep / 360,
               alignment: const Alignment(0, 1.8),
-              child: _draggable(cards[i], axis: null),
+              child: _draggable(cards[i], affinity: null),
             ),
           ),
       ],
@@ -167,7 +167,7 @@ class _HandViewState extends State<HandView> {
               key: _keys.putIfAbsent(cards[i].instance.id, GlobalKey.new),
               child: Align(
                 alignment: Alignment.topCenter,
-                child: _draggable(cards[i], axis: Axis.vertical),
+                child: _draggable(cards[i], affinity: Axis.vertical),
               ),
             ),
           ),
@@ -178,13 +178,13 @@ class _HandViewState extends State<HandView> {
     );
   }
 
-  Widget _draggable(HandCard card, {required Axis? axis}) {
-    final child = _card(card, axis: axis);
+  Widget _draggable(HandCard card, {required Axis? affinity}) {
+    final child = _card(card, affinity: affinity);
     if (!widget.hidden.contains(card.instance.id)) return child;
     return IgnorePointer(child: Opacity(opacity: 0, child: child));
   }
 
-  Widget _card(HandCard card, {required Axis? axis}) {
+  Widget _card(HandCard card, {required Axis? affinity}) {
     final selected = card.instance.id == widget.selected;
     final face = GwentCard(
       face: card.face,
@@ -200,10 +200,10 @@ class _HandViewState extends State<HandView> {
     if (!card.enabled) return face;
     return Draggable<CardInstance>(
       data: card.instance,
-      axis: axis,
       // Без affinity Draggable забирает жест сразу при касании и рука не листается за карты: с ней он ждёт движения
-      // по своей оси, а горизонтальный сдвиг достаётся списку.
-      affinity: axis,
+      // по своей оси, а горизонтальный сдвиг достаётся списку. Ось самой карты не ограничена: начав вверх, её водят
+      // по полю куда угодно (так же играют Чучело и карты на ряд соперника).
+      affinity: affinity,
       dragAnchorStrategy: (_, _, position) {
         _pointer.value = position;
         return HandView.dragAnchor;

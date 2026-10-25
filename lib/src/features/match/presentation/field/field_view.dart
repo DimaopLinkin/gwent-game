@@ -108,6 +108,7 @@ class _FieldViewState extends State<FieldView> {
   /// Над какой целью палец с картой: яркость карты под пальцем и вибрация входа и выхода (макет 14).
   late final DragHover _hover = DragHover(
     onChanged: ({required over}) => _cubit.vibrate(over ? TargetHaptics.enter : TargetHaptics.leave),
+    onSwitched: () => _cubit.vibrate(TargetHaptics.enter),
   );
 
   /// Карту тащат по-настоящему (цели есть, ход можно делать) и выбор поставило само перетаскивание.

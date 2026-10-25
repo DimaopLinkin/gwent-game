@@ -53,6 +53,7 @@ void main() {
         ),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('×2'), findsOneWidget);
     expect(find.byWidgetPredicate((w) => w is GwentIconView && w.icon == GwentIcon.iconDiscard), findsNothing);
 
@@ -63,7 +64,29 @@ void main() {
         ),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.byWidgetPredicate((w) => w is GwentIconView && w.icon == GwentIcon.iconDiscard), findsOneWidget);
+    expect(find.text('×2'), findsNothing);
+  });
+
+  testWidgets('смена вида слота перетекает, а не щёлкает: старый вид гаснет вместе с рамкой ряда', (tester) async {
+    await tester.pumpWidget(
+      localizedApp(
+        const Center(
+          child: HornSlot(look: HornSlotLook.ghost, ghostLabel: '×2'),
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      localizedApp(
+        const Center(
+          child: HornSlot(look: HornSlotLook.target, ghostLabel: '×2'),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(find.text('×2'), findsOneWidget, reason: 'на середине перехода прежний вид ещё виден');
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('×2'), findsNothing);
   });
 

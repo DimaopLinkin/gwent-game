@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/card_detail_view.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
+import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/card/parts/compact_power.dart';
 import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
@@ -1410,6 +1411,27 @@ void main() {
       await tester.pump();
       expect(harness.cubit.state.selected, unit.id, reason: 'вертикальный сдвиг начинает перетаскивание');
       expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('рука в одну линию: начатую вверх карту водят по полю в стороны, ось не зажата', (tester) async {
+      final hand = [for (var i = 0; i < 12; i++) cards.unit(Row.values[i % 3])];
+      await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: hand)));
+      await endBanners(tester);
+
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -60));
+      await tester.pump();
+      final miniature = tester.widget<GwentCard>(
+        find.descendant(of: find.byType(DragFeedback), matching: find.byType(GwentCard)),
+      );
+      expect(miniature.size, CardSize.row, reason: 'под пальцем карта размера ряда: видны сила, ряд и способность');
+      final before = tester.getCenter(find.byType(DragFeedback));
+      await gesture.moveBy(const Offset(120, 0));
+      await tester.pump();
+      final after = tester.getCenter(find.byType(DragFeedback));
+      expect(after.dx - before.dx, closeTo(120, 1), reason: 'карта идёт за пальцем и в стороны');
       await gesture.up();
       await tester.pumpAndSettle();
     });

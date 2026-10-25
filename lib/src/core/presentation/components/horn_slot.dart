@@ -75,6 +75,8 @@ class HornSlot extends StatelessWidget {
   /// Нажатие: положить рог сюда, когда слот — цель.
   final VoidCallback? onTap;
 
+  static const Duration _fade = Duration(milliseconds: 120);
+
   /// Янтарь занятого слота: чем он отличается от золота пустого, видно слабо, поэтому на нём ещё значок сброса.
   static const Color amber = Color(0xFFE0A03C);
 
@@ -97,14 +99,22 @@ class HornSlot extends StatelessWidget {
         child: SizedBox.square(
           dimension: 44,
           child: Center(
-            child: switch (look) {
-              HornSlotLook.empty => const _EmptySlot(),
-              HornSlotLook.filled => _FilledSlot(art: art, effect: effect),
-              HornSlotLook.target => const _TargetSlot(hot: false),
-              HornSlotLook.ghost => _TargetSlot(hot: true, label: ghostLabel),
-              HornSlotLook.targetFilled => _FilledSlot(art: art, effect: effect, ring: _Ring.weak),
-              HornSlotLook.ghostReplace => _FilledSlot(art: art, effect: effect, ring: _Ring.hot),
-            },
+            // Вид слота перетекает за то же время, что и рамка ряда (`TargetHighlight.duration`): иначе слот щёлкает,
+            // а рамка ещё гаснет, и смена ряда выглядит как лаг.
+            child: AnimatedSwitcher(
+              duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : _fade,
+              child: KeyedSubtree(
+                key: ValueKey(look),
+                child: switch (look) {
+                  HornSlotLook.empty => const _EmptySlot(),
+                  HornSlotLook.filled => _FilledSlot(art: art, effect: effect),
+                  HornSlotLook.target => const _TargetSlot(hot: false),
+                  HornSlotLook.ghost => _TargetSlot(hot: true, label: ghostLabel),
+                  HornSlotLook.targetFilled => _FilledSlot(art: art, effect: effect, ring: _Ring.weak),
+                  HornSlotLook.ghostReplace => _FilledSlot(art: art, effect: effect, ring: _Ring.hot),
+                },
+              ),
+            ),
           ),
         ),
       ),
