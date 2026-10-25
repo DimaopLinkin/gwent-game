@@ -594,6 +594,62 @@ void main() {
   group('гость', () {
     OnlineAddress codeOf(HostedGame hosted) => OnlineAddress(server.rooms.values.last.code);
 
+    test('гость, которого хост не видел, через минуту уступает место другому телефону', () async {
+      final hosted = await hostLobby.host(ad);
+      final address = codeOf(hosted);
+      await guestLobby.join(address);
+      final other = OnlineLobby(rooms: server.phone('other'), scheduler: scheduler, clock: clock);
+
+      await expectLater(
+        other.join(address),
+        throwsA(isA<LobbyException>().having((error) => error.failure, 'failure', LobbyFailure.roomFull)),
+      );
+      clock.current = clock.current.add(const Duration(minutes: 1));
+      await other.join(address);
+      expect(server.rooms.values.last.guestUid, 'other');
+    });
+
+    test('хост подтверждает гостя первым кадром: место остаётся за ним', () async {
+      final hosted = await hostLobby.host(ad);
+      collect(hosted);
+      final address = await addressOf(hosted);
+      final guest = await guestLobby.join(address);
+      guest.send(bytes('{"hello":1}'));
+      await settle();
+      expect(hostRooms.calls.where((call) => call.startsWith('confirmGuest:')), hasLength(1));
+
+      guest.send(bytes('{"ping":1}'));
+      await settle();
+      expect(
+        hostRooms.calls.where((call) => call.startsWith('confirmGuest:')),
+        hasLength(1),
+        reason: 'второй кадр место уже не подтверждает',
+      );
+
+      clock.current = clock.current.add(const Duration(hours: 1));
+      final other = OnlineLobby(rooms: server.phone('other'), scheduler: scheduler, clock: clock);
+      await expectLater(
+        other.join(address),
+        throwsA(isA<LobbyException>().having((error) => error.failure, 'failure', LobbyFailure.roomFull)),
+      );
+    });
+
+    test('подтверждение не удалось: повторяется с очередным кадром гостя, партия идёт', () async {
+      final hosted = await hostLobby.host(ad);
+      final accepted = collect(hosted);
+      final guest = await guestLobby.join(await addressOf(hosted));
+      server.offline = true;
+      guest.send(bytes('{"hello":1}'));
+      await settle();
+      expect(accepted, hasLength(1), reason: 'кадр гостя доходит и без подтверждения');
+
+      server.offline = false;
+      guest.send(bytes('{"ping":1}'));
+      await settle();
+      final confirmed = server.rooms.values.last.guestSeen;
+      expect(confirmed, isTrue);
+    });
+
     test('неверный код: ошибка называет причину', () async {
       await expectLater(
         guestLobby.join(OnlineAddress(RoomCode.tryParse('ABCDEF')!)),

@@ -6,6 +6,7 @@ import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/awaited_action.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
@@ -22,7 +23,9 @@ import 'package:gwent_engine/gwent_engine.dart';
 ///
 /// В hot-seat телефон переходит к тому, от кого партия ждёт действия; перед этим экран прячет руку
 /// ([MatchHandover]). События копятся отдельно для каждого места и отдаются, когда место снова на экране.
-/// Законченная партия записывается в историю; местную партию можно повторить (реванш).
+/// Законченная партия записывается в историю; местную партию можно повторить (реванш). Сетевой реванш требует
+/// согласия обоих: стол сообщает, что предложил соперник и не вышло ли время ([TableRematchChanged]), а когда оба
+/// согласны, состояние становится [MatchRematchAgreed], и экран уходит в комнату выбирать колоды (ADR 0028).
 final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   /// Создаёт держатель над сценариями.
   ///
@@ -63,6 +66,9 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
 
   /// Запрос, которым начата местная партия: по нему можно сыграть реванш.
   LocalMatchRequest? _request;
+
+  /// Договорённость о реванше в сетевой партии; `null` у местной.
+  RematchOffer? _offer;
 
   bool _introDone = false;
   bool _tossDone = false;
@@ -144,6 +150,12 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   }
 
   Future<void> _onRematchRequested(MatchRematchRequested event, Emitter<MatchScreenState> emit) async {
+    final table = _session?.table;
+    if (table is RematchTable) {
+      // Сетевая партия: слово за обоими, хост ответит обновлением стола.
+      if (state is MatchFinished && (_offer ?? RematchOffer.idle).canRequest) table.requestRematch();
+      return;
+    }
     final request = _request;
     if (state is! MatchFinished || request == null) return;
     // Состояние меняется до первого await: повторное нажатие «Реванш» уже не пройдёт проверку выше.
@@ -190,6 +202,15 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
             ),
           );
         }
+      case TableRematchChanged(:final offer):
+        _offer = offer;
+        if (state case final MatchFinished finished) emit(finished.withRematch(offer));
+      case TableRematchAgreed():
+        if (state is! MatchFinished) return;
+        // Стол свою работу закончил: игра ведёт следующую партию, а этот экран сейчас уйдёт в комнату.
+        await _subscription?.cancel();
+        _subscription = null;
+        emit(const MatchRematchAgreed());
       case TableFailed(:final error):
         if (state is MatchFinished || state is MatchCrashed) return;
         emit(MatchCrashed(error));
@@ -320,17 +341,32 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     if (_boardShown && events.any((event) => event is MatchEnded)) {
       emit(MatchInProgress(view: view, content: session.content, roster: roster, events: events, closing: closing));
     }
-    emit(MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch));
+    emit(
+      MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch, rematch: _rematchOf(session)),
+    );
     try {
       final record = await _recordFinishedMatch(session, view);
       // Пока писалась история, игрок мог начать реванш или уйти: итог прежней партии новое состояние не затирает.
       if (isClosed || !identical(_session, session)) return;
-      emit(MatchFinished(view: view, roster: roster, events: events, record: record, canRematch: canRematch));
+      emit(
+        MatchFinished(
+          view: view,
+          roster: roster,
+          events: events,
+          record: record,
+          canRematch: canRematch,
+          rematch: _rematchOf(session),
+        ),
+      );
     } on Object catch (error, stackTrace) {
       // Итог партии важнее записи в историю: экран остаётся на итоге, ошибка уходит в журнал.
       addError(error, stackTrace);
     }
   }
+
+  /// Договорённость о реванше для итога сетевой партии; у остальных `null`.
+  RematchOffer? _rematchOf(MatchSession session) =>
+      session.table is RematchTable ? (_offer ?? RematchOffer.idle) : null;
 
   @override
   Future<void> close() async {

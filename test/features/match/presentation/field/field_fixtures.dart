@@ -175,10 +175,12 @@ MatchRoster rosterOf(
   bool hotSeat = false,
   Map<Seat, Faction> factions = const {Seat.one: Faction.skellige, Seat.two: Faction.skellige},
   Map<Seat, LeaderId>? leaders,
+  String? opponentName,
 }) => MatchRoster(
   mode: MatchMode.hotSeat,
   content: source.content,
   localSeats: hotSeat ? {Seat.one, Seat.two} : {Seat.one},
+  opponentName: opponentName,
   players: {
     for (final seat in Seat.values)
       seat: MatchPlayer(

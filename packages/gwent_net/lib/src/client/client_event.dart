@@ -156,3 +156,24 @@ final class GuestAdmitted extends ClientEvent {
   @override
   List<Object?> get props => const [];
 }
+
+/// Предложение реванша изменилось: [phase] с точки зрения этого игрока.
+final class RematchChanged extends ClientEvent {
+  const RematchChanged(this.phase, {required this.window});
+
+  final RematchPhase phase;
+
+  /// Сколько времени на ответ хост дал на момент отправки.
+  final Duration window;
+
+  @override
+  List<Object?> get props => [phase, window];
+}
+
+/// Оба согласны на реванш: хост вернул партию в лобби, места прежние.
+final class RematchStarted extends ClientEvent {
+  const RematchStarted();
+
+  @override
+  List<Object?> get props => const [];
+}

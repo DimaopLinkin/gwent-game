@@ -44,6 +44,7 @@ class MatchScreen extends StatefulWidget {
     this.onSettings,
     this.overlay,
     this.opponentStatus,
+    this.onRematchAgreed,
   });
 
   /// Выход из партии.
@@ -67,6 +68,9 @@ class MatchScreen extends StatefulWidget {
   /// Индикатор в полосе соперника на поле (связь в сетевой партии, ADR 0019); `null` — индикатора нет.
   final Widget? opponentStatus;
 
+  /// Оба игрока сетевой партии согласились на реванш: уйти в комнату, где выбирают колоды (ADR 0028).
+  final VoidCallback? onRematchAgreed;
+
   @override
   State<MatchScreen> createState() => _MatchScreenState();
 }
@@ -83,7 +87,12 @@ class _MatchScreenState extends State<MatchScreen> {
   /// Системное «назад» уводит из партии только до её начала и после конца. Посреди партии оно не выходит молча:
   /// на поле его перехватывает пауза (`FieldView`), на остальных экранах старта выхода нет, чтобы не потерять партию.
   bool _canLeave(MatchScreenState state) => switch (state) {
-    MatchIdle() || MatchStarting() || MatchStartFailed() || MatchFinished() || MatchCrashed() => true,
+    MatchIdle() ||
+    MatchStarting() ||
+    MatchStartFailed() ||
+    MatchFinished() ||
+    MatchCrashed() ||
+    MatchRematchAgreed() => true,
     MatchIntro() || MatchToss() || MatchHandover() || MatchInProgress() => false,
   };
 
@@ -102,7 +111,12 @@ class _MatchScreenState extends State<MatchScreen> {
       context.read<FieldCubit>().state.isBusy;
 
   void _onMatchState(MatchScreenState state) {
-    if (state is MatchCrashed || (state is MatchInProgress && state.events.any(_isResignation))) {
+    if (state is MatchRematchAgreed) {
+      // Следующая партия начнётся в комнате: ждать здесь нечего.
+      _waiting.clear();
+      _show(state);
+      widget.onRematchAgreed?.call();
+    } else if (state is MatchCrashed || (state is MatchInProgress && state.events.any(_isResignation))) {
       // Партия сломалась или кто-то сдался: ждать анимаций незачем, а то, что в очереди, уже не покажешь.
       _waiting.clear();
       _show(state);
@@ -236,14 +250,16 @@ class _MatchScreenState extends State<MatchScreen> {
           opponentStatus: widget.opponentStatus,
         ),
       },
-      MatchFinished(:final view, :final roster, :final canRematch) => MatchResultView(
+      MatchFinished(:final view, :final roster, :final canRematch, :final rematch) => MatchResultView(
         view: view,
         roster: roster,
         onExit: widget.onExit,
-        onRematch: canRematch ? () => bloc.add(const MatchRematchRequested()) : null,
+        onRematch: canRematch || rematch != null ? () => bloc.add(const MatchRematchRequested()) : null,
+        rematch: rematch,
         // Поле, на котором кончилась партия, видно за листом и по кнопке «Показать поле» (макет 13).
         field: FieldView(view: view, content: roster.content, roster: roster, onIntent: (_) {}, readOnly: true),
       ),
+      MatchRematchAgreed() => const SafeArea(child: Center(child: GameLoader())),
       MatchCrashed() => SafeArea(
         child: MatchPanel(
           title: l10n.matchCrashed,

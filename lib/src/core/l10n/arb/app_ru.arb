@@ -991,6 +991,32 @@
   "@matchResultRematch": {
     "description": "Кнопка итога матча: сыграть заново."
   },
+  "matchRematchRequested": "Ждём ответа соперника · {seconds} с",
+  "@matchRematchRequested": {
+    "description": "Итог сетевого матча: игрок предложил реванш, соперник ещё не ответил; сколько секунд осталось.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "matchRematchInvited": "Соперник предлагает реванш · {seconds} с",
+  "@matchRematchInvited": {
+    "description": "Итог сетевого матча: соперник предложил реванш, игрок может согласиться; сколько секунд осталось.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "matchRematchExpired": "Время на ответ вышло, реванша не будет",
+  "@matchRematchExpired": {
+    "description": "Итог сетевого матча: реванш предложили, но второй игрок не согласился вовремя."
+  },
+  "matchRematchGone": "Соперник ушёл, реванша не будет",
+  "@matchRematchGone": {
+    "description": "Итог сетевого матча: соперник вышел из игры или потерял связь."
+  },
   "pauseButtonSemantics": "Пауза",
   "@pauseButtonSemantics": {
     "description": "Подпись кнопки паузы для скринридера."

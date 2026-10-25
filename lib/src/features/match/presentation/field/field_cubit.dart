@@ -175,6 +175,7 @@ final class FieldCubit extends Cubit<FieldState> {
           MatchToss() ||
           MatchHandover() ||
           MatchFinished() ||
+          MatchRematchAgreed() ||
           MatchCrashed():
         // Телефон ушёл другому игроку или партия закончилась: чужие выбор, листы, тосты и баннеры не переносятся.
         _finishTimer?.cancel();

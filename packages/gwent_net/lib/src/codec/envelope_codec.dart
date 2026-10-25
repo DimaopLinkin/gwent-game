@@ -89,6 +89,9 @@ String _type(NetMessage message) => switch (message) {
   OpponentLeave() => 'opponent_leave',
   LobbyClose() => 'lobby_close',
   Admitted() => 'admitted',
+  RematchRequest() => 'rematch_request',
+  RematchStatus() => 'rematch_status',
+  RematchStart() => 'rematch_start',
 };
 
 Map<String, Object?> _payload(NetMessage message) => switch (message) {
@@ -126,7 +129,15 @@ Map<String, Object?> _payload(NetMessage message) => switch (message) {
     'away': ?(away ? true : null),
   },
   LobbyStatus(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
-  DeckWithdrawal() || LobbyLeave() || CountdownCancel() || OpponentLeave() || LobbyClose() || Admitted() => const {},
+  DeckWithdrawal() ||
+  LobbyLeave() ||
+  CountdownCancel() ||
+  OpponentLeave() ||
+  LobbyClose() ||
+  Admitted() ||
+  RematchRequest() ||
+  RematchStart() => const {},
+  RematchStatus(:final phase, :final window) => {'phase': phase.wire, 'ms': window.inMilliseconds},
   OpponentLobby(:final stage, :final leader) => {'stage': stage.wire, 'leader': ?leader?.value},
   CountdownStart(:final duration) => {'ms': duration.inMilliseconds},
 };
@@ -172,6 +183,9 @@ NetMessage _message(String type, JsonReader p) => switch (type) {
   'opponent_leave' => const OpponentLeave(),
   'lobby_close' => const LobbyClose(),
   'admitted' => const Admitted(),
+  'rematch_request' => const RematchRequest(),
+  'rematch_status' => RematchStatus(p.enumValue('phase', RematchPhase.values), window: _rematchWindow(p)),
+  'rematch_start' => const RematchStart(),
   final other => throw MalformedFrame(
     r'$.t: '
     'неизвестный тип сообщения «$other»',
@@ -182,6 +196,13 @@ NetMessage _message(String type, JsonReader p) => switch (type) {
 Duration _countdown(JsonReader p) {
   final ms = p.integer('ms');
   if (ms < 0 || ms > 60 * 1000) throw MalformedFrame('${p.path}.ms: отсчёт $ms мс вне 0–60000');
+  return Duration(milliseconds: ms);
+}
+
+/// Срок на ответ о реванше: разумный. Хост ставит секунды, а чужой хост не должен выдать игроку срок в годы.
+Duration _rematchWindow(JsonReader p) {
+  final ms = p.integer('ms');
+  if (ms < 0 || ms > 5 * 60 * 1000) throw MalformedFrame('${p.path}.ms: срок $ms мс вне 0–300000');
   return Duration(milliseconds: ms);
 }
 

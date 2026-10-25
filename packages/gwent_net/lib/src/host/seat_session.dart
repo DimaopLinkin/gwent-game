@@ -48,5 +48,11 @@ final class SeatSession {
   /// Игрок свернул приложение и ждёт возвращения партии.
   bool away = false;
 
+  /// Игрок просит реванш или согласился на него.
+  bool rematch = false;
+
+  /// Какую фазу реванша игрок уже получил: повторно одно и то же ему не отправляется. `null` — ещё ничего.
+  RematchPhase? rematchShown;
+
   bool get online => link != null;
 }

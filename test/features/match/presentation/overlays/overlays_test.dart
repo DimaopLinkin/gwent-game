@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Intent, Row;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
@@ -10,6 +11,7 @@ import 'package:gwent_engine/gwent_engine.dart';
 import '../../../../support/fonts.dart';
 import '../../../../support/localized_app.dart';
 import '../../../../support/match_fixtures.dart';
+import '../../../../support/screen_guards.dart';
 import '../field/field_fixtures.dart';
 
 void main() {
@@ -366,6 +368,92 @@ void main() {
       await tester.pump();
       await tester.pump(MatchResultView.sheetSlide);
       expect(find.text('Показать поле'), findsOneWidget);
+    });
+
+    group('реванш по сети', () {
+      Future<void> pumpOnline(WidgetTester tester, RematchOffer offer, {VoidCallback? onRematch, Size? size}) async {
+        await pumpView(
+          tester,
+          MatchResultView(
+            view: finished(winner: Seat.one),
+            roster: rosterOf(cards),
+            onExit: () {},
+            onRematch: onRematch ?? () {},
+            rematch: offer,
+          ),
+          size: size ?? const Size(390, 844),
+        );
+        await tester.pump();
+        await tester.pump(MatchResultView.sheetSlide);
+      }
+
+      testWidgets('предложение ещё не сделано: кнопка доступна, пояснения нет', (tester) async {
+        var taps = 0;
+        await pumpOnline(tester, RematchOffer.idle, onRematch: () => taps++);
+        await tester.tap(find.text('Реванш'));
+        expect(taps, 1);
+        expect(find.textContaining(' с'), findsNothing);
+      });
+
+      testWidgets('предложил игрок: сколько осталось ждать, секунды идут, кнопка не нажимается', (tester) async {
+        var taps = 0;
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.requested, window: Duration(seconds: 30)),
+          onRematch: () => taps++,
+        );
+        expect(find.text('Ждём ответа соперника · 30 с'), findsOneWidget);
+        await tester.pump(const Duration(seconds: 3));
+        expect(find.text('Ждём ответа соперника · 27 с'), findsOneWidget);
+        await tester.tap(find.text('Реванш'), warnIfMissed: false);
+        expect(taps, 0);
+        // Отсчёт не уходит ниже нуля.
+        await tester.pump(const Duration(seconds: 40));
+        expect(find.text('Ждём ответа соперника · 0 с'), findsOneWidget);
+      });
+
+      testWidgets('предложил соперник: можно согласиться', (tester) async {
+        var taps = 0;
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.invited, window: Duration(seconds: 20)),
+          onRematch: () => taps++,
+        );
+        expect(find.text('Соперник предлагает реванш · 20 с'), findsOneWidget);
+        await tester.tap(find.text('Реванш'));
+        expect(taps, 1);
+      });
+
+      testWidgets('время вышло или соперник ушёл: сказано об этом, отсчёта нет, кнопка недоступна', (tester) async {
+        var taps = 0;
+        await pumpOnline(tester, const RematchOffer(RematchStage.expired), onRematch: () => taps++);
+        expect(find.text('Время на ответ вышло, реванша не будет'), findsOneWidget);
+        await tester.tap(find.text('Реванш'), warnIfMissed: false);
+        expect(taps, 0);
+        await pumpOnline(tester, const RematchOffer(RematchStage.opponentGone), onRematch: () => taps++);
+        expect(find.text('Соперник ушёл, реванша не будет'), findsOneWidget);
+        expect(tester.hasRunningAnimations, isFalse);
+      });
+
+      testWidgets('новое состояние предложения запускает отсчёт заново; на узком экране без переполнения', (
+        tester,
+      ) async {
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.invited, window: Duration(seconds: 30)),
+          size: const Size(320, 568),
+        );
+        await tester.pump(const Duration(seconds: 5));
+        expect(find.text('Соперник предлагает реванш · 25 с'), findsOneWidget);
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.requested, window: Duration(seconds: 30)),
+          size: const Size(320, 568),
+        );
+        expect(find.text('Ждём ответа соперника · 30 с'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expectNoFallbackTextStyle(tester);
+      });
     });
 
     testWidgets('за листом поле не принимает касаний', (tester) async {

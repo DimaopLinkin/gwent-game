@@ -8,6 +8,7 @@ import 'package:gwent/src/features/lobby/domain/game_ad.dart';
 import 'package:gwent/src/features/lobby/domain/lobby_exception.dart';
 import 'package:gwent/src/features/lobby/domain/online_session_store.dart';
 import 'package:gwent/src/features/lobby/domain/room_code.dart';
+import 'package:gwent_net/gwent_net.dart' show protocolVersion;
 
 import '../../../../support/fakes.dart';
 import '../../support/fake_supabase_server.dart';
@@ -97,7 +98,7 @@ void main() {
       expect(call.function, 'create_room');
       expect(call.params, {
         'p_host_name': 'Цири',
-        'p_protocol': 1,
+        'p_protocol': protocolVersion,
         'p_ruleset_id': 'gwent-w3-base',
         'p_ruleset_hash': 'abc123',
         'p_engine_version': 1,
@@ -255,6 +256,13 @@ void main() {
       expect(server.rpcCalls.map((call) => call.function), ['set_room_open', 'close_room']);
       expect(server.rpcCalls[0].params, {'p_room_id': 'room-1', 'p_open': false});
       expect(server.rpcCalls[1].params, {'p_room_id': 'room-1'});
+    });
+
+    test('confirmGuest зовёт confirm_guest с идентификатором комнаты', () async {
+      await rooms.confirmGuest('room-1');
+
+      expect(server.rpcCalls.single.function, 'confirm_guest');
+      expect(server.rpcCalls.single.params, {'p_room_id': 'room-1'});
     });
 
     test('standing: живая комната сообщает срок', () async {

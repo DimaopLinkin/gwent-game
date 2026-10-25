@@ -17,6 +17,7 @@ import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent/src/features/settings/presentation/settings_state.dart';
+import 'package:gwent_net/gwent_net.dart' show protocolVersion;
 
 import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
@@ -82,7 +83,7 @@ void main() {
       expect(find.text(title.toUpperCase()), findsOneWidget, reason: title);
     }
     expect(find.text(l10n.settingsAppVersionBuild('1.2.3', '45')), findsOneWidget);
-    expect(find.text(l10n.settingsProtocolValue(1)), findsOneWidget);
+    expect(find.text(l10n.settingsProtocolValue(protocolVersion)), findsOneWidget);
     expect(find.text(l10n.settingsFanProject), findsOneWidget);
     expect(find.text(l10n.settingsValueUnknown), findsOneWidget, reason: 'дата проверки: пока не проверяли');
   });

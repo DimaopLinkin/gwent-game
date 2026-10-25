@@ -156,6 +156,8 @@ void main() {
           finished.completeError(StateError('отказ ${reject.reason}'));
         case TableFailed(:final error):
           finished.completeError(error);
+        case TableRematchChanged() || TableRematchAgreed():
+          finished.completeError(StateError('в местной партии согласия на реванш нет'));
       }
     });
     final view = await finished.future;

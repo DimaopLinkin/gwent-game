@@ -360,6 +360,8 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
       initialData: const AppSettings(),
       builder: (context, snapshot) => MatchScreen(
         onExit: () => context.go(AppRoutes.menu),
+        // Оба согласились на реванш: колоды выбирают заново в той же комнате.
+        onRematchAgreed: () => context.go(AppRoutes.playRoom),
         onEditDeck: (_) {},
         onSettings: () => context.push(AppRoutes.settings),
         animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {

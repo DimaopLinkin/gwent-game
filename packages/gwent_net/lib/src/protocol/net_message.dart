@@ -169,6 +169,15 @@ final class LobbyLeave extends ClientMessage {
   List<Object?> get props => const [];
 }
 
+/// Игрок просит реванш или соглашается на него, когда его предложил соперник. Принимается только после конца
+/// партии (ADR 0028).
+final class RematchRequest extends ClientMessage {
+  const RematchRequest();
+
+  @override
+  List<Object?> get props => const [];
+}
+
 /// Намерение игрока. Место игрока хост берёт из соединения, а не из сообщения.
 final class IntentMessage extends ClientMessage {
   const IntentMessage(this.intent);
@@ -224,6 +233,9 @@ enum RefusalCode {
 
   /// Движок отклонил намерение: подробности в [Refusal.reject].
   intentRejected,
+
+  /// Реванш просят, пока партия не закончилась.
+  matchNotFinished,
 }
 
 /// Хост → клиент: сообщение клиента с номером [replyTo] не выполнено.
@@ -309,6 +321,47 @@ final class LobbyClose extends HostMessage {
 /// Хост → клиент: хост пустил игрока в лобби. До этого сообщения игрок ждёт решения хоста (ADR 0022).
 final class Admitted extends HostMessage {
   const Admitted();
+
+  @override
+  List<Object?> get props => const [];
+}
+
+/// Как идёт предложение реванша после конца партии, с точки зрения получателя.
+enum RematchPhase {
+  /// Никто реванш не просил.
+  idle,
+
+  /// Получатель попросил реванш и ждёт ответа соперника.
+  asked,
+
+  /// Соперник попросил реванш и ждёт ответа получателя.
+  invited,
+
+  /// Время на ответ вышло: реванша не будет.
+  expired,
+
+  /// Соперник ушёл (или его нет на связи): реванша не будет, пока он не вернётся.
+  opponentGone,
+}
+
+/// Хост → клиент: как идёт предложение реванша. Приходит при каждой смене [phase] после конца партии.
+final class RematchStatus extends HostMessage {
+  const RematchStatus(this.phase, {required this.window});
+
+  final RematchPhase phase;
+
+  /// Сколько времени на ответ осталось на момент отправки; отсчёт ведёт интерфейс, решает хост. Для
+  /// [RematchPhase.asked] и [RematchPhase.invited] это всё окно, при остальных фазах не показывается.
+  final Duration window;
+
+  @override
+  List<Object?> get props => [phase, window];
+}
+
+/// Хост → клиент: оба согласны на реванш. Партия сброшена до лобби: оба игрока снова выбирают колоду и жмут «Готов»,
+/// места и соединения остаются прежними.
+final class RematchStart extends HostMessage {
+  const RematchStart();
 
   @override
   List<Object?> get props => const [];
