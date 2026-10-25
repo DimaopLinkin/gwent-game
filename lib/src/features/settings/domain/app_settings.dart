@@ -12,7 +12,7 @@ final class AppSettings {
   /// Создаёт настройки.
   const AppSettings({
     this.playerName,
-    this.confirmPass = true,
+    this.confirmPass = false,
     this.animationSpeed = AnimationSpeed.normal,
     this.hints = true,
     this.haptics = true,

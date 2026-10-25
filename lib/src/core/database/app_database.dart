@@ -18,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   /// Шаги обновления по версиям. Отдельно от [migration], чтобы тест мог подставить сбойный шаг.
   @visibleForTesting
@@ -29,6 +29,12 @@ class AppDatabase extends _$AppDatabase {
     from2To3: (m, schema) async {
       await m.addColumn(schema.matchRecords, schema.matchRecords.hasReplay);
       await m.createTable(schema.matchReplays);
+    },
+    // Версия 4: пас по умолчанию держат, а не подтверждают диалогом. Таблицы те же, меняется смысл хранимой настройки:
+    // раньше по умолчанию было «подтверждать» и хранилось только отключение, теперь наоборот. Ключ удаляется у всех,
+    // и «Подтверждать пас» у каждого выключено; кто захочет диалог, включит его в настройках.
+    from3To4: (m, schema) async {
+      await m.database.customStatement("DELETE FROM settings WHERE key = 'confirm_pass'");
     },
   );
 

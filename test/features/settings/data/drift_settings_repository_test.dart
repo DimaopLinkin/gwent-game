@@ -35,7 +35,7 @@ void main() {
   test('все настройки возвращаются такими, какими сохранены', () async {
     final settings = AppSettings(
       playerName: 'Цири',
-      confirmPass: false,
+      confirmPass: true,
       animationSpeed: AnimationSpeed.fast,
       hints: false,
       haptics: false,
@@ -52,7 +52,7 @@ void main() {
   });
 
   test('значения по умолчанию в базе не хранятся', () async {
-    await repository.save(const AppSettings(confirmPass: false));
+    await repository.save(const AppSettings(confirmPass: true));
 
     final keys = {for (final row in await db.select(db.settings).get()) row.key};
     expect(keys, {'confirm_pass'});
@@ -71,7 +71,7 @@ void main() {
 
     final settings = await repository.watch().first;
 
-    expect(settings.confirmPass, isTrue);
+    expect(settings.confirmPass, isFalse);
     expect(settings.animationSpeed, AnimationSpeed.normal);
     expect(settings.hints, isTrue);
     expect(settings.musicVolume, 70);

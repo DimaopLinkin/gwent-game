@@ -80,16 +80,16 @@ void main() {
 
     cubit
       ..setPlayerName(' Йеннифэр ')
-      ..setConfirmPass(value: false)
+      ..setConfirmPass(value: true)
       ..setAnimationSpeed(AnimationSpeed.fast)
       ..setHints(value: false);
 
     final settings = (cubit.state as SettingsLoaded).settings;
-    expect(settings.confirmPass, isFalse);
+    expect(settings.confirmPass, isTrue);
     expect(settings.animationSpeed, AnimationSpeed.fast);
     expect(settings.hints, isFalse);
     expect(repository.saved.playerName, 'Йеннифэр', reason: 'имя сохраняется без пробелов по краям');
-    expect(repository.saved.confirmPass, isFalse);
+    expect(repository.saved.confirmPass, isTrue);
     expect(repository.saved.animationSpeed, AnimationSpeed.fast);
     expect(repository.saved.hints, isFalse);
   });
