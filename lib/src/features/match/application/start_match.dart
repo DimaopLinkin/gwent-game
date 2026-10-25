@@ -5,32 +5,30 @@ import 'package:gwent/src/features/deck_builder/domain/deck.dart' as app;
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
+import 'package:gwent/src/features/match/domain/match_pause.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent/src/features/match_history/domain/replay_recorder.dart';
 import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_content/gwent_content.dart' show ValidationIssue;
 import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/gwent_net.dart' show InMemoryMatchJournal, MatchRecord, Ruleset;
 import 'package:meta/meta.dart';
 
 /// Создаёт бота уровня `difficulty` для партии над движком и справочником карт; `seed` задаёт ошибки лёгкого уровня
 /// и догадки о руке соперника, поэтому с одним сидом бот играет одинаково.
 typedef BotFactory = MatchBot Function(MatchEngine engine, CardCatalog catalog, BotDifficulty difficulty, int seed);
 
-/// Что выбрал игрок перед местной партией: режим, колоды мест и, если игрок выбрал, лидеры.
+/// Что выбрал игрок перед местной партией: режим и колоды мест.
 @immutable
 final class LocalMatchRequest {
   /// Создаёт запрос. Против бота [deckTwo] — колода бота: если собранной колоды нет ([opponentDeck]), она лежит
   /// в хранилище.
-  ///
-  /// [leaderOne] и [leaderTwo] — UUID лидеров, с которыми места идут в эту партию вместо лидера колоды: лидер
-  /// выбирается перед партией и не меняет сохранённую колоду. Без них места играют лидерами своих колод.
   const LocalMatchRequest({
     required this.mode,
     required this.deckOne,
     required this.deckTwo,
-    this.leaderOne,
-    this.leaderTwo,
     this.difficulty = BotDifficulty.normal,
     this.opponentDeck,
   });
@@ -51,22 +49,10 @@ final class LocalMatchRequest {
   /// Идентификатор колоды второго места.
   final String deckTwo;
 
-  /// UUID лидера первого места на эту партию или `null`, если играет лидер колоды.
-  final String? leaderOne;
-
-  /// UUID лидера второго места на эту партию или `null`, если играет лидер колоды.
-  final String? leaderTwo;
-
   /// Колода места [seat].
   String deck(Seat seat) => switch (seat) {
     Seat.one => deckOne,
     Seat.two => deckTwo,
-  };
-
-  /// Выбранный лидер места [seat] или `null`, если играет лидер колоды.
-  String? leader(Seat seat) => switch (seat) {
-    Seat.one => leaderOne,
-    Seat.two => leaderTwo,
   };
 }
 
@@ -156,10 +142,7 @@ final class StartMatch {
       final built = seat == Seat.two ? request.opponentDeck : null;
       final deck = built ?? await _decks.findById(request.deck(seat));
       if (deck == null) return MatchDeckNotFound(seat, request.deck(seat));
-      decks[seat] = switch (request.leader(seat)) {
-        final leaderId? => deck.copyWith(leaderId: leaderId),
-        null => deck,
-      };
+      decks[seat] = deck;
     }
     return _start(request, content, decks);
   }
@@ -167,25 +150,43 @@ final class StartMatch {
   StartMatchResult _start(LocalMatchRequest request, GameContent content, Map<Seat, app.Deck> decks) {
     final mode = request.mode;
     final engine = GwentEngine(content.catalog, rules: content.rules);
+    final seed = _seeds.next();
     final setup = MatchSetup(
       one: decks[Seat.one]!.toEngineDeck(),
       two: decks[Seat.two]!.toEngineDeck(),
-      rng: SeededRng(_seeds.next()),
+      rng: SeededRng(seed),
     );
     switch (engine.start(setup)) {
       case Rejected(:final reject):
         return MatchDeckInvalid(reject.seat!, reject.deckViolations);
       case Accepted(:final state, :final events):
+        // Журнал начинается до стола: стол пишет в него с первого хода (реплей, ADR 0029).
+        final manifest = content.pack.manifest;
+        final journal = InMemoryMatchJournal()
+          ..begin(
+            MatchRecord(
+              matchId: 'local-$seed',
+              ruleset: Ruleset(id: manifest.packId, hash: manifest.contentHash, engineVersion: engineVersion),
+              seed: seed,
+              one: setup.one,
+              two: setup.two,
+            ),
+          );
+        // Пауза общая: стол не принимает ходы на паузе, а бот не тратит на ней время размышления.
+        final pause = MatchPause();
         final table = LocalMatchTable(
           engine: engine,
           state: state,
           startEvents: events,
+          journal: journal,
+          pause: pause,
           agents: switch (mode) {
             LocalMatchMode.hotSeat => const {},
             LocalMatchMode.vsBot => {
               Seat.two: BotAgent(
                 _createBot(engine, content.catalog, request.difficulty, _seeds.next()),
                 thinkTime: _botThinkTime,
+                pause: pause,
               ),
             },
           },
@@ -200,6 +201,7 @@ final class StartMatch {
             content: content,
             factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId},
             deckNames: {for (final seat in Seat.values) seat: decks[seat]!.name},
+            recorder: JournalReplayRecorder(journal, perspective: Seat.one),
           ),
         );
     }

@@ -25,6 +25,7 @@ class WeatherStrip extends StatelessWidget {
     required this.status,
     required this.round,
     this.statusActive = true,
+    this.hint,
     this.isTarget = false,
     this.onTap,
     this.showPauseSlot = false,
@@ -42,10 +43,14 @@ class WeatherStrip extends StatelessWidget {
   /// Статус подсвечен золотом (ваш ход), иначе приглушён.
   final bool statusActive;
 
+  /// Подсказка, что делать с выбранной картой (настройка «Подсказки», макет 14): одна статичная строка 12 pt
+  /// вторичным цветом вместо статуса, без значка и плашки. `null` — статус хода.
+  final String? hint;
+
   /// Номер раунда, 1…3.
   final int round;
 
-  /// Полоса — цель хода.
+  /// Полоса — цель хода. Подсвечивает её поле целиком (`TargetHighlight`), полоса только принимает нажатие.
   final bool isTarget;
 
   /// Тап по полосе.
@@ -53,6 +58,9 @@ class WeatherStrip extends StatelessWidget {
 
   /// Справа оставлено место под кнопку паузы: сама кнопка лежит поверх полосы (её зона нажатия больше полосы).
   final bool showPauseSlot;
+
+  /// Появление и исчезновение подсказки.
+  static const Duration hintFade = Duration(milliseconds: 150);
 
   /// Сколько места справа занимает кнопка паузы: круг 30 pt и отступ 2 pt.
   static const double pauseSlotWidth = 32;
@@ -78,12 +86,6 @@ class WeatherStrip extends StatelessWidget {
             ),
             border: Border.symmetric(horizontal: BorderSide(color: GwentColors.brass)),
           ),
-          foregroundDecoration: isTarget
-              ? BoxDecoration(
-                  color: GwentColors.gold.withValues(alpha: 0.12),
-                  border: Border.all(color: GwentColors.gold, width: 2),
-                )
-              : null,
           child: Row(
             spacing: 8,
             children: [
@@ -92,29 +94,45 @@ class WeatherStrip extends StatelessWidget {
                 children: [for (final slot in slots) _Slot(slot: slot)],
               ),
               Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 8,
-                  children: [
-                    _Diamond(color: statusColor, size: 5),
-                    Flexible(
-                      child: Text(
-                        status,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textScaler: TextScaler.noScaling,
-                        style: TextStyle(
-                          fontFamily: GwentText.cormorant,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
-                          height: 1,
-                          letterSpacing: 0.68,
-                          color: statusColor,
+                child: AnimatedSwitcher(
+                  duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : hintFade,
+                  child: hint == null
+                      ? Row(
+                          key: const ValueKey('status'),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 8,
+                          children: [
+                            _Diamond(color: statusColor, size: 5),
+                            Flexible(
+                              child: Text(
+                                status,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textScaler: TextScaler.noScaling,
+                                style: TextStyle(
+                                  fontFamily: GwentText.cormorant,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 17,
+                                  height: 1,
+                                  letterSpacing: 0.68,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                            _Diamond(color: statusColor, size: 5),
+                          ],
+                        )
+                      : Center(
+                          key: const ValueKey('hint'),
+                          child: Text(
+                            hint!,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            textScaler: TextScaler.noScaling,
+                            style: GwentText.caption.copyWith(fontSize: 12, height: 1.1),
+                          ),
                         ),
-                      ),
-                    ),
-                    _Diamond(color: statusColor, size: 5),
-                  ],
                 ),
               ),
               _RoundMark(round: round),

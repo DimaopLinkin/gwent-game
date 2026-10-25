@@ -1,6 +1,7 @@
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/awaited_action.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchRecord;
 import 'package:gwent_engine/gwent_engine.dart';
@@ -124,6 +125,24 @@ final class MatchInProgress extends MatchScreenState {
   bool get awaitsMe => awaitsAction(view);
 }
 
+/// Пересдача: игрок поменял последнюю карту. Экран держит руку с пришедшей картой, пока её видно, и только потом
+/// идёт следующее состояние: ожидание соперника, передача телефона или поле. Нейтральная заставка, действий она
+/// не принимает.
+final class MatchRedrawSettled extends MatchScreenState {
+  /// Создаёт состояние.
+  MatchRedrawSettled({required this.view, required this.roster, required List<GameEvent> events})
+    : events = List.unmodifiable(events);
+
+  /// Проекция игрока после последней замены: в руке уже пришедшая карта.
+  final PlayerView view;
+
+  /// Участники партии.
+  final MatchRoster roster;
+
+  /// События замены (`CardRedrawn`) этого игрока: по ним играет звук. Остальные события придут со следующим состоянием.
+  final List<GameEvent> events;
+}
+
 /// Партия окончена.
 final class MatchFinished extends MatchScreenState {
   /// Создаёт состояние.
@@ -133,6 +152,7 @@ final class MatchFinished extends MatchScreenState {
     required List<GameEvent> events,
     this.record,
     this.canRematch = false,
+    this.rematch,
   }) : events = List.unmodifiable(events);
 
   /// Итоговая проекция: счёт раундов в `history`, победитель в `outcome`.
@@ -144,6 +164,9 @@ final class MatchFinished extends MatchScreenState {
   /// Партию можно сыграть заново с теми же колодами (местная партия); сетевую так не повторить.
   final bool canRematch;
 
+  /// Договорённость о реванше в сетевой партии; `null` в местной, где реванш — просто [canRematch].
+  final RematchOffer? rematch;
+
   /// Последние события партии, которых игрок ещё не видел.
   final List<GameEvent> events;
 
@@ -152,6 +175,16 @@ final class MatchFinished extends MatchScreenState {
 
   /// Итог партии.
   MatchOutcome get outcome => view.outcome!;
+
+  /// Копия с другим предложением реванша.
+  MatchFinished withRematch(RematchOffer offer) =>
+      MatchFinished(view: view, roster: roster, events: events, record: record, canRematch: canRematch, rematch: offer);
+}
+
+/// Оба игрока сетевой партии согласились на реванш: экран уходит в комнату, где они выбирают колоды заново.
+final class MatchRematchAgreed extends MatchScreenState {
+  /// Создаёт состояние.
+  const MatchRematchAgreed();
 }
 
 /// Партия прервалась: соперник не смог сделать ход (ошибка бота или движка).

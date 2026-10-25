@@ -36,7 +36,9 @@ void main() {
       final third = table.newClient('Третий');
       table.connectGuest(third);
       await table.scheduler.flush();
-      expect(table.eventsOf<JoinRefused>(third), [const JoinRefused(JoinRefusal.matchFull, hostProtocol: 1)]);
+      expect(table.eventsOf<JoinRefused>(third), [
+        const JoinRefused(JoinRefusal.matchFull, hostProtocol: protocolVersion),
+      ]);
       expect(third.status, ConnectionStatus.refused);
       expect(table.guest.status, ConnectionStatus.online, reason: 'место гостя не тронуто');
     });
@@ -74,6 +76,22 @@ void main() {
           'p': {'reason': 'protocol_mismatch', 'protocol': protocolVersion},
         },
       ]);
+    });
+
+    test('хост прежней версии отвечает кадром, которого клиент не разбирает: «обновите приложение»', () async {
+      final table = Table();
+      final (client, server) = InMemoryTransport.pair();
+      table.guest.connect(client);
+      server.send(
+        utf8.encode(
+          jsonEncode({'v': protocolVersion - 1, 't': 'welcome', 'seq': 0, 'ack': 0, 'p': <String, Object?>{}}),
+        ),
+      );
+      await table.scheduler.flush();
+      expect(table.eventsOf<JoinRefused>(table.guest), [
+        const JoinRefused(JoinRefusal.protocolMismatch, hostProtocol: protocolVersion - 1),
+      ]);
+      expect(table.guest.status, ConnectionStatus.refused);
     });
 
     test('чужой токен не возвращает в партию', () async {

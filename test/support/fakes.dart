@@ -7,8 +7,11 @@ import 'package:gwent/src/core/domain/seed_generator.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_output.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 import 'package:gwent/src/features/sound/domain/music_output.dart';
@@ -180,11 +183,21 @@ final class InMemoryMatchHistoryRepository implements MatchHistoryRepository {
   @override
   Stream<List<MatchRecord>> watchAll() => _watch(_changes, () => _sorted);
 
+  /// Реплеи по идентификаторам партий.
+  final Map<String, ReplayLog> replays = {};
+
   @override
-  Future<void> add(MatchRecord record) async {
+  Future<MatchRecord?> findById(String id) async => records.where((record) => record.id == id).firstOrNull;
+
+  @override
+  Future<void> add(MatchRecord record, {ReplayLog? replay}) async {
     records.add(record);
+    if (replay != null) replays[record.id] = replay;
     _changes.add(null);
   }
+
+  @override
+  Future<ReplayLog?> findReplay(String recordId) async => replays[recordId];
 }
 
 /// Поток, который сразу выдаёт [read] и повторяет его после каждого события [changes].
@@ -215,6 +228,15 @@ final class RecordingSoundOutput implements SoundOutput {
 
   @override
   void play(SoundEffect effect, {required double volume}) => played.add((effect: effect, volume: volume));
+}
+
+/// Вывод вибрации, который ничего не подаёт, а запоминает паттерны по порядку вызова.
+final class RecordingHapticOutput implements HapticOutput {
+  /// Паттерны в порядке вызова.
+  final List<HapticPattern> played = [];
+
+  @override
+  void play(HapticPattern pattern) => played.add(pattern);
 }
 
 /// Вывод музыки, который ничего не играет, а запоминает команды.

@@ -8,7 +8,9 @@ import 'package:gwent/src/features/lobby/domain/lobby_room.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/network_match_table.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent/src/features/match_history/domain/replay_recorder.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:gwent_net/gwent_net.dart';
 
@@ -31,6 +33,7 @@ final class NetworkGame {
     required this.playerName,
     MatchHost? host,
     HostedGame? hosted,
+    InMemoryMatchJournal? journal,
     GameLobby? lobby,
     GameAddress? address,
     this.reconnectWindow = const Duration(minutes: 2),
@@ -40,6 +43,7 @@ final class NetworkGame {
        _content = content,
        _scheduler = scheduler,
        _host = host,
+       _journal = journal,
        _hosted = hosted,
        _lobby = lobby,
        _address = address {
@@ -74,6 +78,7 @@ final class NetworkGame {
   final GameContent _content;
   final Scheduler _scheduler;
   final MatchHost? _host;
+  final InMemoryMatchJournal? _journal;
   final HostedGame? _hosted;
   final GameLobby? _lobby;
   final GameAddress? _address;
@@ -83,8 +88,12 @@ final class NetworkGame {
   StreamSubscription<PendingGuest?>? _pending;
   final StreamController<LobbyRoom> _rooms = StreamController<LobbyRoom>.broadcast();
 
-  /// Обновления для стола партии: копятся, пока стол не открыт, и первым идёт раздача.
-  final StreamController<TableUpdate> _table = StreamController<TableUpdate>();
+  /// Обновления для стола партии: копятся, пока стол не открыт, и первым идёт раздача. Реванш начинает новый
+  /// стол с новым потоком ([_generation]).
+  StreamController<TableUpdate> _table = StreamController<TableUpdate>();
+
+  /// Номер партии в этой игре: растёт с каждым реваншем. Закрытие стола прежней партии новую не трогает.
+  int _generation = 0;
   final Map<int, Intent> _intents = {};
 
   /// Последнее запрошенное состояние объявления хоста (открыто или занято); `null`, пока не менялось.
@@ -95,6 +104,9 @@ final class NetworkGame {
   bool _admitting = false;
   LobbyRoom _room = const LobbyRoom();
   PlayerView? _firstView;
+
+  /// Запись идущей партии для истории: у хоста по журналу, у гостя по кадрам (ADR 0029). Новая на каждую партию.
+  NetworkReplayRecorder? _recorder;
   int? _deckRequest;
   String? _deckName;
   Timer? _deadline;
@@ -102,6 +114,9 @@ final class NetworkGame {
   bool _attempting = false;
   bool _closed = false;
   bool _handedOver = false;
+
+  /// Партия закончилась и на экране итог: реванш и уход соперника видны на нём.
+  bool _matchFinished = false;
   Completer<void>? _pause;
   Completer<LobbyRoom>? _settled;
   Timer? _settleTimer;
@@ -200,18 +215,22 @@ final class NetworkGame {
     if (_handedOver) throw StateError('Партия уже открыта на экране');
     _handedOver = true;
     final deckName = _deckName;
+    final generation = _generation;
     return MatchSession(
       mode: mode,
       table: NetworkMatchTable(
         seat: seat,
         updates: _table.stream,
         onSubmit: _send,
-        onClose: close,
+        // Стол прежней партии, закрытый после реванша, игру не закрывает: она уже ведёт следующую.
+        onClose: () => generation == _generation ? close() : Future<void>.value(),
+        onRematch: _requestRematch,
       ),
       content: _content,
       factionIds: {seat: _factionId(view.me.faction), seat.opponent: _factionId(view.opponent.faction)},
       deckNames: {seat: ?deckName},
       opponentName: _room.opponent?.name,
+      recorder: _recorder,
     );
   }
 
@@ -227,6 +246,11 @@ final class NetworkGame {
     final seat = _room.seat;
     if (_closed || seat == null) return;
     _host?.setAway(seat, away: away);
+  }
+
+  void _requestRematch() {
+    if (_closed || !_matchFinished) return;
+    _client.requestRematch();
   }
 
   /// Партию открыли для экрана: комната больше не нужна и не закрывает игру.
@@ -260,6 +284,11 @@ final class NetworkGame {
     _intents[_client.send(intent)] = intent;
   }
 
+  Ruleset get _ruleset {
+    final manifest = _content.pack.manifest;
+    return Ruleset(id: manifest.packId, hash: manifest.contentHash, engineVersion: engineVersion);
+  }
+
   String _factionId(Faction faction) => _content.factions.entries.firstWhere((entry) => entry.value == faction).key;
 
   void _onEvent(ClientEvent event) {
@@ -275,6 +304,10 @@ final class NetworkGame {
         _setRoom(_room.copyWith(end: RoomRefused(reason)));
       case ConnectionLost():
         _onConnectionLost();
+      case RematchChanged(:final phase, :final window):
+        if (_matchFinished) _tell(TableRematchChanged(_offerOf(phase, window)));
+      case RematchStarted():
+        _onRematchStarted();
       case ViewChanged(:final view, :final events):
         _onView(view, events);
       case ActionRefused(:final refusal, :final request):
@@ -325,6 +358,45 @@ final class NetworkGame {
     }
   }
 
+  RematchOffer _offerOf(RematchPhase phase, Duration window) => switch (phase) {
+    RematchPhase.idle => RematchOffer.idle,
+    RematchPhase.asked => RematchOffer(RematchStage.requested, window: window),
+    RematchPhase.invited => RematchOffer(RematchStage.invited, window: window),
+    RematchPhase.expired => const RematchOffer(RematchStage.expired),
+    RematchPhase.opponentGone => const RematchOffer(RematchStage.opponentGone),
+  };
+
+  void _tell(TableUpdate update) {
+    if (!_table.isClosed) _table.add(update);
+  }
+
+  /// Оба согласились на реванш: хост вернул партию в лобби. Стол прежней партии узнаёт об этом и закрывается, комната
+  /// снова ждёт колоды обоих, а следующая партия откроется новым столом.
+  void _onRematchStarted() {
+    if (_closed || !_matchFinished) return;
+    _tell(const TableRematchAgreed());
+    unawaited(_table.close());
+    _table = StreamController<TableUpdate>();
+    _generation++;
+    _matchFinished = false;
+    _handedOver = false;
+    _firstView = null;
+    _recorder = null;
+    _deckRequest = null;
+    _deckName = null;
+    _intents.clear();
+    _setRoom(
+      _room.copyWith(
+        started: false,
+        myStage: LobbyStage.choosing,
+        clearLeader: true,
+        clearCountdown: true,
+        deckRefused: false,
+        opponent: _room.opponent?.copyWith(stage: LobbyStage.choosing, clearLeader: true),
+      ),
+    );
+  }
+
   void _onPendingGuest(PendingGuest? guest) {
     if (_closed) return;
     _setRoom(guest == null ? _room.copyWith(clearPendingGuest: true) : _room.copyWith(pendingGuest: guest.name));
@@ -334,6 +406,13 @@ final class NetworkGame {
     final seat = _client.seat ?? _room.seat;
     if (seat == null) return;
     _firstView ??= view;
+    (_recorder ??= NetworkReplayRecorder(
+      perspective: seat,
+      ruleset: _ruleset,
+      // Журнал хоста принадлежит партии, которая идёт сейчас; следующую партию начнёт реванш.
+      journal: _journal,
+    )).add(view, events);
+    _matchFinished = view.phase == MatchPhase.finished;
     if (!_room.started) _setRoom(_room.copyWith(started: true, clearCountdown: true));
     if (!_table.isClosed) _table.add(ViewsChanged({seat: view}, {seat: events}));
   }
@@ -360,6 +439,8 @@ final class NetworkGame {
       return;
     }
     _setRoom(_room.copyWith(link: RoomLink.lost, linkUnstable: false));
+    // Хост пропал, пока на экране итог: реванша не будет, пока он не вернётся (его статус придёт после возвращения).
+    if (_matchFinished && _host == null) _tell(const TableRematchChanged(RematchOffer(RematchStage.opponentGone)));
     if (_host != null || _lobby == null || _address == null) return;
     _reconnecting = true;
     _deadline ??= _scheduler.timer(reconnectWindow, _giveUp);

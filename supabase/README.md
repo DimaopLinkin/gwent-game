@@ -25,18 +25,27 @@ CI запускает тот же скрипт (задача `supabase`).
 1. Поставить Supabase CLI: `brew install supabase/tap/supabase` (macOS).
 2. Войти и привязать проект: `supabase login`, затем из корня репозитория `supabase link --project-ref dduuljprudykffghxytl`. CLI спросит пароль базы, который задан при создании проекта; он остаётся только на вашем компьютере.
 3. Применить миграции: `supabase db push` (покажет список и спросит подтверждение).
-   Без CLI можно открыть SQL Editor в дашборде и выполнить три файла из `migrations/` по порядку имён.
+   Без CLI можно открыть SQL Editor в дашборде и выполнить файлы из `migrations/` по порядку имён (четыре на сегодня).
 4. В дашборде: Authentication → Sign In / Providers → включить **Anonymous sign-ins**. Без этого приложение не сможет войти.
 5. В дашборде: Realtime → Settings → выключить **Allow public access** (если пункт есть): тогда каналы только приватные, с проверкой политик.
 6. Проверить в SQL Editor: запрос
    ```sql
    select (select count(*) from pg_policies where schemaname = 'realtime' and policyname like 'gwent:%') as policies,
           (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname in
-             ('create_room','join_room','set_room_open','close_room')) as functions;
+             ('create_room','join_room','set_room_open','close_room','confirm_guest')) as functions;
    ```
-   должен вернуть `policies = 2`, `functions = 4`.
+   должен вернуть `policies = 2`, `functions = 5`.
 
 Новые миграции применяются так же: `supabase db push`.
+
+### Миграция `20261025090000_guest_seat_confirmation.sql` (место гостя, [ADR 0028](../docs/adr/0028-network-tails-and-rematch.md))
+
+Нужна, чтобы место гостя, который занял комнату и не вошёл в канал, освобождалось через минуту. Что она меняет:
+
+- добавляет в `public.rooms` два столбца `guest_joined_at` и `guest_seen_at` (пустые у уже существующих комнат);
+- заменяет функцию `join_room` (та же подпись и те же отказы) и добавляет `confirm_guest(uuid)`, которую зовёт хост.
+
+Данные она не удаляет и не переписывает. Старые сборки приложения продолжают работать: у их комнат протокол 1, место гостя у них по-прежнему держится до конца жизни комнаты. Сборки с протоколом 2 без этой миграции не смогут подтвердить гостя (`confirm_guest` не найдена), поэтому **сначала применить миграцию, потом раздавать новую сборку**.
 
 ## Лимиты и ключи
 

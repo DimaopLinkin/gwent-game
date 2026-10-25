@@ -8,9 +8,10 @@ void main() {
     const settings = AppSettings();
 
     expect(settings.playerName, isNull);
-    expect(settings.confirmPass, isTrue);
+    expect(settings.confirmPass, isFalse);
     expect(settings.animationSpeed, AnimationSpeed.normal);
     expect(settings.hints, isTrue);
+    expect(settings.haptics, isTrue);
     expect(settings.musicVolume, 70);
     expect(settings.effectsVolume, 85);
     expect(settings.contentCheckedAt, isNull);
@@ -22,10 +23,10 @@ void main() {
     final checked = DateTime.utc(2026, 10, 18);
     final settings = const AppSettings(
       playerName: 'Геральт',
-    ).copyWith(confirmPass: false, animationSpeed: AnimationSpeed.fast, musicVolume: 10, contentCheckedAt: checked);
+    ).copyWith(confirmPass: true, animationSpeed: AnimationSpeed.fast, musicVolume: 10, contentCheckedAt: checked);
 
     expect(settings.playerName, 'Геральт');
-    expect(settings.confirmPass, isFalse);
+    expect(settings.confirmPass, isTrue);
     expect(settings.animationSpeed, AnimationSpeed.fast);
     expect(settings.hints, isTrue);
     expect(settings.musicVolume, 10);
@@ -48,9 +49,10 @@ void main() {
 
     expect(base, const AppSettings(playerName: 'А'));
     expect(base.hashCode, const AppSettings(playerName: 'А').hashCode);
-    expect(base, isNot(base.copyWith(confirmPass: false)));
+    expect(base, isNot(base.copyWith(confirmPass: true)));
     expect(base, isNot(base.copyWith(animationSpeed: AnimationSpeed.fast)));
     expect(base, isNot(base.copyWith(hints: false)));
+    expect(base, isNot(base.copyWith(haptics: false)));
     expect(base, isNot(base.copyWith(localNetworkExplained: true)));
     expect(base, isNot(base.copyWith(musicVolume: 0)));
     expect(base, isNot(base.copyWith(botDifficulty: BotDifficulty.hard)));

@@ -37,7 +37,7 @@ final class ClearWeatherAbility extends SpecialAbility {
   List<Object?> get props => const [];
 }
 
-/// Командирский рог: кладётся в свободный слот рога своего ряда и удваивает обычные отряды ряда.
+/// Командирский рог: кладётся в слот рога своего ряда и удваивает обычные отряды ряда; в занятый слот уходит в отбой без эффекта.
 final class HornCardAbility extends SpecialAbility {
   const HornCardAbility();
 
@@ -76,7 +76,7 @@ final class ScorchAbility extends SpecialAbility {
   List<Object?> get props => const [];
 }
 
-/// Мардрём: занимает слот рога ряда и превращает Берсерков этого ряда.
+/// Мардрём: занимает слот рога ряда и превращает Берсерков этого ряда; в занятый слот уходит в отбой без эффекта.
 final class MardremCardAbility extends SpecialAbility {
   const MardremCardAbility();
 

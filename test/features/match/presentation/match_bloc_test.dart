@@ -13,12 +13,14 @@ import 'package:gwent/src/features/match/application/record_finished_match.dart'
 import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' as history;
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
 import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_engine/gwent_engine.dart' hide Deck;
 
@@ -80,6 +82,7 @@ void main() {
     expect(states.first, isA<MatchStarting>());
     expect(states[1], isA<MatchIntro>(), reason: 'партия начинается со знакомства, пока на экране нет рук');
     expect(states.whereType<MatchHandover>(), isEmpty, reason: 'против бота телефон никому не передаётся');
+    expect(states.whereType<MatchRedrawSettled>(), isEmpty, reason: '«Готово» без замен пересдачу не удерживает');
     final inProgress = states.whereType<MatchInProgress>().toList();
     expect(inProgress.first.view.phase, MatchPhase.redraw);
     expect(inProgress.first.events, isNotEmpty, reason: 'раздача приходит событиями');
@@ -98,6 +101,67 @@ void main() {
           .having((state) => state.view.phase, 'phase', MatchPhase.finished)
           .having((state) => state.events.whereType<MatchEnded>(), 'MatchEnded', isNotEmpty),
     );
+  });
+
+  group('последняя замена при пересдаче', () {
+    /// Игрок меняет первую карту руки, пока есть замены, и доходит до первого состояния после пересдачи.
+    Future<List<MatchScreenState>> replaceAll(LocalMatchMode mode) async {
+      final states = <MatchScreenState>[];
+      final done = Completer<void>();
+      final subscription = bloc.stream.listen((state) {
+        states.add(state);
+        switch (state) {
+          case MatchIntro():
+            bloc.add(const MatchIntroFinished());
+          case MatchToss():
+            bloc.add(const MatchTossFinished());
+          case MatchHandover():
+            bloc.add(const MatchHandoverAccepted());
+          case MatchInProgress(:final view) when view.phase == MatchPhase.redraw && !view.me.redrawDone:
+            final left = view.me.redrawsLeft ?? 0;
+            bloc.add(
+              MatchIntentSubmitted(left > 0 ? RedrawCard(view.me.hand!.first.id) : const FinishRedraw()),
+            );
+          case MatchInProgress() || MatchFinished() || MatchCrashed():
+            if (!done.isCompleted) done.complete();
+          case MatchIdle() || MatchStarting() || MatchStartFailed() || MatchRedrawSettled() || MatchRematchAgreed():
+        }
+      });
+      bloc.add(MatchStartRequested(LocalMatchRequest(mode: mode, deckOne: 'skellige', deckTwo: 'monsters')));
+      await done.future;
+      await pumpEventQueue();
+      await subscription.cancel();
+      return states;
+    }
+
+    test('против бота: рука с пришедшей картой выходит отдельным состоянием перед ожиданием соперника', () async {
+      final states = await replaceAll(LocalMatchMode.vsBot);
+
+      final settled = states.whereType<MatchRedrawSettled>().single;
+      expect(settled.view.me.redrawsLeft, 0);
+      expect(settled.events, [isA<CardRedrawn>()], reason: 'по ним играет звук замены');
+      final at = states.indexOf(settled);
+      expect(
+        states[at - 1],
+        isA<MatchInProgress>()
+            .having((state) => state.view.phase, 'phase', MatchPhase.redraw)
+            .having((state) => state.view.me.redrawDone, 'redrawDone', false),
+        reason: 'до этого на экране обычная пересдача',
+      );
+      expect(
+        states[at + 1],
+        isA<MatchInProgress>().having((state) => state.events.whereType<CardRedrawn>(), 'замены', isEmpty),
+        reason: 'замена показана один раз',
+      );
+    });
+
+    test('hot-seat: рука с последней заменой видна, прежде чем телефон уйдёт другому игроку', () async {
+      final states = await replaceAll(LocalMatchMode.hotSeat);
+
+      final settled = states.whereType<MatchRedrawSettled>().first;
+      expect(settled.view.viewer, Seat.one);
+      expect(states[states.indexOf(settled) + 1], isA<MatchHandover>().having((s) => s.next, 'next', Seat.two));
+    });
   });
 
   test('hot-seat: телефон переходит к тому, кто должен действовать, события копятся для каждого места', () async {
@@ -293,6 +357,20 @@ void main() {
     expect(bloc.state, isA<MatchIdle>());
   });
 
+  test('пауза матча доходит до стола, который можно ставить на паузу; без сессии она ничего не делает', () async {
+    bloc.add(const MatchPauseChanged(paused: true));
+    await pumpEventQueue();
+
+    final table = _PausableFakeTable();
+    bloc.add(MatchSessionOpened(_session(table, content)));
+    await pumpEventQueue();
+    bloc
+      ..add(const MatchPauseChanged(paused: true))
+      ..add(const MatchPauseChanged(paused: false));
+    await pumpEventQueue();
+    expect(table.pauses, [true, false]);
+  });
+
   test('жребий: после знакомства экран называет, кто ходит первым, и только потом показывает пересдачу', () async {
     final table = _FakeTable();
     final states = <MatchScreenState>[];
@@ -431,6 +509,154 @@ void main() {
     bloc.add(const MatchRematchRequested());
     await pumpEventQueue();
     expect(bloc.state, isA<MatchInProgress>());
+  });
+
+  test('«Другая колода» на итоге: партия закрывается, экран возвращается к выбору, бот новый не создаётся', () async {
+    var bots = 0;
+    final counted = newBloc(
+      createBot: (engine, catalog, difficulty, seed) {
+        bots++;
+        return GreedyBot(engine, catalog);
+      },
+    );
+    final finished = _playOut(counted, <MatchScreenState>[]);
+    counted.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+
+    counted
+      ..add(const MatchDeckChangeRequested())
+      ..add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    expect(counted.state, isA<MatchIdle>());
+    expect(bots, 1);
+
+    // Выбор закончился новым запросом: партия начинается как с главного экрана, а «Реванш» повторяет уже его.
+    final second = <MatchScreenState>[];
+    final secondFinished = _playOut(counted, second);
+    counted.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'monsters', deckTwo: 'skellige'),
+      ),
+    );
+    final result = await secondFinished;
+    expect(result.canRematch, isTrue);
+    expect(bots, 2);
+    expect(matches.records, hasLength(2));
+  });
+
+  test('«Другая колода» до записи в историю: итог прежней партии не затирает выбор', () async {
+    final gate = Completer<void>();
+    final slow = newBloc(history: _GatedHistory(gate.future));
+    final finished = _playOut(slow, <MatchScreenState>[], recorded: false);
+    slow.add(
+      const MatchStartRequested(
+        LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+      ),
+    );
+    await finished;
+
+    slow.add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    gate.complete();
+    await pumpEventQueue();
+
+    expect(slow.state, isA<MatchIdle>());
+  });
+
+  test('«Другая колода» вне итога местной партии игнорируется', () async {
+    bloc.add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    expect(bloc.state, isA<MatchIdle>());
+
+    final table = _FakeTable();
+    bloc.add(MatchSessionOpened(_session(table, content)));
+    await pumpEventQueue();
+    table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
+    await pumpEventQueue();
+    bloc.add(const MatchDeckChangeRequested());
+    await pumpEventQueue();
+    expect(bloc.state, isNot(isA<MatchIdle>()));
+  });
+
+  group('реванш сетевой партии', () {
+    Future<_RematchFakeTable> finishedOnline(MatchBloc bloc) async {
+      final table = _RematchFakeTable();
+      bloc.add(MatchSessionOpened(_session(table, content, opponentName: 'Геральт')));
+      await pumpEventQueue();
+      table.push(ViewsChanged({Seat.one: _startView(content)}, const {Seat.one: []}));
+      await pumpEventQueue();
+      bloc.add(const MatchIntroFinished());
+      await pumpEventQueue();
+      table.push(ViewsChanged({Seat.one: _finishedView(content)}, const {Seat.one: []}));
+      await bloc.stream.firstWhere((state) => state is MatchFinished);
+      return table;
+    }
+
+    test(
+      'итог несёт предложение реванша, имя соперника, и «Реванш» просит его у стола, а не открывает новую партию',
+      () async {
+        final online = newBloc(awaitingSession: true);
+        final table = await finishedOnline(online);
+        final finished = online.state as MatchFinished;
+        expect(finished.rematch, RematchOffer.idle);
+        expect(finished.roster.opponentName, 'Геральт');
+        online.add(const MatchRematchRequested());
+        await pumpEventQueue();
+        expect(table.rematchRequests, 1);
+        expect(online.state, isA<MatchFinished>());
+      },
+    );
+
+    test('«Другая колода» в сетевой партии не работает: колоды там выбирают в комнате', () async {
+      final online = newBloc(awaitingSession: true);
+      await finishedOnline(online);
+      online.add(const MatchDeckChangeRequested());
+      await pumpEventQueue();
+      expect(online.state, isA<MatchFinished>());
+    });
+
+    test('предложение соперника доходит до итога, ответить можно, пока оно не закончилось', () async {
+      final online = newBloc(awaitingSession: true);
+      final table = await finishedOnline(online);
+      const invited = RematchOffer(RematchStage.invited, window: Duration(seconds: 30));
+      table.push(const TableRematchChanged(invited));
+      await pumpEventQueue();
+      expect((online.state as MatchFinished).rematch, invited);
+      online.add(const MatchRematchRequested());
+      await pumpEventQueue();
+      expect(table.rematchRequests, 1);
+
+      table.push(const TableRematchChanged(RematchOffer(RematchStage.expired)));
+      await pumpEventQueue();
+      expect((online.state as MatchFinished).rematch?.stage, RematchStage.expired);
+      online.add(const MatchRematchRequested());
+      await pumpEventQueue();
+      expect(table.rematchRequests, 1, reason: 'после конца времени предлагать нечего');
+    });
+
+    test('оба согласны: состояние «реванш согласован», дальше стол экран не двигает', () async {
+      final online = newBloc(awaitingSession: true);
+      final table = await finishedOnline(online);
+      table.push(const TableRematchAgreed());
+      await online.stream.firstWhere((state) => state is MatchRematchAgreed);
+      table.push(const TableRematchChanged(RematchOffer(RematchStage.opponentGone)));
+      await pumpEventQueue();
+      expect(online.state, isA<MatchRematchAgreed>());
+    });
+
+    test('согласие вне итога игнорируется', () async {
+      final online = newBloc(awaitingSession: true);
+      final table = _RematchFakeTable();
+      online.add(MatchSessionOpened(_session(table, content)));
+      await pumpEventQueue();
+      table.push(const TableRematchAgreed());
+      await pumpEventQueue();
+      expect(online.state, isNot(isA<MatchRematchAgreed>()));
+    });
   });
 
   test(
@@ -644,7 +870,12 @@ Future<MatchFinished> _playOut(
         fail(error);
       case MatchStartFailed(:final reason):
         fail(StateError('партия не начата: $reason'));
-      case MatchIdle() || MatchStarting() || MatchInProgress() || MatchFinished():
+      case MatchIdle() ||
+          MatchStarting() ||
+          MatchInProgress() ||
+          MatchRedrawSettled() ||
+          MatchFinished() ||
+          MatchRematchAgreed():
     }
   });
   return finished.future.whenComplete(subscription.cancel);
@@ -661,11 +892,12 @@ Intent _humanIntent(PlayerView view, {required bool playCards}) {
 }
 
 /// Начатая партия против бота на поддельном столе.
-MatchSession _session(MatchTable table, GameContent content) => MatchSession(
+MatchSession _session(MatchTable table, GameContent content, {String? opponentName}) => MatchSession(
   mode: history.MatchMode.ai,
   table: table,
   content: content,
   factionIds: const {Seat.one: 'skellige', Seat.two: 'monsters'},
+  opponentName: opponentName,
 );
 
 /// Проекция первого места сразу после раздачи.
@@ -702,6 +934,38 @@ final class _FakeTable implements MatchTable {
 
   @override
   Future<void> close() async => closed = true;
+}
+
+/// Проекция первого места после сдачи: партия закончена.
+PlayerView _finishedView(GameContent content) {
+  final engine = GwentEngine(content.catalog, rules: content.rules);
+  final start =
+      engine.start(
+            MatchSetup(
+              one: realDeck(content, Faction.skellige, id: 'one').toEngineDeck(),
+              two: realDeck(content, Faction.monsters, id: 'two').toEngineDeck(),
+              rng: const SeededRng(7),
+            ),
+          )
+          as Accepted;
+  final end = engine.apply(start.state, Seat.one, const Resign()) as Accepted;
+  return engine.project(end.state, Seat.one);
+}
+
+/// Стол местной партии: запоминает, как его ставили на паузу.
+final class _PausableFakeTable extends _FakeTable implements PausableTable {
+  final List<bool> pauses = [];
+
+  @override
+  void setPaused({required bool paused}) => pauses.add(paused);
+}
+
+/// Стол сетевой партии: считает запросы реванша.
+final class _RematchFakeTable extends _FakeTable implements RematchTable {
+  int rematchRequests = 0;
+
+  @override
+  void requestRematch() => rematchRequests++;
 }
 
 /// Колоды, которые отдаются, только когда завершится [gate].
@@ -759,7 +1023,13 @@ final class _FailingHistory implements MatchHistoryRepository {
   Stream<List<history.MatchRecord>> watchAll() => const Stream.empty();
 
   @override
-  Future<void> add(history.MatchRecord record) => Future.error(StateError('диск полон'));
+  Future<void> add(history.MatchRecord record, {ReplayLog? replay}) => Future.error(StateError('диск полон'));
+
+  @override
+  Future<history.MatchRecord?> findById(String id) async => null;
+
+  @override
+  Future<ReplayLog?> findReplay(String recordId) async => null;
 }
 
 /// История, которая записывает партию, когда откроют [gate].
@@ -772,7 +1042,13 @@ final class _GatedHistory implements MatchHistoryRepository {
   Stream<List<history.MatchRecord>> watchAll() => const Stream.empty();
 
   @override
-  Future<void> add(history.MatchRecord record) => _gate;
+  Future<void> add(history.MatchRecord record, {ReplayLog? replay}) => _gate;
+
+  @override
+  Future<history.MatchRecord?> findById(String id) async => null;
+
+  @override
+  Future<ReplayLog?> findReplay(String recordId) async => null;
 }
 
 /// Наблюдатель, который собирает ошибки держателей состояния.

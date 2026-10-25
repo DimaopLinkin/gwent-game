@@ -63,6 +63,22 @@ final class MatchRematchRequested extends MatchEvent {
   const MatchRematchRequested();
 }
 
+/// Игрок хочет сыграть другой колодой или за другую фракцию: партия закрывается, экран возвращается к выбору.
+/// Принимается только на экране итога местной партии.
+final class MatchDeckChangeRequested extends MatchEvent {
+  /// Создаёт событие.
+  const MatchDeckChangeRequested();
+}
+
+/// Игрок открыл или закрыл паузу матча: пока она открыта, бот за столом не думает и не ходит.
+final class MatchPauseChanged extends MatchEvent {
+  /// Создаёт событие.
+  const MatchPauseChanged({required this.paused});
+
+  /// Пауза открыта.
+  final bool paused;
+}
+
 /// Обновление со стола партии. Создаёт только сам держатель состояния.
 final class MatchTableUpdated extends MatchEvent {
   /// Создаёт событие.

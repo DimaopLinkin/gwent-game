@@ -12,13 +12,14 @@ import 'package:gwent/src/core/presentation/components/status_tag.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_issue_text.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 
 /// Выбор колоды перед матчем (макет 7): список колод выбранной фракции, «Изменить» и «Играть».
 ///
 /// Колода, которая не проходит правила, помечена «Колода не готова», причина показана под списком, а «Играть»
-/// погашена. На строке стоит лидер, выбранный на предыдущем шаге: он пойдёт в партию вместо лидера колоды.
+/// погашена. На строке стоит лидер самой колоды: он и пойдёт в партию, а сменить его можно в конструкторе.
 class DeckSelectView extends StatelessWidget {
   /// Создаёт экран.
   const DeckSelectView({
@@ -27,8 +28,7 @@ class DeckSelectView extends StatelessWidget {
     required this.choices,
     required this.selectedId,
     required this.faction,
-    required this.leaderName,
-    required this.leaderFace,
+    required this.leaderOf,
     required this.issueText,
     required this.playLabel,
     required this.onSelect,
@@ -50,11 +50,8 @@ class DeckSelectView extends StatelessWidget {
   /// Выбранная фракция: название и цвет метки.
   final ({String name, GwentFaction look}) faction;
 
-  /// Полное имя выбранного лидера.
-  final String leaderName;
-
-  /// Лицо карты выбранного лидера для мини-карты в строках.
-  final CardFace leaderFace;
+  /// Лидер колоды `deck`: полное имя и лицо карты для мини-карты в строке. `null`, если лидера нет в пакете.
+  final ({String name, CardFace face})? Function(Deck deck) leaderOf;
 
   /// Объяснение, почему колода не годится.
   final DeckIssueText issueText;
@@ -108,8 +105,7 @@ class DeckSelectView extends StatelessWidget {
                         choice: choices[i],
                         selected: choices[i].deck.id == selectedId,
                         faction: faction,
-                        leaderName: leaderName,
-                        leaderFace: leaderFace,
+                        leader: leaderOf(choices[i].deck),
                         onTap: () => onSelect(choices[i].deck.id),
                       ),
                     ),
@@ -167,27 +163,26 @@ class _DeckRow extends StatelessWidget {
     required this.choice,
     required this.selected,
     required this.faction,
-    required this.leaderName,
-    required this.leaderFace,
+    required this.leader,
     required this.onTap,
   });
 
   final DeckChoice choice;
   final bool selected;
   final ({String name, GwentFaction look}) faction;
-  final String leaderName;
-  final CardFace leaderFace;
+  final ({String name, CardFace face})? leader;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final leader = this.leader;
     final content = Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
         spacing: 12,
         children: [
-          GwentCard(face: leaderFace, size: CardSize.row),
+          if (leader != null) GwentCard(face: leader.face, size: CardSize.row),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +206,7 @@ class _DeckRow extends StatelessWidget {
                     Expanded(child: _Line(faction.name, color: GwentColors.textTertiary)),
                   ],
                 ),
-                _Line(shortLeaderName(leaderName), color: GwentColors.textSecondary, italic: true),
+                if (leader != null) _Line(shortLeaderName(leader.name), color: GwentColors.textSecondary, italic: true),
                 _Line(l10n.deckSelectCards(choice.deck.cardCount), color: GwentColors.textTertiary),
               ],
             ),
@@ -246,9 +241,11 @@ class _DeckRow extends StatelessWidget {
       button: true,
       selected: selected,
       label: choice.deck.name,
-      value:
-          '${choice.ready ? l10n.deckSelectReady : l10n.deckSelectNotReady}, '
-          '${l10n.deckSelectCards(choice.deck.cardCount)}, ${shortLeaderName(leaderName)}',
+      value: [
+        if (choice.ready) l10n.deckSelectReady else l10n.deckSelectNotReady,
+        l10n.deckSelectCards(choice.deck.cardCount),
+        if (leader != null) shortLeaderName(leader.name),
+      ].join(', '),
       onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(

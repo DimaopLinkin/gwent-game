@@ -242,6 +242,10 @@ final class _OnlineHostedGame implements HostedGame {
   Timer? _reopenRetry;
   final List<int> _closedCids = [];
   bool _guestSeen = false;
+
+  /// Комната, в которой хост уже подтвердил гостя серверу; `null`, пока не подтверждено (ADR 0028).
+  String? _confirmedRoomId;
+  bool _confirming = false;
   bool _closed = false;
   bool _gone = false;
   bool _checking = false;
@@ -328,10 +332,34 @@ final class _OnlineHostedGame implements HostedGame {
     switch (message) {
       case FrameMessage(:final cid, :final data):
         final transport = _live[cid] ?? _accept(cid);
-        transport?.receive(data);
+        if (transport == null) return;
+        _confirmGuest();
+        transport.receive(data);
       case ByeMessage(:final cid):
         _live[cid]?.peerClosed();
     }
+  }
+
+  /// Говорит серверу, что гость вошёл в канал и прислал кадр: его место больше никому не отдаётся (ADR 0028). Если
+  /// сервер не ответил, подтверждение повторится с очередным кадром гостя; без него хуже ничего не становится:
+  /// место просто останется уступаемым.
+  void _confirmGuest() {
+    final roomId = _room.id;
+    if (_confirmedRoomId == roomId || _confirming) return;
+    _confirming = true;
+    unawaited(
+      _lobby._rooms
+          .confirmGuest(roomId)
+          .then<void>(
+            (_) {
+              if (_room.id == roomId) _confirmedRoomId = roomId;
+            },
+            onError: (Object _) {
+              // Сервер недоступен или комнаты уже нет: повторит следующий кадр гостя.
+            },
+          )
+          .whenComplete(() => _confirming = false),
+    );
   }
 
   /// Новое соединение гостя: его кадры идут новому `Transport`, который хост партии принимает как обычное

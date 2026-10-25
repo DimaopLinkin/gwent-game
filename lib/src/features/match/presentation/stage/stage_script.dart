@@ -143,6 +143,7 @@ final class StageScript {
     this.steps = const [],
     this.locks = const [],
     this.cues = const [],
+    this.board,
   });
 
   /// Номер сценария: по нему поле отличает свой сценарий от следующего.
@@ -171,6 +172,10 @@ final class StageScript {
   /// «Пропустить» пропущенные звуки не играет.
   final List<SoundCue> cues;
 
+  /// Поле, на котором идёт сценарий, если оно не совпадает с тем, что держит экран партии: последний ход раунда
+  /// показывают до подсчёта, а экран уже получил поле после уборки. `null` — поле экрана.
+  final PlayerView? board;
+
   /// Можно ли ускорять показ тапом в момент [time].
   bool tapSpeedsUp(double time) => !locks.any((lock) => time >= lock.$1 && time < lock.$2);
 
@@ -195,6 +200,7 @@ final class StageScript {
       discardTops: builder.discardTops,
       flashes: builder.flashes,
       handHidden: builder.handHidden,
+      handAbsent: builder.handAbsent,
       leaderUsed: builder.leaderUsed,
       weatherSlots: builder.weatherSlots,
       gems: builder.gems,

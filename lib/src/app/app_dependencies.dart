@@ -20,6 +20,8 @@ import 'package:gwent/src/features/deck_builder/application/watch_active_decks.d
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
+import 'package:gwent/src/features/haptics/application/play_haptic.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_output.dart';
 import 'package:gwent/src/features/lobby/application/active_network_game.dart';
 import 'package:gwent/src/features/lobby/application/discover_network_games.dart';
 import 'package:gwent/src/features/lobby/application/host_network_game.dart';
@@ -37,6 +39,7 @@ import 'package:gwent/src/features/match_history/application/watch_match_history
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent/src/features/menu/application/load_menu.dart';
+import 'package:gwent/src/features/replay/application/load_replay.dart';
 import 'package:gwent/src/features/settings/application/check_content_update.dart';
 import 'package:gwent/src/features/settings/application/load_about_info.dart';
 import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
@@ -71,6 +74,7 @@ final class AppDependencies {
     required NetworkAccess networkAccess,
     required SoundOutput soundOutput,
     required MusicOutput musicOutput,
+    required HapticOutput hapticOutput,
     Random? random,
     Entropy? entropy,
     Scheduler scheduler = const SystemScheduler(),
@@ -97,6 +101,7 @@ final class AppDependencies {
       networkAccess: networkAccess,
       soundOutput: soundOutput,
       musicOutput: musicOutput,
+      hapticOutput: hapticOutput,
       random: random ?? Random(),
       entropy: entropy ?? SecureEntropy(),
       scheduler: scheduler,
@@ -121,6 +126,7 @@ final class AppDependencies {
     required NetworkAccess networkAccess,
     required SoundOutput soundOutput,
     required MusicOutput musicOutput,
+    required HapticOutput hapticOutput,
     required Random random,
     required Entropy entropy,
     required Scheduler scheduler,
@@ -147,6 +153,7 @@ final class AppDependencies {
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
+    loadReplay = LoadReplay(matchHistoryRepository, loadGameContent);
     activeNetworkGame = ActiveNetworkGame();
     loadNetworkSetup = LoadNetworkSetup(loadGameContent, appInfo, watchSettings);
     hostNetworkGame = HostNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, entropy, scheduler);
@@ -170,7 +177,8 @@ final class AppDependencies {
       mode: MatchMode.server,
     );
     networkReadiness = NetworkReadiness(networkAccess, settingsRepository);
-    playSound = PlaySound(soundOutput, watchSettings);
+    playHaptic = PlayHaptic(hapticOutput, watchSettings);
+    playSound = PlaySound(soundOutput, watchSettings, haptic: playHaptic);
     backgroundMusic = BackgroundMusic(musicOutput, watchSettings, random);
   }
 
@@ -243,6 +251,9 @@ final class AppDependencies {
   /// Запись законченной партии в историю.
   late final RecordFinishedMatch recordFinishedMatch;
 
+  /// Загрузка реплея партии из истории.
+  late final LoadReplay loadReplay;
+
   /// Сетевая игра, которую сейчас ведёт телефон: общая для лобби и партии.
   late final ActiveNetworkGame activeNetworkGame;
 
@@ -271,6 +282,9 @@ final class AppDependencies {
 
   /// Звуковые эффекты с громкостью из настроек (ADR 0023).
   late final PlaySound playSound;
+
+  /// Вибрация (ADR 0031).
+  late final PlayHaptic playHaptic;
 
   /// Фоновая музыка с громкостью из настроек (ADR 0023).
   late final BackgroundMusic backgroundMusic;

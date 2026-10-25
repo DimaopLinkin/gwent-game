@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/haptics/application/play_haptic.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/stage/last_move_board.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
@@ -32,10 +35,16 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// Звуки партии (ADR 0023): звуки розыгрыша и конца раунда лежат в сценарии и играет их поле через [playSound];
 /// остальные держатель играет сам: знакомство, раздачу, пересдачу, баннеры, выбор карты, листы и отказы. Без [PlaySound]
 /// (тесты) партия идёт без звука.
+///
+/// Вибрация (ADR 0031): вибрацию событий подаёт [PlaySound] вместе со звуком; вибрацию прицеливания (вход в цель,
+/// выход, отпускание) поле подаёт через [vibrate]. Без [PlayHaptic] прицеливание молчит.
 final class FieldCubit extends Cubit<FieldState> {
   /// Создаёт держатель с пустым состоянием; [finishHold] — сколько поле держит конец партии (последний ход и счёт),
   /// прежде чем открыть итог матча.
-  FieldCubit({this.finishHold = defaultFinishHold, PlaySound? sound}) : _sound = sound, super(const FieldState());
+  FieldCubit({this.finishHold = defaultFinishHold, PlaySound? sound, PlayHaptic? haptic})
+    : _sound = sound,
+      _haptic = haptic,
+      super(const FieldState());
 
   /// Сколько поле держит конец партии по умолчанию.
   static const Duration defaultFinishHold = Duration(milliseconds: 2200);
@@ -47,8 +56,12 @@ final class FieldCubit extends Cubit<FieldState> {
   static const Duration stageGrace = Duration(milliseconds: 1500);
 
   final PlaySound? _sound;
+  final PlayHaptic? _haptic;
   Timer? _finishTimer;
   Timer? _stageTimer;
+
+  /// Сценарий итогов раунда, который ждёт конца сценария последнего хода; `null`, если ждать нечего.
+  StageScript? _queuedStage;
   int _stageCount = 0;
   final Map<Seat, PlayerView> _seen = {};
   int _toastCount = 0;
@@ -65,6 +78,9 @@ final class FieldCubit extends Cubit<FieldState> {
 
   /// Играет звук [effect]; без [PlaySound] ничего не делает.
   void playSound(SoundEffect effect) => _sound?.call(effect);
+
+  /// Подаёт вибрацию [pattern]; без [PlayHaptic] ничего не делает.
+  void vibrate(HapticPattern pattern) => _haptic?.call(pattern);
 
   /// Выбирает карту руки [id]; повторный выбор той же карты снимает выбор.
   void toggleSelected(CardInstanceId id) {
@@ -121,6 +137,13 @@ final class FieldCubit extends Cubit<FieldState> {
   void endStage(int id) {
     if (state.stage?.id != id) return;
     _stageTimer?.cancel();
+    if (_queuedStage case final queued?) {
+      // Последний ход раунда доигран: следом идут итоги, поле остаётся занятым.
+      _queuedStage = null;
+      emit(state.copyWith(stage: queued));
+      _stageTimer = Timer(Duration(milliseconds: queued.duration.ceil()) + stageGrace, () => endStage(queued.id));
+      return;
+    }
     emit(state.copyWith(clearStage: true));
   }
 
@@ -163,15 +186,29 @@ final class FieldCubit extends Cubit<FieldState> {
           MatchIntro() ||
           MatchToss() ||
           MatchHandover() ||
+          MatchRedrawSettled() ||
           MatchFinished() ||
+          MatchRematchAgreed() ||
           MatchCrashed():
         // Телефон ушёл другому игроку или партия закончилась: чужие выбор, листы, тосты и баннеры не переносятся.
         _finishTimer?.cancel();
         _stageTimer?.cancel();
+        _queuedStage = null;
         if (!state.isClean) emit(const FieldState());
         if (match is MatchIntro || match is MatchStarting) _forget();
         if (match is MatchIntro) playSound(SoundEffect.matchOpening);
+        if (match is MatchRedrawSettled && match.events.isNotEmpty) playSound(SoundEffect.redraw);
     }
+  }
+
+  /// Сбрасывает поле целиком: реплей перескочил на другой ход, и прежние баннеры, листы, итоги раундов и сценарии
+  /// к нему не относятся (ADR 0029).
+  void reset() {
+    _finishTimer?.cancel();
+    _stageTimer?.cancel();
+    _queuedStage = null;
+    _forget();
+    if (!state.isClean) emit(const FieldState());
   }
 
   /// Новая партия: что объявлялось в прошлой, уже не считается.
@@ -197,10 +234,19 @@ final class FieldCubit extends Cubit<FieldState> {
     _playDealSounds(view, events);
     // Конец раунда или матча показывает по полю перед последним действием; остальное — по прошлой увиденной проекции.
     final roundSummary = closing == null ? null : _roundSummaryFor(view, events);
-    final script = closing != null && roundSummary != null
-        ? _roundStageFor(closing, view, events, content, style, roundSummary)
-        : _resignationStageFor(view, events, content, style) ?? _stageFor(view, events, content, style);
+    StageScript? script;
+    StageScript? queued;
+    if (closing != null && roundSummary != null) {
+      // Подсчёт начинается после того, как доиграл последний ход раунда (ADR 0018): сначала сценарий хода, итоги ждут.
+      final lastMove = _lastMoveFor(closing, view, events, content, style);
+      final round = _roundStageFor(lastMove?.board ?? closing, view, events, content, style, roundSummary);
+      script = lastMove?.script ?? round;
+      if (lastMove != null) queued = round;
+    } else {
+      script = _resignationStageFor(view, events, content, style) ?? _stageFor(view, events, content, style);
+    }
     if (script != null) {
+      _queuedStage = queued;
       next = next.copyWith(stage: script);
       // Сдача обрывает партию: баннер хода, пауза и выбор, которые ещё висят, итога не задерживают.
       if (events.any(_isResignation)) {
@@ -212,7 +258,8 @@ final class FieldCubit extends Cubit<FieldState> {
         );
       }
       _stageTimer?.cancel();
-      _stageTimer = Timer(Duration(milliseconds: script.duration.ceil()) + stageGrace, () => endStage(script.id));
+      final id = script.id;
+      _stageTimer = Timer(Duration(milliseconds: script.duration.ceil()) + stageGrace, () => endStage(id));
     }
     if (next.selected case final selected? when !view.me.playable.contains(selected)) {
       next = next.copyWith(clearSelected: true);
@@ -286,6 +333,33 @@ final class FieldCubit extends Cubit<FieldState> {
     if (endIndex < 0) return null;
     final result = (events[endIndex] as RoundEnded).result;
     return _summarizedRounds.add(result.round) ? _buildSummary(view, events, endIndex) : null;
+  }
+
+  /// Последний ход раунда: его сценарий и поле после него; `null`, если показывать нечего.
+  ({StageScript script, PlayerView board})? _lastMoveFor(
+    PlayerView closing,
+    PlayerView view,
+    List<GameEvent> events,
+    GameContent content,
+    StageStyle style,
+  ) {
+    final endIndex = events.lastIndexWhere((event) => event is RoundEnded);
+    final moves = events.sublist(0, endIndex);
+    final board = boardAfterLastMove(
+      closing: closing,
+      moves: moves,
+      result: (events[endIndex] as RoundEnded).result,
+      board: (events[endIndex] as RoundEnded).board,
+      catalog: content.catalog,
+    );
+    if (board == null) return null;
+    final script = StageScriptBuilder(
+      prev: closing,
+      next: board,
+      catalog: content.catalog,
+      style: style,
+    ).buildLastMove(++_stageCount, moves);
+    return script == null ? null : (script: script, board: board);
   }
 
   StageScript? _roundStageFor(

@@ -17,12 +17,12 @@ import 'package:gwent/src/features/settings/application/save_bot_difficulty.dart
 import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_engine/gwent_engine.dart' show Seat;
 
-/// Держатель выбора перед партией (макет 7): фракция, лидер и колода каждого места.
+/// Держатель выбора перед партией (макет 7): фракция и колода каждого места.
 ///
 /// Места выбирают по очереди: в hot-seat сначала первое, потом второе, против бота только первое, а колоду бота
-/// даёт [ChooseOpponentDeck]. Каждое место проходит три шага: фракция → лидер → колода этой фракции. Лидер,
-/// выбранный на втором шаге, идёт в партию вместо лидера колоды и не меняет сохранённую колоду. Против бота
-/// перед ними стоит шаг сложности бота: выбранный уровень запоминается (ADR 0021).
+/// даёт [ChooseOpponentDeck]. Каждое место проходит два шага: фракция → колода этой фракции. Лидер берётся из
+/// колоды, как в сетевой игре: сменить его можно в конструкторе (ADR 0012). Против бота перед ними стоит шаг
+/// сложности бота: выбранный уровень запоминается (ADR 0021).
 ///
 /// Когда выбрано последнее место, состояние становится `MatchSetupDone` с запросом на партию.
 final class MatchSetupCubit extends Cubit<MatchSetupState> {
@@ -63,13 +63,12 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
   SetupStep _step;
   BotDifficulty _difficulty = BotDifficulty.normal;
   int _factionIndex = 0;
-  String? _leaderId;
   String? _deckId;
   bool _busy = false;
   bool _done = false; // выбор закончен или сорвался: состояние больше не меняется
 
   /// Что выбрало первое место, когда выбирает второе.
-  ({String deckId, String leaderId, String factionId})? _firstSeat;
+  ({String deckId, String factionId})? _firstSeat;
 
   /// Выбирает уровень сложности бота [difficulty] на шаге сложности.
   void selectDifficulty(BotDifficulty difficulty) {
@@ -95,47 +94,24 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     _emit();
   }
 
-  /// Показывает фракцию номер [index] среди фракций пакета. Лидер и колода прежней фракции сбрасываются.
+  /// Показывает фракцию номер [index] среди фракций пакета. Колода прежней фракции сбрасывается.
   void showFaction(int index) {
     final rules = _rules;
-    if (rules == null || _step != SetupStep.faction || index == _factionIndex) return;
+    if (rules == null || _step != SetupStep.faction || index == _factionIndex || _busy) return;
     if (index < 0 || index >= rules.factionInfos.length) return;
     _factionIndex = index;
-    _leaderId = null;
     _deckId = null;
     _emit();
   }
 
-  /// Подтверждает фракцию: открывает её лидеров. Выбран первый доступный лидер, если игрок не выбирал прежде.
-  void confirmFaction() {
+  /// Подтверждает фракцию: открывает её колоды.
+  ///
+  /// Если у фракции нет годной колоды, стартовая создаётся здесь (`GetActiveDeck`), поэтому список не пустой. Выбрана
+  /// активная колода фракции, если она годится, иначе первая годная колода списка.
+  Future<void> confirmFaction() async {
     final rules = _rules;
     if (rules == null || _step != SetupStep.faction || _busy) return;
     final faction = rules.factionInfos[_factionIndex];
-    _leaderId ??= faction.leaders.where((leader) => leader.available).firstOrNull?.id;
-    _step = SetupStep.leader;
-    _emit();
-  }
-
-  /// Выбирает лидера [leaderId] выбранной фракции, чтобы прочитать его способность. Лидера другой фракции выбрать
-  /// нельзя; недоступного можно выбрать, но подтвердить нельзя ([confirmLeader]).
-  void selectLeader(String leaderId) {
-    final rules = _rules;
-    if (rules == null || _step != SetupStep.leader) return;
-    if (rules.factionInfos[_factionIndex].leader(leaderId) == null) return;
-    _leaderId = leaderId;
-    _emit();
-  }
-
-  /// Подтверждает лидера: открывает колоды фракции.
-  ///
-  /// Если у фракции нет годной колоды, стартовая создаётся здесь (`GetActiveDeck`), поэтому список не пустой. Выбрана
-  /// активная колода фракции, если она годится с этим лидером, иначе первая годная колода списка.
-  Future<void> confirmLeader() async {
-    final rules = _rules;
-    final leaderId = _leaderId;
-    if (rules == null || leaderId == null || _step != SetupStep.leader || _busy) return;
-    final faction = rules.factionInfos[_factionIndex];
-    if (faction.leader(leaderId)?.available != true) return;
     _busy = true;
     _emit();
     try {
@@ -167,11 +143,10 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
   /// Выбранная колода становится активной колодой своей фракции (`SetActiveDeck`): в следующий раз она выбрана заранее.
   Future<void> confirmDeck() async {
     final rules = _rules;
-    final leaderId = _leaderId;
     final deckId = _deckId;
-    if (rules == null || leaderId == null || deckId == null || _step != SetupStep.deck || _busy) return;
+    if (rules == null || deckId == null || _step != SetupStep.deck || _busy) return;
     final deck = _factionDecks().where((deck) => deck.id == deckId).firstOrNull;
-    if (deck == null || rules.check(deck.copyWith(leaderId: leaderId)).isNotEmpty) return;
+    if (deck == null || rules.check(deck).isNotEmpty) return;
     _busy = true;
     _emit();
     try {
@@ -179,10 +154,9 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
       if (isClosed) return;
       switch (_seat) {
         case Seat.one when _mode == LocalMatchMode.hotSeat:
-          _firstSeat = (deckId: deck.id, leaderId: leaderId, factionId: deck.factionId);
+          _firstSeat = (deckId: deck.id, factionId: deck.factionId);
           _seat = Seat.two;
           _step = SetupStep.faction;
-          _leaderId = null;
           _deckId = null;
         case Seat.one:
           final opponent = await _chooseOpponentDeck(_difficulty);
@@ -194,7 +168,6 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
                 mode: _mode,
                 deckOne: deck.id,
                 deckTwo: opponent.id,
-                leaderOne: leaderId,
                 difficulty: _difficulty,
                 opponentDeck: opponent,
               ),
@@ -210,8 +183,6 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
                 mode: _mode,
                 deckOne: first.deckId,
                 deckTwo: deck.id,
-                leaderOne: first.leaderId,
-                leaderTwo: leaderId,
               ),
             ),
           );
@@ -226,6 +197,25 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     _emit();
   }
 
+  /// Открывает выбор заново после законченного: игрок хочет сыграть другой колодой или другой фракцией (макет 13,
+  /// «Другая колода»). Сложность бота остаётся прежней, а выбор начинается с фракции, на которой игрок только что играл:
+  /// те же фракция и колода выбраны заранее, и игрок меняет только то, что хочет. В hot-seat выбор снова идёт
+  /// с первого места. Пока выбор не закончен, ничего не делает.
+  void restart() {
+    final rules = _rules;
+    if (rules == null || !_done || state is! MatchSetupDone) return;
+    if (_firstSeat case final first?) {
+      _factionIndex = rules.factionInfos.indexWhere((faction) => faction.id == first.factionId);
+      _deckId = first.deckId;
+    }
+    _firstSeat = null;
+    _seat = Seat.one;
+    _step = SetupStep.faction;
+    _busy = false;
+    _done = false;
+    _emit();
+  }
+
   /// Возвращает на предыдущий шаг. `false`, если назад некуда: это первый шаг первого места, дальше выход в меню.
   bool back() {
     if (state is! MatchSetupReady) return false;
@@ -233,8 +223,6 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     if (_busy) return true;
     switch (_step) {
       case SetupStep.deck:
-        _step = SetupStep.leader;
-      case SetupStep.leader:
         _step = SetupStep.faction;
       case SetupStep.faction when _seat == Seat.two:
         // Возвращаемся на колоду первого места: оно выбрано заново, а второе место начинается с чистого шага.
@@ -243,7 +231,6 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
         _step = SetupStep.deck;
         _firstSeat = null;
         _factionIndex = _rules!.factionInfos.indexWhere((faction) => faction.id == first.factionId);
-        _leaderId = first.leaderId;
         _deckId = first.deckId;
       case SetupStep.faction when _mode == LocalMatchMode.vsBot:
         _step = SetupStep.difficulty;
@@ -297,8 +284,8 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     try {
       await _setActiveDeck(deck.id);
     } on InvalidDeckException {
-      // Колода годна только с выбранным лидером, а активной может стать лишь колода, годная со своим: выбор
-      // партии это не отменяет, просто активная колода фракции остаётся прежней.
+      // Колода не годится и как активная (её могли испортить после показа списка): выбор партии это не отменяет,
+      // просто активная колода фракции остаётся прежней.
     }
   }
 
@@ -323,11 +310,10 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     ];
   }
 
-  /// Колода, выбранная заранее: [activeId], если она годится с выбранным лидером, иначе первая годная, иначе первая.
+  /// Колода, выбранная заранее: [activeId], если она годится, иначе первая годная, иначе первая.
   String? _preselect(DeckRules rules, {String? activeId}) {
-    final leaderId = _leaderId;
     final decks = _factionDecks();
-    bool fits(Deck deck) => leaderId != null && rules.check(deck.copyWith(leaderId: leaderId)).isEmpty;
+    bool fits(Deck deck) => rules.check(deck).isEmpty;
     final ready = decks.where(fits);
     return decks.where((deck) => deck.id == activeId && fits(deck)).firstOrNull?.id ??
         ready.firstOrNull?.id ??
@@ -338,7 +324,6 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
     final rules = _rules;
     final decks = _decks;
     if (rules == null || decks == null || isClosed || _done) return;
-    final leaderId = _leaderId;
     emit(
       MatchSetupReady(
         mode: _mode,
@@ -347,14 +332,9 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
         step: _step,
         rules: rules,
         factionIndex: _factionIndex,
-        leaderId: leaderId,
         decks: [
-          if (_step == SetupStep.deck && leaderId != null)
-            for (final deck in _factionDecks())
-              DeckChoice(
-                deck: deck,
-                issues: rules.check(deck.copyWith(leaderId: leaderId)),
-              ),
+          if (_step == SetupStep.deck)
+            for (final deck in _factionDecks()) DeckChoice(deck: deck, issues: rules.check(deck)),
         ],
         deckId: _deckId,
         canStepBack: _canStepBack,

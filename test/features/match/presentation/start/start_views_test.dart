@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Intent, Row;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/presentation/card/card_face.dart';
+import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
@@ -43,6 +44,28 @@ void main() {
   }
 
   group('знакомство', () {
+    testWidgets('в сетевой партии соперника зовут по имени, пустое имя заменяет «Противник»', (tester) async {
+      await pumpView(
+        tester,
+        MatchIntroView(
+          roster: rosterOf(cards, opponentName: ' Геральт '),
+          onFinished: () {},
+        ),
+      );
+      expect(find.text('Геральт'), findsOneWidget);
+      expect(find.text('Противник'), findsNothing);
+      await tester.pump(MatchIntroView.duration);
+      await pumpView(
+        tester,
+        MatchIntroView(
+          roster: rosterOf(cards, opponentName: '  '),
+          onFinished: () {},
+        ),
+      );
+      expect(find.text('Противник'), findsOneWidget);
+      await tester.pump(MatchIntroView.duration);
+    });
+
     testWidgets('соперник сверху, «ПРОТИВ» посередине, я снизу; у каждого фракция и колода', (tester) async {
       final roster = rosterOf(
         cards,
@@ -292,6 +315,127 @@ void main() {
       expect(intents.last, const FinishRedraw());
     });
 
+    testWidgets('замена: старая карта сворачивается, новая проявляется на её месте и светится', (tester) async {
+      final first = hand();
+      final arrived = cards.unit(Row.siege);
+      final before = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: first, redrawsLeft: 2),
+      );
+      final after = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: [arrived, first[1]], redrawsLeft: 1),
+      );
+      await pumpView(tester, MatchRedrawView(view: before, roster: rosterOf(cards), onIntent: (_) {}));
+      expect(find.byType(GwentCard), findsNWidgets(2));
+      expect(_justPlayed(tester), isEmpty, reason: 'пока ничего не заменяли, свечения нет');
+
+      await tester.pumpWidget(
+        localizedApp(MatchRedrawView(view: after, roster: rosterOf(cards), onIntent: (_) {})),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(GwentCard), findsNWidgets(3), reason: 'посреди замены видны обе карты: уходящая и пришедшая');
+      expect(_justPlayed(tester), hasLength(1));
+
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(GwentCard), findsNWidgets(2), reason: 'после замены остаётся новая карта');
+      expect(_justPlayed(tester), hasLength(1), reason: 'пока карту не заметили, она светится');
+      await tester.pump(const Duration(milliseconds: 1500));
+      expect(_justPlayed(tester), isEmpty, reason: 'свечение гаснет, когда карту заметили');
+    });
+
+    testWidgets('«Уменьшить движение»: карта заменяется сразу, без сворачивания', (tester) async {
+      final first = hand();
+      final before = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: first, redrawsLeft: 2),
+      );
+      final after = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: [cards.unit(Row.siege), first[1]], redrawsLeft: 1),
+      );
+      await pumpView(
+        tester,
+        MatchRedrawView(view: before, roster: rosterOf(cards), onIntent: (_) {}),
+        reduceMotion: true,
+      );
+      await tester.pumpWidget(
+        localizedApp(MatchRedrawView(view: after, roster: rosterOf(cards), onIntent: (_) {})),
+      );
+      await tester.pump();
+      expect(find.byType(GwentCard), findsNWidgets(2));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('после последней замены (settled) карты и «Готово» недоступны, пришедшая карта светится', (
+      tester,
+    ) async {
+      final intents = <Intent>[];
+      final first = hand();
+      final before = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: first, redrawsLeft: 1),
+      );
+      final after = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: [cards.unit(Row.siege), first[1]], redrawsLeft: 0),
+      );
+      await pumpView(tester, MatchRedrawView(view: before, roster: rosterOf(cards), onIntent: intents.add));
+      await tester.pumpWidget(
+        localizedApp(MatchRedrawView(view: after, roster: rosterOf(cards), onIntent: intents.add, settled: true)),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.text('Можно заменить: 0'), findsOneWidget);
+      expect(_justPlayed(tester), hasLength(1));
+      await tester.tap(find.byType(GwentCard).first, warnIfMissed: false);
+      await tester.tap(find.text('Готово'), warnIfMissed: false);
+      expect(intents, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('две замены подряд: светятся обе пришедшие карты', (tester) async {
+      final first = hand();
+      MatchRedrawView viewOf2(List<CardInstance> inHand, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: inHand, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: (_) {},
+      );
+      final firstArrived = cards.unit(Row.siege);
+      final secondArrived = cards.unit(Row.melee);
+      await pumpView(tester, viewOf2(first, 2));
+      await tester.pumpWidget(localizedApp(viewOf2([firstArrived, first[1]], 1)));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpWidget(localizedApp(viewOf2([firstArrived, secondArrived], 0)));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(_justPlayed(tester), hasLength(2));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('неполный последний ряд занимает места колонок: 11-я карта не прижата к 10-й', (tester) async {
+      final view = viewOf(
+        cards,
+        phase: MatchPhase.redraw,
+        me: sideOf(cards, Seat.one, hand: [for (var i = 0; i < 11; i++) cards.unit(Row.melee)], redrawsLeft: 2),
+      );
+      await pumpView(tester, MatchRedrawView(view: view, roster: rosterOf(cards), onIntent: (_) {}));
+      final lefts = [
+        for (final card in tester.widgetList(find.byType(GwentCard))) tester.getTopLeft(find.byWidget(card)).dx,
+      ];
+      expect(lefts, hasLength(11));
+      expect(lefts[9], lefts[0], reason: '10-я карта стоит в первой колонке');
+      expect(lefts[10], lefts[1], reason: '11-я карта стоит во второй колонке, а не рядом с 10-й');
+    });
+
     testWidgets('замены кончились: карты неактивны, надпись «Можно заменить: 0»', (tester) async {
       final intents = <Intent>[];
       final view = viewOf(
@@ -375,3 +519,7 @@ void main() {
     });
   });
 }
+
+/// Карты руки со свечением «только что пришла».
+Iterable<GwentCard> _justPlayed(WidgetTester tester) =>
+    tester.widgetList<GwentCard>(find.byType(GwentCard)).where((card) => card.highlight == CardHighlight.justPlayed);

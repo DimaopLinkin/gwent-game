@@ -71,6 +71,21 @@ void main() {
     }
   });
 
+  test('ряд сжимается до сжатой силы, когда шаг меньше медальона, и только у перекрытых карт', () {
+    expect(geometry.cardStep(3), 56);
+    expect(geometry.isRowCompact(1), isFalse);
+    expect(geometry.isRowCompact(9), isFalse, reason: 'шаг 35 pt: медальон со стрелкой виден');
+    expect(geometry.isRowCompact(10), isFalse, reason: 'шаг 31 pt');
+    expect(geometry.isRowCompact(11), isTrue, reason: 'шаг 28 pt');
+    final step = geometry.cardStep(19);
+    expect(step, closeTo((334 - 52) / 18, 0.001));
+    expect(geometry.isRowCompact(19), isTrue);
+    // Шаг совпадает с положением карт, а последняя карта открыта целиком.
+    final first = geometry.cardRect(Row.melee, 0, 19, mine: true);
+    final second = geometry.cardRect(Row.melee, 1, 19, mine: true);
+    expect((second.left - first.left - step).abs(), lessThanOrEqualTo(1));
+  });
+
   test('одна карта стоит по центру зоны', () {
     final area = geometry.cardsArea(Row.siege, mine: false);
     final rect = geometry.cardRect(Row.siege, 0, 1, mine: false);
@@ -105,6 +120,73 @@ void main() {
     test('одна карта в руке не прокручивается', () {
       expect(geometry.handScrolls(1), isFalse);
       expect(geometry.handScrolls(0), isFalse);
+    });
+  });
+
+  group('зоны магнита карт ряда (макет 14, ступень B)', () {
+    test('зоны делят ряд по горизонтали без щелей и перекрытий и занимают всю высоту ряда', () {
+      for (final count in [1, 3, 8, 12, 19]) {
+        final row = geometry.rowRect(Row.ranged, mine: true);
+        final zones = geometry.magnetZones(Row.ranged, count, mine: true);
+        expect(zones, hasLength(count));
+        for (final zone in zones) {
+          expect(zone.top, row.top);
+          expect(zone.bottom, row.bottom);
+        }
+        for (var i = 1; i < count; i++) {
+          expect(zones[i].left, zones[i - 1].right, reason: 'зоны $i и ${i - 1} при $count картах');
+        }
+      }
+    });
+
+    test('на узком экране 320 pt зоны тоже делят ряд, каждая карта лежит в своей зоне', () {
+      const narrow = FieldGeometry(width: 320);
+      for (final count in [2, 6, 12, 19]) {
+        final zones = narrow.magnetZones(Row.siege, count, mine: true);
+        for (var i = 0; i < count; i++) {
+          final card = narrow.cardRect(Row.siege, i, count, mine: true);
+          expect(zones[i].left, lessThanOrEqualTo(card.left), reason: 'карта $i из $count');
+          expect(zones[i].width, greaterThan(0));
+          if (i > 0) expect(zones[i].left, zones[i - 1].right);
+        }
+      }
+    });
+
+    test('в плотном ряду зона карты — её видимая полоска: от левого края до левого края следующей', () {
+      final zones = geometry.magnetZones(Row.melee, 19, mine: true);
+      for (var i = 1; i < 18; i++) {
+        final card = geometry.cardRect(Row.melee, i, 19, mine: true);
+        final next = geometry.cardRect(Row.melee, i + 1, 19, mine: true);
+        expect(zones[i].left, card.left);
+        expect(zones[i].right, next.left);
+      }
+    });
+
+    test('в свободном ряду щель между картами делится пополам, карта покрыта целиком', () {
+      final zones = geometry.magnetZones(Row.melee, 3, mine: true);
+      final rects = [for (var i = 0; i < 3; i++) geometry.cardRect(Row.melee, i, 3, mine: true)];
+      for (var i = 0; i < 3; i++) {
+        expect(zones[i].left, lessThanOrEqualTo(rects[i].left));
+        expect(zones[i].right, greaterThanOrEqualTo(rects[i].right));
+      }
+      final gap = rects[1].left - rects[0].right;
+      expect(zones[0].right, rects[0].right + gap / 2);
+    });
+
+    test('у краёв ряда зона тянется за карту на дальность магнита и не выходит за зону карт', () {
+      final rect = geometry.rowRect(Row.melee, mine: true);
+      final area = geometry.cardsArea(Row.melee, mine: true);
+      final one = geometry.magnetZones(Row.melee, 1, mine: true).single;
+      final card = geometry.cardRect(Row.melee, 0, 1, mine: true);
+      expect(one.left, card.left - FieldGeometry.magnetReach);
+      expect(one.right, card.right + FieldGeometry.magnetReach);
+      final full = geometry.magnetZones(Row.melee, 19, mine: true);
+      expect(full.first.left, area.left);
+      expect(full.last.right, lessThanOrEqualTo(rect.right));
+    });
+
+    test('пустой ряд зон не даёт', () {
+      expect(geometry.magnetZones(Row.siege, 0, mine: true), isEmpty);
     });
   });
 }

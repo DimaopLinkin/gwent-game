@@ -299,6 +299,65 @@ void main() {
         await tester.pump(const Duration(seconds: 6));
       });
 
+      testWidgets('«Партия окончена» не пишется, пока идёт показ последнего раунда, и появляется после него', (
+        tester,
+      ) async {
+        final unit = cards.unit(Row.melee);
+        final closing = viewOf(
+          cards,
+          me: sideOf(
+            cards,
+            Seat.one,
+            rows: {
+              Row.melee: rowOf([unit], cards),
+            },
+            score: 5,
+          ),
+          opponent: sideOf(cards, Seat.two, handCount: 5, score: 2),
+        );
+        final finished = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one, discard: [unit]),
+          opponent: sideOf(cards, Seat.two, handCount: 5, crystals: 0),
+          round: 2,
+          turn: null,
+          phase: MatchPhase.finished,
+        );
+        cubit.onMatchState(MatchInProgress(view: closing, content: content, roster: rosterOf(cards), events: const []));
+        await pumpField(tester, closing);
+        cubit.onMatchState(
+          MatchInProgress(
+            view: finished,
+            content: content,
+            roster: rosterOf(cards),
+            closing: closing,
+            events: const [
+              Passed(Seat.one, auto: false),
+              RoundEnded(result),
+              MatchEnded(MatchOutcome(winner: Seat.one, reason: MatchEndReason.crystals)),
+            ],
+          ),
+        );
+        await tester.pumpWidget(
+          localizedApp(
+            BlocProvider.value(
+              value: cubit,
+              child: BlocBuilder<FieldCubit, Object?>(
+                builder: (context, _) =>
+                    FieldView(view: finished, content: content, roster: rosterOf(cards), onIntent: (_) {}),
+              ),
+            ),
+          ),
+        );
+        expect(cubit.state.stage, isNotNull);
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('Партия окончена'), findsNothing, reason: 'показ последнего раунда ещё идёт');
+
+        await tester.pump(const Duration(seconds: 8));
+        expect(cubit.state.stage, isNull);
+        expect(find.text('Партия окончена'), findsOneWidget);
+      });
+
       testWidgets('плашка исхода матча в hot-seat называет победителя', (tester) async {
         await tester.pumpWidget(
           localizedApp(

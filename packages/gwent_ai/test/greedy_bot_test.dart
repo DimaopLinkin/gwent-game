@@ -30,6 +30,28 @@ void main() {
     Rejected(:final reject) => fail('Намерение $intent отклонено: ${reject.reason}'),
   };
 
+  group('рог и занятые слоты', () {
+    test('бот не тратит рог на занятый слот, когда свободных нет', () {
+      final state = playing(
+        one: const Side(
+          hand: ['horn', 'mardrem'],
+          slots: {Row.melee: 'horn', Row.ranged: 'horn', Row.siege: 'leader_horn'},
+          melee: ['footman'],
+        ),
+        two: const Side(melee: ['footman'], passed: true),
+      );
+      expect(decide(state), const Pass());
+    });
+
+    test('рог бот кладёт только в свободный слот', () {
+      final state = playing(
+        one: const Side(hand: ['horn'], slots: {Row.melee: 'horn', Row.siege: 'leader_horn'}, ranged: ['archer']),
+        two: const Side(melee: ['footman'], passed: true),
+      );
+      expect(decide(state), isA<PlayCard>().having((intent) => intent.row, 'row', Row.ranged));
+    });
+  });
+
   group('соперник спасовал', () {
     test('бот впереди и пасует, не тратя карты', () {
       final state = playing(

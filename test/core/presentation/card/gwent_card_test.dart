@@ -6,6 +6,7 @@ import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/card/parts/card_art_overlays.dart';
+import 'package:gwent/src/core/presentation/card/parts/card_coin.dart';
 import 'package:gwent/src/core/presentation/card/parts/card_plaque.dart';
 import 'package:gwent/src/core/presentation/card/parts/leader_marker.dart';
 import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
@@ -96,6 +97,29 @@ void main() {
     expect(await lookOf(withPower(12)), PowerLook.buffed);
     expect(await lookOf(withPower(1)), PowerLook.debuffed);
     expect(await lookOf(withPower(10, hero: true)), PowerLook.hero);
+  });
+
+  testWidgets('на столе значка ряда нет, проворство и способность остаются; на руке ряд виден', (tester) async {
+    Set<GwentIcon> coins() => {
+      for (final element in find.byType(CardCoin).evaluate()) (element.widget as CardCoin).icon,
+    };
+    await _pump(tester, const GwentCard(face: _unit, size: CardSize.row));
+    expect(coins(), {GwentIcon.abilityTightBond});
+    await _pump(tester, const GwentCard(face: _unit, size: CardSize.hand));
+    expect(coins(), {GwentIcon.rowRanged, GwentIcon.abilityTightBond});
+    const agile = UnitCardFace(
+      art: null,
+      name: 'Проворный',
+      faction: GwentFaction.skellige,
+      basePower: 4,
+      row: GwentIcon.rowAgile,
+    );
+    await _pump(tester, const GwentCard(face: agile, size: CardSize.row));
+    expect(coins(), {GwentIcon.rowAgile});
+    await _pump(tester, const GwentCard(face: _unit, size: CardSize.row, compactWidth: 16));
+    expect(coins(), {GwentIcon.abilityTightBond});
+    await _pump(tester, const GwentCard(face: agile, size: CardSize.row, compactWidth: 16));
+    expect(coins(), {GwentIcon.rowAgile});
   });
 
   testWidgets('иней под погодой рисуется на отряде, но не на герое', (tester) async {

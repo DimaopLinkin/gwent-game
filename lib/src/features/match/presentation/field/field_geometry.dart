@@ -47,6 +47,12 @@ final class FieldGeometry {
   /// Промежуток между картами, пока ряд не переполнен.
   static const double cardGap = 4;
 
+  /// Шаг карт ряда меньше этого значения: перекрытая карта уже не показывает медальон силы со стрелкой (до 30 pt).
+  static const double compactStep = 30;
+
+  /// Насколько зона крайней карты ряда тянется за карту: палец чуть в стороне от крайней карты всё ещё её захватывает.
+  static const double magnetReach = 24;
+
   /// Высота бюджета макета: 48 + 240 + 40 + 240 + 48 + 135.
   static const double budgetHeight = barHeight * 2 + rowHeight * 6 + stripHeight + minHandHeight;
 
@@ -121,19 +127,45 @@ final class FieldGeometry {
     return ((area + cardGap) / (cardWidth + cardGap)).floor();
   }
 
+  /// Шаг между левыми краями карт ряда из [count] карт: 56 pt, пока ряд не переполнен, затем общий `(A − 52) / (n − 1)`.
+  double cardStep(int count) {
+    final area = cardsArea(Row.melee, mine: true).width;
+    final total = count * cardWidth + math.max(0, count - 1) * cardGap;
+    return count > 1 && total > area ? (area - cardWidth) / (count - 1) : cardWidth + cardGap;
+  }
+
+  /// Ряд из [count] карт настолько сжат, что у перекрытых карт медальон силы не помещается: они показывают
+  /// сжатую силу (см. `GwentCard.compactWidth`), а полную карту видно только у последней.
+  bool isRowCompact(int count) => count > 1 && cardStep(count) < compactStep;
+
   /// Карта номер [index] из [count] в ряду: без перекрытия по центру с промежутком 4 pt, а при переполнении — с
   /// общим шагом `(A − 52) / (n − 1)`; каждая следующая карта лежит поверх предыдущей.
   Rect cardRect(Row row, int index, int count, {required bool mine}) {
     final area = cardsArea(Row.melee, mine: mine).width;
     final total = count * cardWidth + math.max(0, count - 1) * cardGap;
-    var step = cardWidth + cardGap;
-    var offset = (area - total) / 2;
-    if (count > 1 && total > area) {
-      step = (area - cardWidth) / (count - 1);
-      offset = 0;
-    }
+    final step = cardStep(count);
+    final offset = count > 1 && total > area ? 0 : (area - total) / 2;
     final base = cardsArea(row, mine: mine);
     return Rect.fromLTWH((base.left + offset + index * step).roundToDouble(), base.top, cardWidth, cardHeight);
+  }
+
+  /// Зоны захвата карт ряда из [count] карт (магнит, макет 14): зона номер `i` принадлежит карте номер `i`.
+  ///
+  /// Зоны делят ряд по горизонтали без щелей и перекрытий и занимают всю высоту ряда. Палец над видимой частью карты
+  /// даёт зону этой карты; палец в щели между картами или в стороне от крайней карты (не дальше [magnetReach])
+  /// достаётся ближайшей, а щель делится пополам. Карты, на которые нельзя играть, зоны тоже делят, но цели из них
+  /// не делаются: над ними ничего не горит.
+  List<Rect> magnetZones(Row row, int count, {required bool mine}) {
+    if (count == 0) return const [];
+    final rect = rowRect(row, mine: mine);
+    final area = cardsArea(row, mine: mine);
+    final cards = [for (var i = 0; i < count; i++) cardRect(row, i, count, mine: mine)];
+    final bounds = <double>[
+      math.max(area.left, cards.first.left - magnetReach),
+      for (var i = 0; i < count - 1; i++) (math.min(cards[i].right, cards[i + 1].left) + cards[i + 1].left) / 2,
+      math.min(rect.right, cards.last.right + magnetReach),
+    ];
+    return [for (var i = 0; i < count; i++) Rect.fromLTRB(bounds[i], rect.top, bounds[i + 1], rect.bottom)];
   }
 
   /// Шаг веера руки из [count] карт: поля 28 pt, шаг не больше 81 pt.

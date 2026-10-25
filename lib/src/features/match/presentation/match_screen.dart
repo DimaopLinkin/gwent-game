@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/material.dart' hide Intent;
@@ -11,6 +12,7 @@ import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/match_stages.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/setup/match_setup_stage.dart';
@@ -40,10 +42,12 @@ class MatchScreen extends StatefulWidget {
     required this.onExit,
     required this.onEditDeck,
     this.confirmPass = false,
+    this.hints = false,
     this.animationScale = 1,
     this.onSettings,
     this.overlay,
     this.opponentStatus,
+    this.onRematchAgreed,
   });
 
   /// Выход из партии.
@@ -54,6 +58,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Спрашивать подтверждение паса диалогом; иначе пас нужно держать 1 с.
   final bool confirmPass;
+
+  /// Подсказка в центральной полосе, что делать с выбранной картой (настройка «Подсказки»).
+  final bool hints;
 
   /// Доля обычных длительностей анимаций карт: 1 или `StageTokens.fastFactor` для быстрой скорости (ADR 0017).
   final double animationScale;
@@ -66,6 +73,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Индикатор в полосе соперника на поле (связь в сетевой партии, ADR 0019); `null` — индикатора нет.
   final Widget? opponentStatus;
+
+  /// Оба игрока сетевой партии согласились на реванш: уйти в комнату, где выбирают колоды (ADR 0028).
+  final VoidCallback? onRematchAgreed;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -80,29 +90,45 @@ class _MatchScreenState extends State<MatchScreen> {
 
   bool _releasing = false;
 
+  /// Выдержка после последней замены при пересдаче: пока она идёт, следующее состояние ждёт в очереди.
+  Timer? _redrawHold;
+
   /// Системное «назад» уводит из партии только до её начала и после конца. Посреди партии оно не выходит молча:
   /// на поле его перехватывает пауза (`FieldView`), на остальных экранах старта выхода нет, чтобы не потерять партию.
   bool _canLeave(MatchScreenState state) => switch (state) {
-    MatchIdle() || MatchStarting() || MatchStartFailed() || MatchFinished() || MatchCrashed() => true,
-    MatchIntro() || MatchToss() || MatchHandover() || MatchInProgress() => false,
+    MatchIdle() ||
+    MatchStarting() ||
+    MatchStartFailed() ||
+    MatchFinished() ||
+    MatchCrashed() ||
+    MatchRematchAgreed() => true,
+    MatchIntro() || MatchToss() || MatchHandover() || MatchRedrawSettled() || MatchInProgress() => false,
   };
 
   /// Идёт партия: поле, пересдача или выбор первого игрока; на знакомстве, жребии, передаче и итоге слоя нет.
   bool get _fieldIsShown => switch (_shown) {
     MatchInProgress(:final view) => view.phase != MatchPhase.finished,
+    MatchRedrawSettled() => true,
     _ => false,
   };
 
-  /// Поле на экране и показывает что-то: следующее состояние партии подождёт. Остальные экраны очередь не держат.
+  /// Поле на экране и показывает что-то или держится пришедшая карта пересдачи: следующее состояние партии подождёт.
+  /// Остальные экраны очередь не держат.
   bool get _fieldIsBusy =>
+      _redrawHold != null ||
       switch (_shown) {
-        MatchInProgress(:final view) => view.phase == MatchPhase.playing || view.phase == MatchPhase.finished,
-        _ => false,
-      } &&
-      context.read<FieldCubit>().state.isBusy;
+            MatchInProgress(:final view) => view.phase == MatchPhase.playing || view.phase == MatchPhase.finished,
+            _ => false,
+          } &&
+          context.read<FieldCubit>().state.isBusy;
 
   void _onMatchState(MatchScreenState state) {
-    if (state is MatchCrashed || (state is MatchInProgress && state.events.any(_isResignation))) {
+    if (state is MatchRematchAgreed) {
+      // Следующая партия начнётся в комнате: ждать здесь нечего.
+      _waiting.clear();
+      _show(state);
+      widget.onRematchAgreed?.call();
+    } else if (state is MatchCrashed || (state is MatchInProgress && state.events.any(_isResignation))) {
       // Партия сломалась или кто-то сдался: ждать анимаций незачем, а то, что в очереди, уже не покажешь.
       _waiting.clear();
       _show(state);
@@ -154,8 +180,22 @@ class _MatchScreenState extends State<MatchScreen> {
   );
 
   void _show(MatchScreenState state) {
+    _redrawHold?.cancel();
+    _redrawHold = null;
+    if (state is MatchRedrawSettled) {
+      _redrawHold = Timer(Duration(milliseconds: _stageStyle.ms(StageTokens.redrawHold)), () {
+        _redrawHold = null;
+        _release();
+      });
+    }
     setState(() => _shown = state);
     context.read<FieldCubit>().onMatchState(state, style: _stageStyle);
+  }
+
+  @override
+  void dispose() {
+    _redrawHold?.cancel();
+    super.dispose();
   }
 
   @override
@@ -165,6 +205,11 @@ class _MatchScreenState extends State<MatchScreen> {
       BlocListener<FieldCubit, FieldState>(
         listenWhen: (previous, current) => previous.isBusy && !current.isBusy,
         listener: (context, state) => _release(),
+      ),
+      BlocListener<FieldCubit, FieldState>(
+        listenWhen: (previous, current) => (previous.pause != PauseLayer.none) != (current.pause != PauseLayer.none),
+        listener: (context, state) =>
+            context.read<MatchBloc>().add(MatchPauseChanged(paused: state.pause != PauseLayer.none)),
       ),
     ],
     child: Scaffold(
@@ -215,6 +260,13 @@ class _MatchScreenState extends State<MatchScreen> {
         roster: roster,
         onReady: () => bloc.add(const MatchHandoverAccepted()),
       ),
+      MatchRedrawSettled(:final view, :final roster) => MatchRedrawView(
+        view: view,
+        roster: roster,
+        onIntent: submit,
+        settled: true,
+        style: _stageStyle,
+      ),
       MatchInProgress(:final view, :final content, :final roster) => switch (view) {
         PlayerView(phase: MatchPhase.choosingFirstPlayer) => MatchFirstPlayerView(
           view: view,
@@ -225,25 +277,40 @@ class _MatchScreenState extends State<MatchScreen> {
           view: view,
           roster: roster,
         ),
-        PlayerView(phase: MatchPhase.redraw) => MatchRedrawView(view: view, roster: roster, onIntent: submit),
+        PlayerView(phase: MatchPhase.redraw) => MatchRedrawView(
+          view: view,
+          roster: roster,
+          onIntent: submit,
+          style: _stageStyle,
+        ),
         _ => FieldView(
           view: view,
           content: content,
           roster: roster,
           onIntent: submit,
           confirmPass: widget.confirmPass,
+          hints: widget.hints,
           onSettings: widget.onSettings,
           opponentStatus: widget.opponentStatus,
         ),
       },
-      MatchFinished(:final view, :final roster, :final canRematch) => MatchResultView(
+      MatchFinished(:final view, :final roster, :final canRematch, :final rematch) => MatchResultView(
         view: view,
         roster: roster,
         onExit: widget.onExit,
-        onRematch: canRematch ? () => bloc.add(const MatchRematchRequested()) : null,
+        onRematch: canRematch || rematch != null ? () => bloc.add(const MatchRematchRequested()) : null,
+        // Выбор колоды заново открывается раньше, чем экран партии уходит с итога: иначе он увидел бы старый запрос.
+        onChangeDeck: canRematch
+            ? () {
+                context.read<MatchSetupCubit>().restart();
+                bloc.add(const MatchDeckChangeRequested());
+              }
+            : null,
+        rematch: rematch,
         // Поле, на котором кончилась партия, видно за листом и по кнопке «Показать поле» (макет 13).
         field: FieldView(view: view, content: roster.content, roster: roster, onIntent: (_) {}, readOnly: true),
       ),
+      MatchRematchAgreed() => const SafeArea(child: Center(child: GameLoader())),
       MatchCrashed() => SafeArea(
         child: MatchPanel(
           title: l10n.matchCrashed,

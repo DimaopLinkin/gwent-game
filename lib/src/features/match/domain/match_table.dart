@@ -1,3 +1,4 @@
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:meta/meta.dart';
 
@@ -71,4 +72,33 @@ final class TableFailed extends TableUpdate {
 
   /// Причина.
   final Object error;
+}
+
+/// Предложение реванша изменилось: соперник предложил его, время вышло или соперник ушёл. Только у сетевой партии
+/// ([RematchTable]).
+final class TableRematchChanged extends TableUpdate {
+  /// Создаёт обновление.
+  const TableRematchChanged(this.offer);
+
+  /// Новое состояние предложения.
+  final RematchOffer offer;
+}
+
+/// Оба игрока согласились на реванш: партия возвращается в комнату, где они снова выбирают колоды. Стол после этого
+/// не работает, новую партию откроет новый стол.
+final class TableRematchAgreed extends TableUpdate {
+  /// Создаёт обновление.
+  const TableRematchAgreed();
+}
+
+/// Стол, который можно поставить на паузу: пока она идёт, соперник без человека не ходит (местная партия с ботом).
+abstract interface class PausableTable implements MatchTable {
+  /// Включает ([paused] = `true`) или выключает паузу: на паузе бот не думает и не ходит, после неё продолжает.
+  void setPaused({required bool paused});
+}
+
+/// Стол, на котором после конца партии можно договориться о реванше (сетевая партия, ADR 0028).
+abstract interface class RematchTable implements MatchTable {
+  /// Предлагает реванш или соглашается на предложение соперника. Итог придёт в [updates].
+  void requestRematch();
 }

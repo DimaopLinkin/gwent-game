@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Intent, Row;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
@@ -10,6 +11,7 @@ import 'package:gwent_engine/gwent_engine.dart';
 import '../../../../support/fonts.dart';
 import '../../../../support/localized_app.dart';
 import '../../../../support/match_fixtures.dart';
+import '../../../../support/screen_guards.dart';
 import '../field/field_fixtures.dart';
 
 void main() {
@@ -183,6 +185,8 @@ void main() {
       bool hotSeat = false,
       VoidCallback? onExit,
       VoidCallback? onRematch,
+      VoidCallback? onChangeDeck,
+      Size size = const Size(390, 844),
     }) async {
       await pumpView(
         tester,
@@ -191,7 +195,9 @@ void main() {
           roster: rosterOf(cards, hotSeat: hotSeat),
           onExit: onExit ?? () {},
           onRematch: onRematch,
+          onChangeDeck: onChangeDeck,
         ),
+        size: size,
       );
       // Лист выезжает из-под экрана.
       await tester.pump();
@@ -261,10 +267,58 @@ void main() {
       expect((rematch, exit), (1, 1));
     });
 
+    testWidgets('в местной партии есть «Другая колода»: три кнопки делают каждая своё', (tester) async {
+      var rematch = 0;
+      var change = 0;
+      var exit = 0;
+      await pumpResult(
+        tester,
+        finished(winner: Seat.one),
+        onRematch: () => rematch++,
+        onChangeDeck: () => change++,
+        onExit: () => exit++,
+      );
+      await tester.tap(find.text('Реванш'));
+      await tester.tap(find.text('Другая колода'));
+      await tester.tap(find.text('В меню'));
+      expect((rematch, change, exit), (1, 1, 1));
+      expectNoFallbackTextStyle(tester);
+    });
+
+    testWidgets('«Другая колода» на узком экране не вылезает за него и не обрезается', (tester) async {
+      await pumpResult(
+        tester,
+        finished(winner: Seat.one),
+        onRematch: () {},
+        onChangeDeck: () {},
+        size: const Size(320, 568),
+      );
+      expect(tester.takeException(), isNull);
+      expect(tester.getBottomLeft(find.text('В меню')).dy, lessThanOrEqualTo(568));
+      expect(tester.getTopRight(find.text('Другая колода')).dx, lessThanOrEqualTo(320));
+      expect(tester.widget<Text>(find.text('Другая колода')).maxLines, 2, reason: 'длинная подпись переносится');
+    });
+
+    testWidgets('без «Другой колоды» (сетевая партия) кнопки нет', (tester) async {
+      await pumpResult(tester, finished(winner: Seat.one), onRematch: () {});
+      expect(find.text('Другая колода'), findsNothing);
+    });
+
     testWidgets('без реванша кнопки «Реванш» нет', (tester) async {
       await pumpResult(tester, finished(winner: Seat.one));
       expect(find.text('Реванш'), findsNothing);
       expect(find.text('В меню'), findsOneWidget);
+    });
+
+    testWidgets('с «Реваншем», «Другой колодой» и «В меню» прокручиваемая середина не ниже 400 pt', (tester) async {
+      await pumpResult(
+        tester,
+        finished(winner: Seat.one),
+        onRematch: () {},
+        onChangeDeck: () {},
+      );
+      expect(tester.getSize(find.byType(SingleChildScrollView)).height, greaterThanOrEqualTo(400));
+      expect(tester.getTopLeft(find.text('Победа')).dy, greaterThan(0), reason: 'лист не заходит под верх экрана');
     });
 
     testWidgets('на низком экране середина листа прокручивается без переполнения', (tester) async {
@@ -366,6 +420,92 @@ void main() {
       await tester.pump();
       await tester.pump(MatchResultView.sheetSlide);
       expect(find.text('Показать поле'), findsOneWidget);
+    });
+
+    group('реванш по сети', () {
+      Future<void> pumpOnline(WidgetTester tester, RematchOffer offer, {VoidCallback? onRematch, Size? size}) async {
+        await pumpView(
+          tester,
+          MatchResultView(
+            view: finished(winner: Seat.one),
+            roster: rosterOf(cards),
+            onExit: () {},
+            onRematch: onRematch ?? () {},
+            rematch: offer,
+          ),
+          size: size ?? const Size(390, 844),
+        );
+        await tester.pump();
+        await tester.pump(MatchResultView.sheetSlide);
+      }
+
+      testWidgets('предложение ещё не сделано: кнопка доступна, пояснения нет', (tester) async {
+        var taps = 0;
+        await pumpOnline(tester, RematchOffer.idle, onRematch: () => taps++);
+        await tester.tap(find.text('Реванш'));
+        expect(taps, 1);
+        expect(find.textContaining(' с'), findsNothing);
+      });
+
+      testWidgets('предложил игрок: сколько осталось ждать, секунды идут, кнопка не нажимается', (tester) async {
+        var taps = 0;
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.requested, window: Duration(seconds: 30)),
+          onRematch: () => taps++,
+        );
+        expect(find.text('Ждём ответа соперника · 30 с'), findsOneWidget);
+        await tester.pump(const Duration(seconds: 3));
+        expect(find.text('Ждём ответа соперника · 27 с'), findsOneWidget);
+        await tester.tap(find.text('Реванш'), warnIfMissed: false);
+        expect(taps, 0);
+        // Отсчёт не уходит ниже нуля.
+        await tester.pump(const Duration(seconds: 40));
+        expect(find.text('Ждём ответа соперника · 0 с'), findsOneWidget);
+      });
+
+      testWidgets('предложил соперник: можно согласиться', (tester) async {
+        var taps = 0;
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.invited, window: Duration(seconds: 20)),
+          onRematch: () => taps++,
+        );
+        expect(find.text('Соперник предлагает реванш · 20 с'), findsOneWidget);
+        await tester.tap(find.text('Реванш'));
+        expect(taps, 1);
+      });
+
+      testWidgets('время вышло или соперник ушёл: сказано об этом, отсчёта нет, кнопка недоступна', (tester) async {
+        var taps = 0;
+        await pumpOnline(tester, const RematchOffer(RematchStage.expired), onRematch: () => taps++);
+        expect(find.text('Время на ответ вышло, реванша не будет'), findsOneWidget);
+        await tester.tap(find.text('Реванш'), warnIfMissed: false);
+        expect(taps, 0);
+        await pumpOnline(tester, const RematchOffer(RematchStage.opponentGone), onRematch: () => taps++);
+        expect(find.text('Соперник ушёл, реванша не будет'), findsOneWidget);
+        expect(tester.hasRunningAnimations, isFalse);
+      });
+
+      testWidgets('новое состояние предложения запускает отсчёт заново; на узком экране без переполнения', (
+        tester,
+      ) async {
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.invited, window: Duration(seconds: 30)),
+          size: const Size(320, 568),
+        );
+        await tester.pump(const Duration(seconds: 5));
+        expect(find.text('Соперник предлагает реванш · 25 с'), findsOneWidget);
+        await pumpOnline(
+          tester,
+          const RematchOffer(RematchStage.requested, window: Duration(seconds: 30)),
+          size: const Size(320, 568),
+        );
+        expect(find.text('Ждём ответа соперника · 30 с'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expectNoFallbackTextStyle(tester);
+      });
     });
 
     testWidgets('за листом поле не принимает касаний', (tester) async {

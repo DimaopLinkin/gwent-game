@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
@@ -10,6 +11,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_space.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/start/start_parts.dart';
@@ -32,6 +34,8 @@ class MatchResultView extends StatefulWidget {
     required this.roster,
     required this.onExit,
     this.onRematch,
+    this.onChangeDeck,
+    this.rematch,
     this.field,
   });
 
@@ -41,8 +45,8 @@ class MatchResultView extends StatefulWidget {
   /// Сколько затемняется поле (токен `sheet.dim`).
   static const Duration fieldDim = Duration(milliseconds: 300);
 
-  /// Высота листа макета.
-  static const double sheetHeight = 540;
+  /// Высота листа: выше макета (540), чтобы середина с прокруткой не сжималась из-за кнопок «Реванш» и «Другая колода».
+  static const double sheetHeight = 640;
 
   /// Высота шапки; свёрнутый лист показывает только её.
   static const double headerHeight = 64;
@@ -58,6 +62,14 @@ class MatchResultView extends StatefulWidget {
 
   /// Реванш; `null` — сыграть заново нельзя.
   final VoidCallback? onRematch;
+
+  /// «Другая колода» в местной партии: вернуться к выбору фракции и колоды. `null` — кнопки нет (сетевая партия:
+  /// колоды там выбирают в комнате после согласия на реванш).
+  final VoidCallback? onChangeDeck;
+
+  /// Договорённость о реванше в сетевой партии: кнопка доступна, пока можно предложить реванш или согласиться, а
+  /// над кнопками пишется, что сейчас происходит. `null` — местная партия, где реванш не требует согласия.
+  final RematchOffer? rematch;
 
   /// Поле партии за листом; `null` — спокойный фон.
   final Widget? field;
@@ -188,32 +200,17 @@ class _MatchResultViewState extends State<MatchResultView> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      if (widget.rematch case final offer?)
+                        ExcludeSemantics(
+                          excluding: _collapsed,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _RematchNote(offer: offer),
+                          ),
+                        ),
                       ExcludeSemantics(
                         excluding: _collapsed,
-                        child: Row(
-                          spacing: 12,
-                          children: [
-                            if (widget.onRematch != null)
-                              Expanded(
-                                flex: 12,
-                                child: GwentButton(
-                                  label: l10n.matchResultRematch,
-                                  height: 56,
-                                  fontSize: 24,
-                                  onPressed: widget.onRematch,
-                                ),
-                              ),
-                            Expanded(
-                              flex: 10,
-                              child: GwentButton(
-                                label: l10n.matchExit,
-                                style: GwentButtonStyle.secondary,
-                                height: 56,
-                                onPressed: widget.onExit,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: widget.onChangeDeck == null ? _buttonsRow(l10n) : _buttonsColumn(l10n),
                       ),
                     ],
                   ),
@@ -226,8 +223,133 @@ class _MatchResultViewState extends State<MatchResultView> {
     );
   }
 
+  /// «Реванш» и «В меню» в одном ряду.
+  Widget _buttonsRow(AppLocalizations l10n) => Row(
+    spacing: 12,
+    children: [
+      if (widget.onRematch != null) Expanded(flex: 12, child: _rematchButton(l10n)),
+      Expanded(flex: 10, child: _exitButton(l10n)),
+    ],
+  );
+
+  /// Местная партия: «Реванш» и «Другая колода» в первом ряду, «В меню» во втором на всю ширину.
+  Widget _buttonsColumn(AppLocalizations l10n) => Column(
+    spacing: 12,
+    children: [
+      Row(
+        spacing: 12,
+        children: [
+          if (widget.onRematch != null) Expanded(child: _rematchButton(l10n)),
+          Expanded(
+            child: GwentButton(
+              label: l10n.matchResultChangeDeck,
+              style: GwentButtonStyle.secondary,
+              height: 56,
+              fontSize: 20,
+              maxLines: 2,
+              onPressed: widget.onChangeDeck,
+            ),
+          ),
+        ],
+      ),
+      SizedBox(width: double.infinity, child: _exitButton(l10n)),
+    ],
+  );
+
+  Widget _rematchButton(AppLocalizations l10n) => GwentButton(
+    label: l10n.matchResultRematch,
+    height: 56,
+    fontSize: 24,
+    onPressed: widget.rematch?.canRequest ?? true ? widget.onRematch : null,
+  );
+
+  Widget _exitButton(AppLocalizations l10n) => GwentButton(
+    label: l10n.matchExit,
+    style: GwentButtonStyle.secondary,
+    height: 56,
+    onPressed: widget.onExit,
+  );
+
   /// Кривая выезда макета, `cubic-bezier(.22, 1, .36, 1)`.
   static const Curve _sheetCurve = Cubic(0.22, 1, 0.36, 1);
+}
+
+/// Строка под таблицей итога сетевого матча: что с реваншем и сколько секунд осталось на ответ.
+class _RematchNote extends StatefulWidget {
+  const _RematchNote({required this.offer});
+
+  final RematchOffer offer;
+
+  @override
+  State<_RematchNote> createState() => _RematchNoteState();
+}
+
+class _RematchNoteState extends State<_RematchNote> {
+  Timer? _timer;
+  int _left = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _restart();
+  }
+
+  @override
+  void didUpdateWidget(_RematchNote oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.offer != widget.offer) _restart();
+  }
+
+  /// Отсчёт идёт от времени, которое назвал хост, и обновляется с каждым новым состоянием предложения.
+  void _restart() {
+    _timer?.cancel();
+    _timer = null;
+    _left = widget.offer.counting ? (widget.offer.window.inMilliseconds / 1000).ceil() : 0;
+    if (widget.offer.counting) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (_left > 0) setState(() => _left--);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final text = switch (widget.offer.stage) {
+      RematchStage.idle => '',
+      RematchStage.requested => l10n.matchRematchRequested(_left),
+      RematchStage.invited => l10n.matchRematchInvited(_left),
+      RematchStage.expired => l10n.matchRematchExpired,
+      RematchStage.opponentGone => l10n.matchRematchGone,
+    };
+    return Semantics(
+      liveRegion: true,
+      child: SizedBox(
+        height: 36,
+        child: Center(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: GwentText.alegreya,
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              height: 1.2,
+              color: widget.offer.stage == RematchStage.invited ? GwentColors.goldHighlight : GwentColors.textTertiary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Шапка листа: ручка, «Победа · 2 : 1» и кнопка «Показать поле»/«К итогам». Жест по шапке сворачивает и

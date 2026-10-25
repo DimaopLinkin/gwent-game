@@ -5,16 +5,17 @@ import 'package:meta/meta.dart';
 /// Настройки игрока.
 ///
 /// Новая настройка добавляется полем со значением по умолчанию: хранилище отдаёт его, пока игрок ничего не выбрал.
-/// Часть настроек (скорость анимаций, громкость, подсказки, подтверждение паса, имя в сети) хранится заранее:
+/// Часть настроек (подтверждение паса, имя в сети) хранится заранее:
 /// их функции подключаются к игре отдельными задачами, а выбор игрока не теряется.
 @immutable
 final class AppSettings {
   /// Создаёт настройки.
   const AppSettings({
     this.playerName,
-    this.confirmPass = true,
+    this.confirmPass = false,
     this.animationSpeed = AnimationSpeed.normal,
     this.hints = true,
+    this.haptics = true,
     this.musicVolume = defaultMusicVolume,
     this.effectsVolume = defaultEffectsVolume,
     this.contentCheckedAt,
@@ -41,8 +42,12 @@ final class AppSettings {
   /// Скорость анимаций партии.
   final AnimationSpeed animationSpeed;
 
-  /// Подсказки для новичка.
+  /// Подсказки для новичка: в партии статичная строка в центральной полосе подсказывает, что делать с выбранной
+  /// картой (ADR 0010).
   final bool hints;
+
+  /// Вибрация в партии и при прицеливании (ADR 0031).
+  final bool haptics;
 
   /// Громкость музыки, 0–[maxVolume].
   final int musicVolume;
@@ -65,6 +70,7 @@ final class AppSettings {
     confirmPass: confirmPass,
     animationSpeed: animationSpeed,
     hints: hints,
+    haptics: haptics,
     musicVolume: musicVolume,
     effectsVolume: effectsVolume,
     contentCheckedAt: contentCheckedAt,
@@ -77,6 +83,7 @@ final class AppSettings {
     bool? confirmPass,
     AnimationSpeed? animationSpeed,
     bool? hints,
+    bool? haptics,
     int? musicVolume,
     int? effectsVolume,
     DateTime? contentCheckedAt,
@@ -87,6 +94,7 @@ final class AppSettings {
     confirmPass: confirmPass ?? this.confirmPass,
     animationSpeed: animationSpeed ?? this.animationSpeed,
     hints: hints ?? this.hints,
+    haptics: haptics ?? this.haptics,
     musicVolume: musicVolume ?? this.musicVolume,
     effectsVolume: effectsVolume ?? this.effectsVolume,
     contentCheckedAt: contentCheckedAt ?? this.contentCheckedAt,
@@ -101,6 +109,7 @@ final class AppSettings {
       other.confirmPass == confirmPass &&
       other.animationSpeed == animationSpeed &&
       other.hints == hints &&
+      other.haptics == haptics &&
       other.musicVolume == musicVolume &&
       other.effectsVolume == effectsVolume &&
       other.contentCheckedAt == contentCheckedAt &&
@@ -113,6 +122,7 @@ final class AppSettings {
     confirmPass,
     animationSpeed,
     hints,
+    haptics,
     musicVolume,
     effectsVolume,
     contentCheckedAt,
@@ -123,7 +133,7 @@ final class AppSettings {
   @override
   String toString() =>
       'AppSettings(playerName: $playerName, confirmPass: $confirmPass, animationSpeed: $animationSpeed, '
-      'hints: $hints, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt, '
+      'hints: $hints, haptics: $haptics, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt, '
       'botDifficulty: $botDifficulty, '
       'localNetworkExplained: $localNetworkExplained)';
 }

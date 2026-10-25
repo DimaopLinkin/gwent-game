@@ -58,6 +58,7 @@ void main() {
   late int exits;
   late List<String> edited;
   late MatchSetupCubit setupCubit;
+  late List<MatchEvent> events;
   late AppLocalizations l10n;
 
   setUpAll(() async {
@@ -67,6 +68,11 @@ void main() {
   });
 
   setUp(() {
+    events = [];
+    // Держатель запоминает наблюдателя при создании, поэтому ставим его до `MatchBloc`.
+    final observer = Bloc.observer;
+    Bloc.observer = _EventObserver(events);
+    addTearDown(() => Bloc.observer = observer);
     exits = 0;
     edited = [];
     matches = InMemoryMatchHistoryRepository();
@@ -153,14 +159,12 @@ void main() {
     }
   }
 
-  /// Проходит три шага выбора для места: фракция с ключом [factionKey], её первый лидер, первая колода.
+  /// Проходит два шага выбора для места: фракция с ключом [factionKey], потом предвыбранная колода.
   Future<void> chooseSeat(WidgetTester tester, String factionKey) async {
     final ready = setupCubit.state as MatchSetupReady;
     setupCubit.showFaction(ready.rules.factionInfos.indexWhere((faction) => faction.key == factionKey));
     await tester.pump();
     await tester.tap(find.text(l10n.factionSelectConfirm));
-    await settleSetup(tester);
-    await tester.tap(find.text(l10n.leaderSelectConfirm));
     await settleSetup(tester);
     final last = (setupCubit.state as MatchSetupReady).isLastSeat;
     await tester.tap(find.text(last ? l10n.deckSelectPlay : l10n.deckSelectNext));
@@ -206,8 +210,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  group('выбор фракции, лидера и колоды', () {
-    testWidgets('против бота: сложность, фракция, лидер, колода; второго места нет', (tester) async {
+  group('выбор фракции и колоды', () {
+    testWidgets('против бота: сложность, фракция, колода; второго места нет', (tester) async {
       await pumpScreen(tester, passDifficulty: false);
       expect(find.text(l10n.setupStep(1, 3).toUpperCase()), findsOneWidget);
       expect(find.text(l10n.difficultySelectTitle), findsOneWidget);
@@ -227,11 +231,7 @@ void main() {
       await tester.tap(find.text(l10n.factionSelectConfirm));
       await settleSetup(tester);
       expect(find.text(l10n.setupStep(3, 3).toUpperCase()), findsOneWidget);
-      expect(find.text(l10n.leaderSelectConfirm), findsOneWidget);
-
-      await tester.tap(find.text(l10n.leaderSelectConfirm));
-      await settleSetup(tester);
-      expect(find.text(l10n.deckSelectEyebrow.toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.deckSelectTitle), findsOneWidget, reason: 'после фракции сразу колоды, без выбора лидера');
       expect(find.text(l10n.deckSelectPlay), findsOneWidget);
       expect(find.text('monsters'), findsOneWidget, reason: 'колода выбранной фракции');
       expect(find.text('realms'), findsNothing, reason: 'колод других фракций в списке нет');
@@ -251,7 +251,7 @@ void main() {
       await pumpScreen(tester);
       await tester.tap(find.text(l10n.factionSelectConfirm));
       await settleSetup(tester);
-      expect(find.text(l10n.leaderSelectConfirm), findsOneWidget);
+      expect(find.text(l10n.deckSelectTitle), findsOneWidget);
 
       await tester.tap(find.bySemanticsLabel(l10n.setupBack));
       await settleSetup(tester);
@@ -272,8 +272,6 @@ void main() {
       setupCubit.showFaction(2);
       await tester.pump();
       await tester.tap(find.text(l10n.factionSelectConfirm));
-      await settleSetup(tester);
-      await tester.tap(find.text(l10n.leaderSelectConfirm));
       await settleSetup(tester);
 
       await tester.tap(find.text(l10n.deckSelectEdit));
@@ -384,6 +382,27 @@ void main() {
       expect(matches.records.single.outcome, history.MatchOutcome.defeat);
     });
 
+    testWidgets('пауза матча сообщает держателю партии: открыта — бот стоит, закрыта — продолжает', (tester) async {
+      await pumpScreen(tester);
+      await startAndSkip(tester);
+      await tester.tap(find.text('Готово'));
+      await settle(tester);
+      await endBanners(tester);
+
+      await tester.tap(find.bySemanticsLabel('Пауза'));
+      await tester.pump(const Duration(milliseconds: 250));
+      // Правила и подтверждение сдачи тоже пауза: бот не оживает, пока игрок листает меню.
+      await tester.tap(find.text('Сдаться'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(events.whereType<MatchPauseChanged>().map((event) => event.paused), [true]);
+
+      await tester.tap(find.text('Отмена'));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.text('Продолжить'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(events.whereType<MatchPauseChanged>().map((event) => event.paused), [true, false]);
+    });
+
     testWidgets('пауза: «Настройки» открывают настройки, партия остаётся на паузе', (tester) async {
       var opened = 0;
       await pumpScreen(tester, onSettings: () => opened++);
@@ -418,6 +437,32 @@ void main() {
       expect(find.byType(MatchIntroView), findsOneWidget);
     });
 
+    testWidgets('«Другая колода» на экране итога открывает выбор с фракции, на которой играли', (tester) async {
+      await pumpScreen(tester);
+      await startAndSkip(tester);
+      await tester.tap(find.text('Готово'));
+      await settle(tester);
+      await endBanners(tester);
+      bloc.add(const MatchIntentSubmitted(Resign()));
+      await settle(tester);
+      await endBanners(tester);
+      await tester.pump(MatchResultView.sheetSlide);
+
+      await tester.tap(find.text(l10n.matchResultChangeDeck));
+      await settleSetup(tester);
+
+      expect(bloc.state, isA<MatchIdle>());
+      expect(find.byType(MatchResultView), findsNothing);
+      expect(find.text(l10n.setupStep(2, 3).toUpperCase()), findsOneWidget, reason: 'сложность уже выбрана');
+      expect((setupCubit.state as MatchSetupReady).faction.key, 'monsters');
+      expect(exits, 0);
+
+      // Новый выбор доходит до новой партии.
+      await chooseSeat(tester, 'northern_realms');
+      await skipIntroAndToss(tester);
+      expect(find.byType(MatchRedrawView), findsOneWidget);
+    });
+
     testWidgets('«В меню» на экране итога уходит из партии', (tester) async {
       await pumpScreen(tester);
       await startAndSkip(tester);
@@ -431,6 +476,30 @@ void main() {
 
       await tester.tap(find.text('В меню'));
       expect(exits, 1);
+    });
+  });
+
+  group('пересдача', () {
+    testWidgets('после последней замены рука с пришедшей картой держится, потом экран уходит дальше', (tester) async {
+      await pumpScreen(tester);
+      await startAndSkip(tester);
+      expect(find.byType(MatchRedrawView), findsOneWidget);
+
+      await tester.tap(find.byType(GwentCard).first);
+      await settle(tester);
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byType(GwentCard).at(1));
+      await settle(tester);
+
+      expect(find.text('Можно заменить: 0'), findsOneWidget, reason: 'замены кончились, а экран ещё на руке');
+      expect(find.byType(MatchRedrawView), findsOneWidget);
+      expect(find.byType(MatchRedrawWaitView), findsNothing);
+      expect(find.byType(FieldView), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump();
+      expect(find.byType(MatchRedrawView), findsNothing, reason: 'выдержка кончилась: ожидание соперника или поле');
+      await tester.pumpWidget(const SizedBox());
     });
   });
 
@@ -503,4 +572,17 @@ final class _FakeTable implements MatchTable {
 
   @override
   Future<void> close() => _updates.close();
+}
+
+/// Наблюдатель, который собирает события держателей состояния.
+final class _EventObserver extends BlocObserver {
+  _EventObserver(this._events);
+
+  final List<MatchEvent> _events;
+
+  @override
+  void onEvent(Bloc<dynamic, dynamic> bloc, Object? event) {
+    if (event is MatchEvent) _events.add(event);
+    super.onEvent(bloc, event);
+  }
 }

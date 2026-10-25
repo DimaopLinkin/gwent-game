@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
+import 'package:gwent/src/features/match/domain/match_pause.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/gwent_net.dart' show InMemoryMatchJournal, MatchRecord, RecordedMove, Ruleset;
 
 import '../../../support/match_fixtures.dart';
 
@@ -68,6 +70,79 @@ void main() {
     final changed = updates.current as ViewsChanged;
     expect(changed.views[Seat.one]!.me.redrawDone, isTrue);
     expect(changed.events[Seat.one], contains(const RedrawFinished(Seat.one)));
+  });
+
+  group('журнал', () {
+    InMemoryMatchJournal journal() => InMemoryMatchJournal()
+      ..begin(
+        MatchRecord(
+          matchId: 'm',
+          ruleset: const Ruleset(id: 'pack', hash: 'hash', engineVersion: engineVersion),
+          seed: 42,
+          one: realDeck(content, Faction.skellige, id: 'one').toEngineDeck(),
+          two: realDeck(content, Faction.monsters, id: 'two').toEngineDeck(),
+        ),
+      );
+
+    test('принятые намерения людей попадают в журнал по порядку, отклонённые нет', () async {
+      final log = journal();
+      final hotSeat = LocalMatchTable(
+        engine: engine,
+        state: start.state,
+        startEvents: start.events,
+        journal: log,
+      );
+      addTearDown(hotSeat.close);
+      final updates = StreamIterator(hotSeat.updates);
+      await updates.moveNext();
+
+      hotSeat.submit(Seat.one, const Pass());
+      await updates.moveNext();
+      hotSeat.submit(Seat.one, const FinishRedraw());
+      await updates.moveNext();
+      hotSeat.submit(Seat.two, const FinishRedraw());
+      await updates.moveNext();
+
+      expect(log.record!.moves, const [
+        RecordedMove(Seat.one, FinishRedraw()),
+        RecordedMove(Seat.two, FinishRedraw()),
+      ]);
+    });
+
+    test('полная партия с ботом: журнал содержит ходы обоих и проигрывается в то же состояние', () async {
+      final log = journal();
+      final human = GreedyBot(engine, content.catalog);
+      final vsBot = LocalMatchTable(
+        engine: engine,
+        state: start.state,
+        startEvents: start.events,
+        agents: {Seat.two: BotAgent(GreedyBot(engine, content.catalog), thinkTime: Duration.zero)},
+        journal: log,
+      );
+      addTearDown(vsBot.close);
+      final finished = Completer<void>();
+      vsBot.updates.listen((update) {
+        switch (update) {
+          case ViewsChanged(:final views):
+            if (views[Seat.one]!.outcome != null) {
+              finished.complete();
+            } else if (human.decide(vsBot.state, Seat.one) case final intent?) {
+              vsBot.submit(Seat.one, intent);
+            }
+          case IntentRefused(:final reject):
+            finished.completeError(StateError('отказ ${reject.reason}'));
+          case TableFailed(:final error):
+            finished.completeError(error);
+          case TableRematchChanged() || TableRematchAgreed():
+            break;
+        }
+      });
+      await finished.future;
+
+      final moves = log.record!.moves;
+      expect(moves.map((move) => move.seat).toSet(), Seat.values.toSet());
+      expect(log.record!.replay(engine), vsBot.state);
+    });
   });
 
   test('за место агента и после закрытия ходить нельзя', () async {
@@ -139,6 +214,68 @@ void main() {
     expect(failed.error, isA<StateError>());
   });
 
+  group('пауза', () {
+    testWidgets('бот на паузе не думает и не ходит, после паузы доделывает оставшееся время', (tester) async {
+      final pause = MatchPause();
+      final vsBot = LocalMatchTable(
+        engine: engine,
+        state: start.state,
+        startEvents: start.events,
+        pause: pause,
+        agents: {Seat.two: BotAgent(GreedyBot(engine, content.catalog), pause: pause)},
+      );
+      // Время идёт шагами: цепочку таймеров паузы одним большим pump тест не пройдёт.
+      Future<void> elapse(int milliseconds) async {
+        for (var passed = 0; passed < milliseconds; passed += 50) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+      }
+
+      await elapse(300);
+      vsBot.setPaused(paused: true);
+      await elapse(300000);
+      expect(vsBot.state, start.state, reason: 'за время паузы бот не ходит');
+
+      vsBot.setPaused(paused: false);
+      await elapse(300);
+      expect(vsBot.state, start.state, reason: 'от 700 мс думания осталось ещё 400');
+      await elapse(200);
+      expect(vsBot.state, isNot(start.state), reason: 'после паузы бот сделал свой первый ход');
+
+      // Бот уже думает над следующим ходом: стол закрывается, и таймер доходит до конца.
+      await vsBot.close();
+      await elapse(1000);
+    });
+
+    test('решение, пришедшее на паузе, применяется только после неё', () async {
+      final agent = _GatedAgent();
+      final vsAgent = table(agents: {Seat.two: agent});
+      await pumpEventQueue();
+
+      vsAgent.setPaused(paused: true);
+      agent.answer(const FinishRedraw());
+      await pumpEventQueue();
+      expect(vsAgent.state.player(Seat.two).redrawDone, isFalse);
+
+      vsAgent.setPaused(paused: false);
+      await pumpEventQueue();
+      expect(vsAgent.state.player(Seat.two).redrawDone, isTrue);
+    });
+
+    test('закрытие стола на паузе отпускает ожидающего агента без хода', () async {
+      final agent = _GatedAgent();
+      final vsAgent = table(agents: {Seat.two: agent});
+      await pumpEventQueue();
+      vsAgent.setPaused(paused: true);
+      agent.answer(const FinishRedraw());
+      await pumpEventQueue();
+
+      await vsAgent.close();
+      await pumpEventQueue();
+      expect(vsAgent.state.player(Seat.two).redrawDone, isFalse);
+    });
+  });
+
   test('полная партия: человек против жадного бота доходит до итога', () async {
     final human = GreedyBot(engine, content.catalog);
     final vsBot = table(agents: {Seat.two: BotAgent(GreedyBot(engine, content.catalog), thinkTime: Duration.zero)});
@@ -156,6 +293,8 @@ void main() {
           finished.completeError(StateError('отказ ${reject.reason}'));
         case TableFailed(:final error):
           finished.completeError(error);
+        case TableRematchChanged() || TableRematchAgreed():
+          finished.completeError(StateError('в местной партии согласия на реванш нет'));
       }
     });
     final view = await finished.future;

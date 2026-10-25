@@ -17,6 +17,7 @@ import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent/src/features/settings/presentation/settings_state.dart';
+import 'package:gwent_net/gwent_net.dart' show protocolVersion;
 
 import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
@@ -82,7 +83,7 @@ void main() {
       expect(find.text(title.toUpperCase()), findsOneWidget, reason: title);
     }
     expect(find.text(l10n.settingsAppVersionBuild('1.2.3', '45')), findsOneWidget);
-    expect(find.text(l10n.settingsProtocolValue(1)), findsOneWidget);
+    expect(find.text(l10n.settingsProtocolValue(protocolVersion)), findsOneWidget);
     expect(find.text(l10n.settingsFanProject), findsOneWidget);
     expect(find.text(l10n.settingsValueUnknown), findsOneWidget, reason: 'дата проверки: пока не проверяли');
   });
@@ -91,7 +92,7 @@ void main() {
     await pumpSettings(tester);
 
     final switches = tester.widgetList<Switch>(find.byType(Switch)).toList();
-    expect(switches.map((s) => s.value), [true, true]);
+    expect(switches.map((s) => s.value), [false, true, true], reason: 'пас по умолчанию держат, а не подтверждают');
     expect(find.text('70%'), findsOneWidget);
     expect(find.text('85%'), findsOneWidget);
   });
@@ -101,13 +102,15 @@ void main() {
 
     await tester.tap(find.byType(Switch).first);
     await tester.tap(find.text(l10n.settingsHints));
+    await tester.tap(find.text(l10n.settingsHaptics));
     await tester.tap(find.text(l10n.settingsSpeedFast));
     await tester.pump();
 
-    expect(repository.saved.confirmPass, isFalse);
+    expect(repository.saved.confirmPass, isTrue);
     expect(repository.saved.hints, isFalse);
+    expect(repository.saved.haptics, isFalse);
     expect(repository.saved.animationSpeed, AnimationSpeed.fast);
-    expect(tester.widgetList<Switch>(find.byType(Switch)).map((s) => s.value), [false, false]);
+    expect(tester.widgetList<Switch>(find.byType(Switch)).map((s) => s.value), [true, false, false]);
   });
 
   testWidgets('имя игрока вводится, обрезается до 20 символов и сохраняется без пробелов по краям', (tester) async {

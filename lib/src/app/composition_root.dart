@@ -8,6 +8,7 @@ import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/core/database/app_database_connection.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/data/drift_deck_repository.dart';
+import 'package:gwent/src/features/haptics/data/flutter_haptic_output.dart';
 import 'package:gwent/src/features/lobby/data/bonsoir_service_directory.dart';
 import 'package:gwent/src/features/lobby/data/device_network_access.dart';
 import 'package:gwent/src/features/lobby/data/game_ad_record.dart';
@@ -52,5 +53,6 @@ AppDependencies createAppDependencies() {
     networkAccess: DeviceNetworkAccess(),
     soundOutput: AudioplayersSoundOutput(),
     musicOutput: AudioplayersMusicOutput(),
+    hapticOutput: FlutterHapticOutput(),
   );
 }

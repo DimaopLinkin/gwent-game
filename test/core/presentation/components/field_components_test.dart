@@ -237,6 +237,20 @@ void main() {
       expect(taps, 1);
     });
 
+    testWidgets('подсказка заменяет статус одной строкой 12 pt, без неё остаётся статус', (tester) async {
+      await pump(tester, WeatherStrip(slots: slots, status: 'Ваш ход', round: 1, hint: 'Выберите ряд'));
+      await tester.pump(WeatherStrip.hintFade);
+      await tester.pump();
+      expect(find.text('Ваш ход'), findsNothing);
+      expect(tester.widget<Text>(find.text('Выберите ряд')).style?.fontSize, 12);
+      expect(tester.getSize(find.byType(WeatherStrip)).height, 40);
+
+      await pump(tester, WeatherStrip(slots: slots, status: 'Ваш ход', round: 1));
+      await tester.pumpAndSettle();
+      expect(find.text('Выберите ряд'), findsNothing);
+      expect(find.text('Ваш ход'), findsOneWidget);
+    });
+
     testWidgets('на узком экране длинный статус обрезается многоточием без переполнения', (tester) async {
       await pump(
         tester,

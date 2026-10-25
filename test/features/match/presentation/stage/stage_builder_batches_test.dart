@@ -82,6 +82,28 @@ void main() {
     });
   });
 
+  group('добор в руку', () {
+    test('место под карту открывается, когда она вылетает из колоды, а не с начала сценария', () {
+      final first = cards.unit(Row.melee);
+      final second = cards.unit(Row.ranged);
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: const []));
+      final next = viewOf(cards, me: sideOf(cards, Seat.one, hand: [first, second]));
+      final script = build(prev, next, [
+        CardsDrawn(Seat.one, [first, second]),
+      ]);
+      final twin = StageTokens.twin.toDouble();
+      final start = script.frameAt(0);
+      expect(start.handHidden, {first.id}, reason: 'первая карта вылетает сразу, её место занято');
+      expect(start.handAbsent, {second.id}, reason: 'вторая ещё в колоде: рука не сужена под неё');
+      final later = script.frameAt(twin + 1);
+      expect(later.handHidden, containsAll([second.id]));
+      expect(later.handAbsent, isEmpty);
+      final end = script.frameAt(script.duration);
+      expect(end.handHidden, isEmpty);
+      expect(end.handAbsent, isEmpty);
+    });
+  });
+
   group('Медик', () {
     test('шпиона Медик достаёт из своего сброса, а кладёт в ряд соперника', () {
       final medic = cards.medic();
@@ -122,6 +144,187 @@ void main() {
         (beat) => beat.key == (kind: StageCounter.discard, mine: true, row: null),
       );
       expect(discard.single.to, 0);
+    });
+
+    test('шпиона Медик соперника достаёт из сброса соперника, а кладёт в мой ряд', () {
+      final medic = cards.medic();
+      final spy = cards.spy();
+      final prev = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one),
+        opponent: sideOf(cards, Seat.two, handCount: 3, discard: [spy]),
+      );
+      final next = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          rows: {
+            Row.melee: rowOf([spy], cards),
+          },
+        ),
+        opponent: sideOf(
+          cards,
+          Seat.two,
+          handCount: 2,
+          rows: {
+            Row.melee: rowOf([medic], cards),
+          },
+        ),
+      );
+      final script = build(prev, next, [
+        CardPlayed(Seat.two, medic),
+        UnitPlaced(Seat.two, Row.melee, medic, EntrySource.hand),
+        UnitPlaced(Seat.one, Row.melee, spy, EntrySource.medic),
+      ]);
+      final flights = script.beats.whereType<FlightBeat>().where(
+        (beat) => beat.to is RowCardPlace && (beat.to as RowCardPlace).card == spy.id && beat.from is! RowCardPlace,
+      );
+      expect(flights.map((beat) => beat.from), [const DiscardPlace(mine: false)]);
+    });
+
+    test('Медик соперника кладёт обычный отряд из его сброса в его ряд', () {
+      final medic = cards.medic();
+      final revived = cards.unit(Row.melee);
+      final prev = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one),
+        opponent: sideOf(cards, Seat.two, handCount: 3, discard: [revived]),
+      );
+      final next = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one),
+        opponent: sideOf(
+          cards,
+          Seat.two,
+          handCount: 2,
+          rows: {
+            Row.melee: rowOf([medic, revived], cards),
+          },
+        ),
+      );
+      final script = build(prev, next, [
+        CardPlayed(Seat.two, medic),
+        UnitPlaced(Seat.two, Row.melee, medic, EntrySource.hand),
+        UnitPlaced(Seat.two, Row.melee, revived, EntrySource.medic),
+      ]);
+      final flights = script.beats.whereType<FlightBeat>().where(
+        (beat) => beat.to is RowCardPlace && (beat.to as RowCardPlace).card == revived.id && beat.from is! RowCardPlace,
+      );
+      expect(flights.map((beat) => beat.from), [const DiscardPlace(mine: false)]);
+    });
+
+    group('отдельным обновлением, без розыгрыша карты', () {
+      Iterable<StagePlace> fromOf(StageScript script, CardInstance card) => script.beats
+          .whereType<FlightBeat>()
+          .where((beat) => beat.to is RowCardPlace && (beat.to as RowCardPlace).card == card.id)
+          .where((beat) => beat.from is! RowCardPlace)
+          .map((beat) => beat.from);
+
+      test('шпион соперника из его сброса ложится в мой ряд', () {
+        final spy = cards.spy();
+        final prev = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one),
+          opponent: sideOf(cards, Seat.two, handCount: 3, discard: [spy]),
+        );
+        final next = viewOf(
+          cards,
+          me: sideOf(
+            cards,
+            Seat.one,
+            rows: {
+              Row.melee: rowOf([spy], cards),
+            },
+          ),
+          opponent: sideOf(cards, Seat.two, handCount: 3),
+        );
+        final script = build(prev, next, [UnitPlaced(Seat.one, Row.melee, spy, EntrySource.medic)]);
+        expect(fromOf(script, spy), [const DiscardPlace(mine: false)]);
+      });
+
+      test('мой шпион из моего сброса ложится в ряд соперника', () {
+        final spy = cards.spy();
+        final prev = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one, discard: [spy]),
+          opponent: sideOf(cards, Seat.two, handCount: 3),
+        );
+        final next = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one),
+          opponent: sideOf(
+            cards,
+            Seat.two,
+            handCount: 3,
+            rows: {
+              Row.melee: rowOf([spy], cards),
+            },
+          ),
+        );
+        final script = build(prev, next, [UnitPlaced(Seat.two, Row.melee, spy, EntrySource.medic)]);
+        expect(fromOf(script, spy), [const DiscardPlace(mine: true)]);
+      });
+
+      test('шпион, сгоревший на ряду соперника, возвращается из сброса того, на чьей стороне сгорел', () {
+        final scorch = cards.special<ScorchAbility>();
+        final spy = cards.spy();
+        final prev = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one, hand: [scorch]),
+          opponent: sideOf(
+            cards,
+            Seat.two,
+            handCount: 3,
+            rows: {
+              Row.melee: rowOf([spy], cards),
+            },
+          ),
+        );
+        final next = viewOf(
+          cards,
+          me: sideOf(
+            cards,
+            Seat.one,
+            discard: [scorch],
+            rows: {
+              Row.melee: rowOf([spy], cards),
+            },
+          ),
+          opponent: sideOf(cards, Seat.two, handCount: 3),
+        );
+        final script = build(prev, next, [
+          CardPlayed(Seat.one, scorch),
+          UnitsDestroyed([DestroyedUnit(Seat.two, Row.melee, spy)]),
+          CardDiscarded(Seat.two, spy),
+          CardDiscarded(Seat.one, scorch),
+          UnitPlaced(Seat.one, Row.melee, spy, EntrySource.medic),
+        ]);
+        expect(fromOf(script, spy), [const DiscardPlace(mine: false)]);
+      });
+
+      test('обычный отряд возвращается из сброса своей стороны', () {
+        final unit = cards.unit(Row.melee);
+        final prev = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one),
+          opponent: sideOf(cards, Seat.two, handCount: 3, discard: [unit]),
+        );
+        final next = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one),
+          opponent: sideOf(
+            cards,
+            Seat.two,
+            handCount: 3,
+            rows: {
+              Row.melee: rowOf([unit], cards),
+            },
+          ),
+        );
+        final script = build(prev, next, [UnitPlaced(Seat.two, Row.melee, unit, EntrySource.medic)]);
+        expect(fromOf(script, unit), [const DiscardPlace(mine: false)]);
+      });
     });
 
     test('силы ряда и счёт меняются после посадки оживлённой карты, а не раньше', () {
@@ -285,6 +488,32 @@ void main() {
         final counter = frame.counters[(kind: StageCounter.discard, mine: false, row: null)];
         expect(counter == null || counter.to == 0, isTrue);
       }
+    });
+  });
+
+  group('рог в занятый слот', () {
+    test('карта показывается и летит в свой отбой, слот остаётся прежним', () {
+      final horn = cards.special<HornCardAbility>();
+      final held = cards.special<HornCardAbility>();
+      final held0 = RowView(cards: const [], slot: CardSlot(held), weather: false, strength: 0);
+      final prev = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: [horn], rows: {Row.melee: held0}),
+      );
+      final next = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: const [], discard: [horn], rows: {Row.melee: held0}),
+      );
+      final script = build(prev, next, [CardPlayed(Seat.one, horn), CardDiscarded(Seat.one, horn)]);
+
+      var flew = false;
+      for (final time in times(script)) {
+        final frame = script.frameAt(time);
+        flew |= frame.items.whereType<CardFlightItem>().any((item) => item.to == const DiscardPlace(mine: true));
+        expect(frame.rows[(mine: true, row: Row.melee)]?.slot ?? CardSlot(held), CardSlot(held), reason: '$time');
+      }
+      expect(flew, isTrue);
+      expect(script.frameAt(script.duration).discardTops[true]?.id, horn.id);
     });
   });
 

@@ -6,6 +6,7 @@ import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/awaited_action.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
+import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
@@ -22,7 +23,9 @@ import 'package:gwent_engine/gwent_engine.dart';
 ///
 /// В hot-seat телефон переходит к тому, от кого партия ждёт действия; перед этим экран прячет руку
 /// ([MatchHandover]). События копятся отдельно для каждого места и отдаются, когда место снова на экране.
-/// Законченная партия записывается в историю; местную партию можно повторить (реванш).
+/// Законченная партия записывается в историю; местную партию можно повторить (реванш). Сетевой реванш требует
+/// согласия обоих: стол сообщает, что предложил соперник и не вышло ли время ([TableRematchChanged]), а когда оба
+/// согласны, состояние становится [MatchRematchAgreed], и экран уходит в комнату выбирать колоды (ADR 0028).
 final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   /// Создаёт держатель над сценариями.
   ///
@@ -37,6 +40,8 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     on<MatchIntroFinished>(_onIntroFinished);
     on<MatchTossFinished>(_onTossFinished);
     on<MatchRematchRequested>(_onRematchRequested);
+    on<MatchDeckChangeRequested>(_onDeckChangeRequested);
+    on<MatchPauseChanged>(_onPauseChanged);
     on<MatchTableUpdated>(_onTableUpdated);
   }
 
@@ -63,6 +68,9 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
 
   /// Запрос, которым начата местная партия: по нему можно сыграть реванш.
   LocalMatchRequest? _request;
+
+  /// Договорённость о реванше в сетевой партии; `null` у местной.
+  RematchOffer? _offer;
 
   bool _introDone = false;
   bool _tossDone = false;
@@ -127,6 +135,10 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     _session!.table.submit(seat, event.intent);
   }
 
+  void _onPauseChanged(MatchPauseChanged event, Emitter<MatchScreenState> emit) {
+    if (_session?.table case final PausableTable table) table.setPaused(paused: event.paused);
+  }
+
   void _onHandoverAccepted(MatchHandoverAccepted event, Emitter<MatchScreenState> emit) {
     if (state case MatchHandover(:final next)) _show(next, emit);
   }
@@ -144,10 +156,32 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
   }
 
   Future<void> _onRematchRequested(MatchRematchRequested event, Emitter<MatchScreenState> emit) async {
+    final table = _session?.table;
+    if (table is RematchTable) {
+      // Сетевая партия: слово за обоими, хост ответит обновлением стола.
+      if (state is MatchFinished && (_offer ?? RematchOffer.idle).canRequest) table.requestRematch();
+      return;
+    }
     final request = _request;
     if (state is! MatchFinished || request == null) return;
     // Состояние меняется до первого await: повторное нажатие «Реванш» уже не пройдёт проверку выше.
     emit(const MatchStarting());
+    await _closeSession();
+    await _start(request, emit);
+  }
+
+  /// «Другая колода» на итоге местной партии: партия закрывается, экран возвращается к выбору фракции и колоды (его
+  /// заново открывает `MatchSetupCubit.restart`, это делает экран).
+  Future<void> _onDeckChangeRequested(MatchDeckChangeRequested event, Emitter<MatchScreenState> emit) async {
+    if (state is! MatchFinished || _request == null || _session?.table is RematchTable) return;
+    // Как у реванша: состояние меняется до первого await, повторное нажатие уже не пройдёт.
+    emit(const MatchIdle());
+    _request = null;
+    await _closeSession();
+  }
+
+  /// Отпускает стол и всё, что накопилось за партию, чтобы следующая начиналась с чистого листа.
+  Future<void> _closeSession() async {
     final subscription = _subscription;
     final oldSession = _session;
     _subscription = null;
@@ -162,7 +196,6 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     _boardShown = false;
     await subscription?.cancel();
     await oldSession?.table.close();
-    await _start(request, emit);
   }
 
   Future<void> _onTableUpdated(MatchTableUpdated event, Emitter<MatchScreenState> emit) async {
@@ -190,6 +223,15 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
             ),
           );
         }
+      case TableRematchChanged(:final offer):
+        _offer = offer;
+        if (state case final MatchFinished finished) emit(finished.withRematch(offer));
+      case TableRematchAgreed():
+        if (state is! MatchFinished) return;
+        // Стол свою работу закончил: игра ведёт следующую партию, а этот экран сейчас уйдёт в комнату.
+        await _subscription?.cancel();
+        _subscription = null;
+        emit(const MatchRematchAgreed());
       case TableFailed(:final error):
         if (state is MatchFinished || state is MatchCrashed) return;
         emit(MatchCrashed(error));
@@ -225,6 +267,12 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
         return;
       }
     }
+    if (shown != null && _redrawLastCardOf(shown)) {
+      // Игрок поменял последнюю карту: пришедшую карту видно, прежде чем экран уйдёт на ожидание, передачу или поле.
+      final replaced = (_unseen[shown] ?? const []).whereType<CardRedrawn>().toList();
+      _unseen[shown] = (_unseen[shown] ?? const []).where((event) => event is! CardRedrawn).toList();
+      emit(MatchRedrawSettled(view: _views[shown]!, roster: roster, events: replaced));
+    }
     final next = _actor(local) ?? shown ?? session.perspective;
     if (local.length > 1 && next != shown) {
       // Hot-seat: телефон уходит другому игроку, в том числе в начале партии; руку видит только он.
@@ -237,6 +285,16 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
       return;
     }
     _show(next, emit);
+  }
+
+  /// На экране пересдача [seat], и последней заменой он потратил все замены.
+  bool _redrawLastCardOf(Seat seat) {
+    final current = state;
+    return current is MatchInProgress &&
+        current.view.phase == MatchPhase.redraw &&
+        !current.view.me.redrawDone &&
+        _views[seat]!.me.redrawsLeft == 0 &&
+        (_unseen[seat] ?? const []).any((event) => event is CardRedrawn);
   }
 
   /// Последнее действие [seat] закончило раунд, а партия продолжается: конец раунда этот игрок ещё не видел.
@@ -320,17 +378,32 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     if (_boardShown && events.any((event) => event is MatchEnded)) {
       emit(MatchInProgress(view: view, content: session.content, roster: roster, events: events, closing: closing));
     }
-    emit(MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch));
+    emit(
+      MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch, rematch: _rematchOf(session)),
+    );
     try {
       final record = await _recordFinishedMatch(session, view);
       // Пока писалась история, игрок мог начать реванш или уйти: итог прежней партии новое состояние не затирает.
       if (isClosed || !identical(_session, session)) return;
-      emit(MatchFinished(view: view, roster: roster, events: events, record: record, canRematch: canRematch));
+      emit(
+        MatchFinished(
+          view: view,
+          roster: roster,
+          events: events,
+          record: record,
+          canRematch: canRematch,
+          rematch: _rematchOf(session),
+        ),
+      );
     } on Object catch (error, stackTrace) {
       // Итог партии важнее записи в историю: экран остаётся на итоге, ошибка уходит в журнал.
       addError(error, stackTrace);
     }
   }
+
+  /// Договорённость о реванше для итога сетевой партии; у остальных `null`.
+  RematchOffer? _rematchOf(MatchSession session) =>
+      session.table is RematchTable ? (_offer ?? RematchOffer.idle) : null;
 
   @override
   Future<void> close() async {

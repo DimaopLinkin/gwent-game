@@ -38,6 +38,9 @@ final class StageFrameBuilder {
   /// Карты руки, которые ещё не долетели.
   final Set<CardInstanceId> handHidden = {};
 
+  /// Карты, которым рука ещё не открыла место: они ещё не вылетели из колоды.
+  final Set<CardInstanceId> handAbsent = {};
+
   /// Лидеры, чья способность применена на этот момент.
   final Map<bool, bool> leaderUsed = {};
 
@@ -559,17 +562,22 @@ final class FlashBeat extends StageBeat {
   }
 }
 
-/// Карта руки не показана, пока не долетит.
+/// Карта руки не показана, пока не долетит; место под неё рука открывает, когда карта вылетает ([reserveAt]).
 final class HandHideBeat extends StageBeat {
   /// Создаёт отрезок.
-  const HandHideBeat({required this.card, required double until}) : super(start: 0, end: until);
+  const HandHideBeat({required this.card, required this.reserveAt, required double until})
+    : super(start: 0, end: until);
 
   /// Какая карта.
   final CardInstanceId card;
 
+  /// С какого момента рука держит под карту место: до него она не сужается.
+  final double reserveAt;
+
   @override
   void apply(StageFrameBuilder frame) {
-    if (frame.time < end) frame.handHidden.add(card);
+    if (frame.time >= end) return;
+    (frame.time < reserveAt ? frame.handAbsent : frame.handHidden).add(card);
   }
 }
 

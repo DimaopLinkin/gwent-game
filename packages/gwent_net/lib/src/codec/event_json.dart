@@ -2,6 +2,7 @@ import 'package:gwent_engine/gwent_engine.dart';
 import 'package:gwent_net/src/codec/common_json.dart';
 import 'package:gwent_net/src/codec/json_reader.dart';
 import 'package:gwent_net/src/codec/protocol_exception.dart';
+import 'package:gwent_net/src/codec/view_json.dart';
 
 /// JSON события партии. Каждое событие перечислено явно: новое событие движка не скомпилируется без кодека.
 Map<String, Object?> encodeEvent(GameEvent event) => switch (event) {
@@ -100,7 +101,11 @@ Map<String, Object?> encodeEvent(GameEvent event) => switch (event) {
     'row': row.wire,
     'card': encodeCard(card),
   },
-  RoundEnded(:final result) => {typeKey: 'round_ended', 'result': encodeRoundResult(result)},
+  RoundEnded(:final result, :final board) => {
+    typeKey: 'round_ended',
+    'result': encodeRoundResult(result),
+    'board': ?board == null ? null : _encodeBoard(board),
+  },
   MatchEnded(:final outcome) => {typeKey: 'match_ended', 'outcome': encodeOutcome(outcome)},
   UnitMoved(:final side, :final card, :final from, :final to) => {
     typeKey: 'unit_moved',
@@ -153,9 +158,22 @@ GameEvent decodeEvent(JsonReader r) {
       r.objects('options', decodeOption),
     ),
     'unit_kept' => UnitKept(seat('side'), row(), card()),
-    'round_ended' => RoundEnded(decodeRoundResult(r.object('result'))),
+    'round_ended' => RoundEnded(decodeRoundResult(r.object('result')), board: r.optional('board', _decodeBoard)),
     'match_ended' => MatchEnded(decodeOutcome(r.object('outcome'))),
     'unit_moved' => UnitMoved(seat('side'), card(), from: row('from'), to: row('to')),
     final other => throw MalformedFrame('${r.path}.$typeKey: неизвестное событие «$other»'),
   };
+}
+
+Map<String, Object?> _encodeBoard(RoundBoard board) => {
+  'weather': [for (final weather in board.weather) encodeWeather(weather)],
+  'sides': [for (final side in board.sides.values) encodeSide(side)],
+};
+
+RoundBoard _decodeBoard(JsonReader r) {
+  final sides = r.objects('sides', decodeSide);
+  return RoundBoard(
+    weather: r.objects('weather', decodeWeather),
+    sides: Map.unmodifiable({for (final side in sides) side.seat: side}),
+  );
 }

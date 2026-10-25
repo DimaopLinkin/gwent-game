@@ -39,7 +39,11 @@ import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
+import 'package:gwent/src/features/match_history/presentation/history_cubit.dart';
+import 'package:gwent/src/features/match_history/presentation/history_screen.dart';
 import 'package:gwent/src/features/menu/presentation/menu_screen.dart';
+import 'package:gwent/src/features/replay/presentation/replay_cubit.dart';
+import 'package:gwent/src/features/replay/presentation/replay_screen.dart';
 import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
@@ -60,9 +64,40 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         onBot: () => context.go(AppRoutes.matchBot),
         onNetworkGame: () => context.go(AppRoutes.play),
         onDecks: () => context.go(AppRoutes.decks),
+        onHistory: () => context.go(AppRoutes.history),
         onSettings: () => context.go(AppRoutes.settings),
       ),
       routes: [
+        GoRoute(
+          path: _child(AppRoutes.history),
+          builder: (context, state) => BlocProvider(
+            create: (_) => HistoryCubit(dependencies.watchMatchHistory, dependencies.loadDeckRules),
+            child: HistoryScreen(
+              onOpen: (recordId) => context.go(AppRoutes.replay(recordId)),
+              onBack: () => context.go(AppRoutes.menu),
+            ),
+          ),
+          routes: [
+            GoRoute(
+              path: ':${AppRoutes.replayIdParam}',
+              builder: (context, state) => BlocProvider(
+                create: (_) => ReplayCubit(dependencies.loadReplay, state.pathParameters[AppRoutes.replayIdParam]!),
+                child: StreamBuilder<AppSettings>(
+                  stream: dependencies.watchSettings(),
+                  initialData: const AppSettings(),
+                  builder: (context, snapshot) => ReplayScreen(
+                    onExit: () => context.go(AppRoutes.history),
+                    sound: dependencies.playSound,
+                    animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
+                      AnimationSpeed.normal => 1,
+                      AnimationSpeed.fast => StageTokens.fastFactor,
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         GoRoute(
           path: _child(AppRoutes.decks),
           builder: (context, state) => BlocProvider(
@@ -257,6 +292,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               loadAboutInfo: dependencies.loadAboutInfo,
               checkContentUpdate: dependencies.checkContentUpdate,
               sound: dependencies.playSound,
+              haptic: dependencies.playHaptic,
             ),
             child: SettingsScreen(
               // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
@@ -284,7 +320,9 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   ),
                 ),
                 BlocProvider(create: (_) => MatchBloc(dependencies.startMatch, dependencies.recordFinishedMatch)),
-                BlocProvider(create: (_) => FieldCubit(sound: dependencies.playSound)),
+                BlocProvider(
+                  create: (_) => FieldCubit(sound: dependencies.playSound, haptic: dependencies.playHaptic),
+                ),
               ],
               child: StreamBuilder<AppSettings>(
                 stream: settings,
@@ -294,6 +332,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   // Конструктор открывается поверх выбора, а не вместо него: после правки игрок возвращается к тому же шагу.
                   onEditDeck: (deckId) => context.push(AppRoutes.deckEdit(deckId)),
                   onSettings: () => context.push(AppRoutes.settings),
+                  confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
+                  hints: (snapshot.data ?? const AppSettings()).hints,
                   animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
                     AnimationSpeed.normal => 1,
                     AnimationSpeed.fast => StageTokens.fastFactor,
@@ -352,7 +392,9 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
           return bloc;
         },
       ),
-      BlocProvider(create: (_) => FieldCubit(sound: dependencies.playSound)),
+      BlocProvider(
+        create: (_) => FieldCubit(sound: dependencies.playSound, haptic: dependencies.playHaptic),
+      ),
       if (game != null) BlocProvider(create: (_) => MatchConnectionCubit(game)),
     ],
     child: StreamBuilder<AppSettings>(
@@ -360,8 +402,12 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
       initialData: const AppSettings(),
       builder: (context, snapshot) => MatchScreen(
         onExit: () => context.go(AppRoutes.menu),
+        // Оба согласились на реванш: колоды выбирают заново в той же комнате.
+        onRematchAgreed: () => context.go(AppRoutes.playRoom),
         onEditDeck: (_) {},
         onSettings: () => context.push(AppRoutes.settings),
+        confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
+        hints: (snapshot.data ?? const AppSettings()).hints,
         animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
           AnimationSpeed.normal => 1,
           AnimationSpeed.fast => StageTokens.fastFactor,

@@ -3,6 +3,7 @@ import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 import '../../../../support/match_fixtures.dart';
@@ -146,6 +147,137 @@ void main() {
       expect(cubit.state.isBusy, isTrue);
       cubit.endStage(cubit.state.stage!.id);
       expect(cubit.state.isBusy, isTrue, reason: 'баннер нового раунда ещё впереди');
+    });
+
+    test('последний ход отрядом играет до итогов: сначала сценарий хода на поле после него, затем подсчёт', () {
+      final old = cards.unit(Row.melee);
+      final played = cards.unit(Row.melee);
+      final score = cards.strength(old) + cards.strength(played);
+      final closing = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: [played],
+          rows: {
+            Row.melee: rowOf([old], cards),
+          },
+          score: cards.strength(old),
+        ),
+      );
+      final after = viewOf(cards, round: 2, turn: Seat.two);
+      cubit.onMatchState(
+        progress(
+          after,
+          closing: closing,
+          events: [
+            CardPlayed(Seat.one, played),
+            UnitPlaced(Seat.one, Row.melee, played, EntrySource.hand),
+            const Passed(Seat.one, auto: true),
+            RoundEnded(RoundResult(round: 1, scores: {Seat.one: score, Seat.two: 0}, winner: Seat.one)),
+            const RoundStarted(2, Seat.two),
+            const TurnStarted(Seat.two),
+          ],
+        ),
+      );
+
+      final lastMove = cubit.state.stage!;
+      final board = lastMove.board;
+      expect(board, isNotNull, reason: 'последний ход показывают на поле до подсчёта, а не на поле после уборки');
+      expect(board!.me.rows[Row.melee]!.cards.map((view) => view.card), [old, played]);
+      expect(board.me.score, score, reason: 'счёт после хода тот же, что в итоге раунда');
+      expect(board.me.hand, isEmpty);
+      expect(lastMove.frameAt(0).items.whereType<CountItem>(), isEmpty);
+      expect(cubit.state.isBusy, isTrue);
+
+      cubit.endStage(lastMove.id);
+      final round = cubit.state.stage!;
+      expect(round.id, isNot(lastMove.id));
+      expect(round.board, isNull);
+      expect(cubit.state.isBusy, isTrue, reason: 'итоги идут сразу следом, поле не отпускает очередь');
+      final count = round.frameAt(1500).items.whereType<CountItem>().single;
+      expect(count.mine.to, score, reason: 'в подсчёте уже есть карта последнего хода');
+      final staged = round.frameAt(0).rows[(mine: true, row: Row.melee)]!.cards.map((card) => card.view.card);
+      expect(staged, [old, played], reason: 'подсчёт идёт по полю с последним ходом');
+
+      cubit.endStage(round.id);
+      expect(cubit.state.stage, isNull);
+    });
+
+    test('Командирский рог последним ходом доигрывается до подсчёта: сначала сценарий рога, затем итоги', () {
+      final old = cards.unit(Row.melee);
+      final horn = cards.special<HornCardAbility>();
+      final doubled = cards.strength(old) * 2;
+      final closing = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: [horn],
+          rows: {
+            Row.melee: rowOf([old], cards),
+          },
+          score: cards.strength(old),
+        ),
+      );
+      final row = RowView(
+        cards: [FieldCardView(card: old, strength: doubled)],
+        slot: CardSlot(horn),
+        weather: false,
+        strength: doubled,
+      );
+      final board = RoundBoard(
+        weather: const [],
+        sides: {
+          Seat.one: sideOf(cards, Seat.one, rows: {Row.melee: row}, score: doubled, passed: true),
+          Seat.two: sideOf(cards, Seat.two, handCount: 3, passed: true),
+        },
+      );
+      cubit.onMatchState(
+        progress(
+          viewOf(cards, round: 2, turn: Seat.two),
+          closing: closing,
+          events: [
+            CardPlayed(Seat.one, horn),
+            SlotFilled(Seat.one, Row.melee, CardSlot(horn)),
+            const Passed(Seat.one, auto: true),
+            RoundEnded(
+              RoundResult(round: 1, scores: {Seat.one: doubled, Seat.two: 0}, winner: Seat.one),
+              board: board,
+            ),
+            const RoundStarted(2, Seat.two),
+            const TurnStarted(Seat.two),
+          ],
+        ),
+      );
+
+      final lastMove = cubit.state.stage!;
+      expect(lastMove.board, isNotNull, reason: 'рог доигрывается на поле до подсчёта');
+      expect(lastMove.board!.me.rows[Row.melee]!.slot, CardSlot(horn));
+      expect(lastMove.frameAt(0).items.whereType<CountItem>(), isEmpty, reason: 'подсчёт ещё не начался');
+
+      cubit.endStage(lastMove.id);
+      final round = cubit.state.stage!;
+      expect(round.id, isNot(lastMove.id));
+      expect(round.frameAt(1500).items.whereType<CountItem>().single.mine.to, doubled);
+    });
+
+    test('пас последним ходом поля не добавляет: подсчёт идёт сразу', () {
+      cubit.onMatchState(
+        progress(
+          viewOf(cards, round: 2, turn: Seat.two),
+          closing: closingBoard(),
+          events: const [
+            Passed(Seat.one, auto: false),
+            RoundEnded(result),
+            RoundStarted(2, Seat.two),
+            TurnStarted(Seat.two),
+          ],
+        ),
+      );
+      expect(cubit.state.stage!.board, isNull);
+      cubit.endStage(cubit.state.stage!.id);
+      expect(cubit.state.stage, isNull);
     });
 
     test('без поля раунда остаётся лист итога', () {
@@ -543,5 +675,18 @@ void main() {
     expect(cubit.state.banners, isEmpty);
     expect(cubit.state.sort, DiscardSort.byStrength);
     expect(cubit.state.isClean, isTrue);
+  });
+
+  test('reset очищает поле реплея и заставляет заново объявлять раунд', () {
+    cubit.onMatchState(progress(viewOf(cards), events: const [RoundStarted(1, Seat.one)]));
+    cubit.select(const CardInstanceId(1));
+    expect(cubit.state.isClean, isFalse);
+
+    cubit.reset();
+    expect(cubit.state.isClean, isTrue);
+    expect(cubit.state.isBusy, isFalse);
+
+    cubit.onMatchState(progress(viewOf(cards), events: const [RoundStarted(1, Seat.one)]));
+    expect(cubit.state.banners, hasLength(1));
   });
 }

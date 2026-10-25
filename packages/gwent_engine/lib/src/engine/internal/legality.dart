@@ -1,5 +1,4 @@
 import 'package:gwent_engine/src/cards/card_definition.dart';
-import 'package:gwent_engine/src/cards/row.dart';
 import 'package:gwent_engine/src/cards/special_ability.dart';
 import 'package:gwent_engine/src/engine/internal/field_rules.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
@@ -23,8 +22,7 @@ final class Legality {
   bool canPlay(Seat seat, CardInstance card) => switch (_ctx.definition(card)) {
     UnitCardDefinition() => true,
     SpecialCardDefinition(:final ability) => switch (ability) {
-      WeatherAbility() || ClearWeatherAbility() || ScorchAbility() => true,
-      HornCardAbility() || MardremCardAbility() => Row.values.any((row) => _field.slotFree(seat, row)),
+      WeatherAbility() || ClearWeatherAbility() || ScorchAbility() || HornCardAbility() || MardremCardAbility() => true,
       DecoyAbility() => _field.decoyTargets(seat).isNotEmpty,
     },
   };

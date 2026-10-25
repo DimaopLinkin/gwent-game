@@ -83,15 +83,43 @@ void main() {
       expect(result.state.player(Seat.one).rows[Row.siege]!.slot, CardSlot(CardInstance(horn, const CardId('horn'))));
     });
 
-    test('в занятый слот рог положить нельзя', () {
+    test('рог в занятый слот разыгрывается вхолостую и уходит в отбой', () {
       final occupied = playing(
-        one: const Side(hand: ['horn'], slots: {Row.melee: 'horn'}),
+        one: const Side(hand: ['horn', 'archer'], slots: {Row.melee: 'mardrem'}, melee: ['footman']),
         two: const Side(hand: ['archer']),
       );
+      final horn = find(occupied, Seat.one, 'horn');
+      final result = act(engine, occupied, Seat.one, PlayCard(horn, row: Row.melee));
+      final card = CardInstance(horn, const CardId('horn'));
+      expect(result.events, [CardPlayed(Seat.one, card), CardDiscarded(Seat.one, card), const TurnStarted(Seat.two)]);
+      final player = result.state.player(Seat.one);
       expect(
-        rejected(engine, occupied, Seat.one, PlayCard(find(occupied, Seat.one, 'horn'), row: Row.melee)),
-        RejectReason.slotOccupied,
+        player.rows[Row.melee]!.slot,
+        isA<CardSlot>().having((slot) => slot.card.cardId.value, 'карта', 'mardrem'),
       );
+      expect(names(player.discard), ['horn']);
+      expect(names(player.hand), ['archer']);
+      expect(result.state.turn, Seat.two);
+    });
+
+    test('Мардрём в занятый слот тоже уходит в отбой, не меняя ряд', () {
+      final occupied = playing(
+        one: const Side(hand: ['mardrem'], slots: {Row.melee: 'horn'}, melee: ['berserk']),
+        two: const Side(hand: ['archer']),
+      );
+      final result = act(engine, occupied, Seat.one, PlayCard(find(occupied, Seat.one, 'mardrem'), row: Row.melee));
+      expect(names(result.state.player(Seat.one).discard), ['mardrem']);
+      expect(rowCards(result.state, Seat.one, Row.melee), ['berserk']);
+    });
+
+    test('рог в слот, занятый рогом лидера, уходит в отбой', () {
+      final occupied = playing(
+        one: const Side(hand: ['horn'], slots: {Row.siege: 'leader_horn'}),
+        two: const Side(hand: ['archer']),
+      );
+      final result = act(engine, occupied, Seat.one, PlayCard(find(occupied, Seat.one, 'horn'), row: Row.siege));
+      expect(result.state.player(Seat.one).rows[Row.siege]!.slot, const LeaderHornSlot());
+      expect(names(result.state.player(Seat.one).discard), ['horn']);
     });
   });
 
@@ -127,7 +155,7 @@ void main() {
       expect(result.events, contains(const Passed(Seat.two, auto: true)));
     });
 
-    test('рог без свободного слота сыграть нельзя', () {
+    test('рог при занятых слотах остаётся допустимым ходом: автопаса нет', () {
       final state = playing(
         one: const Side(hand: ['footman'], leaderUsed: true),
         two: const Side(
@@ -137,7 +165,8 @@ void main() {
         ),
       );
       final result = act(engine, state, Seat.one, PlayCard(find(state, Seat.one, 'footman')));
-      expect(result.events, contains(const Passed(Seat.two, auto: true)));
+      expect(result.events.whereType<Passed>(), isEmpty);
+      expect(result.state.turn, Seat.two);
     });
   });
 

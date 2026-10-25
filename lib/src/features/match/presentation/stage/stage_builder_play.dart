@@ -273,7 +273,7 @@ extension _PlayScenes on StageScriptBuilder {
           },
         )
         .firstOrNull;
-    if (slot == null) return at;
+    if (slot == null) return _wastedHorn(played, related, done, at);
     done.add(slot.$1);
     final filled = slot.$2 as SlotFilled;
     final mineSeat = _mine(played.seat);
@@ -303,6 +303,37 @@ extension _PlayScenes on StageScriptBuilder {
     final end = _effects(related, done, landed + _ms(StageTokens.fan), actor: played.seat);
     _requestSettle(landed + _ms(StageTokens.fan), stagger: _ms(100));
     return math.max(end, landed + _ms(StageTokens.fan) + _ms(StageTokens.roll));
+  }
+
+  /// Рог или Мардрём сыграны в занятый слот: карта показывается и улетает в отбой хозяина, ряд не меняется. Звука рога нет: он играет, когда рог встаёт в слот.
+  double _wastedHorn(CardPlayed played, List<(int, GameEvent)> related, Set<int> done, double at) {
+    final discard = related
+        .where((entry) => entry.$2 is CardDiscarded && (entry.$2 as CardDiscarded).card.id == played.card.id)
+        .firstOrNull;
+    if (discard == null) return at;
+    done.add(discard.$1);
+    final mineSeat = _mine(played.seat);
+    _bump(StageCounter.hand, -1, at, mine: mineSeat);
+    final holdEnd = _showCentered(played.card, mine: mineSeat, at: at, hold: _ms(StageTokens.hold), caption: !mineSeat);
+    final fly = _ms(StageTokens.flightShort);
+    final landed = _rm ? holdEnd : holdEnd + fly;
+    if (!_rm) {
+      _beats.add(
+        FlightBeat(
+          ref: CardFaceRef(played.card, mine: mineSeat),
+          from: const CenterPlace(),
+          to: DiscardPlace(mine: mineSeat),
+          start: holdEnd,
+          duration: fly,
+          arc: -20,
+          shadowTo: 0,
+          size: CardSize.grid,
+          scaleTo: 0.3,
+        ),
+      );
+    }
+    _discardLands(played.card, landed, mine: mineSeat);
+    return landed + _ms(StageTokens.fade);
   }
 
   /// Слот рога загорается, по ряду проходит золотая (у Мардрёма тёмно-фиолетовая) волна слева направо.
@@ -389,7 +420,9 @@ extension _PlayScenes on StageScriptBuilder {
             size: CardSize.row,
           ),
         );
-      if (back is HandPlace) _beats.add(HandHideBeat(card: decoyed.returned.id, until: start + flight));
+      if (back is HandPlace) {
+        _beats.add(HandHideBeat(card: decoyed.returned.id, reserveAt: start, until: start + flight));
+      }
       end = start + flight + land;
     }
     _sound(SoundEffect.decoy, start + (_rm ? 0 : flight));

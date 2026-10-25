@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:gwent/src/features/haptics/application/play_haptic.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/settings/application/check_content_update.dart';
 import 'package:gwent/src/features/settings/application/load_about_info.dart';
 import 'package:gwent/src/features/settings/application/save_settings.dart';
@@ -30,7 +32,9 @@ final class SettingsCubit extends Cubit<SettingsState> {
     required CheckContentUpdate checkContentUpdate,
     this.minCheckDuration = const Duration(milliseconds: 800),
     PlaySound? sound,
+    PlayHaptic? haptic,
   }) : _sound = sound,
+       _haptic = haptic,
        _watchSettings = watchSettings,
        _saveSettings = saveSettings,
        _loadAboutInfo = loadAboutInfo,
@@ -44,6 +48,7 @@ final class SettingsCubit extends Cubit<SettingsState> {
   final LoadAboutInfo _loadAboutInfo;
   final CheckContentUpdate _checkContentUpdate;
   final PlaySound? _sound;
+  final PlayHaptic? _haptic;
 
   /// Громкость эффектов, образец которой играл в последний раз.
   int? _previewedEffects;
@@ -74,6 +79,12 @@ final class SettingsCubit extends Cubit<SettingsState> {
 
   /// Подсказки для новичка.
   void setHints({required bool value}) => _change((settings) => settings.copyWith(hints: value));
+
+  /// Вибрация; при включении звучит образец.
+  void setHaptics({required bool value}) {
+    _change((settings) => settings.copyWith(haptics: value));
+    if (value) _haptic?.call(HapticPattern.medium, force: true);
+  }
 
   /// Громкость музыки меняется под пальцем; в хранилище попадёт после [saveVolumes].
   void changeMusicVolume(int volume) => _change((settings) => settings.copyWith(musicVolume: volume), save: false);

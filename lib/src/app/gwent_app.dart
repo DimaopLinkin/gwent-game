@@ -8,7 +8,9 @@ import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/app/router/app_router.dart';
 import 'package:gwent/src/app/theme/app_theme.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/core/presentation/components/button_sound_scope.dart';
 import 'package:gwent/src/features/menu/presentation/menu_cubit.dart';
+import 'package:gwent/src/features/sound/domain/sound_effect.dart';
 
 /// Корневой виджет: тема, локализация и навигация.
 class GwentApp extends StatefulWidget {
@@ -50,6 +52,8 @@ class _GwentAppState extends State<GwentApp> {
     unawaited(dependencies.backgroundMusic.start().whenComplete(dependencies.playSound.preload));
   }
 
+  void _onButtonPressed() => widget.dependencies.playSound(SoundEffect.select);
+
   @override
   void dispose() {
     _lifecycle.dispose();
@@ -76,6 +80,8 @@ class _GwentAppState extends State<GwentApp> {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: _router,
+      // Нажатие любой большой кнопки и стрелки «назад» звучит как выбор карты (ADR 0023).
+      builder: (context, child) => ButtonSoundScope(onPress: _onButtonPressed, child: child ?? const SizedBox.shrink()),
     ),
   );
 }
