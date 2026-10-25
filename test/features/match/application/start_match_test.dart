@@ -177,6 +177,29 @@ void main() {
     );
   });
 
+  test('пауза стола замораживает и размышление бота: он ходит, только когда доработает время после паузы', () async {
+    // Настоящие таймеры: стол собирается из настоящих ассетов, поэтому фальшивые часы теста его не видят.
+    final result =
+        await StartMatch(load, decks, FixedSeedGenerator(1), botThinkTime: const Duration(milliseconds: 600))(
+          const LocalMatchRequest(mode: LocalMatchMode.vsBot, deckOne: 'skellige', deckTwo: 'monsters'),
+        );
+    final table = (result as MatchStarted).session.table as LocalMatchTable;
+    addTearDown(table.close);
+    final startState = table.state;
+    Future<void> wait(int milliseconds) => Future<void>.delayed(Duration(milliseconds: milliseconds));
+
+    await wait(200);
+    table.setPaused(paused: true);
+    await wait(1000);
+    expect(table.state, startState, reason: 'за время паузы бот не ходит');
+
+    table.setPaused(paused: false);
+    await wait(150);
+    expect(table.state, startState, reason: 'от 600 мс размышления осталось ещё около 400');
+    await wait(700);
+    expect(table.state, isNot(startState));
+  });
+
   test('колода не по правилам', () async {
     final skellige = (await decks.findById('skellige'))!;
     await decks.save(

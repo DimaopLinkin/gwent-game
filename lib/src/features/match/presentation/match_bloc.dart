@@ -40,6 +40,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     on<MatchIntroFinished>(_onIntroFinished);
     on<MatchTossFinished>(_onTossFinished);
     on<MatchRematchRequested>(_onRematchRequested);
+    on<MatchPauseChanged>(_onPauseChanged);
     on<MatchTableUpdated>(_onTableUpdated);
   }
 
@@ -131,6 +132,10 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     // Передача телефона, которая ждёт конца показа, сдаче не мешает: сдаётся тот, у кого телефон.
     if ((state is! MatchInProgress && state is! MatchHandover) || seat == null) return;
     _session!.table.submit(seat, event.intent);
+  }
+
+  void _onPauseChanged(MatchPauseChanged event, Emitter<MatchScreenState> emit) {
+    if (_session?.table case final PausableTable table) table.setPaused(paused: event.paused);
   }
 
   void _onHandoverAccepted(MatchHandoverAccepted event, Emitter<MatchScreenState> emit) {

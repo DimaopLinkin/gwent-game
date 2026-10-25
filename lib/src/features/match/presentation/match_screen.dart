@@ -201,6 +201,11 @@ class _MatchScreenState extends State<MatchScreen> {
         listenWhen: (previous, current) => previous.isBusy && !current.isBusy,
         listener: (context, state) => _release(),
       ),
+      BlocListener<FieldCubit, FieldState>(
+        listenWhen: (previous, current) => (previous.pause != PauseLayer.none) != (current.pause != PauseLayer.none),
+        listener: (context, state) =>
+            context.read<MatchBloc>().add(MatchPauseChanged(paused: state.pause != PauseLayer.none)),
+      ),
     ],
     child: Scaffold(
       backgroundColor: GwentColors.bg,

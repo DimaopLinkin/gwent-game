@@ -5,6 +5,7 @@ import 'package:gwent/src/features/deck_builder/domain/deck.dart' as app;
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
 import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
+import 'package:gwent/src/features/match/domain/match_pause.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
@@ -191,17 +192,21 @@ final class StartMatch {
               two: setup.two,
             ),
           );
+        // Пауза общая: стол не принимает ходы на паузе, а бот не тратит на ней время размышления.
+        final pause = MatchPause();
         final table = LocalMatchTable(
           engine: engine,
           state: state,
           startEvents: events,
           journal: journal,
+          pause: pause,
           agents: switch (mode) {
             LocalMatchMode.hotSeat => const {},
             LocalMatchMode.vsBot => {
               Seat.two: BotAgent(
                 _createBot(engine, content.catalog, request.difficulty, _seeds.next()),
                 thinkTime: _botThinkTime,
+                pause: pause,
               ),
             },
           },
