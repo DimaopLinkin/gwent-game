@@ -74,6 +74,7 @@ final class ReplayCubit extends Cubit<ReplayState> {
   /// Поле сообщает, занято ли оно показом текущего шага. Экран вызывает сразу после того, как вывел шаг на поле, и
   /// каждый раз, когда занятость поля меняется.
   void fieldReported({required bool busy}) {
+    if (isClosed) return;
     _busy = busy;
     _schedule();
   }
@@ -134,7 +135,8 @@ final class ReplayCubit extends Cubit<ReplayState> {
     final current = state;
     if (current is! ReplayShowing || current.speed == speed) return;
     emit(current.copyWith(speed: speed));
-    _schedule();
+    // Идущая пауза между шагами не начинается заново: частые нажатия не должны откладывать шаг.
+    if (_timer?.isActive != true) _schedule();
   }
 
   /// Смотреть партию глазами места [seat]: реплей остаётся на том же ходе партии.
@@ -172,6 +174,7 @@ final class ReplayCubit extends Cubit<ReplayState> {
 
   void _schedule() {
     _timer?.cancel();
+    if (isClosed) return;
     final current = state;
     if (current is! ReplayShowing || !current.playing || _busy) return;
     if (current.atEnd) {
@@ -182,6 +185,7 @@ final class ReplayCubit extends Cubit<ReplayState> {
   }
 
   void _advance() {
+    if (isClosed) return;
     final current = state;
     if (current is! ReplayShowing || !current.playing || current.atEnd) return;
     _show(current, index: current.index + 1, playing: true, reset: false, animate: true);

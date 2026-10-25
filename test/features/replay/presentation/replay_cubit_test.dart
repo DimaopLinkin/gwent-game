@@ -198,4 +198,13 @@ void main() {
     cubit.setSeat(Seat.two);
     expect(showing(cubit).revision, state.revision, reason: 'то же место — ничего не меняется');
   });
+
+  testWidgets('закрытый держатель не заводит таймеров и не падает от поздних отчётов поля', (tester) async {
+    final cubit = await opened(tester);
+    await tester.runAsync(cubit.close);
+
+    cubit.fieldReported(busy: false);
+    await tester.pump(gap * 10);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -114,10 +114,8 @@ final class LoadReplay {
             journal,
             perspective: perspective,
           );
-        } on JournalNotReplayable {
-          return ReplayUnavailable(failure);
         } on Object {
-          // Движок на чужом наборе карт может упасть любым исключением (карты, которой нет в справочнике, и т. п.):
+          // Журнал не проигрывается (`JournalNotReplayable`) или движок на чужом наборе карт упал: он может упасть любым исключением (карты, которой нет в справочнике, и т. п.):
           // для игрока это то же самое, что недоступный реплей.
           return ReplayUnavailable(failure);
         }

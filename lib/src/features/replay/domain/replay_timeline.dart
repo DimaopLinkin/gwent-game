@@ -85,20 +85,17 @@ final class ReplayTimeline {
     final steps = <ReplayStep>[];
     final unseen = <GameEvent>[];
     PlayerView? previous;
+    // Проекция перед кадром, в котором кончился раунд: если сам кадр не показывается, раунд закрывает следующий шаг.
+    PlayerView? closing;
     for (final (index, frame) in frames.indexed) {
       final view = frame.views[seat]!;
       final events = frame.events[seat] ?? const <GameEvent>[];
       unseen.addAll(events);
+      if (events.any((event) => event is RoundEnded)) closing = previous;
       if (_isShown(view)) {
-        steps.add(
-          ReplayStep(
-            frame: index,
-            view: view,
-            events: unseen,
-            closing: events.any((event) => event is RoundEnded) ? previous : null,
-          ),
-        );
+        steps.add(ReplayStep(frame: index, view: view, events: unseen, closing: closing));
         unseen.clear();
+        closing = null;
       }
       previous = view;
     }
