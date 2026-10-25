@@ -1,6 +1,7 @@
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent/src/features/match_history/domain/replay_recorder.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 import 'package:meta/meta.dart';
 
@@ -24,6 +25,7 @@ final class MatchSession {
     required Map<Seat, String> factionIds,
     Map<Seat, String> deckNames = const {},
     this.opponentName,
+    this.recorder,
   }) : factionIds = Map.unmodifiable(factionIds),
        deckNames = Map.unmodifiable(deckNames);
 
@@ -44,6 +46,9 @@ final class MatchSession {
 
   /// Имя соперника для истории: у сетевой партии это его имя в сети, у остальных `null`.
   final String? opponentName;
+
+  /// Запись партии для реплея; `null` — партия не записывается (ADR 0029).
+  final ReplayRecorder? recorder;
 
   /// Чьими глазами партия записывается в историю: первое здешнее место (в hot-seat это первый игрок).
   Seat get perspective => Seat.values.firstWhere(table.localSeats.contains);

@@ -10,6 +10,7 @@ import 'package:gwent/src/core/presentation/card/parts/compact_power.dart';
 import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
 import 'package:gwent/src/core/presentation/components/card_pile.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
+import 'package:gwent/src/core/presentation/components/pause_button.dart';
 import 'package:gwent/src/core/presentation/components/row_score_pill.dart';
 import 'package:gwent/src/core/presentation/components/weather_strip.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
@@ -64,6 +65,7 @@ void main() {
     PlayerView view, {
     bool confirmPass = false,
     bool hotSeat = false,
+    bool readOnly = false,
     VoidCallback? onSettings,
     Size size = const Size(390, 844),
   }) async {
@@ -84,6 +86,7 @@ void main() {
               roster: rosterOf(cards, hotSeat: hotSeat),
               onIntent: harness.intents.add,
               confirmPass: confirmPass,
+              readOnly: readOnly,
               onSettings: onSettings,
             ),
           ),
@@ -328,6 +331,25 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
       expect(harness.intents, isEmpty);
       await endBanners(tester);
+    });
+  });
+
+  group('только просмотр (реплей)', () {
+    testWidgets('тап по карте руки и по ряду ничего не играет, пас недоступен, паузы нет', (tester) async {
+      final unit = cards.unit(Row.melee);
+      final harness = await pumpField(
+        tester,
+        viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit])),
+        readOnly: true,
+      );
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.selected, isNull);
+
+      await tapField(tester, emptyPart(Row.melee, mine: true));
+      expect(harness.intents, isEmpty);
+      expect(tester.widget<PassButton>(find.byType(PassButton)).enabled, isFalse);
+      expect(find.byType(PauseButton), findsNothing);
     });
   });
 

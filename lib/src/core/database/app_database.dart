@@ -12,19 +12,24 @@ part 'app_database.g.dart';
 /// Изменение схемы: поправить таблицы, увеличить [schemaVersion], запустить `tools/scripts/setup.sh`
 /// (он сохранит схему новой версии в `drift_schemas/` и соберёт шаги миграции), дописать шаг в [migration]
 /// и закоммитить новый файл схемы. Тест миграций проверяет переход со всех прежних версий.
-@DriftDatabase(tables: [Decks, DeckCards, ActiveDecks, Settings, MatchRecords])
+@DriftDatabase(tables: [Decks, DeckCards, ActiveDecks, Settings, MatchRecords, MatchReplays])
 class AppDatabase extends _$AppDatabase {
   /// Открывает базу через исполнитель запросов [e]: файл на устройстве или память в тестах.
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   /// Шаги обновления по версиям. Отдельно от [migration], чтобы тест мог подставить сбойный шаг.
   @visibleForTesting
   OnUpgrade get upgradeSteps => stepByStep(
     // Версия 2: активная колода фракции.
     from1To2: (m, schema) => m.createTable(schema.activeDecks),
+    // Версия 3: реплеи партий. Прежние партии остаются сводкой (`has_replay` = 0).
+    from2To3: (m, schema) async {
+      await m.addColumn(schema.matchRecords, schema.matchRecords.hasReplay);
+      await m.createTable(schema.matchReplays);
+    },
   );
 
   @override

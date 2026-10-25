@@ -1,0 +1,64 @@
+import 'dart:convert';
+
+import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
+import 'package:gwent_engine/gwent_engine.dart' show Seat;
+import 'package:gwent_net/gwent_net.dart' as net;
+
+/// Запись реплея в виде, в каком она лежит в базе: вид, версия формата и текст JSON.
+typedef EncodedReplay = ({String perspective, String kind, int formatVersion, String payload});
+
+/// Кодек реплеев для базы.
+///
+/// Вид записи и перспектива хранятся стабильными кодами, а не именами значений: переименование в домене не трогает
+/// данные. Новый вид записи получает новый код; формат вида меняется только с новой версией формата, старые
+/// версии читаются всегда.
+final class ReplayLogCodec {
+  /// Создаёт кодек.
+  const ReplayLogCodec();
+
+  static const String _journal = 'journal';
+  static const int _journalFormat = 1;
+
+  static String _seatCode(Seat seat) => switch (seat) {
+    Seat.one => 'one',
+    Seat.two => 'two',
+  };
+
+  /// Записывает [log] для базы.
+  EncodedReplay encode(ReplayLog log) => switch (log) {
+    JournalReplayLog(:final journal, :final perspective) => (
+      perspective: _seatCode(perspective),
+      kind: _journal,
+      formatVersion: _journalFormat,
+      payload: jsonEncode(net.encodeMatchRecord(journal)),
+    ),
+  };
+
+  /// Читает запись из базы. Бросает [ReplayCorrupted], если запись повреждена или записана неизвестным форматом.
+  ReplayLog decode(EncodedReplay encoded) {
+    final perspective = switch (encoded.perspective) {
+      'one' => Seat.one,
+      'two' => Seat.two,
+      final code => throw ReplayCorrupted('неизвестное место $code'),
+    };
+    switch (encoded.kind) {
+      case _journal:
+        if (encoded.formatVersion != _journalFormat) {
+          throw ReplayCorrupted('журнал формата ${encoded.formatVersion} не поддерживается');
+        }
+        try {
+          return JournalReplayLog(
+            net.decodeMatchRecord(jsonDecode(encoded.payload)),
+            perspective: perspective,
+          );
+        } on FormatException catch (error) {
+          throw ReplayCorrupted('журнал не читается: ${error.message}');
+        } on net.ProtocolException catch (error) {
+          throw ReplayCorrupted('журнал не читается: ${error.message}');
+        }
+      default:
+        throw ReplayCorrupted('неизвестный вид записи ${encoded.kind}');
+    }
+  }
+}

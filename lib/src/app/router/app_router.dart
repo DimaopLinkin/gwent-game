@@ -39,7 +39,11 @@ import 'package:gwent/src/features/match/presentation/match_event.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_cubit.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
+import 'package:gwent/src/features/match_history/presentation/history_cubit.dart';
+import 'package:gwent/src/features/match_history/presentation/history_screen.dart';
 import 'package:gwent/src/features/menu/presentation/menu_screen.dart';
+import 'package:gwent/src/features/replay/presentation/replay_cubit.dart';
+import 'package:gwent/src/features/replay/presentation/replay_screen.dart';
 import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
@@ -60,9 +64,40 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         onBot: () => context.go(AppRoutes.matchBot),
         onNetworkGame: () => context.go(AppRoutes.play),
         onDecks: () => context.go(AppRoutes.decks),
+        onHistory: () => context.go(AppRoutes.history),
         onSettings: () => context.go(AppRoutes.settings),
       ),
       routes: [
+        GoRoute(
+          path: _child(AppRoutes.history),
+          builder: (context, state) => BlocProvider(
+            create: (_) => HistoryCubit(dependencies.watchMatchHistory, dependencies.loadDeckRules),
+            child: HistoryScreen(
+              onOpen: (recordId) => context.go(AppRoutes.replay(recordId)),
+              onBack: () => context.go(AppRoutes.menu),
+            ),
+          ),
+          routes: [
+            GoRoute(
+              path: ':${AppRoutes.replayIdParam}',
+              builder: (context, state) => BlocProvider(
+                create: (_) => ReplayCubit(dependencies.loadReplay, state.pathParameters[AppRoutes.replayIdParam]!),
+                child: StreamBuilder<AppSettings>(
+                  stream: dependencies.watchSettings(),
+                  initialData: const AppSettings(),
+                  builder: (context, snapshot) => ReplayScreen(
+                    onExit: () => context.go(AppRoutes.history),
+                    sound: dependencies.playSound,
+                    animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
+                      AnimationSpeed.normal => 1,
+                      AnimationSpeed.fast => StageTokens.fastFactor,
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         GoRoute(
           path: _child(AppRoutes.decks),
           builder: (context, state) => BlocProvider(

@@ -37,6 +37,7 @@ import 'package:gwent/src/features/match_history/application/watch_match_history
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
 import 'package:gwent/src/features/menu/application/load_menu.dart';
+import 'package:gwent/src/features/replay/application/load_replay.dart';
 import 'package:gwent/src/features/settings/application/check_content_update.dart';
 import 'package:gwent/src/features/settings/application/load_about_info.dart';
 import 'package:gwent/src/features/settings/application/load_bot_difficulty.dart';
@@ -147,6 +148,7 @@ final class AppDependencies {
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
+    loadReplay = LoadReplay(matchHistoryRepository, loadGameContent);
     activeNetworkGame = ActiveNetworkGame();
     loadNetworkSetup = LoadNetworkSetup(loadGameContent, appInfo, watchSettings);
     hostNetworkGame = HostNetworkGame(loadNetworkSetup, gameLobby, activeNetworkGame, entropy, scheduler);
@@ -242,6 +244,9 @@ final class AppDependencies {
 
   /// Запись законченной партии в историю.
   late final RecordFinishedMatch recordFinishedMatch;
+
+  /// Загрузка реплея партии из истории.
+  late final LoadReplay loadReplay;
 
   /// Сетевая игра, которую сейчас ведёт телефон: общая для лобби и партии.
   late final ActiveNetworkGame activeNetworkGame;

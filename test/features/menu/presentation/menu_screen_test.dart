@@ -79,6 +79,7 @@ void main() {
             onBot: () => taps.add('bot'),
             onNetworkGame: () => taps.add('network'),
             onDecks: () => taps.add('decks'),
+            onHistory: () => taps.add('history'),
             onSettings: () => taps.add('settings'),
           ),
         ),
@@ -97,10 +98,17 @@ void main() {
   GwentButton button(WidgetTester tester, String label) =>
       tester.widget<GwentButton>(find.widgetWithText(GwentButton, label));
 
-  testWidgets('есть набор и колода: пять кнопок, игровые доступны, подсказки нет, версии названы', (tester) async {
+  testWidgets('есть набор и колода: шесть кнопок, игровые доступны, подсказки нет, версии названы', (tester) async {
     await pumpMenu(tester);
 
-    for (final label in [l10n.menuHotSeat, l10n.menuVsBot, l10n.menuNetworkGame, l10n.menuDecks, l10n.menuSettings]) {
+    for (final label in [
+      l10n.menuHotSeat,
+      l10n.menuVsBot,
+      l10n.menuNetworkGame,
+      l10n.menuDecks,
+      l10n.menuHistory,
+      l10n.menuSettings,
+    ]) {
       expect(button(tester, label).onPressed, isNotNull, reason: label);
     }
     expect(find.text(l10n.menuNoDeckHint), findsNothing);
@@ -112,16 +120,30 @@ void main() {
   testWidgets('каждая кнопка вызывает свой переход', (tester) async {
     await pumpMenu(tester);
 
-    for (final label in [l10n.menuHotSeat, l10n.menuVsBot, l10n.menuNetworkGame, l10n.menuDecks, l10n.menuSettings]) {
+    for (final label in [
+      l10n.menuHotSeat,
+      l10n.menuVsBot,
+      l10n.menuNetworkGame,
+      l10n.menuDecks,
+      l10n.menuHistory,
+      l10n.menuSettings,
+    ]) {
       await tester.ensureVisible(find.text(label));
       await tester.tap(find.text(label));
     }
-    expect(taps, ['hotSeat', 'bot', 'network', 'decks', 'settings']);
+    expect(taps, ['hotSeat', 'bot', 'network', 'decks', 'history', 'settings']);
   });
 
   testWidgets('зоны нажатия кнопок меню не меньше 44 pt', (tester) async {
     await pumpMenu(tester);
-    for (final label in [l10n.menuHotSeat, l10n.menuVsBot, l10n.menuNetworkGame, l10n.menuDecks, l10n.menuSettings]) {
+    for (final label in [
+      l10n.menuHotSeat,
+      l10n.menuVsBot,
+      l10n.menuNetworkGame,
+      l10n.menuDecks,
+      l10n.menuHistory,
+      l10n.menuSettings,
+    ]) {
       expect(tester.getSize(find.widgetWithText(GwentButton, label)).height, greaterThanOrEqualTo(44), reason: label);
     }
   });

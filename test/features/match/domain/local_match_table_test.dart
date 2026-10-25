@@ -8,6 +8,7 @@ import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/gwent_net.dart' show InMemoryMatchJournal, MatchRecord, RecordedMove, Ruleset;
 
 import '../../../support/match_fixtures.dart';
 
@@ -68,6 +69,79 @@ void main() {
     final changed = updates.current as ViewsChanged;
     expect(changed.views[Seat.one]!.me.redrawDone, isTrue);
     expect(changed.events[Seat.one], contains(const RedrawFinished(Seat.one)));
+  });
+
+  group('журнал', () {
+    InMemoryMatchJournal journal() => InMemoryMatchJournal()
+      ..begin(
+        MatchRecord(
+          matchId: 'm',
+          ruleset: const Ruleset(id: 'pack', hash: 'hash', engineVersion: engineVersion),
+          seed: 42,
+          one: realDeck(content, Faction.skellige, id: 'one').toEngineDeck(),
+          two: realDeck(content, Faction.monsters, id: 'two').toEngineDeck(),
+        ),
+      );
+
+    test('принятые намерения людей попадают в журнал по порядку, отклонённые нет', () async {
+      final log = journal();
+      final hotSeat = LocalMatchTable(
+        engine: engine,
+        state: start.state,
+        startEvents: start.events,
+        journal: log,
+      );
+      addTearDown(hotSeat.close);
+      final updates = StreamIterator(hotSeat.updates);
+      await updates.moveNext();
+
+      hotSeat.submit(Seat.one, const Pass());
+      await updates.moveNext();
+      hotSeat.submit(Seat.one, const FinishRedraw());
+      await updates.moveNext();
+      hotSeat.submit(Seat.two, const FinishRedraw());
+      await updates.moveNext();
+
+      expect(log.record!.moves, const [
+        RecordedMove(Seat.one, FinishRedraw()),
+        RecordedMove(Seat.two, FinishRedraw()),
+      ]);
+    });
+
+    test('полная партия с ботом: журнал содержит ходы обоих и проигрывается в то же состояние', () async {
+      final log = journal();
+      final human = GreedyBot(engine, content.catalog);
+      final vsBot = LocalMatchTable(
+        engine: engine,
+        state: start.state,
+        startEvents: start.events,
+        agents: {Seat.two: BotAgent(GreedyBot(engine, content.catalog), thinkTime: Duration.zero)},
+        journal: log,
+      );
+      addTearDown(vsBot.close);
+      final finished = Completer<void>();
+      vsBot.updates.listen((update) {
+        switch (update) {
+          case ViewsChanged(:final views):
+            if (views[Seat.one]!.outcome != null) {
+              finished.complete();
+            } else if (human.decide(vsBot.state, Seat.one) case final intent?) {
+              vsBot.submit(Seat.one, intent);
+            }
+          case IntentRefused(:final reject):
+            finished.completeError(StateError('отказ ${reject.reason}'));
+          case TableFailed(:final error):
+            finished.completeError(error);
+          case TableRematchChanged() || TableRematchAgreed():
+            break;
+        }
+      });
+      await finished.future;
+
+      final moves = log.record!.moves;
+      expect(moves.map((move) => move.seat).toSet(), Seat.values.toSet());
+      expect(log.record!.replay(engine), vsBot.state);
+    });
   });
 
   test('за место агента и после закрытия ходить нельзя', () async {

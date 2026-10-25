@@ -189,6 +189,16 @@ final class FieldCubit extends Cubit<FieldState> {
     }
   }
 
+  /// Сбрасывает поле целиком: реплей перескочил на другой ход, и прежние баннеры, листы, итоги раундов и сценарии
+  /// к нему не относятся (ADR 0029).
+  void reset() {
+    _finishTimer?.cancel();
+    _stageTimer?.cancel();
+    _queuedStage = null;
+    _forget();
+    if (!state.isClean) emit(const FieldState());
+  }
+
   /// Новая партия: что объявлялось в прошлой, уже не считается.
   void _forget() {
     _announcedRounds.clear();

@@ -4,6 +4,7 @@ import 'package:gwent/src/features/match/domain/awaited_action.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/gwent_net.dart' show MatchJournal, RecordedMove;
 
 /// Партия целиком на этом устройстве: полное состояние живёт здесь, каждый ход проверяет и применяет движок.
 ///
@@ -14,6 +15,9 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// партия изменилась (например, при пересдаче человек и бот действуют одновременно), его решение отбрасывается
 /// и он решает заново по новому состоянию. Если агент ошибся (движок отклонил его ход, агент бросил исключение
 /// или не ходит, когда партия ждёт его), приходит `TableFailed`.
+///
+/// Каждое принятое движком намерение стол дописывает в [journal] (если он есть): из журнала партия потом показывается
+/// заново (реплей, ADR 0029). Начать журнал (`begin`) должен тот, кто создаёт стол, до первого хода.
 final class LocalMatchTable implements MatchTable {
   /// Создаёт стол над партией, которую начал движок: [state] и события [startEvents] из `MatchEngine.start`.
   LocalMatchTable({
@@ -21,8 +25,10 @@ final class LocalMatchTable implements MatchTable {
     required MatchState state,
     required List<GameEvent> startEvents,
     Map<Seat, SeatAgent> agents = const {},
+    MatchJournal? journal,
   }) : _engine = engine,
        _state = state,
+       _journal = journal,
        _agents = Map.unmodifiable(agents),
        localSeats = Set.unmodifiable({
          for (final seat in Seat.values)
@@ -35,6 +41,7 @@ final class LocalMatchTable implements MatchTable {
 
   final MatchEngine _engine;
   final Map<Seat, SeatAgent> _agents;
+  final MatchJournal? _journal;
   final StreamController<TableUpdate> _updates = StreamController();
   MatchState _state;
   bool _driving = false;
@@ -55,7 +62,7 @@ final class LocalMatchTable implements MatchTable {
     if (!localSeats.contains(seat)) throw ArgumentError.value(seat, 'seat', 'За это место ходит не человек');
     switch (_engine.apply(_state, seat, intent)) {
       case Accepted(:final state, :final events):
-        _accept(state, events);
+        _accept(state, events, seat, intent);
         unawaited(_driveAgents());
       case Rejected(:final reject):
         _updates.add(IntentRefused(seat, intent, reject));
@@ -90,7 +97,7 @@ final class LocalMatchTable implements MatchTable {
           if (intent == null) continue;
           switch (_engine.apply(_state, seat, intent)) {
             case Accepted(:final state, :final events):
-              _accept(state, events);
+              _accept(state, events, seat, intent);
             case Rejected(:final reject):
               throw StateError('Движок отклонил намерение $intent за место ${seat.name}: ${reject.reason.name}');
           }
@@ -112,8 +119,9 @@ final class LocalMatchTable implements MatchTable {
     }
   }
 
-  void _accept(MatchState state, List<GameEvent> events) {
+  void _accept(MatchState state, List<GameEvent> events, Seat seat, Intent intent) {
     _state = state;
+    _journal?.append(RecordedMove(seat, intent));
     _publish(events);
   }
 

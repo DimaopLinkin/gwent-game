@@ -22,6 +22,7 @@ class MenuScreen extends StatefulWidget {
     required this.onBot,
     required this.onNetworkGame,
     required this.onDecks,
+    required this.onHistory,
     required this.onSettings,
   });
 
@@ -36,6 +37,9 @@ class MenuScreen extends StatefulWidget {
 
   /// Конструктор колоды.
   final VoidCallback onDecks;
+
+  /// История партий.
+  final VoidCallback onHistory;
 
   /// Настройки.
   final VoidCallback onSettings;
@@ -62,6 +66,7 @@ class _MenuScreenState extends State<MenuScreen> {
               onBot: widget.onBot,
               onNetworkGame: widget.onNetworkGame,
               onDecks: widget.onDecks,
+              onHistory: widget.onHistory,
               onSettings: widget.onSettings,
             ),
           ),
@@ -85,6 +90,7 @@ class _Menu extends StatelessWidget {
     required this.onBot,
     required this.onNetworkGame,
     required this.onDecks,
+    required this.onHistory,
     required this.onSettings,
   });
 
@@ -93,6 +99,7 @@ class _Menu extends StatelessWidget {
   final VoidCallback onBot;
   final VoidCallback onNetworkGame;
   final VoidCallback onDecks;
+  final VoidCallback onHistory;
   final VoidCallback onSettings;
 
   @override
@@ -159,6 +166,7 @@ class _Menu extends StatelessWidget {
                         labelColor: highlightDecks ? GwentColors.goldHighlight : null,
                         onPressed: onDecks,
                       ),
+                      _Button(label: l10n.menuHistory, gold: false, onPressed: onHistory),
                       _Button(label: l10n.menuSettings, gold: false, onPressed: onSettings),
                     ],
                   ),
@@ -196,7 +204,7 @@ class _Button extends StatelessWidget {
   final VoidCallback? onPressed;
   final double fontSize;
 
-  /// Золотая кнопка; `null` — золотая, пока она доступна и это кнопка игры (все, кроме «Колод» и «Настроек»).
+  /// Золотая кнопка; `null` — золотая, пока она доступна и это кнопка игры (все, кроме «Колод», «Истории партий» и «Настроек»).
   final bool? gold;
   final Color? labelColor;
 

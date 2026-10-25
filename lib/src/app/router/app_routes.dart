@@ -15,6 +15,15 @@ abstract final class AppRoutes {
   /// Конструктор колоды с идентификатором [deckId].
   static String deckEdit(String deckId) => '$decks/${Uri.encodeComponent(deckId)}';
 
+  /// История партий.
+  static const String history = '/history';
+
+  /// Параметр пути реплея: идентификатор партии в истории.
+  static const String replayIdParam = 'id';
+
+  /// Реплей партии [recordId] из истории.
+  static String replay(String recordId) => '$history/${Uri.encodeComponent(recordId)}';
+
   /// Игра на двух телефонах: выбор способа соединения.
   static const String play = '/play';
 

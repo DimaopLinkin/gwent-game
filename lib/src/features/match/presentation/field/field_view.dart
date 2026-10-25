@@ -79,7 +79,8 @@ class FieldView extends StatefulWidget {
   /// Открыть настройки поверх партии из меню паузы; `null` — кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
 
-  /// Поле только смотрят (за листом итога матча): системная «назад» не открывает паузу, а уходит дальше.
+  /// Поле только смотрят (за листом итога матча, в реплее): ходов нет, пауза и пас недоступны, системная «назад»
+  /// не открывает паузу, а уходит дальше. Просмотр карт, сброса и лидера остаётся.
   final bool readOnly;
 
   /// Индикатор в полосе соперника (связь в сетевой партии, ADR 0019); `null` — индикатора нет.
@@ -158,12 +159,13 @@ class _FieldViewState extends State<FieldView> {
   }
 
   void _play(Intent intent) {
-    if (_blocked) return;
+    if (_blocked || widget.readOnly) return;
     _cubit.clearSelected();
     widget.onIntent(intent);
   }
 
   void _tapRow(Row row, {required bool mine, required FieldState field}) {
+    if (widget.readOnly) return;
     if (mine && _choiceRows().contains(row)) {
       widget.onIntent(ChooseOption(RowOption(row)));
       return;
@@ -172,6 +174,7 @@ class _FieldViewState extends State<FieldView> {
   }
 
   void _tapStrip(FieldState field) {
+    if (widget.readOnly) return;
     if (_targets(field).atStrip() case final intent?) _play(intent);
   }
 
@@ -186,7 +189,7 @@ class _FieldViewState extends State<FieldView> {
 
   void _tapHandCard(HandCard card) {
     final view = _view;
-    if (view.choice != null || _blocked) return;
+    if (view.choice != null || _blocked || widget.readOnly) return;
     final cubit = _cubit;
     if (view.me.passed) {
       cubit.say(FieldMessage.alreadyPassed);
@@ -200,7 +203,7 @@ class _FieldViewState extends State<FieldView> {
   }
 
   void _startDrag(HandCard card) {
-    if (_blocked) return;
+    if (_blocked || widget.readOnly) return;
     if (!PlayTargets.forCard(_view, card.instance, _catalog).isEmpty) _cubit.select(card.instance.id);
   }
 
@@ -209,7 +212,7 @@ class _FieldViewState extends State<FieldView> {
   }
 
   Future<void> _pass() async {
-    if (_blocked) return;
+    if (_blocked || widget.readOnly) return;
     _cubit.clearSelected();
     if (!widget.confirmPass) {
       widget.onIntent(const Pass());
@@ -226,7 +229,7 @@ class _FieldViewState extends State<FieldView> {
   }
 
   bool _canDrop(CardInstance card, {required Row row, required bool mine}) =>
-      PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) != null;
+      !widget.readOnly && PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) != null;
 
   void _drop(CardInstance card, {required Row row, required bool mine}) {
     if (PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) case final intent?) _play(intent);
@@ -420,7 +423,8 @@ class _FieldViewState extends State<FieldView> {
             Positioned.fromRect(
               rect: geometry.strip,
               child: DragTarget<CardInstance>(
-                onWillAcceptWithDetails: (details) => PlayTargets.forCard(view, details.data, _catalog).highlightsStrip,
+                onWillAcceptWithDetails: (details) =>
+                    !widget.readOnly && PlayTargets.forCard(view, details.data, _catalog).highlightsStrip,
                 onAcceptWithDetails: (details) {
                   if (PlayTargets.forCard(view, details.data, _catalog).atStrip() case final intent?) _play(intent);
                 },
@@ -492,13 +496,14 @@ class _FieldViewState extends State<FieldView> {
                   child: _SkipButton(onPressed: skip),
                 ),
             ],
-            Positioned(
-              left: geometry.width - 47,
-              top: geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
-              width: PauseButton.hitSize,
-              height: PauseButton.hitSize,
-              child: PauseButton(onPressed: _cubit.openPause, semanticsLabel: l10n.pauseButtonSemantics),
-            ),
+            if (!widget.readOnly)
+              Positioned(
+                left: geometry.width - 47,
+                top: geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
+                width: PauseButton.hitSize,
+                height: PauseButton.hitSize,
+                child: PauseButton(onPressed: _cubit.openPause, semanticsLabel: l10n.pauseButtonSemantics),
+              ),
             if (field.summary == null && field.pause == PauseLayer.none && field.stage == null)
               Positioned.fill(
                 child: BannerLayer(
@@ -570,7 +575,7 @@ class _FieldViewState extends State<FieldView> {
     RollValue? roll(StageCounter kind) => frame?.counters[(kind: kind, mine: mine, row: null)];
     int? otherScore(StageFrame? frame) => frame?.counters[(kind: StageCounter.total, mine: !mine, row: null)]?.nearest;
     final cubit = _cubit;
-    final canPass = _isMyTurn(view) && !_blocked;
+    final canPass = _isMyTurn(view) && !_blocked && !widget.readOnly;
     return Transform.translate(
       offset: Offset(frame?.shakes[mine] ?? 0, 0),
       child: PlayerBar(
