@@ -657,6 +657,39 @@ void main() {
       await endBanners(tester);
     });
 
+    testWidgets('подъём исчезает при отмене перетаскивания', (tester) async {
+      final (harness, _, _) = await pumpDecoy(tester, [for (var i = 0; i < 3; i++) cards.unit(Row.melee)]);
+      final gesture = await aimAt(tester, cardRect(1, 3).center);
+      expect(find.byType(LiftedCard), findsOneWidget);
+      await gesture.cancel();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(LiftedCard), findsNothing);
+      expect(harness.intents, isEmpty);
+      await endBanners(tester);
+    });
+
+    testWidgets('сила на приподнятой карте та же, что на карте в ряду', (tester) async {
+      final (_, _, row) = await pumpDecoy(tester, [for (var i = 0; i < 3; i++) cards.unit(Row.melee)]);
+      final gesture = await aimAt(tester, cardRect(2, 3).center);
+      final lifted = tester.widget<GwentCard>(
+        find.descendant(of: find.byType(LiftedCard), matching: find.byType(GwentCard)),
+      );
+      expect((lifted.face as UnitCardFace).power, cards.strength(row[2]));
+      await release(tester, gesture);
+      await endBanners(tester);
+    });
+
+    testWidgets('долгое нажатие по карте при выбранном Чучеле открывает просмотр', (tester) async {
+      await pumpDecoy(tester, [for (var i = 0; i < 3; i++) cards.unit(Row.melee)]);
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      final slice = cardRect(1, 3).center;
+      await tester.longPressAt(slice);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.byType(CardDetailView), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
     testWidgets('тап по карте под выбранным Чучелом по-прежнему играет ход, подъёма нет', (tester) async {
       final (harness, decoy, row) = await pumpDecoy(tester, [for (var i = 0; i < 3; i++) cards.unit(Row.melee)]);
       await tester.tap(handCards().first);

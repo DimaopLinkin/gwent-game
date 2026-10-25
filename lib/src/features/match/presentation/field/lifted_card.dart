@@ -5,10 +5,6 @@ import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
-import 'package:gwent_engine/gwent_engine.dart';
-
-/// Как зона карты ряда называет себя перед `DragHover` (Чучело, макет 14): по ней поле находит захваченный отряд.
-typedef CardTarget = ({CardInstanceId card});
 
 /// Захваченный Чучелом отряд (макет 14, ступень B): карта приподнята в ×1,25 над рядом и соседями, у неё тень, золотая
 /// рамка, видна сила и значок возврата ↺.

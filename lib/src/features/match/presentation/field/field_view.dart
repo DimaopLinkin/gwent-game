@@ -286,7 +286,8 @@ class _FieldViewState extends State<FieldView> {
   Widget _liftedCard(FieldGeometry geometry) => ValueListenableBuilder<Object?>(
     valueListenable: _hover.target,
     builder: (context, target, _) {
-      if (target is! CardTarget) return const SizedBox.shrink();
+      // Показ розыгрыша посреди наведения убирает зоны без сообщения о выходе: подъёма над перестроенным рядом нет.
+      if (target is! CardTarget || _blocked) return const SizedBox.shrink();
       for (final MapEntry(key: row, value: rowView) in _view.me.rows.entries) {
         final index = rowView.cards.indexWhere((view) => view.card.id == target.card);
         if (index < 0) continue;

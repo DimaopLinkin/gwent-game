@@ -11,10 +11,10 @@ import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
+import 'package:gwent/src/features/match/presentation/field/drag_hover.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
 import 'package:gwent/src/features/match/presentation/field/field_overlays.dart';
-import 'package:gwent/src/features/match/presentation/field/lifted_card.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 

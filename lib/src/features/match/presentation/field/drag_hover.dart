@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
+import 'package:gwent_engine/gwent_engine.dart' show CardInstanceId;
+
+/// Как зона карты ряда называет себя перед [DragHover] (Чучело, макет 14): по ней поле находит захваченный отряд.
+typedef CardTarget = ({CardInstanceId card});
 
 /// Вибрация прицеливания (макет 14, ADR 0031).
 abstract final class TargetHaptics {
