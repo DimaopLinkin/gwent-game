@@ -94,6 +94,7 @@ class _MatchScreenState extends State<MatchScreen> {
   /// Идёт партия: поле, пересдача или выбор первого игрока; на знакомстве, жребии, передаче и итоге слоя нет.
   bool get _fieldIsShown => switch (_shown) {
     MatchInProgress(:final view) => view.phase != MatchPhase.finished,
+    MatchRedrawSettled() => true,
     _ => false,
   };
 

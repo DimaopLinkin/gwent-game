@@ -125,7 +125,8 @@ final class MatchInProgress extends MatchScreenState {
 }
 
 /// Пересдача: игрок поменял последнюю карту. Экран держит руку с пришедшей картой, пока её видно, и только потом
-/// выходит ожидание соперника, передача телефона или поле. Нейтральная заставка, действий она не принимает.
+/// идёт следующее состояние: ожидание соперника, передача телефона или поле. Нейтральная заставка, действий она
+/// не принимает.
 final class MatchRedrawSettled extends MatchScreenState {
   /// Создаёт состояние.
   MatchRedrawSettled({required this.view, required this.roster, required List<GameEvent> events})

@@ -77,7 +77,7 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
         if (!before.contains(card.id)) card.id,
     };
     if (arrived.isEmpty) return;
-    _fresh = arrived;
+    _fresh = {..._fresh, ...arrived};
     _freshTimer?.cancel();
     _freshTimer = Timer(Duration(milliseconds: widget.style.ms(StageTokens.redrawHold)), () {
       if (mounted) setState(() => _fresh = const {});

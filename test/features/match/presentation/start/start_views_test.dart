@@ -377,6 +377,28 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('две замены подряд: светятся обе пришедшие карты', (tester) async {
+      final first = hand();
+      MatchRedrawView viewOf2(List<CardInstance> inHand, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: inHand, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: (_) {},
+      );
+      final firstArrived = cards.unit(Row.siege);
+      final secondArrived = cards.unit(Row.melee);
+      await pumpView(tester, viewOf2(first, 2));
+      await tester.pumpWidget(localizedApp(viewOf2([firstArrived, first[1]], 1)));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpWidget(localizedApp(viewOf2([firstArrived, secondArrived], 0)));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(_justPlayed(tester), hasLength(2));
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('неполный последний ряд занимает места колонок: 11-я карта не прижата к 10-й', (tester) async {
       final view = viewOf(
         cards,
