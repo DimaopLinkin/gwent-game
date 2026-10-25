@@ -87,4 +87,26 @@ void main() {
     await settle();
     expect(changes, isEmpty);
   });
+
+  test('target называет цель под пальцем и меняется вместе с ней', () async {
+    expect(hover.target.value, isNull);
+    hover.enter(rowA);
+    await settle();
+    expect(hover.target.value, rowA);
+    hover
+      ..leave(rowA)
+      ..enter(rowB);
+    await settle();
+    expect(hover.target.value, rowB, reason: 'смена цели без выхода в пустоту');
+    hover.leave(rowB);
+    await settle();
+    expect(hover.target.value, isNull);
+  });
+
+  test('reset сбрасывает target', () async {
+    hover.enter(rowA);
+    await settle();
+    hover.reset();
+    expect(hover.target.value, isNull);
+  });
 }

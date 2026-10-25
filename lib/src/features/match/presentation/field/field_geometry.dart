@@ -50,6 +50,9 @@ final class FieldGeometry {
   /// Шаг карт ряда меньше этого значения: перекрытая карта уже не показывает медальон силы со стрелкой (до 30 pt).
   static const double compactStep = 30;
 
+  /// Насколько зона крайней карты ряда тянется за карту: палец чуть в стороне от крайней карты всё ещё её захватывает.
+  static const double magnetReach = 24;
+
   /// Высота бюджета макета: 48 + 240 + 40 + 240 + 48 + 135.
   static const double budgetHeight = barHeight * 2 + rowHeight * 6 + stripHeight + minHandHeight;
 
@@ -144,6 +147,25 @@ final class FieldGeometry {
     final offset = count > 1 && total > area ? 0 : (area - total) / 2;
     final base = cardsArea(row, mine: mine);
     return Rect.fromLTWH((base.left + offset + index * step).roundToDouble(), base.top, cardWidth, cardHeight);
+  }
+
+  /// Зоны захвата карт ряда из [count] карт (магнит, макет 14): зона номер `i` принадлежит карте номер `i`.
+  ///
+  /// Зоны делят ряд по горизонтали без щелей и перекрытий и занимают всю высоту ряда. Палец над видимой частью карты
+  /// даёт зону этой карты; палец в щели между картами или в стороне от крайней карты (не дальше [magnetReach])
+  /// достаётся ближайшей, а щель делится пополам. Карты, на которые нельзя играть, зоны тоже делят, но цели из них
+  /// не делаются: над ними ничего не горит.
+  List<Rect> magnetZones(Row row, int count, {required bool mine}) {
+    if (count == 0) return const [];
+    final rect = rowRect(row, mine: mine);
+    final area = cardsArea(row, mine: mine);
+    final cards = [for (var i = 0; i < count; i++) cardRect(row, i, count, mine: mine)];
+    final bounds = <double>[
+      math.max(area.left, cards.first.left - magnetReach),
+      for (var i = 0; i < count - 1; i++) (math.min(cards[i].right, cards[i + 1].left) + cards[i + 1].left) / 2,
+      math.min(rect.right, cards.last.right + magnetReach),
+    ];
+    return [for (var i = 0; i < count; i++) Rect.fromLTRB(bounds[i], rect.top, bounds[i + 1], rect.bottom)];
   }
 
   /// Шаг веера руки из [count] карт: поля 28 pt, шаг не больше 81 pt.
