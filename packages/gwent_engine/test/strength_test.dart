@@ -93,6 +93,19 @@ void main() {
       expect(strengths(state, Seat.two, Row.melee), [1]);
     });
 
+    test('Король Бран: погода → Прилив сил → Прочная связь, без рога', () {
+      final state = playing(
+        one: const Side(leader: 'bran', faction: Faction.skellige, melee: ['blue_stripes', 'blue_stripes', 'olaf']),
+        weather: [('frost', Seat.two)],
+      );
+      expect(strengths(state, Seat.one, Row.melee), [6, 6, 6]);
+    });
+
+    test('герой с Приливом сил усиливает карты с Прочной связью до умножения: (4 + 1) · 2', () {
+      final state = playing(one: const Side(melee: ['blue_stripes', 'blue_stripes', 'kejran']));
+      expect(strengths(state, Seat.one, Row.melee), [10, 10, 8]);
+    });
+
     test('без Вероломного шпион считается как обычный отряд', () {
       final state = playing(two: const Side(melee: ['skellen']));
       expect(strengths(state, Seat.two, Row.melee), [9]);
