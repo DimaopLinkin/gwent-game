@@ -109,6 +109,11 @@ class _Settings extends StatelessWidget {
               value: settings.hints,
               onChanged: (value) => cubit.setHints(value: value),
             ),
+            SettingsSwitchRow(
+              label: l10n.settingsHaptics,
+              value: settings.haptics,
+              onChanged: (value) => cubit.setHaptics(value: value),
+            ),
           ],
         ),
         const SizedBox(height: 22),

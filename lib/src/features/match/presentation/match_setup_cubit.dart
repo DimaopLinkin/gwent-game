@@ -199,14 +199,13 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
 
   /// Открывает выбор заново после законченного: игрок хочет сыграть другой колодой или другой фракцией (макет 13,
   /// «Другая колода»). Сложность бота остаётся прежней, а выбор начинается с фракции, на которой игрок только что играл:
-  /// те же фракция, лидер и колода выбраны заранее, и игрок меняет только то, что хочет. В hot-seat выбор снова идёт
+  /// те же фракция и колода выбраны заранее, и игрок меняет только то, что хочет. В hot-seat выбор снова идёт
   /// с первого места. Пока выбор не закончен, ничего не делает.
   void restart() {
     final rules = _rules;
     if (rules == null || !_done || state is! MatchSetupDone) return;
     if (_firstSeat case final first?) {
       _factionIndex = rules.factionInfos.indexWhere((faction) => faction.id == first.factionId);
-      _leaderId = first.leaderId;
       _deckId = first.deckId;
     }
     _firstSeat = null;

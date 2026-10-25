@@ -7,6 +7,8 @@ import 'package:gwent/src/core/domain/seed_generator.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_output.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
 import 'package:gwent/src/features/match_history/domain/replay_log.dart';
@@ -226,6 +228,15 @@ final class RecordingSoundOutput implements SoundOutput {
 
   @override
   void play(SoundEffect effect, {required double volume}) => played.add((effect: effect, volume: volume));
+}
+
+/// Вывод вибрации, который ничего не подаёт, а запоминает паттерны по порядку вызова.
+final class RecordingHapticOutput implements HapticOutput {
+  /// Паттерны в порядке вызова.
+  final List<HapticPattern> played = [];
+
+  @override
+  void play(HapticPattern pattern) => played.add(pattern);
 }
 
 /// Вывод музыки, который ничего не играет, а запоминает команды.

@@ -292,6 +292,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               loadAboutInfo: dependencies.loadAboutInfo,
               checkContentUpdate: dependencies.checkContentUpdate,
               sound: dependencies.playSound,
+              haptic: dependencies.playHaptic,
             ),
             child: SettingsScreen(
               // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
@@ -319,7 +320,9 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   ),
                 ),
                 BlocProvider(create: (_) => MatchBloc(dependencies.startMatch, dependencies.recordFinishedMatch)),
-                BlocProvider(create: (_) => FieldCubit(sound: dependencies.playSound)),
+                BlocProvider(
+                  create: (_) => FieldCubit(sound: dependencies.playSound, haptic: dependencies.playHaptic),
+                ),
               ],
               child: StreamBuilder<AppSettings>(
                 stream: settings,
@@ -330,6 +333,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   onEditDeck: (deckId) => context.push(AppRoutes.deckEdit(deckId)),
                   onSettings: () => context.push(AppRoutes.settings),
                   confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
+                  hints: (snapshot.data ?? const AppSettings()).hints,
                   animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
                     AnimationSpeed.normal => 1,
                     AnimationSpeed.fast => StageTokens.fastFactor,
@@ -388,7 +392,9 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
           return bloc;
         },
       ),
-      BlocProvider(create: (_) => FieldCubit(sound: dependencies.playSound)),
+      BlocProvider(
+        create: (_) => FieldCubit(sound: dependencies.playSound, haptic: dependencies.playHaptic),
+      ),
       if (game != null) BlocProvider(create: (_) => MatchConnectionCubit(game)),
     ],
     child: StreamBuilder<AppSettings>(
@@ -401,6 +407,7 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
         onEditDeck: (_) {},
         onSettings: () => context.push(AppRoutes.settings),
         confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
+        hints: (snapshot.data ?? const AppSettings()).hints,
         animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
           AnimationSpeed.normal => 1,
           AnimationSpeed.fast => StageTokens.fastFactor,

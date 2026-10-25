@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/features/match/presentation/field/drag_feedback.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
@@ -18,8 +20,8 @@ typedef HandCard = ({CardInstance instance, CardFace face, bool enabled});
 /// краёв экрана 28 pt, чтобы повёрнутые крайние карты и скругления экрана не срезали медальоны. Когда шаг меньше
 /// 25 pt (12 карт и больше на экране 390 pt, 11 и больше на 360 pt), веер заменяется прокруткой с картами целиком; её
 /// листают и за сами карты (горизонтальный сдвиг), а вертикальный тянет карту на цель. Тап выбирает карту, долгое нажатие открывает просмотр, а сдвиг
-/// на 8 pt (в режиме прокрутки вертикальный, около 18 pt) начинает перетаскивание: карта следует за пальцем на 96 pt выше точки касания, цели ловят
-/// `DragTarget<CardInstance>`.
+/// на 8 pt (в режиме прокрутки вертикальный, около 18 pt) начинает перетаскивание: под пальцем идёт мини-карта
+/// (`DragFeedback`), цели ловят `DragTarget<CardInstance>`.
 class HandView extends StatefulWidget {
   /// Создаёт руку.
   const HandView({
@@ -30,6 +32,8 @@ class HandView extends StatefulWidget {
     required this.onTap,
     required this.onLongPress,
     required this.onDragStarted,
+    required this.onDragEnded,
+    required this.hover,
     this.hidden = const {},
   });
 
@@ -51,11 +55,17 @@ class HandView extends StatefulWidget {
   /// Карту начали тащить.
   final void Function(HandCard card) onDragStarted;
 
+  /// Карту отпустили: [accepted] — её принял `DragTarget`, иначе она вернулась в руку.
+  final void Function(HandCard card, {required bool accepted}) onDragEnded;
+
+  /// Палец с картой над целью: от этого зависит яркость карты под пальцем.
+  final ValueListenable<bool> hover;
+
   /// Карты, которые ещё летят в руку (анимации карт): место занято, карты не видно.
   final Set<CardInstanceId> hidden;
 
-  /// Смещение точки касания от левого верхнего угла перетаскиваемой карты: палец на 96 pt ниже верха карты.
-  static const Offset dragAnchor = Offset(38.5, 96);
+  /// Точка касания в перетаскиваемом виджете: палец в центре `DragFeedback`, мини-карта рядом с ним.
+  static const Offset dragAnchor = Offset(DragFeedback.side / 2, DragFeedback.side / 2);
 
   /// Верх карт веера на краях дуги; в центре карты ниже на [arcDepth].
   static const double fanTop = 16;
@@ -70,6 +80,9 @@ class HandView extends StatefulWidget {
 class _HandViewState extends State<HandView> {
   final Map<CardInstanceId, GlobalKey> _keys = {};
 
+  /// Где палец, пока карту тащат; `null`, когда не тащат.
+  final ValueNotifier<Offset?> _pointer = ValueNotifier(null);
+
   @override
   void didUpdateWidget(HandView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -82,6 +95,12 @@ class _HandViewState extends State<HandView> {
         }
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _pointer.dispose();
+    super.dispose();
   }
 
   @override
@@ -185,17 +204,17 @@ class _HandViewState extends State<HandView> {
       // Без affinity Draggable забирает жест сразу при касании и рука не листается за карты: с ней он ждёт движения
       // по своей оси, а горизонтальный сдвиг достаётся списку.
       affinity: axis,
-      dragAnchorStrategy: (_, _, _) => HandView.dragAnchor,
+      dragAnchorStrategy: (_, _, position) {
+        _pointer.value = position;
+        return HandView.dragAnchor;
+      },
       onDragStarted: () => widget.onDragStarted(card),
-      feedback: Transform.rotate(
-        angle: -3 * math.pi / 180,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            boxShadow: [BoxShadow(color: Color(0x99000000), offset: Offset(0, 14), blurRadius: 18)],
-          ),
-          child: GwentCard(face: card.face, size: CardSize.hand, highlight: CardHighlight.selected),
-        ),
-      ),
+      onDragUpdate: (details) => _pointer.value = details.globalPosition,
+      onDragEnd: (details) {
+        _pointer.value = null;
+        widget.onDragEnded(card, accepted: details.wasAccepted);
+      },
+      feedback: DragFeedback(face: card.face, over: widget.hover, pointer: _pointer),
       childWhenDragging: Opacity(opacity: 0.35, child: face),
       child: face,
     );

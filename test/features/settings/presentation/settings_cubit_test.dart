@@ -2,6 +2,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
+import 'package:gwent/src/features/haptics/application/play_haptic.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/settings/application/check_content_update.dart';
 import 'package:gwent/src/features/settings/application/load_about_info.dart';
 import 'package:gwent/src/features/settings/application/save_settings.dart';
@@ -30,6 +32,7 @@ void main() {
     ContentSource? source,
     Duration minCheck = Duration.zero,
     PlaySound? sound,
+    PlayHaptic? haptic,
   }) {
     final content = LoadGameContent(source ?? AssetContentSource.basePack(rootBundle));
     final repo = storage ?? repository;
@@ -40,6 +43,7 @@ void main() {
       checkContentUpdate: CheckContentUpdate(content, FakeClock(now)),
       minCheckDuration: minCheck,
       sound: sound,
+      haptic: haptic,
     );
     addTearDown(cubit.close);
     return cubit;
@@ -88,6 +92,23 @@ void main() {
     expect(repository.saved.confirmPass, isFalse);
     expect(repository.saved.animationSpeed, AnimationSpeed.fast);
     expect(repository.saved.hints, isFalse);
+  });
+
+  test('вибрация: выключатель сохраняется, при включении звучит образец', () async {
+    final output = RecordingHapticOutput();
+    final haptic = PlayHaptic(output, WatchSettings(repository));
+    addTearDown(haptic.dispose);
+    final cubit = newCubit(haptic: haptic);
+    await loaded(cubit);
+
+    cubit.setHaptics(value: false);
+    expect((cubit.state as SettingsLoaded).settings.haptics, isFalse);
+    expect(repository.saved.haptics, isFalse);
+    expect(output.played, isEmpty, reason: 'при выключении образца нет');
+
+    cubit.setHaptics(value: true);
+    expect(repository.saved.haptics, isTrue);
+    expect(output.played, [HapticPattern.medium], reason: 'образец играет, ещё не дождавшись записи');
   });
 
   test('громкость меняется в состоянии сразу, а в хранилище попадает после отпускания ползунка', () async {

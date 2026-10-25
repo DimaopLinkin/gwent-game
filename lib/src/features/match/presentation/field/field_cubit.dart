@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/haptics/application/play_haptic.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/stage/last_move_board.dart';
@@ -33,10 +35,16 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// Звуки партии (ADR 0023): звуки розыгрыша и конца раунда лежат в сценарии и играет их поле через [playSound];
 /// остальные держатель играет сам: знакомство, раздачу, пересдачу, баннеры, выбор карты, листы и отказы. Без [PlaySound]
 /// (тесты) партия идёт без звука.
+///
+/// Вибрация (ADR 0031): вибрацию событий подаёт [PlaySound] вместе со звуком; вибрацию прицеливания (вход в цель,
+/// выход, отпускание) поле подаёт через [vibrate]. Без [PlayHaptic] прицеливание молчит.
 final class FieldCubit extends Cubit<FieldState> {
   /// Создаёт держатель с пустым состоянием; [finishHold] — сколько поле держит конец партии (последний ход и счёт),
   /// прежде чем открыть итог матча.
-  FieldCubit({this.finishHold = defaultFinishHold, PlaySound? sound}) : _sound = sound, super(const FieldState());
+  FieldCubit({this.finishHold = defaultFinishHold, PlaySound? sound, PlayHaptic? haptic})
+    : _sound = sound,
+      _haptic = haptic,
+      super(const FieldState());
 
   /// Сколько поле держит конец партии по умолчанию.
   static const Duration defaultFinishHold = Duration(milliseconds: 2200);
@@ -48,6 +56,7 @@ final class FieldCubit extends Cubit<FieldState> {
   static const Duration stageGrace = Duration(milliseconds: 1500);
 
   final PlaySound? _sound;
+  final PlayHaptic? _haptic;
   Timer? _finishTimer;
   Timer? _stageTimer;
 
@@ -69,6 +78,9 @@ final class FieldCubit extends Cubit<FieldState> {
 
   /// Играет звук [effect]; без [PlaySound] ничего не делает.
   void playSound(SoundEffect effect) => _sound?.call(effect);
+
+  /// Подаёт вибрацию [pattern]; без [PlayHaptic] ничего не делает.
+  void vibrate(HapticPattern pattern) => _haptic?.call(pattern);
 
   /// Выбирает карту руки [id]; повторный выбор той же карты снимает выбор.
   void toggleSelected(CardInstanceId id) {
