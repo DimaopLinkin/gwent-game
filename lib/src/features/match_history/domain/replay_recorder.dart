@@ -46,13 +46,18 @@ final class NetworkReplayRecorder implements ReplayRecorder {
   /// Игрок увидел проекцию [view] и события [events]. В конце партии у хоста журнал уже полный.
   void add(PlayerView view, List<GameEvent> events) {
     if (_settled != null) return;
-    _frames.add((view: view, events: List.unmodifiable(events)));
+    // Журнал хоста всё хранит сам: кадры нужны только тому, у кого журнала нет.
+    if (_journal == null && !_repeats(view, events)) _frames.add((view: view, events: List.unmodifiable(events)));
     if (view.phase != MatchPhase.finished) return;
     _settled = switch (_journal?.record) {
       final record? => JournalReplayLog(record, perspective: perspective),
       null => FramesReplayLog(_frames, ruleset: ruleset, perspective: perspective),
     };
   }
+
+  /// Проекция после переподключения (снимок без событий) повторяет прежнюю и нового шага не даёт.
+  bool _repeats(PlayerView view, List<GameEvent> events) =>
+      events.isEmpty && _frames.isNotEmpty && _frames.last.view == view;
 
   @override
   ReplayLog? get log => _settled;

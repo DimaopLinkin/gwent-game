@@ -19,6 +19,8 @@ final class ReplayLogCodec {
 
   static const String _journal = 'journal';
   static const int _journalFormat = 1;
+  // Кадры лежат в проводном формате проекции и события (`gwent_net`): изменение этого формата повышает
+  // `_framesFormat`, а чтение старой версии остаётся (ADR 0029).
   static const String _frames = 'frames';
   static const int _framesFormat = 1;
 
