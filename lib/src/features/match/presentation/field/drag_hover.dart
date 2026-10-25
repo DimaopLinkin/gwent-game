@@ -20,37 +20,45 @@ abstract final class TargetHaptics {
 
 /// Над какой целью сейчас перетаскиваемая карта (макет 14): «над целью» или «не над целью».
 ///
-/// Цели сообщают о входе и выходе пальца через [enter] и [leave]. Состояние меняется после того, как отработали все
-/// сообщения одного движения: при переходе с цели на цель Flutter сначала сообщает о выходе из прежней, потом о входе
-/// в новую, а игроку это одно непрерывное «над целью». [onChanged] получает только настоящую смену состояния,
-/// поэтому вибрация входа и выхода не дребезжит.
+/// Цели сообщают о входе и выходе пальца через [enter] и [leave], называя себя (`target`: ряд, карта, полоса). Состояние
+/// решается после того, как отработали все сообщения одного движения: когда набор целей под пальцем меняется (например,
+/// палец вышел с пустого места ряда на карту этого же ряда), Flutter сначала сообщает о выходе из всех целей, потом о
+/// входе, а игроку это одно непрерывное «над целью». [onChanged] получает только настоящую смену состояния, поэтому
+/// вибрация входа и выхода не дребезжит. Если палец ушёл на другую цель, а «над целью» не менялось, зовётся
+/// [onSwitched].
 class DragHover extends ValueNotifier<bool> {
   /// Создаёт трекер без цели под пальцем.
-  DragHover({this.onChanged}) : super(false);
+  DragHover({this.onChanged, this.onSwitched}) : super(false);
 
   /// Состояние сменилось: палец вошёл в цель (`true`) или вышел из всех целей (`false`).
   final void Function({required bool over})? onChanged;
 
-  int _targets = 0;
+  /// Палец перешёл с одной цели на другую, не побывав вне целей: игрок должен это почувствовать, хотя «над целью» не
+  /// менялось. На ту же цель (в том числе через вложенную отвергающую карту) не зовётся.
+  final VoidCallback? onSwitched;
+
+  final Set<Object> _targets = {};
+  Set<Object> _settled = {};
   bool _settling = false;
   bool _disposed = false;
 
-  /// Палец вошёл в цель.
-  void enter() {
-    _targets++;
+  /// Палец вошёл в цель [target].
+  void enter(Object target) {
+    _targets.add(target);
     _settle();
   }
 
-  /// Палец вышел из цели.
-  void leave() {
-    if (_targets > 0) _targets--;
+  /// Палец вышел из цели [target].
+  void leave(Object target) {
+    _targets.remove(target);
     _settle();
   }
 
   /// Перетаскивание кончилось (карту отпустили или отменили): целей под пальцем больше нет. Об отпускании игрок
   /// узнаёт по своей вибрации, поэтому [onChanged] не зовётся.
   void reset() {
-    _targets = 0;
+    _targets.clear();
+    _settled = {};
     value = false;
   }
 
@@ -66,8 +74,15 @@ class DragHover extends ValueNotifier<bool> {
     scheduleMicrotask(() {
       _settling = false;
       if (_disposed) return;
-      final over = _targets > 0;
-      if (over == value) return;
+      final before = _settled;
+      final now = {..._targets};
+      _settled = now;
+      final over = now.isNotEmpty;
+      if (over == value) {
+        final same = before.length == now.length && before.containsAll(now);
+        if (over && !same) onSwitched?.call();
+        return;
+      }
       value = over;
       onChanged?.call(over: over);
     });

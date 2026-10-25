@@ -105,9 +105,13 @@ class _FieldViewState extends State<FieldView> {
   final GlobalKey _canvasKey = GlobalKey();
   final Map<bool, PlayerBarAnchors> _anchors = {true: PlayerBarAnchors(), false: PlayerBarAnchors()};
 
+  /// Как полоса погоды называет себя перед `DragHover`.
+  static const Object _stripTarget = 'strip';
+
   /// Над какой целью палец с картой: яркость карты под пальцем и вибрация входа и выхода (макет 14).
   late final DragHover _hover = DragHover(
     onChanged: ({required over}) => _cubit.vibrate(over ? TargetHaptics.enter : TargetHaptics.leave),
+    onSwitched: () => _cubit.vibrate(TargetHaptics.enter),
   );
 
   /// Карту тащат по-настоящему (цели есть, ход можно делать) и выбор поставило само перетаскивание.
@@ -490,10 +494,10 @@ class _FieldViewState extends State<FieldView> {
                         !widget.readOnly &&
                         !_blocked &&
                         PlayTargets.forCard(view, details.data, _catalog).highlightsStrip;
-                    if (accepts) _hover.enter();
+                    if (accepts) _hover.enter(_stripTarget);
                     return accepts;
                   },
-                  onLeave: (_) => _hover.leave(),
+                  onLeave: (_) => _hover.leave(_stripTarget),
                   onAcceptWithDetails: (details) {
                     if (PlayTargets.forCard(view, details.data, _catalog).atStrip() case final intent?) _play(intent);
                   },

@@ -62,6 +62,9 @@ class FieldRowView extends StatelessWidget {
   /// Ряд мой или соперника.
   final bool mine;
 
+  /// Как ряд называет себя перед `DragHover`: переход пальца на другой ряд отличается от движения внутри ряда.
+  Object get _target => (row: row, mine: mine);
+
   /// Ряд в проекции: карты, слот рога, погода, сила.
   final RowView data;
 
@@ -105,10 +108,10 @@ class FieldRowView extends StatelessWidget {
   final void Function(CardInstance card, int strength)? onCardLongPress;
 
   /// Палец с картой руки вошёл в цель ряда или карты на нём.
-  final VoidCallback? onDragEnter;
+  final void Function(Object target)? onDragEnter;
 
   /// Палец с картой руки вышел из цели ряда или карты на нём.
-  final VoidCallback? onDragLeave;
+  final void Function(Object target)? onDragLeave;
 
   /// Можно ли бросить карту руки на карту ряда [target] (Чучело).
   final bool Function(CardInstance card, CardInstance target)? canDropOnCard;
@@ -139,10 +142,10 @@ class FieldRowView extends StatelessWidget {
       child: DragTarget<CardInstance>(
         onWillAcceptWithDetails: (details) {
           final accepts = canDrop?.call(details.data) ?? false;
-          if (accepts) onDragEnter?.call();
+          if (accepts) onDragEnter?.call(_target);
           return accepts;
         },
-        onLeave: (_) => onDragLeave?.call(),
+        onLeave: (_) => onDragLeave?.call(_target),
         onAcceptWithDetails: (details) => onDrop?.call(details.data),
         builder: (context, candidates, _) => GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -380,8 +383,8 @@ class _FieldCard extends StatelessWidget {
   final bool isDecoyTarget;
   final bool Function(CardInstance card, CardInstance target)? canDrop;
   final void Function(CardInstance card, CardInstance target)? onDrop;
-  final VoidCallback? onDragEnter;
-  final VoidCallback? onDragLeave;
+  final void Function(Object target)? onDragEnter;
+  final void Function(Object target)? onDragLeave;
   final bool justPlayed;
   final void Function(CardInstance card)? onTap;
   final void Function(CardInstance card, int strength)? onLongPress;
@@ -418,10 +421,10 @@ class _FieldCard extends StatelessWidget {
             child: DragTarget<CardInstance>(
               onWillAcceptWithDetails: (details) {
                 final accepts = isDecoyTarget && (canDrop?.call(details.data, card) ?? false);
-                if (accepts) onDragEnter?.call();
+                if (accepts) onDragEnter?.call(card.id.value);
                 return accepts;
               },
-              onLeave: (_) => onDragLeave?.call(),
+              onLeave: (_) => onDragLeave?.call(card.id.value),
               onAcceptWithDetails: (details) => onDrop?.call(details.data, card),
               builder: (context, candidates, _) => Stack(
                 clipBehavior: Clip.none,
