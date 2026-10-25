@@ -124,6 +124,77 @@ void main() {
     expect(events.whereType<ViewChanged>(), isEmpty);
   });
 
+  test('поле конца раунда: карта вне справочника, лидер и числа проверяются как в проекции', () async {
+    SideView side({List<CardInstance> discard = const [], int handCount = 3, String leader = 'foltest_siege_scorch'}) {
+      final base = valid.opponent;
+      return SideView(
+        seat: base.seat,
+        leader: LeaderId(leader),
+        faction: base.faction,
+        leaderAvailable: false,
+        leaderUsed: false,
+        leaderDisabled: false,
+        crystals: base.crystals,
+        passed: true,
+        handCount: handCount,
+        deckCount: 5,
+        discard: discard,
+        rows: base.rows,
+        score: 0,
+        redrawDone: true,
+      );
+    }
+
+    RoundEnded ended(SideView side) => RoundEnded(
+      const RoundResult(round: 1, scores: {Seat.one: 1, Seat.two: 0}, winner: Seat.one),
+      board: RoundBoard(weather: const [], sides: {side.seat: side}),
+    );
+
+    send(MatchUpdate([ended(side())], valid));
+    await scheduler.flush();
+    expect(events.whereType<HostDataInvalid>(), isEmpty, reason: 'честное поле принимается');
+    expect(events.whereType<ViewChanged>(), hasLength(1));
+
+    send(
+      MatchUpdate([
+        ended(side(discard: const [CardInstance(CardInstanceId(99), CardId('ghost'))])),
+      ], valid),
+      seq: 2,
+    );
+    await scheduler.flush();
+    expect(events.whereType<HostDataInvalid>().single.problem, contains('ghost'));
+  });
+
+  test('поле конца раунда: огромный счётчик отвергается', () async {
+    final base = valid.opponent;
+    final side = SideView(
+      seat: base.seat,
+      leader: base.leader,
+      faction: base.faction,
+      leaderAvailable: false,
+      leaderUsed: false,
+      leaderDisabled: false,
+      crystals: 2,
+      passed: true,
+      handCount: 2000000000,
+      deckCount: 5,
+      discard: const [],
+      rows: base.rows,
+      score: 0,
+      redrawDone: true,
+    );
+    send(
+      MatchUpdate([
+        RoundEnded(
+          const RoundResult(round: 1, scores: {Seat.one: 1, Seat.two: 0}, winner: Seat.one),
+          board: RoundBoard(weather: const [], sides: {side.seat: side}),
+        ),
+      ], valid),
+    );
+    await scheduler.flush();
+    expect(events.whereType<HostDataInvalid>(), hasLength(1));
+  });
+
   test('проекция чужого места', () async {
     send(MatchSnapshot(tamper((json) => json['viewer'] = seat.opponent.wire)));
     await scheduler.flush();

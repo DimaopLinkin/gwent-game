@@ -2,19 +2,24 @@ import 'package:gwent_engine/gwent_engine.dart';
 
 /// Поле после последнего хода раунда, но до подсчёта: игрок видит этот ход, а потом начинаются итоги (ADR 0018).
 ///
-/// Таблица отдаёт только поле перед ходом ([closing]) и поле после уборки, поля между ними нет. Его собирают по
-/// событиям [moves] (всё, что случилось до [RoundEnded]): разыгранный отряд встаёт в ряд с базовой силой, и разница
-/// между суммой рядов и счётом из [result] ложится на ряд последнего вышедшего отряда, так что счёт сторон точный.
-/// Сила соседей по ряду (бонусы, погода) при этом не пересчитывается.
+/// Таблица отдаёт только поле перед ходом ([closing]) и поле после уборки, поля между ними нет. Если событие конца
+/// раунда принесло поле движка ([board]), берётся оно: ряды, слоты рога, погода, отбои и счёт ровно такие, какими
+/// их видел движок, для любого хода (отряд, особая карта, лидер, Чучело, Медик, Двойник). Руку игрока достраивают по
+/// событиям [moves]: её в событии нет.
 ///
-/// Возвращает `null`, если ход не сводится к отрядам, вышедшим из руки (особая карта, лидер, выбор, Двойник, Медик):
-/// тогда остаётся показ из [closing].
+/// Событие без поля (старая запись реплея, хост прежней сборки) читается по-старому: поле собирают по событиям
+/// [moves] (всё, что случилось до [RoundEnded]), разыгранный отряд встаёт в ряд с базовой силой, и разница между
+/// суммой рядов и счётом из [result] ложится на ряд последнего вышедшего отряда, так что счёт сторон точный. Сила
+/// соседей по ряду (бонусы, погода) при этом не пересчитывается. Если ход не сводится к отрядам, вышедшим из руки,
+/// возвращает `null`, и остаётся показ из [closing].
 PlayerView? boardAfterLastMove({
   required PlayerView closing,
   required List<GameEvent> moves,
   required RoundResult result,
   required CardCatalog catalog,
+  RoundBoard? board,
 }) {
+  if (board != null) return _fromRoundBoard(closing, moves, board);
   bool isUnit(CardInstance card) => catalog.card(card.cardId) is UnitCardDefinition;
   final plays = moves.whereType<CardPlayed>().toList();
   final shown = moves.every(
@@ -61,6 +66,71 @@ PlayerView? boardAfterLastMove({
     me: sides[closing.viewer]!.freeze(result.scores[closing.viewer] ?? 0),
     opponent: sides[closing.viewer.opponent]!.freeze(result.scores[closing.viewer.opponent] ?? 0),
     weather: closing.weather,
+    history: closing.history,
+  );
+}
+
+/// Поле движка [board] с рукой игрока, достроенной по событиям [moves]; `null`, если ход уже лежит в [closing].
+PlayerView? _fromRoundBoard(PlayerView closing, List<GameEvent> moves, RoundBoard board) {
+  final viewer = closing.viewer;
+  final mine = board.sides[viewer];
+  final theirs = board.sides[viewer.opponent];
+  if (mine == null || theirs == null) return null;
+  // Ходы относятся ровно к одному обновлению после [closing]: карта, уже лежащая на поле, значит, события повторяются.
+  final onField = {
+    for (final side in [closing.me, closing.opponent])
+      for (final row in side.rows.values)
+        for (final view in row.cards) view.card.id,
+  };
+  if (moves.any((event) => event is UnitPlaced && onField.contains(event.card.id))) return null;
+
+  final hand = [...?closing.me.hand];
+  for (final event in moves) {
+    switch (event) {
+      case CardPlayed(:final seat, :final card) when seat == viewer:
+        hand.removeWhere((candidate) => candidate.id == card.id);
+      case UnitPlaced(:final side, :final card, source: EntrySource.musterFromHand) when side == viewer:
+        hand.removeWhere((candidate) => candidate.id == card.id);
+      case CardDiscarded(:final owner, :final card) when owner == viewer:
+        hand.removeWhere((candidate) => candidate.id == card.id);
+      case CardsDrawn(:final seat, :final cards) when seat == viewer:
+        hand.addAll(cards);
+      case CardTakenFromDiscard(:final seat, :final card) when seat == viewer:
+        hand.add(card);
+      case UnitDecoyed(:final seat, :final returned) when seat == viewer:
+        hand.add(returned);
+      default:
+        break;
+    }
+  }
+
+  // Камни, лидер и пересдача остаются как были: потерю камня показывает подсчёт, а не ход.
+  SideView side(SideView from, SideView before, {List<CardInstance>? hand}) => SideView(
+    seat: from.seat,
+    leader: before.leader,
+    faction: before.faction,
+    leaderAvailable: before.leaderAvailable && !from.leaderUsed,
+    leaderUsed: from.leaderUsed,
+    leaderDisabled: from.leaderDisabled,
+    crystals: before.crystals,
+    passed: from.passed,
+    hand: hand,
+    handCount: from.handCount,
+    deckCount: from.deckCount,
+    discard: from.discard,
+    rows: from.rows,
+    score: from.score,
+    redrawDone: before.redrawDone,
+    redrawsLeft: before.redrawsLeft,
+  );
+  return PlayerView(
+    viewer: viewer,
+    phase: closing.phase,
+    round: closing.round,
+    roundStarter: closing.roundStarter,
+    me: side(mine, closing.me, hand: hand),
+    opponent: side(theirs, closing.opponent),
+    weather: board.weather,
     history: closing.history,
   );
 }

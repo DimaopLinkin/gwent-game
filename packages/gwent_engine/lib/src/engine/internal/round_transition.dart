@@ -5,6 +5,7 @@ import 'package:gwent_engine/src/engine/internal/board_score.dart';
 import 'package:gwent_engine/src/engine/internal/faction_perks.dart';
 import 'package:gwent_engine/src/engine/internal/field_rules.dart';
 import 'package:gwent_engine/src/engine/internal/match_context.dart';
+import 'package:gwent_engine/src/engine/internal/projector.dart';
 import 'package:gwent_engine/src/engine/internal/weather_rules.dart';
 import 'package:gwent_engine/src/event/game_event.dart';
 import 'package:gwent_engine/src/state/card_instance.dart';
@@ -19,13 +20,14 @@ import 'package:gwent_engine/src/state/seat.dart';
 
 /// Итог раунда, переход к следующему и конец партии (разделы 5.1, 6 и 7).
 final class RoundTransition {
-  const RoundTransition(this._ctx, this._field, this._score, this._weather, this._perks);
+  const RoundTransition(this._ctx, this._field, this._score, this._weather, this._perks, this._projector);
 
   final MatchContext _ctx;
   final FieldRules _field;
   final BoardScore _score;
   final WeatherRules _weather;
   final FactionPerks _perks;
+  final Projector _projector;
 
   /// Оба игрока спасовали: счёт, кристаллы, затем конец партии или следующий раунд.
   void endRound() {
@@ -42,7 +44,7 @@ final class RoundTransition {
     }
     final result = RoundResult(round: draft.round, scores: Map.unmodifiable(scores), winner: winner);
     draft.history.add(result);
-    _ctx.emit(RoundEnded(result));
+    _ctx.emit(RoundEnded(result, board: _projector.board()));
 
     final alive = [
       for (final seat in Seat.values)

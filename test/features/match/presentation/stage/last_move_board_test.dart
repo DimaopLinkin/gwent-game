@@ -140,4 +140,120 @@ void main() {
     );
     expect(board, isNull);
   });
+
+  group('поле движка в событии конца раунда', () {
+    RoundBoard boardWith({
+      required SideView mine,
+      required SideView theirs,
+      List<WeatherCard> weather = const [],
+    }) => RoundBoard(weather: weather, sides: {mine.seat: mine, theirs.seat: theirs});
+
+    PlayerView? boardFrom(PlayerView closing, List<GameEvent> moves, RoundBoard board) => boardAfterLastMove(
+      closing: closing,
+      moves: moves,
+      result: result(0, 0),
+      board: board,
+      catalog: content.catalog,
+    );
+
+    test('Командирский рог последним ходом: слот, удвоенные силы и счёт берутся из поля движка', () {
+      final old = cards.unit(Row.melee);
+      final horn = cards.special<HornCardAbility>();
+      final doubled = cards.strength(old) * 2;
+      final closing = closingOf(old, hand: [horn]);
+      final row = RowView(
+        cards: [FieldCardView(card: old, strength: doubled)],
+        slot: CardSlot(horn),
+        weather: false,
+        strength: doubled,
+      );
+      final board = boardFrom(
+        closing,
+        [CardPlayed(Seat.one, horn), SlotFilled(Seat.one, Row.melee, CardSlot(horn))],
+        boardWith(
+          mine: sideOf(cards, Seat.one, rows: {Row.melee: row}, score: doubled, passed: true),
+          theirs: sideOf(cards, Seat.two, handCount: 3, passed: true),
+        ),
+      )!;
+
+      expect(board.me.rows[Row.melee]!.slot, CardSlot(horn));
+      expect(board.me.rows[Row.melee]!.strength, doubled);
+      expect(board.me.rows[Row.melee]!.cards.single.strength, doubled);
+      expect(board.me.score, doubled);
+      expect(board.me.hand, isEmpty, reason: 'рог ушёл из руки');
+      expect(board.me.crystals, closing.me.crystals, reason: 'камень теряет подсчёт, а не ход');
+    });
+
+    test('погода, Казнь, лидер, Чучело и Медик тоже дают поле', () {
+      final old = cards.unit(Row.melee);
+      final other = cards.unit(Row.ranged);
+      final closing = closingOf(old, hand: [other]);
+      final empty = boardWith(
+        mine: sideOf(cards, Seat.one, passed: true),
+        theirs: sideOf(cards, Seat.two, handCount: 3, passed: true),
+      );
+      final special = cards.special<ScorchAbility>();
+      for (final moves in <List<GameEvent>>[
+        [CardPlayed(Seat.one, special)],
+        [LeaderUsed(Seat.one, closing.me.leader)],
+        [CardPlayed(Seat.one, other), UnitDecoyed(Seat.one, Row.melee, decoy: other, returned: old)],
+        [CardPlayed(Seat.one, other), UnitPlaced(Seat.one, Row.melee, cards.unit(Row.melee), EntrySource.medic)],
+        [
+          CardPlayed(Seat.one, other),
+          UnitPlaced(Seat.one, Row.melee, cards.unit(Row.melee), EntrySource.musterFromHand),
+        ],
+      ]) {
+        expect(boardFrom(closing, moves, empty), isNotNull, reason: '$moves');
+      }
+    });
+
+    test('рука: возвращённое Чучелом пополняет её, сыгранное и добранное учитываются', () {
+      final old = cards.unit(Row.melee);
+      final decoy = cards.special<DecoyAbility>();
+      final drawn = cards.unit(Row.ranged);
+      final closing = closingOf(old, hand: [decoy]);
+      final board = boardFrom(
+        closing,
+        [
+          CardPlayed(Seat.one, decoy),
+          UnitDecoyed(Seat.one, Row.melee, decoy: decoy, returned: old),
+          CardsDrawn(Seat.one, [drawn]),
+        ],
+        boardWith(
+          mine: sideOf(cards, Seat.one, passed: true),
+          theirs: sideOf(cards, Seat.two, handCount: 3, passed: true),
+        ),
+      )!;
+      expect(board.me.hand, [old, drawn]);
+    });
+
+    test('поле соперника скрывает его руку, погода и отбои берутся из поля движка', () {
+      final old = cards.unit(Row.melee);
+      final frost = cards.special<WeatherAbility>();
+      final board = boardFrom(
+        closingOf(old),
+        [CardPlayed(Seat.two, frost), WeatherPlayed(Seat.two, frost)],
+        boardWith(
+          mine: sideOf(cards, Seat.one, passed: true),
+          theirs: sideOf(cards, Seat.two, handCount: 2, passed: true),
+          weather: [WeatherCard(frost, Seat.two)],
+        ),
+      )!;
+      expect(board.weather.single.card, frost);
+      expect(board.opponent.hand, isNull);
+      expect(board.opponent.handCount, 2);
+    });
+
+    test('карта, которая уже лежит на поле, значит, события повторяются: поля нет', () {
+      final old = cards.unit(Row.melee);
+      expect(
+        boardFrom(
+          closingOf(old),
+          [CardPlayed(Seat.one, old), UnitPlaced(Seat.one, Row.melee, old, EntrySource.hand)],
+          boardWith(mine: sideOf(cards, Seat.one), theirs: sideOf(cards, Seat.two)),
+        ),
+        isNull,
+      );
+    });
+  });
 }

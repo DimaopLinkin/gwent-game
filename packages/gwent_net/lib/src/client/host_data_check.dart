@@ -32,6 +32,7 @@ String? findHostDataProblem(
   for (final event in events) {
     final problem = switch (event) {
       LeaderUsed(:final leader) => unknownLeader(leader),
+      RoundEnded(:final board?) => _boardProblem(board, unknownCard, unknownLeader),
       _ => _firstProblem(_eventCards(event), unknownCard),
     };
     if (problem != null) return problem;
@@ -49,14 +50,34 @@ String? _implausible(PlayerView view) {
   }
   if (view.round < 0 || view.round > _maxCount) return 'номер раунда ${view.round} вне допустимого';
   for (final side in [view.me, view.opponent]) {
-    final counts = [side.handCount, side.deckCount, side.crystals, side.score];
-    if (counts.any((count) => count < 0 || count > _maxCount)) return 'счётчик стороны вне допустимого';
-    if (Row.values.any((row) => side.rows[row] == null)) return 'в проекции нет рядов стороны';
-    for (final row in side.rows.values) {
-      if (row.strength < 0 || row.strength > _maxCount * _maxCount) return 'сила ряда вне допустимого';
-    }
+    final problem = _implausibleSide(side);
+    if (problem != null) return problem;
   }
   return null;
+}
+
+String? _implausibleSide(SideView side) {
+  final counts = [side.handCount, side.deckCount, side.crystals, side.score];
+  if (counts.any((count) => count < 0 || count > _maxCount)) return 'счётчик стороны вне допустимого';
+  if (Row.values.any((row) => side.rows[row] == null)) return 'в проекции нет рядов стороны';
+  for (final row in side.rows.values) {
+    if (row.strength < 0 || row.strength > _maxCount * _maxCount) return 'сила ряда вне допустимого';
+  }
+  return null;
+}
+
+/// Поле из события конца раунда: на нём экран гостя показывает последний ход, поэтому оно проверяется как проекция.
+String? _boardProblem(
+  RoundBoard board,
+  String? Function(CardInstance card) unknownCard,
+  String? Function(LeaderId leader) unknownLeader,
+) {
+  for (final side in board.sides.values) {
+    final problem =
+        _implausibleSide(side) ?? unknownLeader(side.leader) ?? _firstProblem(_sideCards(side), unknownCard);
+    if (problem != null) return problem;
+  }
+  return _firstProblem([for (final weather in board.weather) weather.card], unknownCard);
 }
 
 String? _firstProblem(Iterable<CardInstance> cards, String? Function(CardInstance card) check) {

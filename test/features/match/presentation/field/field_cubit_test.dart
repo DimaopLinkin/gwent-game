@@ -204,6 +204,64 @@ void main() {
       expect(cubit.state.stage, isNull);
     });
 
+    test('Командирский рог последним ходом доигрывается до подсчёта: сначала сценарий рога, затем итоги', () {
+      final old = cards.unit(Row.melee);
+      final horn = cards.special<HornCardAbility>();
+      final doubled = cards.strength(old) * 2;
+      final closing = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: [horn],
+          rows: {
+            Row.melee: rowOf([old], cards),
+          },
+          score: cards.strength(old),
+        ),
+      );
+      final row = RowView(
+        cards: [FieldCardView(card: old, strength: doubled)],
+        slot: CardSlot(horn),
+        weather: false,
+        strength: doubled,
+      );
+      final board = RoundBoard(
+        weather: const [],
+        sides: {
+          Seat.one: sideOf(cards, Seat.one, rows: {Row.melee: row}, score: doubled, passed: true),
+          Seat.two: sideOf(cards, Seat.two, handCount: 3, passed: true),
+        },
+      );
+      cubit.onMatchState(
+        progress(
+          viewOf(cards, round: 2, turn: Seat.two),
+          closing: closing,
+          events: [
+            CardPlayed(Seat.one, horn),
+            SlotFilled(Seat.one, Row.melee, CardSlot(horn)),
+            const Passed(Seat.one, auto: true),
+            RoundEnded(
+              RoundResult(round: 1, scores: {Seat.one: doubled, Seat.two: 0}, winner: Seat.one),
+              board: board,
+            ),
+            const RoundStarted(2, Seat.two),
+            const TurnStarted(Seat.two),
+          ],
+        ),
+      );
+
+      final lastMove = cubit.state.stage!;
+      expect(lastMove.board, isNotNull, reason: 'рог доигрывается на поле до подсчёта');
+      expect(lastMove.board!.me.rows[Row.melee]!.slot, CardSlot(horn));
+      expect(lastMove.frameAt(0).items.whereType<CountItem>(), isEmpty, reason: 'подсчёт ещё не начался');
+
+      cubit.endStage(lastMove.id);
+      final round = cubit.state.stage!;
+      expect(round.id, isNot(lastMove.id));
+      expect(round.frameAt(1500).items.whereType<CountItem>().single.mine.to, doubled);
+    });
+
     test('пас последним ходом поля не добавляет: подсчёт идёт сразу', () {
       cubit.onMatchState(
         progress(

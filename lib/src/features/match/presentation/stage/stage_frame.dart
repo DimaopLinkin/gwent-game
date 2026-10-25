@@ -427,6 +427,7 @@ final class StageFrame {
     this.discardTops = const {},
     this.flashes = const {},
     this.handHidden = const {},
+    this.handAbsent = const {},
     this.leaderUsed = const {},
     this.weatherSlots = const {},
     this.gems = const {},
@@ -452,6 +453,9 @@ final class StageFrame {
 
   /// Карты руки, которые ещё летят из колоды.
   final Set<CardInstanceId> handHidden;
+
+  /// Карты руки, которые ещё в колоде: рука для них места не держит и под них не сужена.
+  final Set<CardInstanceId> handAbsent;
 
   /// Способность лидера уже применена (мини-карта приглушена) на этот момент.
   final Map<bool, bool> leaderUsed;

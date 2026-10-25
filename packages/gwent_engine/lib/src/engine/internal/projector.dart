@@ -5,6 +5,7 @@ import 'package:gwent_engine/src/engine/internal/match_context.dart';
 import 'package:gwent_engine/src/state/match_phase.dart';
 import 'package:gwent_engine/src/state/seat.dart';
 import 'package:gwent_engine/src/view/player_view.dart';
+import 'package:gwent_engine/src/view/round_board.dart';
 
 /// Строит проекцию партии для одного игрока.
 final class Projector {
@@ -32,6 +33,12 @@ final class Projector {
       outcome: draft.outcome,
     );
   }
+
+  /// Открытое обоим игрокам поле, как оно лежит сейчас: событие конца раунда отдаёт его до уборки.
+  RoundBoard board() => RoundBoard(
+    weather: List.unmodifiable(_ctx.draft.weather),
+    sides: Map.unmodifiable({for (final seat in Seat.values) seat: _side(seat, own: false)}),
+  );
 
   SideView _side(Seat seat, {required bool own}) {
     final draft = _ctx.draft;

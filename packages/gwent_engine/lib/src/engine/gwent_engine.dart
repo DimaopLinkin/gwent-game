@@ -93,7 +93,8 @@ final class _Rules {
     final weather = WeatherRules(ctx);
     final scorch = ScorchRules(ctx, score, field);
     final legality = Legality(ctx, field);
-    final rounds = RoundTransition(ctx, field, score, weather, FactionPerks(ctx));
+    final projector = Projector(ctx, score, legality);
+    final rounds = RoundTransition(ctx, field, score, weather, FactionPerks(ctx), projector);
     final turns = TurnFlow(ctx, rounds, legality);
     final setup = MatchSetupRules(ctx, turns);
     return _Rules._(
@@ -105,7 +106,7 @@ final class _Rules {
       resolver: EffectResolver(ctx, field, EnterAbilities(ctx, scorch), weather, turns, setup.dealAndRedraw),
       cards: CardPlay(ctx, field, weather, scorch),
       leaders: LeaderActions(ctx, field, weather, scorch, legality, AgileOptimizer(ctx, field, score)),
-      projector: Projector(ctx, score, legality),
+      projector: projector,
     );
   }
 

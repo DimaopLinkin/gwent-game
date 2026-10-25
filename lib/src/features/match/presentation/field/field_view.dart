@@ -533,7 +533,8 @@ class _FieldViewState extends State<FieldView> {
                         geometry: geometry,
                         cards: [
                           for (final card in me.hand ?? const <CardInstance>[])
-                            (instance: card, face: _fieldContent.face(card), enabled: me.playable.contains(card.id)),
+                            if (!(frame?.handAbsent.contains(card.id) ?? false))
+                              (instance: card, face: _fieldContent.face(card), enabled: me.playable.contains(card.id)),
                         ],
                         selected: field.selected,
                         onTap: _tapHandCard,
@@ -615,6 +616,8 @@ class _FieldViewState extends State<FieldView> {
     };
     // Подсчёт, плашка итога и плашка исхода занимают середину полосы: статус под ними только мешал бы.
     final covered = frame?.items.any((item) => item is CountItem || item is PlaqueItem || item is MatchBannerItem);
+    // Пока идёт показ последних ходов партии, «Партия окончена» не пишется: она появляется после них.
+    final hidden = covered == true || (view.phase == MatchPhase.finished && field.stage != null);
     return WeatherStrip(
       slots: [
         for (final row in Row.values)
@@ -625,8 +628,8 @@ class _FieldViewState extends State<FieldView> {
                 : null,
           ),
       ],
-      status: covered == true ? '' : status,
-      hint: covered == true ? null : hint,
+      status: hidden ? '' : status,
+      hint: hidden ? null : hint,
       statusActive: active,
       round: view.round,
       isTarget: targets.highlightsStrip,

@@ -104,6 +104,20 @@ void main() {
       }
     });
 
+    test('конец раунда с полем проходит туда и обратно', () {
+      final view = engine.project(_started(), Seat.one);
+      final board = RoundBoard(
+        weather: const [WeatherCard(b, Seat.two)],
+        sides: {Seat.two: view.opponent},
+      );
+      final ended = RoundEnded(
+        const RoundResult(round: 3, scores: {Seat.one: 7, Seat.two: 6}, winner: Seat.one),
+        board: board,
+      );
+      final envelope = Envelope(MatchUpdate([ended], view), seq: 5);
+      expect(roundTrip(envelope), envelope);
+    });
+
     test('проекции партии проходят туда и обратно на каждом этапе', () {
       var state = _started();
       final views = <PlayerView>[];

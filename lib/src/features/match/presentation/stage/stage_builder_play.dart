@@ -420,7 +420,9 @@ extension _PlayScenes on StageScriptBuilder {
             size: CardSize.row,
           ),
         );
-      if (back is HandPlace) _beats.add(HandHideBeat(card: decoyed.returned.id, until: start + flight));
+      if (back is HandPlace) {
+        _beats.add(HandHideBeat(card: decoyed.returned.id, reserveAt: start, until: start + flight));
+      }
       end = start + flight + land;
     }
     _sound(SoundEffect.decoy, start + (_rm ? 0 : flight));

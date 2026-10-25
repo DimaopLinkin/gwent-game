@@ -82,6 +82,28 @@ void main() {
     });
   });
 
+  group('добор в руку', () {
+    test('место под карту открывается, когда она вылетает из колоды, а не с начала сценария', () {
+      final first = cards.unit(Row.melee);
+      final second = cards.unit(Row.ranged);
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: const []));
+      final next = viewOf(cards, me: sideOf(cards, Seat.one, hand: [first, second]));
+      final script = build(prev, next, [
+        CardsDrawn(Seat.one, [first, second]),
+      ]);
+      final twin = StageTokens.twin.toDouble();
+      final start = script.frameAt(0);
+      expect(start.handHidden, {first.id}, reason: 'первая карта вылетает сразу, её место занято');
+      expect(start.handAbsent, {second.id}, reason: 'вторая ещё в колоде: рука не сужена под неё');
+      final later = script.frameAt(twin + 1);
+      expect(later.handHidden, containsAll([second.id]));
+      expect(later.handAbsent, isEmpty);
+      final end = script.frameAt(script.duration);
+      expect(end.handHidden, isEmpty);
+      expect(end.handAbsent, isEmpty);
+    });
+  });
+
   group('Медик', () {
     test('шпиона Медик достаёт из своего сброса, а кладёт в ряд соперника', () {
       final medic = cards.medic();

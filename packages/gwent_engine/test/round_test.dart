@@ -41,6 +41,25 @@ void main() {
       expect(result.state.turn, Seat.one);
     });
 
+    test('в событии конца раунда лежит поле после последнего хода, до уборки', () {
+      final state = playing(
+        one: const Side(hand: ['horn'], melee: ['footman']),
+        two: const Side(hand: ['footman'], melee: ['footman'], passed: true),
+      );
+      final horn = find(state, Seat.one, 'horn');
+      final result = act(engine, state, Seat.one, PlayCard(horn, row: Row.melee));
+      // Рог — последний ход игрока 1 только после его паса; здесь оба спасовали, раунд закончил пас.
+      final passed = act(engine, result.state, Seat.one, const Pass());
+      final ended = passed.events.whereType<RoundEnded>().single;
+      final board = ended.board!;
+      expect(board.sides[Seat.one]!.rows[Row.melee]!.strength, 6, reason: 'рог удвоил ряд');
+      expect(board.sides[Seat.one]!.rows[Row.melee]!.slot, isA<CardSlot>());
+      expect(board.sides[Seat.one]!.score, 6);
+      expect(board.sides[Seat.two]!.rows[Row.melee]!.strength, 3);
+      expect(board.sides[Seat.one]!.hand, isNull, reason: 'рука соперника в событии не светится');
+      expect(passed.state.player(Seat.one).rows[Row.melee]!.cards, isEmpty, reason: 'в состоянии поле уже убрано');
+    });
+
     test('ничья без Нильфгаарда: оба теряют кристалл, начинает тот, кто начинал', () {
       final result = endRound(
         one: const Side(hand: ['footman'], melee: ['footman']),
