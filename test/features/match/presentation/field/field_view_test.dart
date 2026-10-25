@@ -408,6 +408,37 @@ void main() {
       await endBanners(tester);
     });
 
+    testWidgets('рог: переход с ряда на ряд даёт вибрацию входа, движение по картам одного ряда нет', (tester) async {
+      final horn = cards.special<HornCardAbility>();
+      final views = [for (var i = 0; i < 3; i++) FieldCardView(card: cards.unit(Row.melee), strength: 5)];
+      final melee = RowView(cards: views, slot: null, weather: false, strength: 15);
+      final harness = await pumpField(
+        tester,
+        viewOf(
+          cards,
+          me: sideOf(cards, Seat.one, hand: [horn], rows: {Row.melee: melee}),
+        ),
+      );
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -60));
+      await gesture.moveTo(emptyPart(Row.melee, mine: true));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(harness.haptics.played, [HapticPattern.soft]);
+
+      await gesture.moveTo(geometry.cardRect(Row.melee, 0, 3, mine: true).center);
+      await tester.pump(const Duration(milliseconds: 200));
+      await gesture.moveTo(emptyPart(Row.melee, mine: true));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(harness.haptics.played, [HapticPattern.soft], reason: 'ряд тот же: карты внутри него не смена цели');
+
+      await gesture.moveTo(emptyPart(Row.ranged, mine: true));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(harness.haptics.played, [HapticPattern.soft, HapticPattern.soft], reason: 'другой ряд: вибрация входа');
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 250));
+      await endBanners(tester);
+    });
+
     testWidgets('погода: тап по ряду не играет карту, а снимает выбор, играет только тап по полосе', (tester) async {
       final weather = cards.special<WeatherAbility>();
       final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [weather])));
