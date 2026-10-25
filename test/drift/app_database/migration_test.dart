@@ -130,6 +130,25 @@ void main() {
     expect(await fixed.select(fixed.activeDecks).get(), isEmpty);
     expect(schema.rawDatabase.select('PRAGMA user_version').single['user_version'], fixed.schemaVersion);
   });
+
+  for (final stored in ['true', 'false']) {
+    test(
+      'миграция с версии 3: сохранённое «Подтверждать пас» = $stored сбрасывается, остальные настройки целы',
+      () async {
+        final schema = await verifier.schemaAt(3);
+        schema.rawDatabase
+          ..execute("INSERT INTO settings VALUES ('confirm_pass', '$stored')")
+          ..execute("INSERT INTO settings VALUES ('music_volume', '40')")
+          ..execute("INSERT INTO settings VALUES ('player_name', 'Геральт')");
+
+        final db = AppDatabase(schema.newConnection());
+        addTearDown(db.close);
+
+        final rows = {for (final row in await db.select(db.settings).get()) row.key: row.value};
+        expect(rows, {'music_volume': '40', 'player_name': 'Геральт'});
+      },
+    );
+  }
 }
 
 /// База, у которой шаг обновления меняет схему и затем падает: проверяет, что обновление идёт одной транзакцией.

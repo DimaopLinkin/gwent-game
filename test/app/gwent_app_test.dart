@@ -193,14 +193,14 @@ void main() {
   });
 
   testWidgets('настройка «Подтверждать пас» доходит до экрана партии', (tester) async {
-    await pumpApp(tester);
+    await pumpApp(tester, settings: InMemorySettingsRepository()..saved = const AppSettings(confirmPass: true));
     await tester.tap(find.text(l10n.menuVsBot));
     await settleReal(tester);
     expect(tester.widget<MatchScreen>(find.byType(MatchScreen)).confirmPass, isTrue);
   });
 
-  testWidgets('выключенное «Подтверждать пас» оставляет на экране партии пас удержанием', (tester) async {
-    await pumpApp(tester, settings: InMemorySettingsRepository()..saved = const AppSettings(confirmPass: false));
+  testWidgets('по умолчанию на экране партии пас держат, а не подтверждают', (tester) async {
+    await pumpApp(tester);
     await tester.tap(find.text(l10n.menuVsBot));
     await settleReal(tester);
     expect(tester.widget<MatchScreen>(find.byType(MatchScreen)).confirmPass, isFalse);

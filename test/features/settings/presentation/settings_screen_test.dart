@@ -92,7 +92,7 @@ void main() {
     await pumpSettings(tester);
 
     final switches = tester.widgetList<Switch>(find.byType(Switch)).toList();
-    expect(switches.map((s) => s.value), [true, true, true]);
+    expect(switches.map((s) => s.value), [false, true, true], reason: 'пас по умолчанию держат, а не подтверждают');
     expect(find.text('70%'), findsOneWidget);
     expect(find.text('85%'), findsOneWidget);
   });
@@ -106,11 +106,11 @@ void main() {
     await tester.tap(find.text(l10n.settingsSpeedFast));
     await tester.pump();
 
-    expect(repository.saved.confirmPass, isFalse);
+    expect(repository.saved.confirmPass, isTrue);
     expect(repository.saved.hints, isFalse);
     expect(repository.saved.haptics, isFalse);
     expect(repository.saved.animationSpeed, AnimationSpeed.fast);
-    expect(tester.widgetList<Switch>(find.byType(Switch)).map((s) => s.value), [false, false, false]);
+    expect(tester.widgetList<Switch>(find.byType(Switch)).map((s) => s.value), [true, false, false]);
   });
 
   testWidgets('имя игрока вводится, обрезается до 20 символов и сохраняется без пробелов по краям', (tester) async {
