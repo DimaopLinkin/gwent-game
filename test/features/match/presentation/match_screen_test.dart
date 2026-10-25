@@ -434,6 +434,30 @@ void main() {
     });
   });
 
+  group('пересдача', () {
+    testWidgets('после последней замены рука с пришедшей картой держится, потом экран уходит дальше', (tester) async {
+      await pumpScreen(tester);
+      await startAndSkip(tester);
+      expect(find.byType(MatchRedrawView), findsOneWidget);
+
+      await tester.tap(find.byType(GwentCard).first);
+      await settle(tester);
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byType(GwentCard).at(1));
+      await settle(tester);
+
+      expect(find.text('Можно заменить: 0'), findsOneWidget, reason: 'замены кончились, а экран ещё на руке');
+      expect(find.byType(MatchRedrawView), findsOneWidget);
+      expect(find.byType(MatchRedrawWaitView), findsNothing);
+      expect(find.byType(FieldView), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump();
+      expect(find.byType(MatchRedrawView), findsNothing, reason: 'выдержка кончилась: ожидание соперника или поле');
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
   group('начало партии вдвоём на одном телефоне', () {
     testWidgets('руку нельзя показывать до подтверждения: сначала передача телефона', (tester) async {
       await pumpScreen(tester, mode: LocalMatchMode.hotSeat);
