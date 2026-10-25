@@ -991,6 +991,10 @@
   "@matchResultRematch": {
     "description": "Кнопка итога матча: сыграть заново."
   },
+  "matchResultChangeDeck": "Другая колода",
+  "@matchResultChangeDeck": {
+    "description": "Кнопка итога местного матча: вернуться к выбору фракции, лидера и колоды перед новой партией."
+  },
   "matchRematchRequested": "Ждём ответа соперника · {seconds} с",
   "@matchRematchRequested": {
     "description": "Итог сетевого матча: игрок предложил реванш, соперник ещё не ответил; сколько секунд осталось.",
