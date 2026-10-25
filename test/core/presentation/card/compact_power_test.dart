@@ -18,45 +18,54 @@ void main() {
   bool hasIcon(GwentIcon icon) =>
       find.byWidgetPredicate((widget) => widget is GwentIconView && widget.icon == icon).evaluate().isNotEmpty;
 
-  for (final width in const [12.0, 16.0, 28.0]) {
-    testWidgets('ширина ${width.toInt()} pt: число, стрелка и монета способности внутри полоски, ниже 74 pt', (
-      tester,
-    ) async {
-      await pump(
+  for (final look in PowerLook.values) {
+    for (final width in const [12.0, 16.0, 28.0]) {
+      testWidgets('$look, ширина ${width.toInt()} pt: медальон с кольцами и монета укладываются в полоску', (
         tester,
-        CompactPower(power: 12, look: PowerLook.buffed, width: width, ability: GwentIcon.abilityTightBond),
-      );
-      expect(tester.takeException(), isNull);
-      // Число рисуют два слоя (обводка и заливка), слой обводки скрыт от скринридера.
-      expect(find.text('12'), findsNWidgets(2));
-      expect(find.descendant(of: find.byType(CompactPower), matching: find.byType(ExcludeSemantics)), findsOneWidget);
-      expect(hasIcon(GwentIcon.iconPowerUp), isTrue);
-      expect(hasIcon(GwentIcon.abilityTightBond), isTrue);
-      final size = tester.getSize(find.byType(CompactPower));
-      expect(size.width, width - 1);
-      expect(size.height, lessThan(60));
-      // Монета вместе с ободком (0,75 pt с каждой стороны) не шире полоски: соседние монеты не налезают.
-      final coin = tester.getSize(find.byType(CardCoin));
-      expect(coin.width + 1.5, lessThanOrEqualTo(size.width));
-    });
+      ) async {
+        await pump(
+          tester,
+          CompactPower(power: 12, look: look, width: width, abilities: const [GwentIcon.abilityTightBond]),
+        );
+        expect(tester.takeException(), isNull);
+        expect(find.byType(PowerMedallion), findsOneWidget);
+        expect(find.text('12'), findsOneWidget);
+        expect(hasIcon(GwentIcon.abilityTightBond), isTrue);
+        // Стрелок усиления и ослабления в сжатом виде нет: состояние видно по цвету медальона.
+        expect(hasIcon(GwentIcon.iconPowerUp), isFalse);
+        expect(hasIcon(GwentIcon.iconPowerDown), isFalse);
+        final size = tester.getSize(find.byType(CompactPower));
+        expect(size.width, width - 1);
+        expect(size.height, lessThan(60));
+        // Кольца медальона (2 pt, у героя 3 pt) и ободок монеты (0,75 pt) рисуются тенями вокруг диска.
+        final disc = tester.getSize(find.byType(PowerMedallion));
+        expect(disc.width + 2 * (look == PowerLook.hero ? 3 : 2), lessThanOrEqualTo(size.width + 0.01));
+        final coin = tester.getSize(find.byType(CardCoin));
+        expect(coin.width + 1.5, lessThanOrEqualTo(size.width));
+      });
+    }
   }
 
-  testWidgets('без способности монеты нет, герой и базовая сила без стрелки', (tester) async {
-    for (final look in [PowerLook.base, PowerLook.hero]) {
-      await pump(tester, CompactPower(power: 7, look: look, width: 16));
-      expect(find.byType(CardCoin), findsNothing);
-      expect(hasIcon(GwentIcon.iconPowerUp), isFalse);
-      expect(hasIcon(GwentIcon.iconPowerDown), isFalse);
-    }
-  });
-
-  testWidgets('ослабленная карта показывает стрелку вниз', (tester) async {
-    await pump(tester, const CompactPower(power: 1, look: PowerLook.debuffed, width: 16));
-    expect(hasIcon(GwentIcon.iconPowerDown), isTrue);
+  testWidgets('без способностей монет нет, несколько способностей — по монете на каждую', (tester) async {
+    await pump(tester, const CompactPower(power: 7, look: PowerLook.base, width: 16));
+    expect(find.byType(CardCoin), findsNothing);
+    await pump(
+      tester,
+      const CompactPower(
+        power: 7,
+        look: PowerLook.base,
+        width: 16,
+        abilities: [GwentIcon.rowAgile, GwentIcon.abilitySpy],
+      ),
+    );
+    expect(find.byType(CardCoin), findsNWidgets(2));
   });
 
   testWidgets('нулевая ширина не падает', (tester) async {
-    await pump(tester, const CompactPower(power: 3, look: PowerLook.base, width: 0, ability: GwentIcon.abilitySpy));
+    await pump(
+      tester,
+      const CompactPower(power: 3, look: PowerLook.hero, width: 0, abilities: [GwentIcon.abilitySpy]),
+    );
     expect(tester.takeException(), isNull);
   });
 }

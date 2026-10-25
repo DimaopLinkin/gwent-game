@@ -17,6 +17,7 @@ import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
 import 'package:gwent/src/core/presentation/card/parts/spy_ribbon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
@@ -62,7 +63,7 @@ class GwentCard extends StatelessWidget {
   final GwentFaction? spyOwner;
 
   /// Ширина видимой полоски отряда в тесном ряду: пока карту закрывает следующая, вместо медальона и значков
-  /// рисуется сжатая сила со значком способности ([CompactPower]) этой ширины. Только для отряда размера [CardSize.row].
+  /// рисуется сжатая сила со значками способностей ([CompactPower]) этой ширины. Только для отряда размера [CardSize.row].
   final double? compactWidth;
 
   /// Касание.
@@ -220,17 +221,25 @@ class GwentCard extends StatelessWidget {
     );
     final compactWidth = this.compactWidth;
     final children = switch (face) {
-      UnitCardFace(:final power, :final basePower, :final isHero, :final ability)
-          when compactWidth != null && size == CardSize.row =>
+      UnitCardFace(:final power, :final basePower, :final isHero, :final row, :final ability)
+          when size == CardSize.row =>
+        // На столе значка ряда нет, остаются сила и способности (проворство — тоже способность).
         [
-          CompactPower(power: power, look: _powerLook(power, basePower, isHero), width: compactWidth, ability: ability),
+          if (compactWidth != null)
+            CompactPower(
+              power: power,
+              look: _powerLook(power, basePower, isHero),
+              width: compactWidth,
+              abilities: _tableAbilities(row, ability),
+            )
+          else ...[
+            PowerMedallion(power: power, look: _powerLook(power, basePower, isHero), metrics: m),
+            for (final icon in _tableAbilities(row, ability))
+              coin(CardCoin(icon: icon, look: CoinLook.brass, diameter: m.coin, iconSize: m.coinIcon)),
+          ],
         ],
       UnitCardFace(:final power, :final basePower, :final isHero, :final row, :final ability) => [
-        PowerMedallion(
-          power: power,
-          look: _powerLook(power, basePower, isHero),
-          metrics: m,
-        ),
+        PowerMedallion(power: power, look: _powerLook(power, basePower, isHero), metrics: m),
         coin(CardCoin(icon: row, look: CoinLook.dark, diameter: m.coin, iconSize: m.coinIcon)),
         if (ability != null)
           coin(CardCoin(icon: ability, look: CoinLook.brass, diameter: m.coin, iconSize: m.coinIcon)),
@@ -261,6 +270,11 @@ class GwentCard extends StatelessWidget {
       children: children,
     );
   }
+
+  static List<GwentIcon> _tableAbilities(GwentIcon row, GwentIcon? ability) => [
+    if (row == GwentIcon.rowAgile) row,
+    ?ability,
+  ];
 
   static PowerLook _powerLook(int power, int basePower, bool isHero) => isHero
       ? PowerLook.hero
