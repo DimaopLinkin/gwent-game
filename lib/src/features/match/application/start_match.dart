@@ -8,9 +8,11 @@ import 'package:gwent/src/features/match/domain/local_match_table.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent/src/features/match_history/domain/replay_recorder.dart';
 import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_content/gwent_content.dart' show ValidationIssue;
 import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/gwent_net.dart' show InMemoryMatchJournal, MatchRecord, Ruleset;
 import 'package:meta/meta.dart';
 
 /// Создаёт бота уровня `difficulty` для партии над движком и справочником карт; `seed` задаёт ошибки лёгкого уровня
@@ -167,19 +169,33 @@ final class StartMatch {
   StartMatchResult _start(LocalMatchRequest request, GameContent content, Map<Seat, app.Deck> decks) {
     final mode = request.mode;
     final engine = GwentEngine(content.catalog, rules: content.rules);
+    final seed = _seeds.next();
     final setup = MatchSetup(
       one: decks[Seat.one]!.toEngineDeck(),
       two: decks[Seat.two]!.toEngineDeck(),
-      rng: SeededRng(_seeds.next()),
+      rng: SeededRng(seed),
     );
     switch (engine.start(setup)) {
       case Rejected(:final reject):
         return MatchDeckInvalid(reject.seat!, reject.deckViolations);
       case Accepted(:final state, :final events):
+        // Журнал начинается до стола: стол пишет в него с первого хода (реплей, ADR 0029).
+        final manifest = content.pack.manifest;
+        final journal = InMemoryMatchJournal()
+          ..begin(
+            MatchRecord(
+              matchId: 'local-$seed',
+              ruleset: Ruleset(id: manifest.packId, hash: manifest.contentHash, engineVersion: engineVersion),
+              seed: seed,
+              one: setup.one,
+              two: setup.two,
+            ),
+          );
         final table = LocalMatchTable(
           engine: engine,
           state: state,
           startEvents: events,
+          journal: journal,
           agents: switch (mode) {
             LocalMatchMode.hotSeat => const {},
             LocalMatchMode.vsBot => {
@@ -200,6 +216,7 @@ final class StartMatch {
             content: content,
             factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId},
             deckNames: {for (final seat in Seat.values) seat: decks[seat]!.name},
+            recorder: JournalReplayRecorder(journal, perspective: Seat.one),
           ),
         );
     }

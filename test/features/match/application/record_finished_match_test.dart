@@ -5,7 +5,10 @@ import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' as history;
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
+import 'package:gwent/src/features/match_history/domain/replay_recorder.dart';
 import 'package:gwent_engine/gwent_engine.dart';
+import 'package:gwent_net/gwent_net.dart' as net;
 
 import '../../../support/fakes.dart';
 import '../../../support/match_fixtures.dart';
@@ -26,12 +29,18 @@ void main() {
     );
   });
 
-  MatchSession session(history.MatchMode mode, Set<Seat> localSeats, {String? opponentName}) => MatchSession(
+  MatchSession session(
+    history.MatchMode mode,
+    Set<Seat> localSeats, {
+    String? opponentName,
+    ReplayRecorder? recorder,
+  }) => MatchSession(
     mode: mode,
     table: _Table(localSeats),
     content: content,
     factionIds: const {Seat.one: 'skellige', Seat.two: 'monsters'},
     opponentName: opponentName,
+    recorder: recorder,
   );
 
   test('победа против бота: режим ai, фракции и раунды глазами первого места', () async {
@@ -77,6 +86,28 @@ void main() {
     expect((saved.roundsWon, saved.roundsLost), (0, 0));
   });
 
+  test('реплей записывается вместе с партией, без записи партии реплея нет', () async {
+    const deck = Deck(leader: LeaderId('l'), cards: [CardId('c')]);
+    const log = JournalReplayLog(
+      net.MatchRecord(
+        matchId: 'm',
+        ruleset: net.Ruleset(id: 'pack', hash: 'h', engineVersion: 1),
+        seed: 1,
+        one: deck,
+        two: deck,
+      ),
+      perspective: Seat.one,
+    );
+    final view = _finalView(winner: Seat.one, rounds: [Seat.one, Seat.one]);
+
+    final withReplay = await record(session(history.MatchMode.ai, {Seat.one}, recorder: const _Recorder(log)), view);
+    final without = await record(session(history.MatchMode.ai, {Seat.one}), view);
+
+    expect(withReplay.hasReplay, isTrue);
+    expect(repository.replays, {withReplay.id: log});
+    expect(without.hasReplay, isFalse);
+  });
+
   test('неоконченную партию записать нельзя', () {
     final view = _finalView(winner: Seat.one, rounds: const [], finished: false);
     expect(() => record(session(history.MatchMode.ai, {Seat.one}), view), throwsArgumentError);
@@ -118,6 +149,13 @@ PlayerView _finalView({
     ],
     outcome: finished ? MatchOutcome(winner: winner, reason: MatchEndReason.crystals) : null,
   );
+}
+
+final class _Recorder implements ReplayRecorder {
+  const _Recorder(this.log);
+
+  @override
+  final ReplayLog? log;
 }
 
 /// Стол, у которого важны только здешние места.

@@ -618,4 +618,17 @@ void main() {
     expect(cubit.state.sort, DiscardSort.byStrength);
     expect(cubit.state.isClean, isTrue);
   });
+
+  test('reset очищает поле реплея и заставляет заново объявлять раунд', () {
+    cubit.onMatchState(progress(viewOf(cards), events: const [RoundStarted(1, Seat.one)]));
+    cubit.select(const CardInstanceId(1));
+    expect(cubit.state.isClean, isFalse);
+
+    cubit.reset();
+    expect(cubit.state.isClean, isTrue);
+    expect(cubit.state.isBusy, isFalse);
+
+    cubit.onMatchState(progress(viewOf(cards), events: const [RoundStarted(1, Seat.one)]));
+    expect(cubit.state.banners, hasLength(1));
+  });
 }

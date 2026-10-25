@@ -1,7 +1,12 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/features/match_history/data/drift_match_history_repository.dart';
+import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
+import 'package:gwent_engine/gwent_engine.dart' show CardId, Deck, LeaderId, Pass, Seat;
+import 'package:gwent_net/gwent_net.dart' as net;
 
 import '../../../support/test_database.dart';
 
@@ -92,5 +97,77 @@ void main() {
       },
     );
     expect((await repository.watchAll().first).toSet(), written.toSet());
+  });
+
+  JournalReplayLog journal({Seat perspective = Seat.one}) => JournalReplayLog(
+    const net.MatchRecord(
+      matchId: 'local-7',
+      ruleset: net.Ruleset(id: 'pack', hash: 'abc', engineVersion: 1),
+      seed: 7,
+      one: Deck(leader: LeaderId('l1'), cards: [CardId('c1'), CardId('c2')]),
+      two: Deck(leader: LeaderId('l2'), cards: [CardId('c3')]),
+      moves: [net.RecordedMove(Seat.one, Pass())],
+    ),
+    perspective: perspective,
+  );
+
+  group('реплей', () {
+    test('партия с реплеем читается с признаком, реплей находится по идентификатору', () async {
+      final log = journal(perspective: Seat.two);
+      await repository.add(record('a', DateTime.utc(2026, 10)), replay: log);
+      await repository.add(record('b', DateTime.utc(2026, 10, 2)));
+
+      final records = await repository.watchAll().first;
+      expect({for (final record in records) record.id: record.hasReplay}, {'a': true, 'b': false});
+      expect(await repository.findReplay('a'), log);
+      expect(await repository.findReplay('b'), isNull);
+      expect(await repository.findReplay('нет'), isNull);
+      expect((await repository.findById('a'))?.hasReplay, isTrue);
+      expect(await repository.findById('нет'), isNull);
+    });
+
+    test('партия и реплей пишутся вместе: сбой записи реплея не оставляет сводку', () async {
+      await db
+          .into(db.matchReplays)
+          .insert(
+            MatchReplaysCompanion.insert(
+              recordId: 'b',
+              perspective: 'one',
+              kind: 'journal',
+              formatVersion: 1,
+              payload: '{}',
+            ),
+          );
+
+      await expectLater(repository.add(record('b', DateTime.utc(2026, 10, 2)), replay: journal()), throwsA(anything));
+
+      expect(await repository.watchAll().first, isEmpty);
+    });
+
+    test('повреждённая запись реплея даёт ReplayCorrupted', () async {
+      await repository.add(record('a', DateTime.utc(2026, 10)), replay: journal());
+      await (db.update(db.matchReplays)..where((row) => row.recordId.equals('a'))).write(
+        const MatchReplaysCompanion(payload: Value('{"match": 1}')),
+      );
+      await expectLater(repository.findReplay('a'), throwsA(isA<ReplayCorrupted>()));
+
+      await (db.update(db.matchReplays)..where((row) => row.recordId.equals('a'))).write(
+        const MatchReplaysCompanion(payload: Value('не json')),
+      );
+      await expectLater(repository.findReplay('a'), throwsA(isA<ReplayCorrupted>()));
+    });
+
+    test('неизвестный вид записи и версия формата дают ReplayCorrupted', () async {
+      await repository.add(record('a', DateTime.utc(2026, 10)), replay: journal());
+      await (db.update(db.matchReplays)..where((row) => row.recordId.equals('a'))).write(
+        const MatchReplaysCompanion(kind: Value('кадры')),
+      );
+      await expectLater(repository.findReplay('a'), throwsA(isA<ReplayCorrupted>()));
+
+      await (db.update(db.matchReplays)..where((row) => row.recordId.equals('a'))).write(
+        const MatchReplaysCompanion(kind: Value('journal'), formatVersion: Value(99)),
+      );
+      await expectLater(repository.findReplay('a'), throwsA(isA<ReplayCorrupted>()));
+    });
   });
 }

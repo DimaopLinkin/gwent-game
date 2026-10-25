@@ -2860,5 +2860,205 @@
   "netNoticeOnlineHostLostText": "Комната закрылась: вышел срок её жизни или пропала связь с сервисом. Создайте комнату заново.",
   "@netNoticeOnlineHostLostText": {
     "description": "Пояснение: хост потерял комнату до начала партии (игра через интернет)."
+  },
+  "menuHistory": "История партий",
+  "@menuHistory": {
+    "description": "Кнопка главного меню: история сыгранных партий и реплеи."
+  },
+  "historyEyebrow": "Меню",
+  "@historyEyebrow": {
+    "description": "Надпись над заголовком истории партий."
+  },
+  "historyTitle": "История партий",
+  "@historyTitle": {
+    "description": "Заголовок экрана истории партий."
+  },
+  "historyEmpty": "Партий пока нет. Сыграйте, и они появятся здесь.",
+  "@historyEmpty": {
+    "description": "Пустая история партий."
+  },
+  "historyLoadFailed": "Не удалось загрузить историю",
+  "@historyLoadFailed": {
+    "description": "Сообщение, когда история партий не читается."
+  },
+  "historyOutcomeVictory": "Победа",
+  "@historyOutcomeVictory": {
+    "description": "Метка партии в истории: игрок победил."
+  },
+  "historyOutcomeDefeat": "Поражение",
+  "@historyOutcomeDefeat": {
+    "description": "Метка партии в истории: игрок проиграл."
+  },
+  "historyOutcomeDraw": "Ничья",
+  "@historyOutcomeDraw": {
+    "description": "Метка партии в истории: ничья."
+  },
+  "historyModeHotSeat": "На одном телефоне",
+  "@historyModeHotSeat": {
+    "description": "Режим партии в истории: двое на одном телефоне."
+  },
+  "historyModeAi": "Против бота",
+  "@historyModeAi": {
+    "description": "Режим партии в истории: против бота."
+  },
+  "historyModeWifi": "По Wi-Fi",
+  "@historyModeWifi": {
+    "description": "Режим партии в истории: два телефона по Wi-Fi."
+  },
+  "historyModeBluetooth": "По Bluetooth",
+  "@historyModeBluetooth": {
+    "description": "Режим партии в истории: два телефона по Bluetooth."
+  },
+  "historyModeOnline": "Через интернет",
+  "@historyModeOnline": {
+    "description": "Режим партии в истории: через интернет."
+  },
+  "historyModeWithOpponent": "{mode} · {name}",
+  "@historyModeWithOpponent": {
+    "description": "Режим партии и имя соперника в строке истории.",
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "historyVersus": "{player} против {opponent}",
+  "@historyVersus": {
+    "description": "Фракции партии в истории: фракция игрока против фракции соперника.",
+    "placeholders": {
+      "player": {
+        "type": "String"
+      },
+      "opponent": {
+        "type": "String"
+      }
+    }
+  },
+  "historyRounds": "Раунды {won}:{lost}",
+  "@historyRounds": {
+    "description": "Счёт по раундам партии в истории.",
+    "placeholders": {
+      "won": {
+        "type": "int"
+      },
+      "lost": {
+        "type": "int"
+      }
+    }
+  },
+  "historyWhen": "{date}, {time}",
+  "@historyWhen": {
+    "description": "Дата и время окончания партии в истории.",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "MMMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+  "historyWatch": "Смотреть",
+  "@historyWatch": {
+    "description": "Подпись у партии в истории, у которой есть реплей."
+  },
+  "historyNoReplay": "Без реплея",
+  "@historyNoReplay": {
+    "description": "Подпись у партии в истории, у которой нет реплея (сыграна до их появления)."
+  },
+  "historyOpenSemantics": "Открыть реплей: {summary}",
+  "@historyOpenSemantics": {
+    "description": "Подпись для скринридера: открыть реплей партии из истории.",
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "replayTitle": "Реплей",
+  "@replayTitle": {
+    "description": "Заголовок экрана реплея, пока партия загружается или не открылась."
+  },
+  "replayMissing": "Реплея этой партии нет",
+  "@replayMissing": {
+    "description": "Сообщение, когда реплея у партии нет."
+  },
+  "replayContentChanged": "Реплей недоступен: набор карт обновился после этой партии",
+  "@replayContentChanged": {
+    "description": "Сообщение, когда реплей не открывается из-за обновления набора карт."
+  },
+  "replayCorrupted": "Реплей повреждён и не открывается",
+  "@replayCorrupted": {
+    "description": "Сообщение, когда запись реплея повреждена."
+  },
+  "replayContentUnavailable": "Набор карт не загрузился, реплей показать нельзя",
+  "@replayContentUnavailable": {
+    "description": "Сообщение, когда набор карт не загрузился и реплей не строится."
+  },
+  "replayClose": "Закрыть реплей",
+  "@replayClose": {
+    "description": "Подпись для скринридера: кнопка закрытия реплея."
+  },
+  "replayPlay": "Продолжить",
+  "@replayPlay": {
+    "description": "Подпись для скринридера: пуск реплея."
+  },
+  "replayPause": "Пауза",
+  "@replayPause": {
+    "description": "Подпись для скринридера: пауза реплея."
+  },
+  "replayStepBack": "Ход назад",
+  "@replayStepBack": {
+    "description": "Подпись для скринридера: шаг реплея назад."
+  },
+  "replayStepForward": "Ход вперёд",
+  "@replayStepForward": {
+    "description": "Подпись для скринридера: шаг реплея вперёд."
+  },
+  "replayRoundBack": "К началу раунда",
+  "@replayRoundBack": {
+    "description": "Подпись для скринридера: к началу раунда или предыдущего раунда."
+  },
+  "replayRoundForward": "К следующему раунду",
+  "@replayRoundForward": {
+    "description": "Подпись для скринридера: к началу следующего раунда."
+  },
+  "replaySpeed": "Скорость ×{speed}",
+  "@replaySpeed": {
+    "description": "Кнопка скорости реплея и подпись для скринридера.",
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "replayWatchAs": "Вид: {name}",
+  "@replayWatchAs": {
+    "description": "Кнопка выбора, чьими глазами смотреть реплей.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replayProgress": "Ход {current} из {total} · раунд {round}",
+  "@replayProgress": {
+    "description": "Положение в реплее.",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "round": {
+        "type": "int"
+      }
+    }
   }
 }

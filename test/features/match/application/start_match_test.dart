@@ -8,9 +8,11 @@ import 'package:gwent/src/features/match/application/start_match.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
 import 'package:gwent/src/features/match/domain/match_session.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' show MatchMode;
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
 import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_content/gwent_content.dart' show InMemoryContentSource;
 import 'package:gwent_engine/gwent_engine.dart' hide Deck;
+import 'package:gwent_net/gwent_net.dart' show RecordedMove;
 
 import '../../../support/fakes.dart';
 import '../../../support/match_fixtures.dart';
@@ -56,6 +58,28 @@ void main() {
       Seat.one: (await decks.findById('skellige'))!.name,
       Seat.two: (await decks.findById('monsters'))!.name,
     });
+  });
+
+  test('партия записывается для реплея: сид, колоды, набор правил и ходы человека', () async {
+    final session = await started(
+      const LocalMatchRequest(mode: LocalMatchMode.hotSeat, deckOne: 'skellige', deckTwo: 'monsters'),
+      seed: 77,
+    );
+
+    final begun = session.recorder!.log! as JournalReplayLog;
+    expect(begun.perspective, Seat.one);
+    expect(begun.journal.seed, 77);
+    expect(begun.journal.ruleset.hash, content.pack.manifest.contentHash);
+    expect(begun.journal.ruleset.engineVersion, engineVersion);
+    expect(begun.journal.moves, isEmpty);
+    expect(begun.journal.one.leader, isNotNull);
+
+    session.table.submit(Seat.one, const FinishRedraw());
+
+    final after = session.recorder!.log! as JournalReplayLog;
+    expect(after.journal.moves, const [RecordedMove(Seat.one, FinishRedraw())]);
+    final engine = GwentEngine(content.catalog, rules: content.rules);
+    expect(after.journal.replay(engine).player(Seat.one).redrawDone, isTrue);
   });
 
   test('колода бота берётся из запроса, а не из хранилища', () async {

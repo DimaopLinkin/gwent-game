@@ -44,6 +44,7 @@ final class MatchRecord {
     required this.roundsWon,
     required this.roundsLost,
     required this.finishedAt,
+    this.hasReplay = false,
   });
 
   /// Идентификатор записи.
@@ -73,6 +74,9 @@ final class MatchRecord {
   /// Момент окончания партии (UTC).
   final DateTime finishedAt;
 
+  /// У партии сохранён реплей; у партий, сыгранных до реплеев, и у сводок без записи его нет.
+  final bool hasReplay;
+
   @override
   bool operator ==(Object other) =>
       other is MatchRecord &&
@@ -84,7 +88,8 @@ final class MatchRecord {
       other.outcome == outcome &&
       other.roundsWon == roundsWon &&
       other.roundsLost == roundsLost &&
-      other.finishedAt == finishedAt;
+      other.finishedAt == finishedAt &&
+      other.hasReplay == hasReplay;
 
   @override
   int get hashCode => Object.hash(
@@ -97,6 +102,7 @@ final class MatchRecord {
     roundsWon,
     roundsLost,
     finishedAt,
+    hasReplay,
   );
 
   @override

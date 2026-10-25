@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:gwent/src/core/database/app_database.dart';
+import 'package:gwent/src/features/match_history/data/replay_log_codec.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart';
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
 
 /// История партий в базе Drift.
 ///
@@ -9,9 +11,10 @@ import 'package:gwent/src/features/match_history/domain/match_record.dart';
 /// в домене не трогает данные. Новый код добавляется в оба `switch`, старые коды не меняются никогда.
 final class DriftMatchHistoryRepository implements MatchHistoryRepository {
   /// Создаёт репозиторий над [database].
-  const DriftMatchHistoryRepository(this._db);
+  const DriftMatchHistoryRepository(this._db, {ReplayLogCodec codec = const ReplayLogCodec()}) : _codec = codec;
 
   final AppDatabase _db;
+  final ReplayLogCodec _codec;
 
   @override
   Stream<List<MatchRecord>> watchAll() {
@@ -21,22 +24,57 @@ final class DriftMatchHistoryRepository implements MatchHistoryRepository {
   }
 
   @override
-  Future<void> add(MatchRecord record) => _db
-      .into(_db.matchRecords)
-      .insert(
-        MatchRecordsCompanion.insert(
-          id: record.id,
-          mode: _modeCode(record.mode),
-          playerFactionId: record.playerFactionId,
-          opponentFactionId: record.opponentFactionId,
-          opponentName: Value(record.opponentName),
-          outcome: _outcomeCode(record.outcome),
-          roundsWon: record.roundsWon,
-          roundsLost: record.roundsLost,
-          // Сортировка идёт по тексту ISO-8601 и верна, только если все моменты записаны в UTC.
-          finishedAt: record.finishedAt.toUtc(),
-        ),
-      );
+  Future<MatchRecord?> findById(String id) async {
+    final row = await (_db.select(_db.matchRecords)..where((row) => row.id.equals(id))).getSingleOrNull();
+    return row == null ? null : _toRecord(row);
+  }
+
+  @override
+  Future<void> add(MatchRecord record, {ReplayLog? replay}) => _db.transaction(() async {
+    await _db
+        .into(_db.matchRecords)
+        .insert(
+          MatchRecordsCompanion.insert(
+            id: record.id,
+            mode: _modeCode(record.mode),
+            playerFactionId: record.playerFactionId,
+            opponentFactionId: record.opponentFactionId,
+            opponentName: Value(record.opponentName),
+            outcome: _outcomeCode(record.outcome),
+            roundsWon: record.roundsWon,
+            roundsLost: record.roundsLost,
+            // Сортировка идёт по тексту ISO-8601 и верна, только если все моменты записаны в UTC.
+            finishedAt: record.finishedAt.toUtc(),
+            hasReplay: Value(replay != null),
+          ),
+        );
+    if (replay != null) {
+      final encoded = _codec.encode(replay);
+      await _db
+          .into(_db.matchReplays)
+          .insert(
+            MatchReplaysCompanion.insert(
+              recordId: record.id,
+              perspective: encoded.perspective,
+              kind: encoded.kind,
+              formatVersion: encoded.formatVersion,
+              payload: encoded.payload,
+            ),
+          );
+    }
+  });
+
+  @override
+  Future<ReplayLog?> findReplay(String recordId) async {
+    final row = await (_db.select(_db.matchReplays)..where((row) => row.recordId.equals(recordId))).getSingleOrNull();
+    if (row == null) return null;
+    return _codec.decode((
+      perspective: row.perspective,
+      kind: row.kind,
+      formatVersion: row.formatVersion,
+      payload: row.payload,
+    ));
+  }
 
   MatchRecord _toRecord(MatchRecordRow row) => MatchRecord(
     id: row.id,
@@ -48,6 +86,7 @@ final class DriftMatchHistoryRepository implements MatchHistoryRepository {
     roundsWon: row.roundsWon,
     roundsLost: row.roundsLost,
     finishedAt: row.finishedAt,
+    hasReplay: row.hasReplay,
   );
 
   static String _modeCode(MatchMode mode) => switch (mode) {

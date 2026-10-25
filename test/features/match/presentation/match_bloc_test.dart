@@ -20,6 +20,7 @@ import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/match_history/domain/match_history_repository.dart';
 import 'package:gwent/src/features/match_history/domain/match_record.dart' as history;
+import 'package:gwent/src/features/match_history/domain/replay_log.dart';
 import 'package:gwent_ai/gwent_ai.dart';
 import 'package:gwent_engine/gwent_engine.dart' hide Deck;
 
@@ -921,7 +922,13 @@ final class _FailingHistory implements MatchHistoryRepository {
   Stream<List<history.MatchRecord>> watchAll() => const Stream.empty();
 
   @override
-  Future<void> add(history.MatchRecord record) => Future.error(StateError('диск полон'));
+  Future<void> add(history.MatchRecord record, {ReplayLog? replay}) => Future.error(StateError('диск полон'));
+
+  @override
+  Future<history.MatchRecord?> findById(String id) async => null;
+
+  @override
+  Future<ReplayLog?> findReplay(String recordId) async => null;
 }
 
 /// История, которая записывает партию, когда откроют [gate].
@@ -934,7 +941,13 @@ final class _GatedHistory implements MatchHistoryRepository {
   Stream<List<history.MatchRecord>> watchAll() => const Stream.empty();
 
   @override
-  Future<void> add(history.MatchRecord record) => _gate;
+  Future<void> add(history.MatchRecord record, {ReplayLog? replay}) => _gate;
+
+  @override
+  Future<history.MatchRecord?> findById(String id) async => null;
+
+  @override
+  Future<ReplayLog?> findReplay(String recordId) async => null;
 }
 
 /// Наблюдатель, который собирает ошибки держателей состояния.
