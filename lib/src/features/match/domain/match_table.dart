@@ -91,6 +91,12 @@ final class TableRematchAgreed extends TableUpdate {
   const TableRematchAgreed();
 }
 
+/// Стол, который можно поставить на паузу: пока она идёт, соперник без человека не ходит (местная партия с ботом).
+abstract interface class PausableTable implements MatchTable {
+  /// Включает ([paused] = `true`) или выключает паузу: на паузе бот не думает и не ходит, после неё продолжает.
+  void setPaused({required bool paused});
+}
+
 /// Стол, на котором после конца партии можно договориться о реванше (сетевая партия, ADR 0028).
 abstract interface class RematchTable implements MatchTable {
   /// Предлагает реванш или соглашается на предложение соперника. Итог придёт в [updates].

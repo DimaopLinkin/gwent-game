@@ -63,6 +63,15 @@ final class MatchRematchRequested extends MatchEvent {
   const MatchRematchRequested();
 }
 
+/// Игрок открыл или закрыл паузу матча: пока она открыта, бот за столом не думает и не ходит.
+final class MatchPauseChanged extends MatchEvent {
+  /// Создаёт событие.
+  const MatchPauseChanged({required this.paused});
+
+  /// Пауза открыта.
+  final bool paused;
+}
+
 /// Обновление со стола партии. Создаёт только сам держатель состояния.
 final class MatchTableUpdated extends MatchEvent {
   /// Создаёт событие.

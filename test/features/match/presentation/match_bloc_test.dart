@@ -357,6 +357,20 @@ void main() {
     expect(bloc.state, isA<MatchIdle>());
   });
 
+  test('пауза матча доходит до стола, который можно ставить на паузу; без сессии она ничего не делает', () async {
+    bloc.add(const MatchPauseChanged(paused: true));
+    await pumpEventQueue();
+
+    final table = _PausableFakeTable();
+    bloc.add(MatchSessionOpened(_session(table, content)));
+    await pumpEventQueue();
+    bloc
+      ..add(const MatchPauseChanged(paused: true))
+      ..add(const MatchPauseChanged(paused: false));
+    await pumpEventQueue();
+    expect(table.pauses, [true, false]);
+  });
+
   test('жребий: после знакомства экран называет, кто ходит первым, и только потом показывает пересдачу', () async {
     final table = _FakeTable();
     final states = <MatchScreenState>[];
@@ -857,6 +871,14 @@ PlayerView _finishedView(GameContent content) {
           as Accepted;
   final end = engine.apply(start.state, Seat.one, const Resign()) as Accepted;
   return engine.project(end.state, Seat.one);
+}
+
+/// Стол местной партии: запоминает, как его ставили на паузу.
+final class _PausableFakeTable extends _FakeTable implements PausableTable {
+  final List<bool> pauses = [];
+
+  @override
+  void setPaused({required bool paused}) => pauses.add(paused);
 }
 
 /// Стол сетевой партии: считает запросы реванша.

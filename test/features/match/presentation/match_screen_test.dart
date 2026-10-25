@@ -58,6 +58,7 @@ void main() {
   late int exits;
   late List<String> edited;
   late MatchSetupCubit setupCubit;
+  late List<MatchEvent> events;
   late AppLocalizations l10n;
 
   setUpAll(() async {
@@ -67,6 +68,11 @@ void main() {
   });
 
   setUp(() {
+    events = [];
+    // Держатель запоминает наблюдателя при создании, поэтому ставим его до `MatchBloc`.
+    final observer = Bloc.observer;
+    Bloc.observer = _EventObserver(events);
+    addTearDown(() => Bloc.observer = observer);
     exits = 0;
     edited = [];
     matches = InMemoryMatchHistoryRepository();
@@ -384,6 +390,27 @@ void main() {
       expect(matches.records.single.outcome, history.MatchOutcome.defeat);
     });
 
+    testWidgets('пауза матча сообщает держателю партии: открыта — бот стоит, закрыта — продолжает', (tester) async {
+      await pumpScreen(tester);
+      await startAndSkip(tester);
+      await tester.tap(find.text('Готово'));
+      await settle(tester);
+      await endBanners(tester);
+
+      await tester.tap(find.bySemanticsLabel('Пауза'));
+      await tester.pump(const Duration(milliseconds: 250));
+      // Правила и подтверждение сдачи тоже пауза: бот не оживает, пока игрок листает меню.
+      await tester.tap(find.text('Сдаться'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(events.whereType<MatchPauseChanged>().map((event) => event.paused), [true]);
+
+      await tester.tap(find.text('Отмена'));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.text('Продолжить'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(events.whereType<MatchPauseChanged>().map((event) => event.paused), [true, false]);
+    });
+
     testWidgets('пауза: «Настройки» открывают настройки, партия остаётся на паузе', (tester) async {
       var opened = 0;
       await pumpScreen(tester, onSettings: () => opened++);
@@ -527,4 +554,17 @@ final class _FakeTable implements MatchTable {
 
   @override
   Future<void> close() => _updates.close();
+}
+
+/// Наблюдатель, который собирает события держателей состояния.
+final class _EventObserver extends BlocObserver {
+  _EventObserver(this._events);
+
+  final List<MatchEvent> _events;
+
+  @override
+  void onEvent(Bloc<dynamic, dynamic> bloc, Object? event) {
+    if (event is MatchEvent) _events.add(event);
+    super.onEvent(bloc, event);
+  }
 }

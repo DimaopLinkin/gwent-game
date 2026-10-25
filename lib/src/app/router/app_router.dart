@@ -329,6 +329,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   // Конструктор открывается поверх выбора, а не вместо него: после правки игрок возвращается к тому же шагу.
                   onEditDeck: (deckId) => context.push(AppRoutes.deckEdit(deckId)),
                   onSettings: () => context.push(AppRoutes.settings),
+                  confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
                   animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
                     AnimationSpeed.normal => 1,
                     AnimationSpeed.fast => StageTokens.fastFactor,
@@ -399,6 +400,7 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
         onRematchAgreed: () => context.go(AppRoutes.playRoom),
         onEditDeck: (_) {},
         onSettings: () => context.push(AppRoutes.settings),
+        confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
         animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
           AnimationSpeed.normal => 1,
           AnimationSpeed.fast => StageTokens.fastFactor,

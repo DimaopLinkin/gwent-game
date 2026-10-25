@@ -10,7 +10,9 @@ import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
+import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
+import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
@@ -40,6 +42,7 @@ void main() {
     ContentSource? source,
     bool reduceMotion = true,
     bool settle = true,
+    InMemorySettingsRepository? settings,
   }) async {
     if (reduceMotion) {
       tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
@@ -56,7 +59,7 @@ void main() {
           contentSource: source ?? AssetContentSource.basePack(rootBundle),
           appInfo: const FakeAppInfo('1.2.3'),
           deckRepository: decks,
-          settingsRepository: InMemorySettingsRepository(),
+          settingsRepository: settings ?? InMemorySettingsRepository(),
           matchHistoryRepository: InMemoryMatchHistoryRepository(),
           clock: FakeClock(DateTime.utc(2026, 10, 11)),
           idGenerator: SequentialIdGenerator(),
@@ -170,6 +173,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GwentLogo), findsOneWidget);
     await openSettingsAndReturn(tester);
+  });
+
+  testWidgets('настройка «Подтверждать пас» доходит до экрана партии', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(l10n.menuVsBot));
+    await settleReal(tester);
+    expect(tester.widget<MatchScreen>(find.byType(MatchScreen)).confirmPass, isTrue);
+  });
+
+  testWidgets('выключенное «Подтверждать пас» оставляет на экране партии пас удержанием', (tester) async {
+    await pumpApp(tester, settings: InMemorySettingsRepository()..saved = const AppSettings(confirmPass: false));
+    await tester.tap(find.text(l10n.menuVsBot));
+    await settleReal(tester);
+    expect(tester.widget<MatchScreen>(find.byType(MatchScreen)).confirmPass, isFalse);
   });
 
   testWidgets('настройки, открытые поверх экрана партии: «назад» возвращает на этот экран, а не в меню', (

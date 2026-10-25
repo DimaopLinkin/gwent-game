@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:gwent/src/features/match/domain/awaited_action.dart';
+import 'package:gwent/src/features/match/domain/match_pause.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent_engine/gwent_engine.dart';
@@ -16,9 +17,12 @@ import 'package:gwent_net/gwent_net.dart' show MatchJournal, RecordedMove;
 /// и он решает заново по новому состоянию. Если агент ошибся (движок отклонил его ход, агент бросил исключение
 /// или не ходит, когда партия ждёт его), приходит `TableFailed`.
 ///
+/// На паузе ([setPaused]) агенты не ходят: решение, которое пришло за время паузы, ждёт её конца. Чтобы бот не думал на
+/// паузе, [pause] отдают и его агенту ([BotAgent]).
+///
 /// Каждое принятое движком намерение стол дописывает в [journal] (если он есть): из журнала партия потом показывается
 /// заново (реплей, ADR 0029). Начать журнал (`begin`) должен тот, кто создаёт стол, до первого хода.
-final class LocalMatchTable implements MatchTable {
+final class LocalMatchTable implements PausableTable {
   /// Создаёт стол над партией, которую начал движок: [state] и события [startEvents] из `MatchEngine.start`.
   LocalMatchTable({
     required MatchEngine engine,
@@ -26,8 +30,10 @@ final class LocalMatchTable implements MatchTable {
     required List<GameEvent> startEvents,
     Map<Seat, SeatAgent> agents = const {},
     MatchJournal? journal,
+    MatchPause? pause,
   }) : _engine = engine,
        _state = state,
+       _pause = pause ?? MatchPause(),
        _journal = journal,
        _agents = Map.unmodifiable(agents),
        localSeats = Set.unmodifiable({
@@ -42,6 +48,7 @@ final class LocalMatchTable implements MatchTable {
   final MatchEngine _engine;
   final Map<Seat, SeatAgent> _agents;
   final MatchJournal? _journal;
+  final MatchPause _pause;
   final StreamController<TableUpdate> _updates = StreamController();
   MatchState _state;
   bool _driving = false;
@@ -70,7 +77,11 @@ final class LocalMatchTable implements MatchTable {
   }
 
   @override
+  void setPaused({required bool paused}) => _pause.setPaused(paused: paused);
+
+  @override
   Future<void> close() async {
+    _pause.setPaused(paused: false);
     if (_closed) return;
     _closed = true;
     // Не ждём: без подписчика поток не завершится, а закрытие стола от этого не зависит.
@@ -88,6 +99,7 @@ final class LocalMatchTable implements MatchTable {
         for (final MapEntry(key: seat, value: agent) in _agents.entries) {
           final before = _state;
           final intent = await agent.decide(before, seat);
+          await _pause.untilResumed();
           if (_closed) return;
           if (!identical(_state, before)) {
             // Партия изменилась, пока агент думал: его решение относится к старому состоянию.

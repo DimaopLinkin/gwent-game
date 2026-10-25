@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/deck_builder/domain/engine_deck.dart';
 import 'package:gwent/src/features/match/domain/local_match_table.dart';
+import 'package:gwent/src/features/match/domain/match_pause.dart';
 import 'package:gwent/src/features/match/domain/match_table.dart';
 import 'package:gwent/src/features/match/domain/seat_agent.dart';
 import 'package:gwent_ai/gwent_ai.dart';
@@ -211,6 +212,68 @@ void main() {
     final silent = table(agents: {Seat.two: _ScriptedAgent()});
     final failed = await silent.updates.firstWhere((update) => update is TableFailed) as TableFailed;
     expect(failed.error, isA<StateError>());
+  });
+
+  group('пауза', () {
+    testWidgets('бот на паузе не думает и не ходит, после паузы доделывает оставшееся время', (tester) async {
+      final pause = MatchPause();
+      final vsBot = LocalMatchTable(
+        engine: engine,
+        state: start.state,
+        startEvents: start.events,
+        pause: pause,
+        agents: {Seat.two: BotAgent(GreedyBot(engine, content.catalog), pause: pause)},
+      );
+      // Время идёт шагами: цепочку таймеров паузы одним большим pump тест не пройдёт.
+      Future<void> elapse(int milliseconds) async {
+        for (var passed = 0; passed < milliseconds; passed += 50) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+      }
+
+      await elapse(300);
+      vsBot.setPaused(paused: true);
+      await elapse(300000);
+      expect(vsBot.state, start.state, reason: 'за время паузы бот не ходит');
+
+      vsBot.setPaused(paused: false);
+      await elapse(300);
+      expect(vsBot.state, start.state, reason: 'от 700 мс думания осталось ещё 400');
+      await elapse(200);
+      expect(vsBot.state, isNot(start.state), reason: 'после паузы бот сделал свой первый ход');
+
+      // Бот уже думает над следующим ходом: стол закрывается, и таймер доходит до конца.
+      await vsBot.close();
+      await elapse(1000);
+    });
+
+    test('решение, пришедшее на паузе, применяется только после неё', () async {
+      final agent = _GatedAgent();
+      final vsAgent = table(agents: {Seat.two: agent});
+      await pumpEventQueue();
+
+      vsAgent.setPaused(paused: true);
+      agent.answer(const FinishRedraw());
+      await pumpEventQueue();
+      expect(vsAgent.state.player(Seat.two).redrawDone, isFalse);
+
+      vsAgent.setPaused(paused: false);
+      await pumpEventQueue();
+      expect(vsAgent.state.player(Seat.two).redrawDone, isTrue);
+    });
+
+    test('закрытие стола на паузе отпускает ожидающего агента без хода', () async {
+      final agent = _GatedAgent();
+      final vsAgent = table(agents: {Seat.two: agent});
+      await pumpEventQueue();
+      vsAgent.setPaused(paused: true);
+      agent.answer(const FinishRedraw());
+      await pumpEventQueue();
+
+      await vsAgent.close();
+      await pumpEventQueue();
+      expect(vsAgent.state.player(Seat.two).redrawDone, isFalse);
+    });
   });
 
   test('полная партия: человек против жадного бота доходит до итога', () async {
