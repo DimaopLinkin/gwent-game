@@ -6,10 +6,14 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/card_detail_view.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
+import 'package:gwent/src/core/presentation/card/parts/compact_power.dart';
+import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
 import 'package:gwent/src/core/presentation/components/card_pile.dart';
 import 'package:gwent/src/core/presentation/components/pass_button.dart';
 import 'package:gwent/src/core/presentation/components/row_score_pill.dart';
 import 'package:gwent/src/core/presentation/components/weather_strip.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/presentation/field/banner_layer.dart';
@@ -119,6 +123,71 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(milliseconds: 300));
   }
+
+  group('тесный ряд', () {
+    /// Ряд из [count] карт: по кругу базовая, усиленная, ещё сильнее, ослабленная и герой.
+    RowView crowded(int count) {
+      final views = <FieldCardView>[];
+      for (var i = 0; i < count; i++) {
+        final card = i % 5 == 4 ? cards.hero() : cards.unit(Row.melee);
+        final base = cards.strength(card);
+        views.add(FieldCardView(card: card, strength: base + const [0, 1, 3, -1, 0][i % 5]));
+      }
+      return RowView(cards: views, slot: null, weather: false, strength: views.fold(0, (sum, v) => sum + v.strength));
+    }
+
+    for (final size in const [Size(393, 852), Size(360, 780)]) {
+      testWidgets('19 карт на экране ${size.width.toInt()} pt: сила и стрелка каждой карты в видимой полоске', (
+        tester,
+      ) async {
+        final row = crowded(19);
+        await pumpField(
+          tester,
+          viewOf(cards, me: sideOf(cards, Seat.one, rows: {Row.melee: row})),
+          size: size,
+        );
+        expect(tester.takeException(), isNull);
+        final field = FieldGeometry(width: size.width);
+        final compact = find.byType(CompactPower);
+        expect(compact, findsNWidgets(18), reason: 'последняя карта открыта целиком');
+        final step = field.cardStep(19);
+        final pills = tester.widgetList<CompactPower>(compact).toList();
+        final rects = [for (final element in compact.evaluate()) tester.getRect(find.byWidget(element.widget))];
+        for (var i = 0; i < pills.length; i++) {
+          final view = row.cards[i];
+          final base = cards.strength(view.card);
+          // Таблетка внутри видимой полоски карты: следующая карта её не закрывает.
+          expect(rects[i].width, closeTo(step - 1, 0.5));
+          if (i > 0) expect(rects[i].left, greaterThanOrEqualTo(rects[i - 1].right));
+          expect(pills[i].power, view.strength, reason: 'карта $i');
+          expect(
+            pills[i].look,
+            i % 5 == 4
+                ? PowerLook.hero
+                : view.strength > base
+                ? PowerLook.buffed
+                : view.strength < base
+                ? PowerLook.debuffed
+                : PowerLook.base,
+            reason: 'карта $i',
+          );
+        }
+        // Стрелки усиления и ослабления есть у каждой сжатой карты, которая изменилась.
+        int arrows(GwentIcon icon) => find
+            .descendant(of: compact, matching: find.byWidgetPredicate((w) => w is GwentIconView && w.icon == icon))
+            .evaluate()
+            .length;
+        expect(arrows(GwentIcon.iconPowerUp), pills.where((p) => p.look == PowerLook.buffed).length);
+        expect(arrows(GwentIcon.iconPowerDown), pills.where((p) => p.look == PowerLook.debuffed).length);
+        expect(arrows(GwentIcon.iconPowerDown), greaterThan(0));
+      });
+    }
+
+    testWidgets('в ряду из шести карт медальоны остаются полными', (tester) async {
+      await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, rows: {Row.melee: crowded(6)})));
+      expect(find.byType(CompactPower), findsNothing);
+    });
+  });
 
   group('розыгрыш из руки', () {
     testWidgets('отряд: тап по карте выбирает её, тап по подсвеченному ряду играет в него', (tester) async {
