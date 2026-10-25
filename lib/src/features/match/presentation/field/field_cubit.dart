@@ -174,6 +174,7 @@ final class FieldCubit extends Cubit<FieldState> {
           MatchIntro() ||
           MatchToss() ||
           MatchHandover() ||
+          MatchRedrawSettled() ||
           MatchFinished() ||
           MatchCrashed():
         // Телефон ушёл другому игроку или партия закончилась: чужие выбор, листы, тосты и баннеры не переносятся.
@@ -183,6 +184,7 @@ final class FieldCubit extends Cubit<FieldState> {
         if (!state.isClean) emit(const FieldState());
         if (match is MatchIntro || match is MatchStarting) _forget();
         if (match is MatchIntro) playSound(SoundEffect.matchOpening);
+        if (match is MatchRedrawSettled && match.events.isNotEmpty) playSound(SoundEffect.redraw);
     }
   }
 

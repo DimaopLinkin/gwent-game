@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/material.dart' hide Intent;
@@ -80,11 +81,14 @@ class _MatchScreenState extends State<MatchScreen> {
 
   bool _releasing = false;
 
+  /// Выдержка после последней замены при пересдаче: пока она идёт, следующее состояние ждёт в очереди.
+  Timer? _redrawHold;
+
   /// Системное «назад» уводит из партии только до её начала и после конца. Посреди партии оно не выходит молча:
   /// на поле его перехватывает пауза (`FieldView`), на остальных экранах старта выхода нет, чтобы не потерять партию.
   bool _canLeave(MatchScreenState state) => switch (state) {
     MatchIdle() || MatchStarting() || MatchStartFailed() || MatchFinished() || MatchCrashed() => true,
-    MatchIntro() || MatchToss() || MatchHandover() || MatchInProgress() => false,
+    MatchIntro() || MatchToss() || MatchHandover() || MatchRedrawSettled() || MatchInProgress() => false,
   };
 
   /// Идёт партия: поле, пересдача или выбор первого игрока; на знакомстве, жребии, передаче и итоге слоя нет.
@@ -93,13 +97,15 @@ class _MatchScreenState extends State<MatchScreen> {
     _ => false,
   };
 
-  /// Поле на экране и показывает что-то: следующее состояние партии подождёт. Остальные экраны очередь не держат.
+  /// Поле на экране и показывает что-то или держится пришедшая карта пересдачи: следующее состояние партии подождёт.
+  /// Остальные экраны очередь не держат.
   bool get _fieldIsBusy =>
+      _redrawHold != null ||
       switch (_shown) {
-        MatchInProgress(:final view) => view.phase == MatchPhase.playing || view.phase == MatchPhase.finished,
-        _ => false,
-      } &&
-      context.read<FieldCubit>().state.isBusy;
+            MatchInProgress(:final view) => view.phase == MatchPhase.playing || view.phase == MatchPhase.finished,
+            _ => false,
+          } &&
+          context.read<FieldCubit>().state.isBusy;
 
   void _onMatchState(MatchScreenState state) {
     if (state is MatchCrashed || (state is MatchInProgress && state.events.any(_isResignation))) {
@@ -154,8 +160,22 @@ class _MatchScreenState extends State<MatchScreen> {
   );
 
   void _show(MatchScreenState state) {
+    _redrawHold?.cancel();
+    _redrawHold = null;
+    if (state is MatchRedrawSettled) {
+      _redrawHold = Timer(Duration(milliseconds: _stageStyle.ms(StageTokens.redrawHold)), () {
+        _redrawHold = null;
+        _release();
+      });
+    }
     setState(() => _shown = state);
     context.read<FieldCubit>().onMatchState(state, style: _stageStyle);
+  }
+
+  @override
+  void dispose() {
+    _redrawHold?.cancel();
+    super.dispose();
   }
 
   @override
@@ -215,6 +235,13 @@ class _MatchScreenState extends State<MatchScreen> {
         roster: roster,
         onReady: () => bloc.add(const MatchHandoverAccepted()),
       ),
+      MatchRedrawSettled(:final view, :final roster) => MatchRedrawView(
+        view: view,
+        roster: roster,
+        onIntent: submit,
+        settled: true,
+        style: _stageStyle,
+      ),
       MatchInProgress(:final view, :final content, :final roster) => switch (view) {
         PlayerView(phase: MatchPhase.choosingFirstPlayer) => MatchFirstPlayerView(
           view: view,
@@ -225,7 +252,12 @@ class _MatchScreenState extends State<MatchScreen> {
           view: view,
           roster: roster,
         ),
-        PlayerView(phase: MatchPhase.redraw) => MatchRedrawView(view: view, roster: roster, onIntent: submit),
+        PlayerView(phase: MatchPhase.redraw) => MatchRedrawView(
+          view: view,
+          roster: roster,
+          onIntent: submit,
+          style: _stageStyle,
+        ),
         _ => FieldView(
           view: view,
           content: content,
