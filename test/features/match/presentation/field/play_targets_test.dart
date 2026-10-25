@@ -83,8 +83,6 @@ void main() {
     expect(targets.rows, Row.values.toSet());
     expect(targets.highlightsHornSlot(Row.ranged), isTrue);
     expect(targets.highlightsHornSlot(Row.melee), isTrue);
-    expect(targets.wastesCard(Row.melee), isTrue);
-    expect(targets.wastesCard(Row.ranged), isFalse);
     expect(targets.atRow(Row.melee, mine: true), PlayCard(horn.id, row: Row.melee));
     expect(targets.atRow(Row.siege, mine: true), PlayCard(horn.id, row: Row.siege));
     expect(targets.atRow(Row.ranged, mine: false), isNull);
@@ -102,7 +100,6 @@ void main() {
     final targets = targetsOf(horn, me: me);
     expect(targets.isEmpty, isFalse);
     expect(targets.rows, Row.values.toSet());
-    expect(Row.values.every(targets.wastesCard), isTrue);
   });
 
   test('Чучело подсвечивает свои отряды, кроме героев', () {

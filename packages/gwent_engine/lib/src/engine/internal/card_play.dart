@@ -51,7 +51,7 @@ final class CardPlay {
         final row = intent.row;
         if (row == null) return const Reject(RejectReason.rowRequired);
         _start(seat, card);
-        // Слот занят: карта применяется вхолостую и сразу уходит в отбой (раздел 9.2).
+        // Слот занят: карта применяется вхолостую и сразу уходит в отбой (раздел 9.3).
         if (_field.slotFree(seat, row)) {
           _field.fillSlot(seat, row, CardSlot(card));
         } else {

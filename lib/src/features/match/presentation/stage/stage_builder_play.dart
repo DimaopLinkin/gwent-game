@@ -305,7 +305,7 @@ extension _PlayScenes on StageScriptBuilder {
     return math.max(end, landed + _ms(StageTokens.fan) + _ms(StageTokens.roll));
   }
 
-  /// Рог или Мардрём сыграны в занятый слот: карта показывается и улетает в отбой хозяина, ряд не меняется.
+  /// Рог или Мардрём сыграны в занятый слот: карта показывается и улетает в отбой хозяина, ряд не меняется. Звука рога нет: он играет, когда рог встаёт в слот.
   double _wastedHorn(CardPlayed played, List<(int, GameEvent)> related, Set<int> done, double at) {
     final discard = related
         .where((entry) => entry.$2 is CardDiscarded && (entry.$2 as CardDiscarded).card.id == played.card.id)
