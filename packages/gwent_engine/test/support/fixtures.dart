@@ -85,6 +85,7 @@ final List<CardDefinition> _units = [
   _unit('footman', _melee, 3, copies: 10),
   _unit('archer', _ranged, 3, copies: 10),
   _unit('catapult', _siege, 8, faction: Faction.northernRealms, copies: 2),
+  _unit('bond_catapult', _siege, 8, faction: Faction.northernRealms, copies: 2, ability: const TightBondAbility()),
   _unit('ghoul', _melee, 1, faction: Faction.monsters, copies: 10),
 ];
 

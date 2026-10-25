@@ -22,7 +22,7 @@ final class RowConditions {
 
 /// Расчёт текущей силы карт ряда (раздел 8 правил).
 ///
-/// Порядок шагов: погода → Вероломный → Прочная связь → Прилив сил → рог. Герой всегда равен базовой силе,
+/// Порядок шагов: погода → Вероломный → Прилив сил → Прочная связь → рог. Герой всегда равен базовой силе,
 /// Чучело всегда 0.
 final class StrengthCalculator {
   const StrengthCalculator(this._catalog);
@@ -78,8 +78,8 @@ final class StrengthCalculator {
     }
     final ability = unit.ability;
     if (conditions.doubleSpies && ability is SpyAbility) strength *= 2;
-    if (ability is TightBondAbility && bondCount > 1) strength *= bondCount;
     strength += moraleSources - (ability is MoraleBoostAbility ? 1 : 0);
+    if (ability is TightBondAbility && bondCount > 1) strength *= bondCount;
     if (horned) strength *= 2;
     return strength;
   }
