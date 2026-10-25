@@ -1,18 +1,20 @@
 import 'package:flutter/widgets.dart';
+import 'package:gwent/src/core/presentation/card/parts/card_coin.dart';
 import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
-/// Сжатая сила карты в тесном ряду: узкая «таблетка» шириной [width] вместо медальона.
+/// Сжатая сила и способность карты в тесном ряду: число, стрелка и значок способности друг под другом в видимой
+/// полоске шириной [width].
 ///
-/// Нужна, когда карты лежат внахлёст с шагом меньше медальона и следующая карта закрывает его: число и стрелка
-/// усиления стоят друг над другом и целиком помещаются в видимую полоску карты. Цвет, стрелка и кольцо те же, что
-/// у [PowerMedallion], поэтому усиление и ослабление читаются так же.
+/// Нужна, когда карты лежат внахлёст с шагом меньше медальона и следующая карта закрывает его. Число стоит прямо на
+/// арте, с тёмной обводкой, чтобы читаться на любом фоне. Цвет и стрелка те же, что у [PowerMedallion], поэтому
+/// усиление и ослабление читаются так же. Значок ряда не рисуется: ряд и так понятен, а способность остаётся.
 class CompactPower extends StatelessWidget {
-  /// Создаёт сжатую силу [power] шириной [width].
-  const CompactPower({super.key, required this.power, required this.look, required this.width});
+  /// Создаёт сжатую силу [power] и способность [ability] шириной [width].
+  const CompactPower({super.key, required this.power, required this.look, required this.width, this.ability});
 
   /// Текущая сила.
   final int power;
@@ -23,50 +25,60 @@ class CompactPower extends StatelessWidget {
   /// Ширина видимой полоски карты.
   final double width;
 
-  /// Высота таблетки: число и под ним стрелка.
-  static const double height = 24;
+  /// Способность карты; `null` у карты без способности.
+  final GwentIcon? ability;
 
-  /// Высота таблетки без стрелки.
-  static const double plainHeight = 16;
+  /// Кегль числа.
+  static const double fontSize = 14;
 
   @override
   Widget build(BuildContext context) {
-    final (Color fill, Color text, Color ring) = switch (look) {
-      PowerLook.base => (GwentColors.parchment, GwentColors.bg, GwentColors.brass),
-      PowerLook.buffed => (GwentColors.bg, GwentColors.buff, GwentColors.buff),
-      PowerLook.debuffed => (GwentColors.bg, GwentColors.debuff, GwentColors.debuff),
-      PowerLook.hero => (GwentColors.gold, GwentColors.onGold, GwentColors.brassDark),
+    final color = switch (look) {
+      PowerLook.base => GwentColors.parchmentHighlight,
+      PowerLook.buffed => GwentColors.buff,
+      PowerLook.debuffed => GwentColors.debuff,
+      PowerLook.hero => GwentColors.goldHighlight,
     };
     final arrow = switch (look) {
       PowerLook.buffed => GwentIcon.iconPowerUp,
       PowerLook.debuffed => GwentIcon.iconPowerDown,
       PowerLook.base || PowerLook.hero => null,
     };
-    // Между таблетками остаётся зазор 1 pt, чтобы кольца соседних карт не сливались.
-    final pill = width - 1;
-    return Container(
-      width: pill,
-      height: arrow == null ? plainHeight : height,
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(pill / 2),
-        border: Border.all(color: ring),
-      ),
+    final style = GwentText.powerCard.copyWith(fontWeight: FontWeight.w900, fontSize: fontSize);
+    // Между соседними картами остаётся зазор 1 pt, чтобы значки не сливались.
+    final inner = width - 1;
+    final coin = inner.clamp(0.0, 12.0);
+    return SizedBox(
+      width: inner,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        spacing: 1,
         children: [
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                '$power',
-                textScaler: TextScaler.noScaling,
-                style: GwentText.powerCard.copyWith(fontWeight: FontWeight.w900, fontSize: 11, color: text),
-              ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Stack(
+              children: [
+                Text(
+                  '$power',
+                  textScaler: TextScaler.noScaling,
+                  style: style.copyWith(
+                    foreground: Paint()
+                      ..style = PaintingStyle.stroke
+                      ..strokeWidth = 3
+                      ..strokeJoin = StrokeJoin.round
+                      ..color = GwentColors.bg,
+                  ),
+                ),
+                Text(
+                  '$power',
+                  textScaler: TextScaler.noScaling,
+                  style: style.copyWith(color: color),
+                ),
+              ],
             ),
           ),
-          if (arrow != null) GwentIconView(arrow, size: 6, color: text),
+          if (arrow != null) GwentIconView(arrow, size: 7, color: color),
+          if (ability != null) CardCoin(icon: ability!, look: CoinLook.brass, diameter: coin, iconSize: coin * 0.7),
         ],
       ),
     );

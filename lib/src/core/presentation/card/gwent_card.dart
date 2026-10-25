@@ -62,7 +62,7 @@ class GwentCard extends StatelessWidget {
   final GwentFaction? spyOwner;
 
   /// Ширина видимой полоски отряда в тесном ряду: пока карту закрывает следующая, вместо медальона и значков
-  /// рисуется сжатая сила ([CompactPower]) этой ширины. Только для отряда размера [CardSize.row].
+  /// рисуется сжатая сила со значком способности ([CompactPower]) этой ширины. Только для отряда размера [CardSize.row].
   final double? compactWidth;
 
   /// Касание.
@@ -220,9 +220,11 @@ class GwentCard extends StatelessWidget {
     );
     final compactWidth = this.compactWidth;
     final children = switch (face) {
-      UnitCardFace(:final power, :final basePower, :final isHero) when compactWidth != null && size == CardSize.row => [
-        CompactPower(power: power, look: _powerLook(power, basePower, isHero), width: compactWidth),
-      ],
+      UnitCardFace(:final power, :final basePower, :final isHero, :final ability)
+          when compactWidth != null && size == CardSize.row =>
+        [
+          CompactPower(power: power, look: _powerLook(power, basePower, isHero), width: compactWidth, ability: ability),
+        ],
       UnitCardFace(:final power, :final basePower, :final isHero, :final row, :final ability) => [
         PowerMedallion(
           power: power,
