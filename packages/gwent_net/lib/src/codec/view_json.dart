@@ -9,8 +9,8 @@ Map<String, Object?> encodeView(PlayerView view) => {
   'round': view.round,
   'round_starter': ?view.roundStarter?.wire,
   'turn': ?view.turn?.wire,
-  'me': _encodeSide(view.me),
-  'opponent': _encodeSide(view.opponent),
+  'me': encodeSide(view.me),
+  'opponent': encodeSide(view.opponent),
   'weather': [for (final weather in view.weather) encodeWeather(weather)],
   'choice': ?_encodeOptionalChoice(view.choice),
   'opponent_choosing': ?view.opponentChoosing?.wire,
@@ -24,8 +24,8 @@ PlayerView decodeView(JsonReader r) => PlayerView(
   round: r.integer('round'),
   roundStarter: decodeOptionalSeat(r, 'round_starter'),
   turn: decodeOptionalSeat(r, 'turn'),
-  me: _decodeSide(r.object('me')),
-  opponent: _decodeSide(r.object('opponent')),
+  me: decodeSide(r.object('me')),
+  opponent: decodeSide(r.object('opponent')),
   weather: r.objects('weather', decodeWeather),
   choice: r.optional('choice', decodeChoice),
   opponentChoosing: r.has('opponent_choosing') ? r.enumValue('opponent_choosing', ChoiceKind.values) : null,
@@ -33,7 +33,8 @@ PlayerView decodeView(JsonReader r) => PlayerView(
   outcome: r.optional('outcome', decodeOutcome),
 );
 
-Map<String, Object?> _encodeSide(SideView side) => {
+/// JSON стороны партии.
+Map<String, Object?> encodeSide(SideView side) => {
   'seat': side.seat.wire,
   'leader': side.leader.value,
   'faction': side.faction.wire,
@@ -53,7 +54,7 @@ Map<String, Object?> _encodeSide(SideView side) => {
   'playable': [for (final id in side.playable) id.value]..sort(),
 };
 
-SideView _decodeSide(JsonReader r) => SideView(
+SideView decodeSide(JsonReader r) => SideView(
   seat: decodeSeat(r, 'seat'),
   leader: LeaderId(r.string('leader')),
   faction: r.enumValue('faction', Faction.values),

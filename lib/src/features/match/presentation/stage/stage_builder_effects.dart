@@ -175,7 +175,7 @@ extension _EffectScenes on StageScriptBuilder {
           size: mine ? CardSize.hand : CardSize.mini,
         ),
       );
-      if (card != null && mine) _beats.add(HandHideBeat(card: card.id, until: start + flight));
+      if (card != null && mine) _beats.add(HandHideBeat(card: card.id, reserveAt: start, until: start + flight));
       _bump(StageCounter.hand, 1, start + flight, mine: mine);
       end = math.max(end, start + flight);
     }

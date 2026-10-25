@@ -40,3 +40,4 @@ export 'src/state/row_state.dart';
 export 'src/state/seat.dart';
 export 'src/state/weather_card.dart';
 export 'src/view/player_view.dart';
+export 'src/view/round_board.dart';

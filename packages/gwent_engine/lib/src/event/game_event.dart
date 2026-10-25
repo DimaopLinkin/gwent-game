@@ -8,6 +8,7 @@ import 'package:gwent_engine/src/state/match_outcome.dart';
 import 'package:gwent_engine/src/state/round_result.dart';
 import 'package:gwent_engine/src/state/row_slot.dart';
 import 'package:gwent_engine/src/state/seat.dart';
+import 'package:gwent_engine/src/view/round_board.dart';
 
 /// Событие партии: что произошло в результате намерения.
 ///
@@ -324,12 +325,15 @@ final class UnitKept extends GameEvent {
 
 /// Раунд закончен.
 final class RoundEnded extends GameEvent {
-  const RoundEnded(this.result);
+  const RoundEnded(this.result, {this.board});
 
   final RoundResult result;
 
+  /// Поле после последнего хода раунда, до уборки. `null` у событий, записанных до появления поля.
+  final RoundBoard? board;
+
   @override
-  List<Object?> get props => [result];
+  List<Object?> get props => [result, board];
 }
 
 /// Партия закончена.

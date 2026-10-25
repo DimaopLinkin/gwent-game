@@ -200,6 +200,7 @@ final class StageScript {
       discardTops: builder.discardTops,
       flashes: builder.flashes,
       handHidden: builder.handHidden,
+      handAbsent: builder.handAbsent,
       leaderUsed: builder.leaderUsed,
       weatherSlots: builder.weatherSlots,
       gems: builder.gems,

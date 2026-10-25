@@ -335,7 +335,7 @@ final class FieldCubit extends Cubit<FieldState> {
     return _summarizedRounds.add(result.round) ? _buildSummary(view, events, endIndex) : null;
   }
 
-  /// Последний ход раунда, если он состоял из хода отрядами: его сценарий и поле после него; иначе `null`.
+  /// Последний ход раунда: его сценарий и поле после него; `null`, если показывать нечего.
   ({StageScript script, PlayerView board})? _lastMoveFor(
     PlayerView closing,
     PlayerView view,
@@ -349,6 +349,7 @@ final class FieldCubit extends Cubit<FieldState> {
       closing: closing,
       moves: moves,
       result: (events[endIndex] as RoundEnded).result,
+      board: (events[endIndex] as RoundEnded).board,
       catalog: content.catalog,
     );
     if (board == null) return null;
