@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/card_detail_view.dart';
+import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
@@ -146,7 +147,11 @@ void main() {
     RowView crowded(int count) {
       final views = <FieldCardView>[];
       for (var i = 0; i < count; i++) {
-        final card = i % 5 == 4 ? cards.hero() : cards.unit(Row.melee);
+        final card = switch (i % 5) {
+          4 => cards.hero(),
+          1 => cards.spy(),
+          _ => cards.unit(Row.melee),
+        };
         final base = cards.strength(card);
         views.add(FieldCardView(card: card, strength: base + const [0, 1, 3, -1, 0][i % 5]));
       }
@@ -177,6 +182,14 @@ void main() {
           expect(rects[i].width, closeTo(step - 1, 0.5));
           if (i > 0) expect(rects[i].left, greaterThanOrEqualTo(rects[i - 1].right));
           expect(pills[i].power, view.strength, reason: 'карта $i');
+          // Значок способности карты виден и в сжатом виде.
+          final face = tester
+              .widget<GwentCard>(find.ancestor(of: find.byWidget(pills[i]), matching: find.byType(GwentCard)).first)
+              .face;
+          expect(face, isA<UnitCardFace>());
+          final ability = (face as UnitCardFace).ability;
+          expect(pills[i].ability, ability, reason: 'карта $i');
+          if (i % 5 == 1) expect(ability, isNotNull, reason: 'шпион имеет способность');
           expect(
             pills[i].look,
             i % 5 == 4
