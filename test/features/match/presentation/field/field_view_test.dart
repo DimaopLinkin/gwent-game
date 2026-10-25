@@ -373,6 +373,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
       expect(harness.intents, isEmpty);
       expect(harness.haptics.played, [HapticPattern.double], reason: 'мимо цели две короткие вибрации');
+      expect(harness.cubit.state.selected, isNull, reason: 'выбор поставило перетаскивание: карта вернулась в руку');
       await endBanners(tester);
     });
 
@@ -406,13 +407,53 @@ void main() {
       await endBanners(tester);
     });
 
-    testWidgets('погода: целью служит всё поле, тап по ряду тоже играет карту', (tester) async {
+    testWidgets('погода: тап по ряду не играет карту, а снимает выбор, играет только тап по полосе', (tester) async {
       final weather = cards.special<WeatherAbility>();
       final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [weather])));
       await tester.tap(handCards().first);
       await tester.pump(const Duration(milliseconds: 250));
       await tapField(tester, emptyPart(Row.melee, mine: false));
+      expect(harness.intents, isEmpty, reason: 'случайный тап по полю не разыгрывает необратимую карту');
+      expect(harness.cubit.state.selected, isNull);
+
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      await tapField(tester, geometry.strip.center);
       expect(harness.intents, [PlayCard(weather.id)]);
+      await endBanners(tester);
+    });
+
+    testWidgets('бросок мимо после тапа по карте оставляет её выбранной', (tester) async {
+      final unit = cards.unit(Row.siege);
+      final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit])));
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -60));
+      await gesture.moveTo(emptyPart(Row.melee, mine: true));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.selected, unit.id);
+      await endBanners(tester);
+    });
+
+    testWidgets('пока поле занято баннером, тащить карту нельзя: ни входа, ни отпускания, ни «мимо»', (tester) async {
+      final unit = cards.unit(Row.siege);
+      final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit])));
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      feed(harness, harness.view.value, const [RoundStarted(1, Seat.one)]);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(harness.cubit.state.isBusy, isTrue);
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -60));
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.moveTo(emptyPart(Row.siege, mine: true));
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.intents, isEmpty);
+      expect(harness.haptics.played, isEmpty);
       await endBanners(tester);
     });
 

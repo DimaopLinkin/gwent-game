@@ -33,6 +33,7 @@ class DragHover extends ValueNotifier<bool> {
 
   int _targets = 0;
   bool _settling = false;
+  bool _disposed = false;
 
   /// Палец вошёл в цель.
   void enter() {
@@ -53,11 +54,18 @@ class DragHover extends ValueNotifier<bool> {
     value = false;
   }
 
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   void _settle() {
     if (_settling) return;
     _settling = true;
     scheduleMicrotask(() {
       _settling = false;
+      if (_disposed) return;
       final over = _targets > 0;
       if (over == value) return;
       value = over;

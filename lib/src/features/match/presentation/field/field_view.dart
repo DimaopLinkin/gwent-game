@@ -109,6 +109,10 @@ class _FieldViewState extends State<FieldView> {
   late final DragHover _hover = DragHover(
     onChanged: ({required over}) => _cubit.vibrate(over ? TargetHaptics.enter : TargetHaptics.leave),
   );
+
+  /// Карту тащат по-настоящему (цели есть, ход можно делать) и выбор поставило само перетаскивание.
+  bool _dragStarted = false;
+  bool _selectedByDrag = false;
   StageGeometry? _stageGeometry;
   int? _stageGeometryScript;
   double? _stageGeometryWidth;
@@ -193,8 +197,9 @@ class _FieldViewState extends State<FieldView> {
       widget.onIntent(ChooseOption(RowOption(row)));
       return;
     }
-    final targets = _targets(field);
-    if (targets.atRow(row, mine: mine) ?? targets.atStrip() case final intent?) {
+    // Погоду, Ясное небо и Казнь тапом играют только по центральной полосе, остальные ряды и карты тап снимает выбор:
+    // случайный тап по полю не должен разыграть необратимую Казнь. Броском эти карты принимает всё поле.
+    if (_targets(field).atRow(row, mine: mine) case final intent?) {
       _play(intent);
     } else {
       _tapElsewhere(field);
@@ -235,8 +240,13 @@ class _FieldViewState extends State<FieldView> {
   }
 
   void _startDrag(HandCard card) {
+    _hover.reset();
+    _dragStarted = false;
     if (_blocked || widget.readOnly) return;
-    if (!PlayTargets.forCard(_view, card.instance, _catalog).isEmpty) _cubit.select(card.instance.id);
+    if (PlayTargets.forCard(_view, card.instance, _catalog).isEmpty) return;
+    _dragStarted = true;
+    _selectedByDrag = _cubit.state.selected != card.instance.id;
+    _cubit.select(card.instance.id);
   }
 
   void _showDetail(CardInstance card, {int? power, bool frosted = false}) {
@@ -261,14 +271,14 @@ class _FieldViewState extends State<FieldView> {
   }
 
   bool _canDrop(CardInstance card, {required Row row, required bool mine}) =>
-      !widget.readOnly && PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) != null;
+      !widget.readOnly && !_blocked && PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) != null;
 
   void _drop(CardInstance card, {required Row row, required bool mine}) {
     if (PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) case final intent?) _play(intent);
   }
 
   bool _canDropOnCard(CardInstance card, CardInstance target) =>
-      !widget.readOnly && PlayTargets.forCard(_view, card, _catalog).atFieldCard(target.id) != null;
+      !widget.readOnly && !_blocked && PlayTargets.forCard(_view, card, _catalog).atFieldCard(target.id) != null;
 
   void _dropOnCard(CardInstance card, CardInstance target) {
     if (PlayTargets.forCard(_view, card, _catalog).atFieldCard(target.id) case final intent?) _play(intent);
@@ -277,7 +287,10 @@ class _FieldViewState extends State<FieldView> {
   /// Карту отпустили: мимо цели она вернулась в руку, о чём игрок узнаёт по двум коротким вибрациям.
   void _dragEnded(HandCard card, {required bool accepted}) {
     _hover.reset();
-    if (!accepted) _cubit.vibrate(TargetHaptics.miss);
+    if (!_dragStarted || accepted) return;
+    _cubit.vibrate(TargetHaptics.miss);
+    // Выбор поставило само перетаскивание: карта вернулась в руку, и подсветка с подсказкой уходят вместе с ней.
+    if (_selectedByDrag && _cubit.state.selected == card.instance.id) _cubit.clearSelected();
   }
 
   void _onBack(FieldState field) {
@@ -474,7 +487,9 @@ class _FieldViewState extends State<FieldView> {
                 child: DragTarget<CardInstance>(
                   onWillAcceptWithDetails: (details) {
                     final accepts =
-                        !widget.readOnly && PlayTargets.forCard(view, details.data, _catalog).highlightsStrip;
+                        !widget.readOnly &&
+                        !_blocked &&
+                        PlayTargets.forCard(view, details.data, _catalog).highlightsStrip;
                     if (accepts) _hover.enter();
                     return accepts;
                   },

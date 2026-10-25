@@ -50,4 +50,11 @@ void main() {
     expect(hover.value, isFalse);
     expect(changes, [true]);
   });
+
+  test('после dispose отложенное решение ничего не делает', () async {
+    final local = DragHover(onChanged: ({required over}) => changes.add(over))..enter();
+    local.dispose();
+    await settle();
+    expect(changes, isEmpty);
+  });
 }
