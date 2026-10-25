@@ -8,7 +8,7 @@ import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 import 'package:gwent_engine/gwent_engine.dart' show Seat;
 import 'package:meta/meta.dart';
 
-/// Шаг выбора перед партией: сложность бота (ADR 0021), потом по макету 7 фракция, лидер, колода.
+/// Шаг выбора перед партией: сложность бота (ADR 0021), потом по макету 7 фракция и колода.
 enum SetupStep {
   /// Уровень сложности бота; только против бота и только у первого места.
   difficulty,
@@ -16,14 +16,11 @@ enum SetupStep {
   /// Карусель фракций.
   faction,
 
-  /// Лидеры выбранной фракции.
-  leader,
-
   /// Колоды выбранной фракции.
   deck,
 }
 
-/// Колода фракции в списке выбора и то, годится ли она в партию с выбранным лидером.
+/// Колода фракции в списке выбора и то, годится ли она в партию.
 @immutable
 final class DeckChoice {
   /// Создаёт строку списка.
@@ -32,14 +29,14 @@ final class DeckChoice {
   /// Сохранённая колода.
   final Deck deck;
 
-  /// Проблемы колоды с выбранным лидером; пусто, если с ней можно идти в партию.
+  /// Проблемы колоды; пусто, если с ней можно идти в партию.
   final List<DeckIssue> issues;
 
   /// Годится ли колода для партии.
   bool get ready => issues.isEmpty;
 }
 
-/// Состояние выбора фракции, лидера и колоды перед партией.
+/// Состояние выбора фракции и колоды перед партией.
 @immutable
 sealed class MatchSetupState {
   const MatchSetupState();
@@ -70,7 +67,6 @@ final class MatchSetupReady extends MatchSetupState {
     required this.step,
     required this.rules,
     required this.factionIndex,
-    required this.leaderId,
     required List<DeckChoice> decks,
     required this.deckId,
     required this.canStepBack,
@@ -95,9 +91,6 @@ final class MatchSetupReady extends MatchSetupState {
   /// Номер фракции среди [DeckRules.factionInfos].
   final int factionIndex;
 
-  /// UUID выбранного лидера; на шаге фракции `null`.
-  final String? leaderId;
-
   /// Колоды выбранной фракции, сначала недавно изменённые; заполнены на шаге колоды.
   final List<DeckChoice> decks;
 
@@ -110,24 +103,18 @@ final class MatchSetupReady extends MatchSetupState {
   /// Идёт сохранение выбора или подготовка колоды: кнопки шага не принимают повторных нажатий.
   final bool busy;
 
-  /// Сколько шагов с подписью «Шаг N из M»: фракция и лидер, а против бота ещё сложность (колода идёт без номера).
+  /// Сколько шагов с подписью «Шаг N из M»: фракция и колода, а против бота ещё сложность.
   int get stepTotal => mode == LocalMatchMode.vsBot ? 3 : 2;
 
   /// Номер шага [step] для подписи «Шаг N из M»: против бота сложность занимает первый номер.
   int stepNumber(SetupStep step) => switch (step) {
     SetupStep.difficulty => 1,
     SetupStep.faction => mode == LocalMatchMode.vsBot ? 2 : 1,
-    SetupStep.leader || SetupStep.deck => mode == LocalMatchMode.vsBot ? 3 : 2,
+    SetupStep.deck => mode == LocalMatchMode.vsBot ? 3 : 2,
   };
 
   /// Выбранная фракция.
   FactionInfo get faction => rules.factionInfos[factionIndex];
-
-  /// Выбранный лидер или `null`, если лидер ещё не выбран.
-  LeaderInfo? get leader => switch (leaderId) {
-    final id? => faction.leader(id),
-    null => null,
-  };
 
   /// Выбранная колода или `null`.
   DeckChoice? get selectedDeck {
