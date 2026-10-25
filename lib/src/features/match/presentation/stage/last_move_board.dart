@@ -84,21 +84,21 @@ PlayerView? _fromRoundBoard(PlayerView closing, List<GameEvent> moves, RoundBoar
   };
   if (moves.any((event) => event is UnitPlaced && onField.contains(event.card.id))) return null;
 
-  final hand = [...?closing.me.hand];
+  final hand = closing.me.hand == null ? null : [...closing.me.hand!];
   for (final event in moves) {
     switch (event) {
       case CardPlayed(:final seat, :final card) when seat == viewer:
-        hand.removeWhere((candidate) => candidate.id == card.id);
+        hand?.removeWhere((candidate) => candidate.id == card.id);
       case UnitPlaced(:final side, :final card, source: EntrySource.musterFromHand) when side == viewer:
-        hand.removeWhere((candidate) => candidate.id == card.id);
+        hand?.removeWhere((candidate) => candidate.id == card.id);
       case CardDiscarded(:final owner, :final card) when owner == viewer:
-        hand.removeWhere((candidate) => candidate.id == card.id);
+        hand?.removeWhere((candidate) => candidate.id == card.id);
       case CardsDrawn(:final seat, :final cards) when seat == viewer:
-        hand.addAll(cards);
+        hand?.addAll(cards);
       case CardTakenFromDiscard(:final seat, :final card) when seat == viewer:
-        hand.add(card);
+        hand?.add(card);
       case UnitDecoyed(:final seat, :final returned) when seat == viewer:
-        hand.add(returned);
+        hand?.add(returned);
       default:
         break;
     }

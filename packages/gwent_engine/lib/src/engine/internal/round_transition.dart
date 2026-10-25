@@ -33,6 +33,7 @@ final class RoundTransition {
   void endRound() {
     final draft = _ctx.draft;
     draft.turn = null;
+    final board = _projector.board();
     final scores = {for (final seat in Seat.values) seat: _score.score(seat)};
     final winner = _roundWinner(scores);
     if (winner == null) {
@@ -44,7 +45,7 @@ final class RoundTransition {
     }
     final result = RoundResult(round: draft.round, scores: Map.unmodifiable(scores), winner: winner);
     draft.history.add(result);
-    _ctx.emit(RoundEnded(result, board: _projector.board()));
+    _ctx.emit(RoundEnded(result, board: board));
 
     final alive = [
       for (final seat in Seat.values)
