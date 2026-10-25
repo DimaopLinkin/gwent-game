@@ -350,8 +350,9 @@ final class RematchStatus extends HostMessage {
 
   final RematchPhase phase;
 
-  /// Сколько времени на ответ осталось на момент отправки; отсчёт ведёт интерфейс, решает хост. Для
-  /// [RematchPhase.asked] и [RematchPhase.invited] это всё окно, при остальных фазах не показывается.
+  /// Время на ответ; отсчёт ведёт интерфейс, а решает хост: когда оно на самом деле вышло, приходит
+  /// [RematchPhase.expired]. Для [RematchPhase.asked] и [RematchPhase.invited] это всё окно (после возвращения связи
+  /// интерфейс может показать больше, чем осталось), при остальных фазах не показывается.
   final Duration window;
 
   @override

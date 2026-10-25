@@ -280,7 +280,6 @@ final class MatchHost {
       channel.pending().forEach(link.send);
     } else if (_state case final state?) {
       _send(session, MatchSnapshot(_engine.project(state, session.seat)));
-      session.rematchShown = null;
     } else {
       // В лобби снимка нет: игрок узнаёт о сопернике из объявлений ниже.
       _announceLobby(session.seat.opponent);
@@ -288,7 +287,12 @@ final class MatchHost {
     _announce(session.seat);
     _announce(session.seat.opponent);
     _announceLobby(session.seat);
-    if (_state?.phase == MatchPhase.finished) _announceRematch();
+    if (_state?.phase == MatchPhase.finished) {
+      // Вернувшийся игрок сам объявил соперника ушедшим, пока был без связи: ему нужна текущая фаза, даже если для
+      // хоста она не менялась.
+      session.rematchShown = RematchPhase.opponentGone;
+      _announceRematch();
+    }
     _startIfReady();
   }
 
@@ -467,7 +471,7 @@ final class MatchHost {
   void _announceRematch() {
     for (final session in _seats.values.where((session) => session.admitted && session.online)) {
       final phase = _rematchPhase(session);
-      if (session.rematchShown == phase) continue;
+      if ((session.rematchShown ?? RematchPhase.idle) == phase) continue;
       session.rematchShown = phase;
       _send(session, RematchStatus(phase, window: _settings.rematchWindow));
     }
@@ -540,6 +544,8 @@ final class MatchHost {
             session.rematchShown = null;
           }
           _rematchExpired = false;
+          // Партия могла кончиться сдачей ушедшего игрока: оставшийся узнаёт, что реванша не будет.
+          _announceRematch();
         }
     }
   }

@@ -117,6 +117,28 @@ void main() {
     expect(table.eventsOf<RematchStarted>(table.hostClient), hasLength(1));
   });
 
+  test('вернувшийся игрок получает текущую фазу, даже если для хоста она не менялась', () async {
+    final table = await finished();
+    await table.guestLink!.close();
+    await table.scheduler.flush();
+    table.connectGuest();
+    await table.scheduler.flush();
+    expect(phases(table, table.guest), [RematchPhase.idle]);
+    expect(phases(table, table.hostClient), [RematchPhase.opponentGone, RematchPhase.idle]);
+  });
+
+  test('партия кончилась сдачей ушедшего игрока: оставшийся знает, что реванша не будет', () async {
+    final table = Table(hostSettings: settings);
+    await table.start(northern, skellige);
+    await table.guestLink!.close();
+    await table.scheduler.elapse(settings.reconnectGrace + const Duration(seconds: 1));
+    await table.waitFor(() => table.host.state!.phase == MatchPhase.finished, 'сдача ушедшего');
+    expect(phases(table, table.hostClient).last, RematchPhase.opponentGone);
+    table.hostClient.requestRematch();
+    await table.scheduler.flush();
+    expect(table.eventsOf<RematchStarted>(table.hostClient), isEmpty);
+  });
+
   test('хост закрыл партию на экране итога: гость сразу узнаёт, что соперника нет', () async {
     final table = await finished();
     await table.host.close();
