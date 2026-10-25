@@ -244,6 +244,43 @@ void main() {
         expect(fromOf(script, spy), [const DiscardPlace(mine: true)]);
       });
 
+      test('шпион, сгоревший на ряду соперника, возвращается из сброса того, на чьей стороне сгорел', () {
+        final scorch = cards.special<ScorchAbility>();
+        final spy = cards.spy();
+        final prev = viewOf(
+          cards,
+          me: sideOf(cards, Seat.one, hand: [scorch]),
+          opponent: sideOf(
+            cards,
+            Seat.two,
+            handCount: 3,
+            rows: {
+              Row.melee: rowOf([spy], cards),
+            },
+          ),
+        );
+        final next = viewOf(
+          cards,
+          me: sideOf(
+            cards,
+            Seat.one,
+            discard: [scorch],
+            rows: {
+              Row.melee: rowOf([spy], cards),
+            },
+          ),
+          opponent: sideOf(cards, Seat.two, handCount: 3),
+        );
+        final script = build(prev, next, [
+          CardPlayed(Seat.one, scorch),
+          UnitsDestroyed([DestroyedUnit(Seat.two, Row.melee, spy)]),
+          CardDiscarded(Seat.two, spy),
+          CardDiscarded(Seat.one, scorch),
+          UnitPlaced(Seat.one, Row.melee, spy, EntrySource.medic),
+        ]);
+        expect(fromOf(script, spy), [const DiscardPlace(mine: false)]);
+      });
+
       test('обычный отряд возвращается из сброса своей стороны', () {
         final unit = cards.unit(Row.melee);
         final prev = viewOf(

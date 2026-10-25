@@ -186,7 +186,7 @@ extension _EffectScenes on StageScriptBuilder {
   void _standalone(List<GameEvent> events, int index, Set<int> done) {
     final related = [(index, events[index]), ..._related(events, index)];
     final seat = switch (events[index]) {
-      UnitPlaced(:final side, :final card) => _discardOwner(card, events) ?? side,
+      UnitPlaced(:final side, :final card) => _discardOwner(card) ?? side,
       CardsDrawn(:final seat) => seat,
       CardsDrawnHidden(:final seat) => seat,
       _ => viewer,
@@ -197,13 +197,11 @@ extension _EffectScenes on StageScriptBuilder {
   }
 
   /// Чей сброс покидает карта [card] (Медик, перк): шпион лежит на стороне соперника, а берётся из сброса того, кто его
-  /// вернул. Отдельное обновление не говорит, кто ходил, поэтому владельца берут из сбросов до хода и из событий.
-  Seat? _discardOwner(CardInstance card, List<GameEvent> events) {
-    for (final (seat, discard) in [(viewer, prev.me.discard), (viewer.opponent, prev.opponent.discard)]) {
-      if (discard.any((candidate) => candidate.id == card.id)) return seat;
-    }
-    for (final event in events) {
-      if (event is CardDiscarded && event.card.id == card.id) return event.owner;
+  /// вернул. Отдельное обновление не говорит, кто ходил, поэтому владельца берут из сбросов на этот момент сценария
+  /// (с учётом сгоревших и сброшенных раньше карт пакета).
+  Seat? _discardOwner(CardInstance card) {
+    for (final mine in [true, false]) {
+      if (_discards[mine]!.any((candidate) => candidate.id == card.id)) return mine ? viewer : viewer.opponent;
     }
     return null;
   }
