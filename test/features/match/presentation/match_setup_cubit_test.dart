@@ -118,6 +118,18 @@ void main() {
       expect(now(cubit).factionIndex, 1, reason: 'на шаге колоды фракцию не листают');
     });
 
+    test('пока колоды готовятся, фракцию листать нельзя', () async {
+      final cubit = build(LocalMatchMode.vsBot);
+      await ready(cubit);
+
+      final confirming = cubit.confirmFaction();
+      cubit.showFaction(1);
+      await confirming;
+
+      expect(now(cubit).faction.id, Small.skellige);
+      expect(now(cubit).decks.every((choice) => choice.deck.factionId == Small.skellige), isTrue);
+    });
+
     test('подтверждение фракции сразу открывает её колоды, без выбора лидера', () async {
       final cubit = build(LocalMatchMode.vsBot);
       await ready(cubit);

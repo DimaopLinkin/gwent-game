@@ -97,7 +97,7 @@ final class MatchSetupCubit extends Cubit<MatchSetupState> {
   /// Показывает фракцию номер [index] среди фракций пакета. Колода прежней фракции сбрасывается.
   void showFaction(int index) {
     final rules = _rules;
-    if (rules == null || _step != SetupStep.faction || index == _factionIndex) return;
+    if (rules == null || _step != SetupStep.faction || index == _factionIndex || _busy) return;
     if (index < 0 || index >= rules.factionInfos.length) return;
     _factionIndex = index;
     _deckId = null;

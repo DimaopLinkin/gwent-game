@@ -1619,14 +1619,6 @@
   "@leaderSelectConfirm": {
     "description": "Кнопка подтверждения лидера в конструкторе колод."
   },
-  "leaderStatusAvailable": "Доступен",
-  "@leaderStatusAvailable": {
-    "description": "Метка лидера, который есть в коллекции."
-  },
-  "leaderStatusLocked": "Нет в коллекции",
-  "@leaderStatusLocked": {
-    "description": "Метка лидера, которого ещё нет в коллекции."
-  },
   "deckSelectTitle": "Выбор колоды",
   "@deckSelectTitle": {
     "description": "Заголовок экрана выбора колоды перед партией."

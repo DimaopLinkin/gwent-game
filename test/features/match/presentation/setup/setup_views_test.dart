@@ -124,7 +124,7 @@ void main() {
     }) {
       final faction = rules.factionInfos.firstWhere((faction) => faction.key == 'skellige');
       return DeckSelectView(
-        eyebrow: 'Перед матчем',
+        eyebrow: 'Шаг 2 из 2',
         choices: choices,
         selectedId: selected,
         faction: (name: faction.name, look: GwentFaction.fromKey(faction.key)),
