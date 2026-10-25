@@ -17,6 +17,7 @@ final class DriftSettingsRepository implements SettingsRepository {
   static const String _confirmPassKey = 'confirm_pass';
   static const String _animationSpeedKey = 'animation_speed';
   static const String _hintsKey = 'hints';
+  static const String _hapticsKey = 'haptics';
   static const String _musicVolumeKey = 'music_volume';
   static const String _effectsVolumeKey = 'effects_volume';
   static const String _contentCheckedAtKey = 'content_checked_at';
@@ -35,6 +36,7 @@ final class DriftSettingsRepository implements SettingsRepository {
     await _put(_confirmPassKey, _differs(settings.confirmPass, defaults.confirmPass));
     await _put(_animationSpeedKey, _differs(settings.animationSpeed, defaults.animationSpeed)?.name);
     await _put(_hintsKey, _differs(settings.hints, defaults.hints));
+    await _put(_hapticsKey, _differs(settings.haptics, defaults.haptics));
     await _put(_musicVolumeKey, _differs(settings.musicVolume, defaults.musicVolume));
     await _put(_effectsVolumeKey, _differs(settings.effectsVolume, defaults.effectsVolume));
     await _put(_contentCheckedAtKey, settings.contentCheckedAt?.toUtc().toIso8601String());
@@ -63,6 +65,7 @@ final class DriftSettingsRepository implements SettingsRepository {
       confirmPass: _bool(values[_confirmPassKey]) ?? defaults.confirmPass,
       animationSpeed: AnimationSpeed.values.asNameMap()[values[_animationSpeedKey]] ?? defaults.animationSpeed,
       hints: _bool(values[_hintsKey]) ?? defaults.hints,
+      haptics: _bool(values[_hapticsKey]) ?? defaults.haptics,
       musicVolume: _volume(values[_musicVolumeKey]) ?? defaults.musicVolume,
       effectsVolume: _volume(values[_effectsVolumeKey]) ?? defaults.effectsVolume,
       contentCheckedAt: DateTime.tryParse(values[_contentCheckedAtKey] ?? '')?.toUtc(),

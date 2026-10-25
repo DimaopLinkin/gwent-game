@@ -68,6 +68,7 @@ void main() {
           onlineLobby: FakeGameLobby(),
           networkAccess: FakeNetworkAccess(),
           soundOutput: RecordingSoundOutput(),
+          hapticOutput: RecordingHapticOutput(),
           musicOutput: FakeMusicOutput(),
         ),
       ),

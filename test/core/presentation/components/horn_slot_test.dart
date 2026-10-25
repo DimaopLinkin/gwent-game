@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/presentation/components/horn_slot.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
+import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 
 import '../../../support/localized_app.dart';
 
@@ -20,19 +22,49 @@ void main() {
     }
   });
 
-  testWidgets('цель пульсирует, а при «уменьшить движение» нет', (tester) async {
-    await tester.pumpWidget(localizedApp(const Center(child: HornSlot(look: HornSlotLook.target))));
-    await tester.pump();
-    expect(tester.hasRunningAnimations, isTrue);
+  testWidgets('цель не мигает: слабая и яркая подсветка статичны', (tester) async {
+    for (final look in [HornSlotLook.target, HornSlotLook.ghost]) {
+      await tester.pumpWidget(
+        localizedApp(
+          Center(
+            child: HornSlot(look: look, ghostLabel: '×2'),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.hasRunningAnimations, isFalse, reason: '$look');
+    }
+  });
 
+  testWidgets('призрак: подпись только у яркого призрака, значок сброса только над занятым слотом', (tester) async {
     await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(disableAnimations: true),
-        child: localizedApp(const Center(child: HornSlot(look: HornSlotLook.target))),
+      localizedApp(
+        const Center(
+          child: HornSlot(look: HornSlotLook.target, ghostLabel: '×2'),
+        ),
       ),
     );
-    await tester.pump();
-    expect(tester.hasRunningAnimations, isFalse);
+    expect(find.text('×2'), findsNothing, reason: 'слабая цель без подписи');
+
+    await tester.pumpWidget(
+      localizedApp(
+        const Center(
+          child: HornSlot(look: HornSlotLook.ghost, ghostLabel: '×2'),
+        ),
+      ),
+    );
+    expect(find.text('×2'), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is GwentIconView && w.icon == GwentIcon.iconDiscard), findsNothing);
+
+    await tester.pumpWidget(
+      localizedApp(
+        const Center(
+          child: HornSlot(look: HornSlotLook.ghostReplace, effectName: 'Командирский рог'),
+        ),
+      ),
+    );
+    expect(find.byWidgetPredicate((w) => w is GwentIconView && w.icon == GwentIcon.iconDiscard), findsOneWidget);
+    expect(find.text('×2'), findsNothing);
   });
 
   testWidgets('нажатие работает, подпись зависит от состояния', (tester) async {

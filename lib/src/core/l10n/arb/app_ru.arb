@@ -413,10 +413,6 @@
   "@fieldStatusYouPassed": {
     "description": "Статус центральной полосы после своего паса."
   },
-  "fieldStatusTapStrip": "Коснитесь полосы",
-  "@fieldStatusTapStrip": {
-    "description": "Статус центральной полосы, когда выбранная карта играется на неё."
-  },
   "fieldStatusOpponentTurn": "Ход соперника",
   "@fieldStatusOpponentTurn": {
     "description": "Статус центральной полосы в ход соперника."
@@ -441,62 +437,41 @@
   "@fieldToastRefused": {
     "description": "Тост об ошибке, когда движок отклонил ход."
   },
-  "fieldHintUnitRowTitle": "Выберите ряд",
-  "@fieldHintUnitRowTitle": {
-    "description": "Заголовок подсказки при выборе ряда для отряда по требованию способности."
+  "fieldHintUnitRow": "Выберите ряд для отряда",
+  "@fieldHintUnitRow": {
+    "description": "Подсказка в центральной полосе, когда способность требует выбрать ряд для отряда."
   },
-  "fieldHintUnitRowSubtitle": "Куда положить: {name}",
-  "@fieldHintUnitRowSubtitle": {
-    "description": "Пояснение подсказки выбора ряда; [name] — название карты.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+  "fieldHintOwnRow": "Выберите ряд",
+  "@fieldHintOwnRow": {
+    "description": "Подсказка в центральной полосе при розыгрыше отряда."
   },
-  "fieldHintSingleRow": "Коснитесь подсвеченного ряда",
-  "@fieldHintSingleRow": {
-    "description": "Пояснение подсказки, когда ряд один."
-  },
-  "fieldHintOwnRowTitle": "Выберите ряд",
-  "@fieldHintOwnRowTitle": {
-    "description": "Заголовок подсказки при розыгрыше отряда."
-  },
-  "fieldHintAgile": "Проворный отряд: ближний или дальний ряд",
+  "fieldHintAgile": "Ближний или дальний ряд",
   "@fieldHintAgile": {
-    "description": "Пояснение подсказки для проворного отряда."
+    "description": "Подсказка в центральной полосе для проворного отряда."
   },
-  "fieldHintSpyTitle": "Выберите ряд соперника",
-  "@fieldHintSpyTitle": {
-    "description": "Заголовок подсказки при розыгрыше шпиона."
+  "fieldHintSpy": "Выберите ряд соперника",
+  "@fieldHintSpy": {
+    "description": "Подсказка в центральной полосе при розыгрыше шпиона."
   },
-  "fieldHintSpySubtitle": "Шпион уйдёт к нему, а вы возьмёте карты",
-  "@fieldHintSpySubtitle": {
-    "description": "Пояснение подсказки для шпиона."
+  "fieldHintHorn": "Выберите ряд для рога",
+  "@fieldHintHorn": {
+    "description": "Подсказка в центральной полосе при розыгрыше Командирского рога."
   },
-  "fieldHintHornTitle": "Выберите слот рога",
-  "@fieldHintHornTitle": {
-    "description": "Заголовок подсказки при розыгрыше Командирского рога."
+  "fieldHintMardrem": "Выберите ряд для Мардрёма",
+  "@fieldHintMardrem": {
+    "description": "Подсказка в центральной полосе при розыгрыше Мардрёма."
   },
-  "fieldHintHornSubtitle": "В занятый слот карта сразу уйдёт в отбой",
-  "@fieldHintHornSubtitle": {
-    "description": "Пояснение подсказки для рога."
+  "fieldHintStrip": "Бросьте на поле",
+  "@fieldHintStrip": {
+    "description": "Подсказка в центральной полосе для погоды, Ясной погоды и Казни."
   },
-  "fieldHintStripTitle": "Коснитесь центральной полосы",
-  "@fieldHintStripTitle": {
-    "description": "Заголовок подсказки для погоды и особых карт без цели."
+  "fieldHintDecoy": "Выберите отряд",
+  "@fieldHintDecoy": {
+    "description": "Подсказка в центральной полосе при розыгрыше Чучела."
   },
-  "fieldHintStripSubtitle": "Карта подействует на поле целиком",
-  "@fieldHintStripSubtitle": {
-    "description": "Пояснение подсказки для погоды и особых карт без цели."
-  },
-  "fieldHintDecoyTitle": "Выберите отряд",
-  "@fieldHintDecoyTitle": {
-    "description": "Заголовок подсказки при розыгрыше Чучела."
-  },
-  "fieldHintDecoySubtitle": "Он вернётся в руку, Чучело займёт его место",
-  "@fieldHintDecoySubtitle": {
-    "description": "Пояснение подсказки для Чучела."
+  "fieldHornGhostLabel": "×2",
+  "@fieldHornGhostLabel": {
+    "description": "Микро-подпись призрака Командирского рога в слоте ряда под пальцем."
   },
   "fieldChoiceMedic": "Медик: вернуть отряд",
   "@fieldChoiceMedic": {
@@ -1401,6 +1376,10 @@
   "settingsHints": "Подсказки для новичка",
   "@settingsHints": {
     "description": "Подпись переключателя подсказок."
+  },
+  "settingsHaptics": "Вибрация",
+  "@settingsHaptics": {
+    "description": "Подпись переключателя вибрации."
   },
   "settingsMusic": "Музыка",
   "@settingsMusic": {

@@ -41,6 +41,7 @@ class MatchScreen extends StatefulWidget {
     required this.onExit,
     required this.onEditDeck,
     this.confirmPass = false,
+    this.hints = false,
     this.animationScale = 1,
     this.onSettings,
     this.overlay,
@@ -56,6 +57,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Спрашивать подтверждение паса диалогом; иначе пас нужно держать 1 с.
   final bool confirmPass;
+
+  /// Подсказка в центральной полосе, что делать с выбранной картой (настройка «Подсказки»).
+  final bool hints;
 
   /// Доля обычных длительностей анимаций карт: 1 или `StageTokens.fastFactor` для быстрой скорости (ADR 0017).
   final double animationScale;
@@ -284,6 +288,7 @@ class _MatchScreenState extends State<MatchScreen> {
           roster: roster,
           onIntent: submit,
           confirmPass: widget.confirmPass,
+          hints: widget.hints,
           onSettings: widget.onSettings,
           opponentStatus: widget.opponentStatus,
         ),

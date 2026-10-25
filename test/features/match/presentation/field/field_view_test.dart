@@ -17,7 +17,10 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/haptics/application/play_haptic.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/match/presentation/field/banner_layer.dart';
+import 'package:gwent/src/features/match/presentation/field/drag_feedback.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
@@ -29,8 +32,10 @@ import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
 import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
+import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
+import '../../../../support/fakes.dart';
 import '../../../../support/fonts.dart';
 import '../../../../support/localized_app.dart';
 import '../../../../support/match_fixtures.dart';
@@ -38,10 +43,15 @@ import 'field_fixtures.dart';
 
 /// Поле в тесте: проекция меняется через [view], ходы копятся в [intents].
 final class _Harness {
-  _Harness(PlayerView initial) : view = ValueNotifier(initial);
+  _Harness(PlayerView initial) : view = ValueNotifier(initial) {
+    haptic = PlayHaptic(haptics, WatchSettings(InMemorySettingsRepository()));
+    cubit = FieldCubit(haptic: haptic);
+  }
 
   final ValueNotifier<PlayerView> view;
-  final FieldCubit cubit = FieldCubit();
+  final RecordingHapticOutput haptics = RecordingHapticOutput();
+  late final PlayHaptic haptic;
+  late final FieldCubit cubit;
   final List<Intent> intents = [];
 }
 
@@ -64,6 +74,7 @@ void main() {
     WidgetTester tester,
     PlayerView view, {
     bool confirmPass = false,
+    bool hints = true,
     bool hotSeat = false,
     bool readOnly = false,
     VoidCallback? onSettings,
@@ -74,6 +85,7 @@ void main() {
     addTearDown(tester.view.reset);
     final harness = _Harness(view);
     addTearDown(harness.cubit.close);
+    addTearDown(harness.haptic.dispose);
     await tester.pumpWidget(
       localizedApp(
         BlocProvider.value(
@@ -86,6 +98,7 @@ void main() {
               roster: rosterOf(cards, hotSeat: hotSeat),
               onIntent: harness.intents.add,
               confirmPass: confirmPass,
+              hints: hints,
               readOnly: readOnly,
               onSettings: onSettings,
             ),
@@ -202,11 +215,9 @@ void main() {
       await tester.tap(handCards().first);
       await tester.pump(const Duration(milliseconds: 250));
       expect(harness.cubit.state.selected, unit.id);
-      expect(find.text('Выберите ряд'), findsOneWidget);
-      expect(find.text('Отмена'), findsOneWidget);
-
-      await tapField(tester, emptyPart(Row.ranged, mine: true));
-      expect(harness.intents, isEmpty, reason: 'дальний ряд не цель этого отряда');
+      await tester.pump();
+      expect(find.text('Выберите ряд'), findsOneWidget, reason: 'подсказка в центральной полосе вместо статуса');
+      expect(find.text('Отмена'), findsNothing, reason: 'отмена теперь повторным тапом, кнопки нет');
 
       await tapField(tester, emptyPart(Row.melee, mine: true));
       expect(harness.intents, [PlayCard(unit.id, row: Row.melee)]);
@@ -214,18 +225,45 @@ void main() {
       await endBanners(tester);
     });
 
-    testWidgets('«Отмена» в полосе подсказки снимает выбор', (tester) async {
+    testWidgets('тап по ряду, который не цель, снимает выбор', (tester) async {
+      final unit = cards.unit(Row.melee);
+      final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit])));
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      await tapField(tester, emptyPart(Row.ranged, mine: true));
+      expect(harness.intents, isEmpty, reason: 'дальний ряд не цель этого отряда');
+      expect(harness.cubit.state.selected, isNull);
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.text('Выберите ряд'), findsNothing, reason: 'подсказка ушла');
+      await endBanners(tester);
+    });
+
+    testWidgets('повторный тап по выбранной карте снимает выбор', (tester) async {
       final harness = await pumpField(
         tester,
         viewOf(cards, me: sideOf(cards, Seat.one, hand: [cards.unit(Row.melee)])),
       );
       await tester.tap(handCards().first);
       await tester.pump(const Duration(milliseconds: 250));
-      await tester.tap(find.text('Отмена'));
+      await tester.tap(handCards().first);
       await tester.pump(const Duration(milliseconds: 250));
       expect(harness.cubit.state.selected, isNull);
-      expect(find.text('Отмена'), findsNothing);
       await endBanners(tester);
+    });
+
+    testWidgets('подсказки выключены: в полосе остаётся статус хода', (tester) async {
+      final harness = await pumpField(
+        tester,
+        viewOf(cards, me: sideOf(cards, Seat.one, hand: [cards.unit(Row.melee)])),
+        hints: false,
+      );
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.cubit.state.selected, isNotNull);
+      expect(find.text('Выберите ряд'), findsNothing);
+      await endBanners(tester);
+      expect(find.text('Ваш ход'), findsOneWidget);
     });
 
     testWidgets('проворный отряд: два ряда на выбор', (tester) async {
@@ -233,7 +271,7 @@ void main() {
       final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [agile])));
       await tester.tap(handCards().first);
       await tester.pump(const Duration(milliseconds: 250));
-      expect(find.text('Проворный отряд: ближний или дальний ряд'), findsOneWidget);
+      expect(find.text('Ближний или дальний ряд'), findsOneWidget);
       await tapField(tester, emptyPart(Row.ranged, mine: true));
       expect(harness.intents, [PlayCard(agile.id, row: Row.ranged)]);
       await endBanners(tester);
@@ -248,6 +286,9 @@ void main() {
       expect(find.text('Выберите ряд соперника'), findsOneWidget);
       await tapField(tester, emptyPart(row, mine: true));
       expect(harness.intents, isEmpty, reason: 'свой ряд шпиону не подходит');
+      expect(harness.cubit.state.selected, isNull, reason: 'тап не по цели снял выбор');
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
       await tapField(tester, emptyPart(row, mine: false));
       expect(harness.intents, [PlayCard(spy.id, row: row)]);
       await endBanners(tester);
@@ -258,7 +299,7 @@ void main() {
       final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [weather])));
       await tester.tap(handCards().first);
       await tester.pump(const Duration(milliseconds: 250));
-      expect(find.text('Коснитесь центральной полосы'), findsOneWidget);
+      expect(find.text('Бросьте на поле'), findsOneWidget);
       expect(tester.widget<WeatherStrip>(find.byType(WeatherStrip)).isTarget, isTrue);
       await tapField(tester, geometry.strip.center);
       expect(harness.intents, [PlayCard(weather.id)]);
@@ -270,7 +311,7 @@ void main() {
       final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [horn])));
       await tester.tap(handCards().first);
       await tester.pump(const Duration(milliseconds: 250));
-      expect(find.text('Выберите слот рога'), findsOneWidget);
+      expect(find.text('Выберите ряд для рога'), findsOneWidget);
       await tapField(tester, emptyPart(Row.siege, mine: true));
       expect(harness.intents, [PlayCard(horn.id, row: Row.siege)]);
       await endBanners(tester);
@@ -318,6 +359,7 @@ void main() {
       await gesture.up();
       await tester.pump(const Duration(milliseconds: 250));
       expect(harness.intents, [PlayCard(unit.id, row: Row.siege)]);
+      expect(harness.haptics.played, [HapticPattern.soft, HapticPattern.medium], reason: 'вход в цель и отпускание');
       await endBanners(tester);
     });
 
@@ -330,6 +372,90 @@ void main() {
       await gesture.up();
       await tester.pump(const Duration(milliseconds: 250));
       expect(harness.intents, isEmpty);
+      expect(harness.haptics.played, [HapticPattern.double], reason: 'мимо цели две короткие вибрации');
+      await endBanners(tester);
+    });
+
+    testWidgets('цель под пальцем горит ярко, мини-карта тускнеет вне цели; вход и выход дают вибрацию', (
+      tester,
+    ) async {
+      final unit = cards.unit(Row.siege);
+      final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [unit])));
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -60));
+      await tester.pump(const Duration(milliseconds: 200));
+      double feedbackOpacity() => tester
+          .widget<AnimatedOpacity>(
+            find.descendant(of: find.byType(DragFeedback), matching: find.byType(AnimatedOpacity)),
+          )
+          .opacity;
+      expect(feedbackOpacity(), DragFeedback.dimmedOpacity);
+
+      await gesture.moveTo(emptyPart(Row.siege, mine: true));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(feedbackOpacity(), 1);
+      expect(harness.haptics.played, [HapticPattern.soft]);
+
+      await gesture.moveTo(emptyPart(Row.melee, mine: true));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(feedbackOpacity(), DragFeedback.dimmedOpacity);
+      expect(harness.haptics.played, [HapticPattern.soft, HapticPattern.tick]);
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.haptics.played.last, HapticPattern.double);
+      await endBanners(tester);
+    });
+
+    testWidgets('погода: целью служит всё поле, тап по ряду тоже играет карту', (tester) async {
+      final weather = cards.special<WeatherAbility>();
+      final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [weather])));
+      await tester.tap(handCards().first);
+      await tester.pump(const Duration(milliseconds: 250));
+      await tapField(tester, emptyPart(Row.melee, mine: false));
+      expect(harness.intents, [PlayCard(weather.id)]);
+      await endBanners(tester);
+    });
+
+    testWidgets('погода: бросок на ряд соперника играет карту', (tester) async {
+      final weather = cards.special<WeatherAbility>();
+      final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [weather])));
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -60));
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.moveTo(emptyPart(Row.ranged, mine: false));
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.intents, [PlayCard(weather.id)]);
+      await endBanners(tester);
+    });
+
+    testWidgets('Чучело: бросок на свой отряд играет карту', (tester) async {
+      final decoy = cards.special<DecoyAbility>();
+      final unit = cards.unit(Row.ranged);
+      final harness = await pumpField(
+        tester,
+        viewOf(
+          cards,
+          me: sideOf(
+            cards,
+            Seat.one,
+            hand: [decoy],
+            rows: {
+              Row.ranged: rowOf([unit], cards),
+            },
+          ),
+        ),
+      );
+      final gesture = await tester.startGesture(tester.getCenter(handCards().first));
+      await gesture.moveBy(const Offset(0, -60));
+      await tester.pump(const Duration(milliseconds: 50));
+      final target = find.byWidgetPredicate((widget) => widget is GwentCard && widget.size.name == 'row').first;
+      await gesture.moveTo(tester.getCenter(target));
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(harness.intents, [PlayCard(decoy.id, target: unit.id)]);
       await endBanners(tester);
     });
   });
@@ -425,9 +551,8 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Выберите ряд'), findsOneWidget);
-      expect(find.text('Ваш выбор'), findsOneWidget);
-      expect(find.text('Отмена'), findsNothing, reason: 'карта уже сыграна, отменить нельзя');
+      expect(find.text('Выберите ряд для отряда'), findsOneWidget);
+      expect(find.text('Ваш выбор'), findsNothing, reason: 'подсказка заменяет статус');
       await tapField(tester, emptyPart(Row.melee, mine: false));
       expect(harness.intents, isEmpty);
       await tapField(tester, emptyPart(Row.ranged, mine: true));

@@ -18,6 +18,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/presentation/field/banner_layer.dart';
+import 'package:gwent/src/features/match/presentation/field/drag_hover.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
@@ -56,6 +57,7 @@ class FieldView extends StatefulWidget {
     required this.roster,
     required this.onIntent,
     this.confirmPass = false,
+    this.hints = false,
     this.onSettings,
     this.readOnly = false,
     this.opponentStatus,
@@ -75,6 +77,9 @@ class FieldView extends StatefulWidget {
 
   /// Спрашивать подтверждение паса диалогом; иначе пас нужно держать 1 с.
   final bool confirmPass;
+
+  /// Показывать подсказку, что делать с выбранной картой, в центральной полосе (настройка «Подсказки»).
+  final bool hints;
 
   /// Открыть настройки поверх партии из меню паузы; `null` — кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
@@ -99,6 +104,11 @@ class _FieldViewState extends State<FieldView> {
   /// Метка холста и меток полос игроков: по ним анимации карт находят места на полосах.
   final GlobalKey _canvasKey = GlobalKey();
   final Map<bool, PlayerBarAnchors> _anchors = {true: PlayerBarAnchors(), false: PlayerBarAnchors()};
+
+  /// Над какой целью палец с картой: яркость карты под пальцем и вибрация входа и выхода (макет 14).
+  late final DragHover _hover = DragHover(
+    onChanged: ({required over}) => _cubit.vibrate(over ? TargetHaptics.enter : TargetHaptics.leave),
+  );
   StageGeometry? _stageGeometry;
   int? _stageGeometryScript;
   double? _stageGeometryWidth;
@@ -106,6 +116,12 @@ class _FieldViewState extends State<FieldView> {
   /// Поле экрана; пока идёт последний ход раунда, поле до подсчёта (экран уже получил поле после уборки).
   PlayerView get _view => _cubit.state.stage?.board ?? widget.view;
   FieldCubit get _cubit => context.read<FieldCubit>();
+
+  @override
+  void dispose() {
+    _hover.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -160,8 +176,15 @@ class _FieldViewState extends State<FieldView> {
 
   void _play(Intent intent) {
     if (_blocked || widget.readOnly) return;
-    _cubit.clearSelected();
+    _cubit
+      ..vibrate(TargetHaptics.hit)
+      ..clearSelected();
     widget.onIntent(intent);
+  }
+
+  /// Нажатие не по цели снимает выбор карты (макет 14); у карты на всё поле (погода) целью служит любая зона поля.
+  void _tapElsewhere(FieldState field) {
+    if (field.selected != null) _cubit.clearSelected();
   }
 
   void _tapRow(Row row, {required bool mine, required FieldState field}) {
@@ -170,12 +193,21 @@ class _FieldViewState extends State<FieldView> {
       widget.onIntent(ChooseOption(RowOption(row)));
       return;
     }
-    if (_targets(field).atRow(row, mine: mine) case final intent?) _play(intent);
+    final targets = _targets(field);
+    if (targets.atRow(row, mine: mine) ?? targets.atStrip() case final intent?) {
+      _play(intent);
+    } else {
+      _tapElsewhere(field);
+    }
   }
 
   void _tapStrip(FieldState field) {
     if (widget.readOnly) return;
-    if (_targets(field).atStrip() case final intent?) _play(intent);
+    if (_targets(field).atStrip() case final intent?) {
+      _play(intent);
+    } else {
+      _tapElsewhere(field);
+    }
   }
 
   void _tapFieldCard(CardInstance card, Row row, {required bool mine, required FieldState field}) {
@@ -233,6 +265,19 @@ class _FieldViewState extends State<FieldView> {
 
   void _drop(CardInstance card, {required Row row, required bool mine}) {
     if (PlayTargets.forCard(_view, card, _catalog).atRow(row, mine: mine) case final intent?) _play(intent);
+  }
+
+  bool _canDropOnCard(CardInstance card, CardInstance target) =>
+      !widget.readOnly && PlayTargets.forCard(_view, card, _catalog).atFieldCard(target.id) != null;
+
+  void _dropOnCard(CardInstance card, CardInstance target) {
+    if (PlayTargets.forCard(_view, card, _catalog).atFieldCard(target.id) case final intent?) _play(intent);
+  }
+
+  /// Карту отпустили: мимо цели она вернулась в руку, о чём игрок узнаёт по двум коротким вибрациям.
+  void _dragEnded(HandCard card, {required bool accepted}) {
+    _hover.reset();
+    if (!accepted) _cubit.vibrate(TargetHaptics.miss);
   }
 
   void _onBack(FieldState field) {
@@ -382,8 +427,7 @@ class _FieldViewState extends State<FieldView> {
     final opponent = view.opponent;
     final targets = _targets(field);
     final choiceRows = _choiceRows();
-    final hint = _hint(l10n, targets);
-    final isTargeting = hint != null;
+    final hint = _hintText(l10n, targets);
     final script = field.stage;
     return KeyedSubtree(
       key: _canvasKey,
@@ -401,10 +445,9 @@ class _FieldViewState extends State<FieldView> {
                   row: row,
                   mine: mine,
                   data: (mine ? me : opponent).rows[row] ?? _emptyRow,
-                  isTarget:
-                      (targets.highlightsRow(row, mine: mine) && targets.kind != PlayTargetKind.hornSlot) ||
-                      (mine && choiceRows.contains(row)),
+                  isTarget: targets.highlightsRow(row, mine: mine) || (mine && choiceRows.contains(row)),
                   hornTarget: targets.highlightsHornSlot(row),
+                  hornLabel: _isHorn(targets) ? l10n.fieldHornGhostLabel : null,
                   decoyTargets: mine && targets.kind == PlayTargetKind.decoy ? targets.fieldCards : const {},
                   recent: field.recent,
                   staged: frame?.rows[(mine: mine, row: row)],
@@ -414,35 +457,41 @@ class _FieldViewState extends State<FieldView> {
                   canDrop: (card) => _canDrop(card, row: row, mine: mine),
                   onDrop: (card) => _drop(card, row: row, mine: mine),
                   onCardTap: (card) => _tapFieldCard(card, row, mine: mine, field: field),
+                  onDragEnter: _hover.enter,
+                  onDragLeave: _hover.leave,
+                  canDropOnCard: _canDropOnCard,
+                  onDropOnCard: _dropOnCard,
                   onCardLongPress: (card, strength) => _showDetail(
                     card,
                     power: strength,
                     frosted: (mine ? me : opponent).rows[row]?.weather == true && row == Row.melee,
                   ),
                 ),
-            Positioned.fromRect(
-              rect: geometry.strip,
-              child: DragTarget<CardInstance>(
-                onWillAcceptWithDetails: (details) =>
-                    !widget.readOnly && PlayTargets.forCard(view, details.data, _catalog).highlightsStrip,
-                onAcceptWithDetails: (details) {
-                  if (PlayTargets.forCard(view, details.data, _catalog).atStrip() case final intent?) _play(intent);
-                },
-                builder: (context, _, _) => _strip(l10n, field, targets, frame),
+            Positioned.fromRect(rect: geometry.strip, child: _strip(l10n, field, targets, frame, hint)),
+            if (targets.highlightsStrip)
+              Positioned.fromRect(
+                rect: geometry.scrimArea,
+                child: DragTarget<CardInstance>(
+                  onWillAcceptWithDetails: (details) {
+                    final accepts =
+                        !widget.readOnly && PlayTargets.forCard(view, details.data, _catalog).highlightsStrip;
+                    if (accepts) _hover.enter();
+                    return accepts;
+                  },
+                  onLeave: (_) => _hover.leave(),
+                  onAcceptWithDetails: (details) {
+                    if (PlayTargets.forCard(view, details.data, _catalog).atStrip() case final intent?) _play(intent);
+                  },
+                  builder: (context, candidates, _) => Stack(
+                    children: [
+                      TargetHighlight(look: candidates.isNotEmpty ? TargetLook.hot : TargetLook.candidate),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            if (isTargeting) TargetScrim(area: geometry.scrimArea, holes: _holes(geometry, targets, choiceRows)),
             Positioned.fromRect(
               rect: geometry.opponentBar,
-              child: hint != null
-                  ? TargetHintBar(
-                      face: hint.face,
-                      title: hint.title,
-                      subtitle: hint.subtitle,
-                      cancelLabel: l10n.dialogCancel,
-                      onCancel: hint.cancellable ? _cubit.clearSelected : null,
-                    )
-                  : _bar(l10n, mine: false, frame: frame),
+              child: _bar(l10n, mine: false, frame: frame),
             ),
             Positioned.fromRect(
               rect: geometry.myBar,
@@ -471,6 +520,8 @@ class _FieldViewState extends State<FieldView> {
                         onTap: _tapHandCard,
                         onLongPress: (card) => _showDetail(card.instance),
                         onDragStarted: _startDrag,
+                        onDragEnded: _dragEnded,
+                        hover: _hover,
                         hidden: frame?.handHidden ?? const {},
                       ),
                     ),
@@ -533,14 +584,13 @@ class _FieldViewState extends State<FieldView> {
     );
   }
 
-  Widget _strip(AppLocalizations l10n, FieldState field, PlayTargets targets, StageFrame? frame) {
+  Widget _strip(AppLocalizations l10n, FieldState field, PlayTargets targets, StageFrame? frame, String? hint) {
     final view = _view;
     final (status, active) = switch (view) {
       PlayerView(phase: MatchPhase.finished) => (l10n.fieldStatusMatchOver, false),
       PlayerView(choice: != null) => (l10n.fieldStatusYourChoice, true),
       PlayerView(opponentChoosing: != null) => (l10n.fieldStatusOpponentChoosing, false),
       PlayerView(me: SideView(passed: true)) => (l10n.fieldStatusYouPassed, false),
-      _ when targets.highlightsStrip => (l10n.fieldStatusTapStrip, true),
       _ when view.turn == view.viewer => (l10n.bannerYourTurn, true),
       _ => (l10n.fieldStatusOpponentTurn, false),
     };
@@ -557,6 +607,7 @@ class _FieldViewState extends State<FieldView> {
           ),
       ],
       status: covered == true ? '' : status,
+      hint: covered == true ? null : hint,
       statusActive: active,
       round: view.round,
       isTarget: targets.highlightsStrip,
@@ -616,57 +667,23 @@ class _FieldViewState extends State<FieldView> {
     );
   }
 
-  List<Rect> _holes(FieldGeometry geometry, PlayTargets targets, Set<Row> choiceRows) {
-    final holes = <Rect>[];
-    for (final row in Row.values) {
-      if (targets.kind != PlayTargetKind.hornSlot) {
-        if (targets.highlightsRow(row, mine: true) || choiceRows.contains(row)) {
-          holes.add(geometry.rowRect(row, mine: true));
-        }
-        if (targets.highlightsRow(row, mine: false)) holes.add(geometry.rowRect(row, mine: false));
-      }
-      if (targets.highlightsHornSlot(row)) holes.add(geometry.hornSlotRect(row, mine: true).inflate(3));
-      if (targets.kind == PlayTargetKind.decoy) {
-        final cards = _view.me.rows[row]?.cards ?? const <FieldCardView>[];
-        for (var i = 0; i < cards.length; i++) {
-          if (targets.highlightsFieldCard(cards[i].card.id)) {
-            holes.add(geometry.cardRect(row, i, cards.length, mine: true).inflate(3));
-          }
-        }
-      }
-    }
-    if (targets.highlightsStrip) holes.add(geometry.strip);
-    return holes;
-  }
+  bool _isHorn(PlayTargets targets) =>
+      targets.card != null && _fieldContent.special(targets.card!)?.ability is HornCardAbility;
 
-  _Hint? _hint(AppLocalizations l10n, PlayTargets targets) {
+  /// Статичная подсказка в центральной полосе (макет 14): общая инструкция по виду карты, она не меняется от положения
+  /// пальца и не называет результат. `null` — подсказки выключены или выбирать нечего.
+  String? _hintText(AppLocalizations l10n, PlayTargets targets) {
+    if (!widget.hints || widget.readOnly) return null;
     final choice = _view.choice;
-    if (choice != null) {
-      if (choice.kind != ChoiceKind.unitRow) return null;
-      final subject = choice.subject;
-      return _Hint(
-        face: subject == null ? null : _fieldContent.face(subject),
-        title: l10n.fieldHintUnitRowTitle,
-        subtitle: subject == null
-            ? l10n.fieldHintSingleRow
-            : l10n.fieldHintUnitRowSubtitle(_fieldContent.face(subject).name),
-        cancellable: false,
-      );
-    }
-    final card = targets.card;
-    if (card == null) return null;
-    final (title, subtitle) = switch (targets.kind) {
-      PlayTargetKind.none => ('', ''),
-      PlayTargetKind.ownRow => (
-        l10n.fieldHintOwnRowTitle,
-        targets.rows.length > 1 ? l10n.fieldHintAgile : l10n.fieldHintSingleRow,
-      ),
-      PlayTargetKind.opponentRow => (l10n.fieldHintSpyTitle, l10n.fieldHintSpySubtitle),
-      PlayTargetKind.hornSlot => (l10n.fieldHintHornTitle, l10n.fieldHintHornSubtitle),
-      PlayTargetKind.strip => (l10n.fieldHintStripTitle, l10n.fieldHintStripSubtitle),
-      PlayTargetKind.decoy => (l10n.fieldHintDecoyTitle, l10n.fieldHintDecoySubtitle),
+    if (choice != null) return choice.kind == ChoiceKind.unitRow ? l10n.fieldHintUnitRow : null;
+    return switch (targets.kind) {
+      PlayTargetKind.none => null,
+      PlayTargetKind.ownRow => targets.rows.length > 1 ? l10n.fieldHintAgile : l10n.fieldHintOwnRow,
+      PlayTargetKind.opponentRow => l10n.fieldHintSpy,
+      PlayTargetKind.hornSlot => _isHorn(targets) ? l10n.fieldHintHorn : l10n.fieldHintMardrem,
+      PlayTargetKind.strip => l10n.fieldHintStrip,
+      PlayTargetKind.decoy => l10n.fieldHintDecoy,
     };
-    return _Hint(face: _fieldContent.face(card), title: title, subtitle: subtitle, cancellable: true);
   }
 
   String _toastText(AppLocalizations l10n, FieldMessage message) => switch (message) {
@@ -836,15 +853,6 @@ class _FieldBackdrop extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _Hint {
-  const _Hint({required this.face, required this.title, required this.subtitle, required this.cancellable});
-
-  final CardFace? face;
-  final String title;
-  final String subtitle;
-  final bool cancellable;
 }
 
 /// Метка «Спасовал» на полосе соперника: 70×30 pt, пока соперник вышел из раунда.

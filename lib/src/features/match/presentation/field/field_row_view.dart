@@ -13,14 +13,15 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
+import 'package:gwent/src/features/match/presentation/field/field_overlays.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Один ряд на поле (макет поля, «Z-порядок слоёв»): фон, погодный слой, водяной знак, колонка (сила ряда и слот
 /// рога), карты и вуаль погоды.
 ///
-/// Нажатие по ряду принимает весь ряд 80 pt, а не карта: так проще попасть пальцем. Цель хода рисуется золотой
-/// рамкой по периметру ряда.
+/// Нажатие по ряду принимает весь ряд 80 pt, а не карта: так проще попасть пальцем. Допустимая цель хода слабо
+/// горит золотой рамкой, цель под пальцем с картой горит ярко (`TargetHighlight`).
 class FieldRowView extends StatelessWidget {
   /// Создаёт ряд типа [row] стороны [mine] с данными проекции [data].
   const FieldRowView({
@@ -32,6 +33,7 @@ class FieldRowView extends StatelessWidget {
     required this.data,
     this.isTarget = false,
     this.hornTarget = false,
+    this.hornLabel,
     this.decoyTargets = const {},
     this.recent = const {},
     this.staged,
@@ -42,6 +44,10 @@ class FieldRowView extends StatelessWidget {
     this.onDrop,
     this.onCardTap,
     this.onCardLongPress,
+    this.onDragEnter,
+    this.onDragLeave,
+    this.canDropOnCard,
+    this.onDropOnCard,
   });
 
   /// Размеры зон поля.
@@ -59,11 +65,14 @@ class FieldRowView extends StatelessWidget {
   /// Ряд в проекции: карты, слот рога, погода, сила.
   final RowView data;
 
-  /// Ряд — цель хода.
+  /// Ряд — допустимая цель хода (слабая подсветка); под пальцем с картой ряд горит ярко.
   final bool isTarget;
 
-  /// Слот рога этого ряда — цель хода.
+  /// Слот рога этого ряда — цель хода: в нём призрак рога, когда над рядом палец с картой.
   final bool hornTarget;
+
+  /// Микро-подпись призрака рога («×2»); `null` — без подписи (Мардрём).
+  final String? hornLabel;
 
   /// Мои карты на этом ряду, на которые можно положить Чучело.
   final Set<CardInstanceId> decoyTargets;
@@ -95,6 +104,18 @@ class FieldRowView extends StatelessWidget {
   /// Долгое нажатие по карте на ряду.
   final void Function(CardInstance card, int strength)? onCardLongPress;
 
+  /// Палец с картой руки вошёл в цель ряда или карты на нём.
+  final VoidCallback? onDragEnter;
+
+  /// Палец с картой руки вышел из цели ряда или карты на нём.
+  final VoidCallback? onDragLeave;
+
+  /// Можно ли бросить карту руки на карту ряда [target] (Чучело).
+  final bool Function(CardInstance card, CardInstance target)? canDropOnCard;
+
+  /// Карту руки бросили на карту ряда [target].
+  final void Function(CardInstance card, CardInstance target)? onDropOnCard;
+
   @override
   Widget build(BuildContext context) {
     final rect = geometry.rowRect(row, mine: mine);
@@ -116,15 +137,20 @@ class FieldRowView extends StatelessWidget {
     return Positioned.fromRect(
       rect: rect,
       child: DragTarget<CardInstance>(
-        onWillAcceptWithDetails: (details) => canDrop?.call(details.data) ?? false,
+        onWillAcceptWithDetails: (details) {
+          final accepts = canDrop?.call(details.data) ?? false;
+          if (accepts) onDragEnter?.call();
+          return accepts;
+        },
+        onLeave: (_) => onDragLeave?.call(),
         onAcceptWithDetails: (details) => onDrop?.call(details.data),
-        builder: (context, _, _) => GestureDetector(
+        builder: (context, candidates, _) => GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: Semantics(
             container: true,
             label: context.l10n.fieldRowSemantics(_rowName(context), data.strength),
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -138,12 +164,6 @@ class FieldRowView extends StatelessWidget {
                   bottom: mine ? BorderSide.none : const BorderSide(color: Color(0x990A0806)),
                 ),
               ),
-              foregroundDecoration: isTarget
-                  ? BoxDecoration(
-                      color: GwentColors.gold.withValues(alpha: 0.1),
-                      border: Border.all(color: GwentColors.gold, width: 1.5),
-                    )
-                  : null,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -162,7 +182,13 @@ class FieldRowView extends StatelessWidget {
                   Positioned(
                     left: FieldGeometry.columnLeft + 1.5,
                     top: 32,
-                    child: _HornSlotView(slot: slot, content: content, target: hornTarget && mine),
+                    child: _HornSlotView(
+                      slot: slot,
+                      content: content,
+                      target: hornTarget && mine,
+                      hot: candidates.isNotEmpty,
+                      label: hornLabel,
+                    ),
                   ),
                   for (var i = 0; i < cards.length; i++)
                     _FieldCard(
@@ -179,6 +205,10 @@ class FieldRowView extends StatelessWidget {
                       opacity: staging?[i].opacity ?? 1,
                       flash: flashes[cards[i].card.id],
                       isDecoyTarget: decoyTargets.contains(cards[i].card.id),
+                      canDrop: canDropOnCard,
+                      onDrop: onDropOnCard,
+                      onDragEnter: onDragEnter,
+                      onDragLeave: onDragLeave,
                       justPlayed: recent.contains(cards[i].card.id) && !(staging?[i].hidden ?? false),
                       onTap: onCardTap,
                       onLongPress: onCardLongPress,
@@ -201,6 +231,13 @@ class FieldRowView extends StatelessWidget {
                         ),
                       ),
                     ),
+                  TargetHighlight(
+                    look: candidates.isNotEmpty
+                        ? TargetLook.hot
+                        : isTarget
+                        ? TargetLook.candidate
+                        : TargetLook.none,
+                  ),
                 ],
               ),
             ),
@@ -253,11 +290,25 @@ class _Watermark extends StatelessWidget {
 }
 
 class _HornSlotView extends StatelessWidget {
-  const _HornSlotView({required this.slot, required this.content, required this.target});
+  const _HornSlotView({
+    required this.slot,
+    required this.content,
+    required this.target,
+    required this.hot,
+    required this.label,
+  });
 
   final RowSlot? slot;
   final FieldContent content;
+
+  /// Слот — цель хода.
   final bool target;
+
+  /// Над рядом палец с картой.
+  final bool hot;
+
+  /// Микро-подпись призрака.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -267,14 +318,32 @@ class _HornSlotView extends StatelessWidget {
         final isMardrem = content.special(card)?.ability is MardremCardAbility;
         final face = content.face(card);
         return HornSlot(
-          look: HornSlotLook.filled,
+          look: !target
+              ? HornSlotLook.filled
+              : hot
+              ? HornSlotLook.ghostReplace
+              : HornSlotLook.targetFilled,
           art: face.art,
           effect: isMardrem ? GwentIcon.abilityMardroeme : GwentIcon.abilityCommanderHorn,
           effectName: face.name,
         );
       }(),
-      LeaderHornSlot() => HornSlot(look: HornSlotLook.filled, effectName: l10n.fieldLeaderHorn),
-      null => HornSlot(look: target ? HornSlotLook.target : HornSlotLook.empty),
+      LeaderHornSlot() => HornSlot(
+        look: !target
+            ? HornSlotLook.filled
+            : hot
+            ? HornSlotLook.ghostReplace
+            : HornSlotLook.targetFilled,
+        effectName: l10n.fieldLeaderHorn,
+      ),
+      null => HornSlot(
+        look: !target
+            ? HornSlotLook.empty
+            : hot
+            ? HornSlotLook.ghost
+            : HornSlotLook.target,
+        ghostLabel: label,
+      ),
     };
   }
 }
@@ -291,6 +360,10 @@ class _FieldCard extends StatelessWidget {
     required this.opacity,
     required this.flash,
     required this.isDecoyTarget,
+    required this.canDrop,
+    required this.onDrop,
+    required this.onDragEnter,
+    required this.onDragLeave,
     required this.justPlayed,
     required this.onTap,
     required this.onLongPress,
@@ -305,6 +378,10 @@ class _FieldCard extends StatelessWidget {
   final double opacity;
   final CardFlash? flash;
   final bool isDecoyTarget;
+  final bool Function(CardInstance card, CardInstance target)? canDrop;
+  final void Function(CardInstance card, CardInstance target)? onDrop;
+  final VoidCallback? onDragEnter;
+  final VoidCallback? onDragLeave;
   final bool justPlayed;
   final void Function(CardInstance card)? onTap;
   final void Function(CardInstance card, int strength)? onLongPress;
@@ -328,10 +405,6 @@ class _FieldCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(3),
               boxShadow: [
-                if (isDecoyTarget) ...const [
-                  BoxShadow(color: Color(0x8CC8A35B), blurRadius: 10),
-                  BoxShadow(color: GwentColors.gold, spreadRadius: 1.5),
-                ],
                 if (flash case final flash? when flash.tone != RollTone.none)
                   BoxShadow(
                     color: (flash.tone == RollTone.gain ? GwentColors.buff : GwentColors.debuff).withValues(
@@ -342,13 +415,35 @@ class _FieldCard extends StatelessWidget {
                   ),
               ],
             ),
-            child: GwentCard(
-              face: detail.face,
-              size: CardSize.row,
-              compactWidth: compactWidth,
-              highlight: justPlayed ? CardHighlight.justPlayed : CardHighlight.normal,
-              onTap: onTap == null ? null : () => onTap!(card),
-              onLongPress: onLongPress == null ? null : () => onLongPress!(card, view.strength),
+            child: DragTarget<CardInstance>(
+              onWillAcceptWithDetails: (details) {
+                final accepts = isDecoyTarget && (canDrop?.call(details.data, card) ?? false);
+                if (accepts) onDragEnter?.call();
+                return accepts;
+              },
+              onLeave: (_) => onDragLeave?.call(),
+              onAcceptWithDetails: (details) => onDrop?.call(details.data, card),
+              builder: (context, candidates, _) => Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  GwentCard(
+                    face: detail.face,
+                    size: CardSize.row,
+                    compactWidth: compactWidth,
+                    highlight: justPlayed ? CardHighlight.justPlayed : CardHighlight.normal,
+                    onTap: onTap == null ? null : () => onTap!(card),
+                    onLongPress: onLongPress == null ? null : () => onLongPress!(card, view.strength),
+                  ),
+                  TargetHighlight(
+                    radius: 3,
+                    look: candidates.isNotEmpty
+                        ? TargetLook.hot
+                        : isDecoyTarget
+                        ? TargetLook.candidate
+                        : TargetLook.none,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -38,6 +38,7 @@ void main() {
       confirmPass: false,
       animationSpeed: AnimationSpeed.fast,
       hints: false,
+      haptics: false,
       musicVolume: 0,
       effectsVolume: 100,
       contentCheckedAt: DateTime.utc(2026, 10, 18, 9, 30),

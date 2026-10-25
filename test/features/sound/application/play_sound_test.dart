@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/features/haptics/application/play_haptic.dart';
+import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/sound/application/play_sound.dart';
@@ -85,6 +87,46 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     delayed(SoundEffect.select);
     expect(output.played, isEmpty);
+  });
+
+  group('вибрация события (ADR 0031)', () {
+    late RecordingHapticOutput haptics;
+    late PlaySound withHaptics;
+
+    setUp(() {
+      haptics = RecordingHapticOutput();
+      final haptic = PlayHaptic(haptics, WatchSettings(settings));
+      addTearDown(haptic.dispose);
+      withHaptics = PlaySound(output, WatchSettings(settings), haptic: haptic);
+      addTearDown(withHaptics.dispose);
+    });
+
+    test('событие вибрирует по таблице вместе со звуком', () {
+      withHaptics(SoundEffect.scorch);
+      expect(haptics.played, [HapticPattern.rumble]);
+      expect(output.effects, [SoundEffect.scorch]);
+    });
+
+    test('при нулевой громкости звука нет, а вибрация есть', () async {
+      await settings.save(const AppSettings(effectsVolume: 0));
+      await settle();
+      withHaptics(SoundEffect.horn);
+      expect(output.played, isEmpty);
+      expect(haptics.played, [HapticPattern.knock]);
+    });
+
+    test('событие без паттерна и образец громкости не вибрируют', () {
+      withHaptics(SoundEffect.turnOpponent);
+      withHaptics(SoundEffect.turnMine, volume: 50);
+      expect(haptics.played, isEmpty);
+    });
+
+    test('в фоне не вибрирует', () {
+      withHaptics
+        ..suspend()
+        ..call(SoundEffect.pass);
+      expect(haptics.played, isEmpty);
+    });
   });
 
   test('подготовка уходит в вывод', () async {

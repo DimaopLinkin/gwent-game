@@ -11,6 +11,7 @@ void main() {
     expect(settings.confirmPass, isTrue);
     expect(settings.animationSpeed, AnimationSpeed.normal);
     expect(settings.hints, isTrue);
+    expect(settings.haptics, isTrue);
     expect(settings.musicVolume, 70);
     expect(settings.effectsVolume, 85);
     expect(settings.contentCheckedAt, isNull);
@@ -51,6 +52,7 @@ void main() {
     expect(base, isNot(base.copyWith(confirmPass: false)));
     expect(base, isNot(base.copyWith(animationSpeed: AnimationSpeed.fast)));
     expect(base, isNot(base.copyWith(hints: false)));
+    expect(base, isNot(base.copyWith(haptics: false)));
     expect(base, isNot(base.copyWith(localNetworkExplained: true)));
     expect(base, isNot(base.copyWith(musicVolume: 0)));
     expect(base, isNot(base.copyWith(botDifficulty: BotDifficulty.hard)));
