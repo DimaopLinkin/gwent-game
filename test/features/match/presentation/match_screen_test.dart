@@ -445,6 +445,32 @@ void main() {
       expect(find.byType(MatchIntroView), findsOneWidget);
     });
 
+    testWidgets('«Другая колода» на экране итога открывает выбор с фракции, на которой играли', (tester) async {
+      await pumpScreen(tester);
+      await startAndSkip(tester);
+      await tester.tap(find.text('Готово'));
+      await settle(tester);
+      await endBanners(tester);
+      bloc.add(const MatchIntentSubmitted(Resign()));
+      await settle(tester);
+      await endBanners(tester);
+      await tester.pump(MatchResultView.sheetSlide);
+
+      await tester.tap(find.text(l10n.matchResultChangeDeck));
+      await settleSetup(tester);
+
+      expect(bloc.state, isA<MatchIdle>());
+      expect(find.byType(MatchResultView), findsNothing);
+      expect(find.text(l10n.setupStep(2, 3).toUpperCase()), findsOneWidget, reason: 'сложность уже выбрана');
+      expect((setupCubit.state as MatchSetupReady).faction.key, 'monsters');
+      expect(exits, 0);
+
+      // Новый выбор доходит до новой партии.
+      await chooseSeat(tester, 'northern_realms');
+      await skipIntroAndToss(tester);
+      expect(find.byType(MatchRedrawView), findsOneWidget);
+    });
+
     testWidgets('«В меню» на экране итога уходит из партии', (tester) async {
       await pumpScreen(tester);
       await startAndSkip(tester);

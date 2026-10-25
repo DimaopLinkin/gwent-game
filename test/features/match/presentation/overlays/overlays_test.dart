@@ -185,6 +185,8 @@ void main() {
       bool hotSeat = false,
       VoidCallback? onExit,
       VoidCallback? onRematch,
+      VoidCallback? onChangeDeck,
+      Size size = const Size(390, 844),
     }) async {
       await pumpView(
         tester,
@@ -193,7 +195,9 @@ void main() {
           roster: rosterOf(cards, hotSeat: hotSeat),
           onExit: onExit ?? () {},
           onRematch: onRematch,
+          onChangeDeck: onChangeDeck,
         ),
+        size: size,
       );
       // Лист выезжает из-под экрана.
       await tester.pump();
@@ -261,6 +265,43 @@ void main() {
       await tester.tap(find.text('Реванш'));
       await tester.tap(find.text('В меню'));
       expect((rematch, exit), (1, 1));
+    });
+
+    testWidgets('в местной партии есть «Другая колода»: три кнопки делают каждая своё', (tester) async {
+      var rematch = 0;
+      var change = 0;
+      var exit = 0;
+      await pumpResult(
+        tester,
+        finished(winner: Seat.one),
+        onRematch: () => rematch++,
+        onChangeDeck: () => change++,
+        onExit: () => exit++,
+      );
+      await tester.tap(find.text('Реванш'));
+      await tester.tap(find.text('Другая колода'));
+      await tester.tap(find.text('В меню'));
+      expect((rematch, change, exit), (1, 1, 1));
+      expectNoFallbackTextStyle(tester);
+    });
+
+    testWidgets('«Другая колода» на узком экране не вылезает за него и не обрезается', (tester) async {
+      await pumpResult(
+        tester,
+        finished(winner: Seat.one),
+        onRematch: () {},
+        onChangeDeck: () {},
+        size: const Size(320, 568),
+      );
+      expect(tester.takeException(), isNull);
+      expect(tester.getBottomLeft(find.text('В меню')).dy, lessThanOrEqualTo(568));
+      expect(tester.getTopRight(find.text('Другая колода')).dx, lessThanOrEqualTo(320));
+      expect(tester.widget<Text>(find.text('Другая колода')).maxLines, 2, reason: 'длинная подпись переносится');
+    });
+
+    testWidgets('без «Другой колоды» (сетевая партия) кнопки нет', (tester) async {
+      await pumpResult(tester, finished(winner: Seat.one), onRematch: () {});
+      expect(find.text('Другая колода'), findsNothing);
     });
 
     testWidgets('без реванша кнопки «Реванш» нет', (tester) async {

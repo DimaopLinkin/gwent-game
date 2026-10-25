@@ -513,6 +513,89 @@ void main() {
     });
   });
 
+  group('выбор заново после партии', () {
+    test(
+      'против бота: выбор начинается с фракции, прежние фракция, лидер и колода выбраны, сложность сохранена',
+      () async {
+        await repository.save(smallSkelligeDeck(id: 'first'));
+        await repository.save(smallSkelligeDeck(id: 'second'));
+        final cubit = build(LocalMatchMode.vsBot);
+        await ready(cubit, pastDifficulty: false);
+        cubit.selectDifficulty(BotDifficulty.hard);
+        await cubit.confirmDifficulty();
+        await toDeckStep(cubit, leader: Small.bran);
+        cubit.selectDeck('second');
+        await cubit.confirmDeck();
+        expect(cubit.state, isA<MatchSetupDone>());
+
+        cubit.restart();
+
+        final state = now(cubit);
+        expect((state.seat, state.step, state.difficulty), (Seat.one, SetupStep.faction, BotDifficulty.hard));
+        expect(state.faction.id, Small.skellige);
+        expect(state.canStepBack, isTrue, reason: 'назад можно вернуться к сложности');
+        cubit.confirmFaction();
+        expect(now(cubit).leaderId, Small.bran);
+        await cubit.confirmLeader();
+        expect(now(cubit).deckId, 'second', reason: 'выбранная прошлый раз колода стала активной');
+      },
+    );
+
+    test('новый выбор доходит до нового запроса: другая колода и другая фракция', () async {
+      await repository.save(smallSkelligeDeck(id: 'mine'));
+      await repository.save(monstersDeck());
+      final cubit = build(LocalMatchMode.vsBot);
+      await toDeckStep(cubit);
+      await cubit.confirmDeck();
+      cubit.restart();
+
+      cubit
+        ..showFaction(1)
+        ..confirmFaction();
+      await cubit.confirmLeader();
+      final done = cubit.stream.firstWhere((state) => state is MatchSetupDone);
+      await cubit.confirmDeck();
+
+      final request = (await done as MatchSetupDone).request;
+      expect(request.deckOne, 'deck-monsters');
+      expect(request.leaderOne, Small.eredin);
+      expect(request.opponentDeck, isNotNull, reason: 'бот получает новую колоду');
+    });
+
+    test('в hot-seat выбор снова идёт с первого места и его фракции', () async {
+      await repository.save(smallSkelligeDeck(id: 'one'));
+      await repository.save(monstersDeck(id: 'two'));
+      final cubit = build(LocalMatchMode.hotSeat);
+      await toDeckStep(cubit, leader: Small.bran);
+      await cubit.confirmDeck();
+      cubit
+        ..showFaction(1)
+        ..confirmFaction();
+      await cubit.confirmLeader();
+      await cubit.confirmDeck();
+      expect(cubit.state, isA<MatchSetupDone>());
+
+      cubit.restart();
+
+      final state = now(cubit);
+      expect((state.seat, state.step), (Seat.one, SetupStep.faction));
+      expect(state.faction.id, Small.skellige, reason: 'выбор первого места, а не второго');
+      expect(state.leaderId, Small.bran);
+      expect(state.deckId, 'one');
+    });
+
+    test('пока выбор не закончен, ничего не меняет', () async {
+      await repository.save(smallSkelligeDeck());
+      final cubit = build(LocalMatchMode.vsBot);
+      await toDeckStep(cubit);
+      final before = now(cubit);
+
+      cubit.restart();
+
+      expect(identical(cubit.state, before), isTrue);
+    });
+  });
+
   group('«назад»', () {
     test('шаги возвращаются по одному; с первого шага первого места назад некуда', () async {
       final cubit = build(LocalMatchMode.vsBot);

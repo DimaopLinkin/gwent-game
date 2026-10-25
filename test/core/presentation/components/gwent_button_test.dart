@@ -2,6 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/core/presentation/components/button_sound_scope.dart';
+import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
 import 'package:gwent/src/core/presentation/components/pause_button.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
@@ -21,6 +23,48 @@ void main() {
   }
 
   Text label(WidgetTester tester, String text) => tester.widget<Text>(find.text(text));
+
+  group('звук нажатия', () {
+    Widget scoped(int presses, Widget child, List<String> log) =>
+        ButtonSoundScope(onPress: () => log.add('звук'), child: child);
+
+    testWidgets('большая кнопка: звук идёт перед действием, недоступная молчит', (tester) async {
+      final log = <String>[];
+      await pump(
+        tester,
+        scoped(
+          0,
+          Column(
+            children: [
+              GwentButton(label: 'Играть', onPressed: () => log.add('действие')),
+              const GwentButton(label: 'Нельзя', onPressed: null),
+            ],
+          ),
+          log,
+        ),
+      );
+      await tester.tap(find.text('Играть'));
+      await tester.tap(find.text('Нельзя'), warnIfMissed: false);
+      expect(log, ['звук', 'действие']);
+    });
+
+    testWidgets('стрелка «назад» тоже звучит', (tester) async {
+      final log = <String>[];
+      await pump(
+        tester,
+        scoped(0, ChevronButton(label: 'Назад', onPressed: () => log.add('действие')), log),
+      );
+      await tester.tap(find.byType(ChevronButton));
+      expect(log, ['звук', 'действие']);
+    });
+
+    testWidgets('без области кнопки молчат и работают как раньше', (tester) async {
+      var pressed = 0;
+      await pump(tester, GwentButton(label: 'Играть', onPressed: () => pressed++));
+      await tester.tap(find.text('Играть'));
+      expect(pressed, 1);
+    });
+  });
 
   group('GwentButton', () {
     for (final style in GwentButtonStyle.values) {
