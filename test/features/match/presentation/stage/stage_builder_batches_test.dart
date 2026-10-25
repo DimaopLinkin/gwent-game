@@ -288,6 +288,32 @@ void main() {
     });
   });
 
+  group('рог в занятый слот', () {
+    test('карта показывается и летит в свой отбой, слот остаётся прежним', () {
+      final horn = cards.special<HornCardAbility>();
+      final held = cards.special<HornCardAbility>();
+      final held0 = RowView(cards: const [], slot: CardSlot(held), weather: false, strength: 0);
+      final prev = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: [horn], rows: {Row.melee: held0}),
+      );
+      final next = viewOf(
+        cards,
+        me: sideOf(cards, Seat.one, hand: const [], discard: [horn], rows: {Row.melee: held0}),
+      );
+      final script = build(prev, next, [CardPlayed(Seat.one, horn), CardDiscarded(Seat.one, horn)]);
+
+      var flew = false;
+      for (final time in times(script)) {
+        final frame = script.frameAt(time);
+        flew |= frame.items.whereType<CardFlightItem>().any((item) => item.to == const DiscardPlace(mine: true));
+        expect(frame.rows[(mine: true, row: Row.melee)]?.slot ?? CardSlot(held), CardSlot(held), reason: '$time');
+      }
+      expect(flew, isTrue);
+      expect(script.frameAt(script.duration).discardTops[true]?.id, horn.id);
+    });
+  });
+
   group('длинный ряд', () {
     test('волна сил по ряду не длиннее 600 мс', () {
       final horn = cards.special<HornCardAbility>();

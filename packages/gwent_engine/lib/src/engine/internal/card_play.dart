@@ -50,9 +50,13 @@ final class CardPlay {
       case SpecialCardDefinition(ability: HornCardAbility() || MardremCardAbility()):
         final row = intent.row;
         if (row == null) return const Reject(RejectReason.rowRequired);
-        if (!_field.slotFree(seat, row)) return const Reject(RejectReason.slotOccupied);
         _start(seat, card);
-        _field.fillSlot(seat, row, CardSlot(card));
+        // Слот занят: карта применяется вхолостую и сразу уходит в отбой (раздел 9.3).
+        if (_field.slotFree(seat, row)) {
+          _field.fillSlot(seat, row, CardSlot(card));
+        } else {
+          _ctx.discard(seat, card);
+        }
 
       case SpecialCardDefinition(ability: DecoyAbility()):
         final targets = _field.decoyTargets(seat);

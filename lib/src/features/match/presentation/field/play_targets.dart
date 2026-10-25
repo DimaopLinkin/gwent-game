@@ -12,7 +12,7 @@ enum PlayTargetKind {
   /// Ряд соперника того же типа: шпион уходит на его сторону.
   opponentRow,
 
-  /// Свободные слоты рога: Командирский рог и Мардрём.
+  /// Слоты рога своих рядов: Командирский рог и Мардрём. В занятый слот карта уходит в отбой.
   hornSlot,
 
   /// Центральная полоса: погода, Ясное небо и Казнь, которым цель не нужна.
@@ -49,11 +49,8 @@ final class PlayTargets {
           case WeatherAbility() || ClearWeatherAbility() || ScorchAbility():
             return PlayTargets._(PlayTargetKind.strip, card);
           case HornCardAbility() || MardremCardAbility():
-            final free = {
-              for (final MapEntry(key: row, value: rowView) in view.me.rows.entries)
-                if (rowView.slot == null) row,
-            };
-            return free.isEmpty ? none : PlayTargets._(PlayTargetKind.hornSlot, card, rows: free);
+            // Занятый слот тоже цель: карта применится вхолостую и уйдёт в отбой (правила 9.3).
+            return PlayTargets._(PlayTargetKind.hornSlot, card, rows: Row.values.toSet());
           case DecoyAbility():
             final units = {
               for (final rowView in view.me.rows.values)

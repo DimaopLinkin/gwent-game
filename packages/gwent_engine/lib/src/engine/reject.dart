@@ -40,9 +40,6 @@ enum RejectReason {
   /// Карту нельзя положить в этот ряд.
   invalidRow,
 
-  /// Слот рога ряда занят.
-  slotOccupied,
-
   /// Для карты нужно указать цель.
   targetRequired,
 
