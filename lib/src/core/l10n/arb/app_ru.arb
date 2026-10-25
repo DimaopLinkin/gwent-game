@@ -478,7 +478,7 @@
   "@fieldHintHornTitle": {
     "description": "Заголовок подсказки при розыгрыше Командирского рога."
   },
-  "fieldHintHornSubtitle": "Слот ряда должен быть свободен",
+  "fieldHintHornSubtitle": "В занятый слот карта сразу уйдёт в отбой",
   "@fieldHintHornSubtitle": {
     "description": "Пояснение подсказки для рога."
   },

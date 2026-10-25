@@ -70,7 +70,7 @@ void main() {
     }
   });
 
-  test('рог идёт в свободные слоты рогов', () {
+  test('рог идёт в любой свой ряд, занятый слот тоже цель', () {
     final horn = cards.special<HornCardAbility>();
     final me = sideOf(
       cards,
@@ -80,14 +80,17 @@ void main() {
     );
     final targets = targetsOf(horn, me: me);
     expect(targets.kind, PlayTargetKind.hornSlot);
-    expect(targets.rows, {Row.ranged, Row.siege});
+    expect(targets.rows, Row.values.toSet());
     expect(targets.highlightsHornSlot(Row.ranged), isTrue);
-    expect(targets.highlightsHornSlot(Row.melee), isFalse);
+    expect(targets.highlightsHornSlot(Row.melee), isTrue);
+    expect(targets.wastesCard(Row.melee), isTrue);
+    expect(targets.wastesCard(Row.ranged), isFalse);
+    expect(targets.atRow(Row.melee, mine: true), PlayCard(horn.id, row: Row.melee));
     expect(targets.atRow(Row.siege, mine: true), PlayCard(horn.id, row: Row.siege));
     expect(targets.atRow(Row.ranged, mine: false), isNull);
   });
 
-  test('рог некуда класть, когда заняты все слоты', () {
+  test('рог можно играть, когда заняты все слоты: карта уйдёт в отбой', () {
     final horn = cards.special<HornCardAbility>();
     final taken = RowView(
       cards: const [],
@@ -96,7 +99,10 @@ void main() {
       strength: 0,
     );
     final me = sideOf(cards, Seat.one, hand: [horn], rows: {for (final row in Row.values) row: taken});
-    expect(targetsOf(horn, me: me).isEmpty, isTrue);
+    final targets = targetsOf(horn, me: me);
+    expect(targets.isEmpty, isFalse);
+    expect(targets.rows, Row.values.toSet());
+    expect(Row.values.every(targets.wastesCard), isTrue);
   });
 
   test('Чучело подсвечивает свои отряды, кроме героев', () {

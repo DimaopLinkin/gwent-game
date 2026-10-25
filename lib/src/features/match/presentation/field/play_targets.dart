@@ -12,7 +12,7 @@ enum PlayTargetKind {
   /// Ряд соперника того же типа: шпион уходит на его сторону.
   opponentRow,
 
-  /// Свободные слоты рога: Командирский рог и Мардрём.
+  /// Слоты рога своих рядов: Командирский рог и Мардрём. В занятый слот карта уходит в отбой.
   hornSlot,
 
   /// Центральная полоса: погода, Ясное небо и Казнь, которым цель не нужна.
@@ -28,7 +28,13 @@ enum PlayTargetKind {
 /// `PlayCard` отправить. Окончательно ход проверяет движок: здесь только то, чтобы игрок не промахивался.
 @immutable
 final class PlayTargets {
-  const PlayTargets._(this.kind, this.card, {this.rows = const {}, this.fieldCards = const {}});
+  const PlayTargets._(
+    this.kind,
+    this.card, {
+    this.rows = const {},
+    this.fieldCards = const {},
+    this.occupiedSlots = const {},
+  });
 
   /// Целей нет.
   static const PlayTargets none = PlayTargets._(PlayTargetKind.none, null);
@@ -49,11 +55,17 @@ final class PlayTargets {
           case WeatherAbility() || ClearWeatherAbility() || ScorchAbility():
             return PlayTargets._(PlayTargetKind.strip, card);
           case HornCardAbility() || MardremCardAbility():
-            final free = {
+            // Занятый слот тоже цель: карта применится вхолостую и уйдёт в отбой (правила 9.3).
+            final occupied = {
               for (final MapEntry(key: row, value: rowView) in view.me.rows.entries)
-                if (rowView.slot == null) row,
+                if (rowView.slot != null) row,
             };
-            return free.isEmpty ? none : PlayTargets._(PlayTargetKind.hornSlot, card, rows: free);
+            return PlayTargets._(
+              PlayTargetKind.hornSlot,
+              card,
+              rows: Row.values.toSet(),
+              occupiedSlots: occupied,
+            );
           case DecoyAbility():
             final units = {
               for (final rowView in view.me.rows.values)
@@ -77,6 +89,9 @@ final class PlayTargets {
   /// [PlayTargetKind.opponentRow].
   final Set<Row> rows;
 
+  /// Ряды, где слот рога уже занят: рог или Мардрём, сыгранные туда, сразу уйдут в отбой.
+  final Set<Row> occupiedSlots;
+
   /// Свои отряды, на которые можно положить Чучело.
   final Set<CardInstanceId> fieldCards;
 
@@ -94,6 +109,9 @@ final class PlayTargets {
 
   /// Подсвечивается ли слот рога моего ряда [row].
   bool highlightsHornSlot(Row row) => kind == PlayTargetKind.hornSlot && rows.contains(row);
+
+  /// Карта, сыгранная в слот рога ряда [row], уйдёт в отбой впустую.
+  bool wastesCard(Row row) => kind == PlayTargetKind.hornSlot && occupiedSlots.contains(row);
 
   /// Подсвечивается ли моя карта на поле (Чучело).
   bool highlightsFieldCard(CardInstanceId id) => kind == PlayTargetKind.decoy && fieldCards.contains(id);
