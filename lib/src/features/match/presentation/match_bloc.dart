@@ -246,6 +246,12 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
         return;
       }
     }
+    if (shown != null && _redrawLastCardOf(shown)) {
+      // Игрок поменял последнюю карту: пришедшую карту видно, прежде чем экран уйдёт на ожидание, передачу или поле.
+      final replaced = (_unseen[shown] ?? const []).whereType<CardRedrawn>().toList();
+      _unseen[shown] = (_unseen[shown] ?? const []).where((event) => event is! CardRedrawn).toList();
+      emit(MatchRedrawSettled(view: _views[shown]!, roster: roster, events: replaced));
+    }
     final next = _actor(local) ?? shown ?? session.perspective;
     if (local.length > 1 && next != shown) {
       // Hot-seat: телефон уходит другому игроку, в том числе в начале партии; руку видит только он.
@@ -258,6 +264,16 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
       return;
     }
     _show(next, emit);
+  }
+
+  /// На экране пересдача [seat], и последней заменой он потратил все замены.
+  bool _redrawLastCardOf(Seat seat) {
+    final current = state;
+    return current is MatchInProgress &&
+        current.view.phase == MatchPhase.redraw &&
+        !current.view.me.redrawDone &&
+        _views[seat]!.me.redrawsLeft == 0 &&
+        (_unseen[seat] ?? const []).any((event) => event is CardRedrawn);
   }
 
   /// Последнее действие [seat] закончило раунд, а партия продолжается: конец раунда этот игрок ещё не видел.

@@ -125,6 +125,24 @@ final class MatchInProgress extends MatchScreenState {
   bool get awaitsMe => awaitsAction(view);
 }
 
+/// Пересдача: игрок поменял последнюю карту. Экран держит руку с пришедшей картой, пока её видно, и только потом
+/// идёт следующее состояние: ожидание соперника, передача телефона или поле. Нейтральная заставка, действий она
+/// не принимает.
+final class MatchRedrawSettled extends MatchScreenState {
+  /// Создаёт состояние.
+  MatchRedrawSettled({required this.view, required this.roster, required List<GameEvent> events})
+    : events = List.unmodifiable(events);
+
+  /// Проекция игрока после последней замены: в руке уже пришедшая карта.
+  final PlayerView view;
+
+  /// Участники партии.
+  final MatchRoster roster;
+
+  /// События замены (`CardRedrawn`) этого игрока: по ним играет звук. Остальные события придут со следующим состоянием.
+  final List<GameEvent> events;
+}
+
 /// Партия окончена.
 final class MatchFinished extends MatchScreenState {
   /// Создаёт состояние.

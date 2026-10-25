@@ -81,6 +81,7 @@ void main() {
     expect(states.first, isA<MatchStarting>());
     expect(states[1], isA<MatchIntro>(), reason: 'партия начинается со знакомства, пока на экране нет рук');
     expect(states.whereType<MatchHandover>(), isEmpty, reason: 'против бота телефон никому не передаётся');
+    expect(states.whereType<MatchRedrawSettled>(), isEmpty, reason: '«Готово» без замен пересдачу не удерживает');
     final inProgress = states.whereType<MatchInProgress>().toList();
     expect(inProgress.first.view.phase, MatchPhase.redraw);
     expect(inProgress.first.events, isNotEmpty, reason: 'раздача приходит событиями');
@@ -99,6 +100,67 @@ void main() {
           .having((state) => state.view.phase, 'phase', MatchPhase.finished)
           .having((state) => state.events.whereType<MatchEnded>(), 'MatchEnded', isNotEmpty),
     );
+  });
+
+  group('последняя замена при пересдаче', () {
+    /// Игрок меняет первую карту руки, пока есть замены, и доходит до первого состояния после пересдачи.
+    Future<List<MatchScreenState>> replaceAll(LocalMatchMode mode) async {
+      final states = <MatchScreenState>[];
+      final done = Completer<void>();
+      final subscription = bloc.stream.listen((state) {
+        states.add(state);
+        switch (state) {
+          case MatchIntro():
+            bloc.add(const MatchIntroFinished());
+          case MatchToss():
+            bloc.add(const MatchTossFinished());
+          case MatchHandover():
+            bloc.add(const MatchHandoverAccepted());
+          case MatchInProgress(:final view) when view.phase == MatchPhase.redraw && !view.me.redrawDone:
+            final left = view.me.redrawsLeft ?? 0;
+            bloc.add(
+              MatchIntentSubmitted(left > 0 ? RedrawCard(view.me.hand!.first.id) : const FinishRedraw()),
+            );
+          case MatchInProgress() || MatchFinished() || MatchCrashed():
+            if (!done.isCompleted) done.complete();
+          case MatchIdle() || MatchStarting() || MatchStartFailed() || MatchRedrawSettled() || MatchRematchAgreed():
+        }
+      });
+      bloc.add(MatchStartRequested(LocalMatchRequest(mode: mode, deckOne: 'skellige', deckTwo: 'monsters')));
+      await done.future;
+      await pumpEventQueue();
+      await subscription.cancel();
+      return states;
+    }
+
+    test('против бота: рука с пришедшей картой выходит отдельным состоянием перед ожиданием соперника', () async {
+      final states = await replaceAll(LocalMatchMode.vsBot);
+
+      final settled = states.whereType<MatchRedrawSettled>().single;
+      expect(settled.view.me.redrawsLeft, 0);
+      expect(settled.events, [isA<CardRedrawn>()], reason: 'по ним играет звук замены');
+      final at = states.indexOf(settled);
+      expect(
+        states[at - 1],
+        isA<MatchInProgress>()
+            .having((state) => state.view.phase, 'phase', MatchPhase.redraw)
+            .having((state) => state.view.me.redrawDone, 'redrawDone', false),
+        reason: 'до этого на экране обычная пересдача',
+      );
+      expect(
+        states[at + 1],
+        isA<MatchInProgress>().having((state) => state.events.whereType<CardRedrawn>(), 'замены', isEmpty),
+        reason: 'замена показана один раз',
+      );
+    });
+
+    test('hot-seat: рука с последней заменой видна, прежде чем телефон уйдёт другому игроку', () async {
+      final states = await replaceAll(LocalMatchMode.hotSeat);
+
+      final settled = states.whereType<MatchRedrawSettled>().first;
+      expect(settled.view.viewer, Seat.one);
+      expect(states[states.indexOf(settled) + 1], isA<MatchHandover>().having((s) => s.next, 'next', Seat.two));
+    });
   });
 
   test('hot-seat: телефон переходит к тому, кто должен действовать, события копятся для каждого места', () async {
@@ -714,7 +776,12 @@ Future<MatchFinished> _playOut(
         fail(error);
       case MatchStartFailed(:final reason):
         fail(StateError('партия не начата: $reason'));
-      case MatchIdle() || MatchStarting() || MatchInProgress() || MatchFinished() || MatchRematchAgreed():
+      case MatchIdle() ||
+          MatchStarting() ||
+          MatchInProgress() ||
+          MatchRedrawSettled() ||
+          MatchFinished() ||
+          MatchRematchAgreed():
     }
   });
   return finished.future.whenComplete(subscription.cancel);

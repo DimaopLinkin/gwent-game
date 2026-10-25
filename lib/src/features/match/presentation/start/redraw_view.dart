@@ -14,6 +14,7 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 import 'package:gwent/src/features/match/presentation/start/start_parts.dart';
 import 'package:gwent_engine/gwent_engine.dart' hide Row;
 
@@ -22,9 +23,20 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// Вверху счётчик «Можно заменить: N» с ромбами по числу замен; заменённая карта уходит в колоду, приходит новая.
 /// Удержание карты открывает полный просмотр. «Готово» завершает пересдачу. Когда замен не осталось, карты
 /// тускнеют, но «Готово» остаётся.
+///
+/// Замена видна: старая карта сворачивается на своём месте, на её месте проявляется новая и светится, пока её
+/// не заметили. После последней замены экран (`MatchRedrawSettled`) на время остаётся с [settled]: карты и «Готово»
+/// недоступны, пришедшая карта на виду, и только потом игрок уходит на ожидание соперника.
 class MatchRedrawView extends StatefulWidget {
   /// Создаёт экран по проекции [view].
-  const MatchRedrawView({super.key, required this.view, required this.roster, required this.onIntent});
+  const MatchRedrawView({
+    super.key,
+    required this.view,
+    required this.roster,
+    required this.onIntent,
+    this.settled = false,
+    this.style = StageStyle.normal,
+  });
 
   /// Проекция партии.
   final PlayerView view;
@@ -34,6 +46,12 @@ class MatchRedrawView extends StatefulWidget {
 
   /// Действие игрока.
   final ValueChanged<Intent> onIntent;
+
+  /// Замены кончились, экран только показывает руку: нажатия не принимаются.
+  final bool settled;
+
+  /// Скорость анимаций из настроек.
+  final StageStyle style;
 
   @override
   State<MatchRedrawView> createState() => _MatchRedrawViewState();
@@ -45,6 +63,32 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
 
   FieldContent? _content;
   AppLocalizations? _l10n;
+
+  /// Карты, пришедшие при последней замене: светятся, пока их не заметили.
+  Set<CardInstanceId> _fresh = const {};
+  Timer? _freshTimer;
+
+  @override
+  void didUpdateWidget(MatchRedrawView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final before = {for (final card in oldWidget.view.me.hand ?? const <CardInstance>[]) card.id};
+    final arrived = {
+      for (final card in widget.view.me.hand ?? const <CardInstance>[])
+        if (!before.contains(card.id)) card.id,
+    };
+    if (arrived.isEmpty) return;
+    _fresh = {..._fresh, ...arrived};
+    _freshTimer?.cancel();
+    _freshTimer = Timer(Duration(milliseconds: widget.style.ms(StageTokens.redrawHold)), () {
+      if (mounted) setState(() => _fresh = const {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _freshTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -64,6 +108,10 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
     final content = _content!;
     final me = view.me;
     final left = me.redrawsLeft ?? 0;
+    final canReplace = left > 0 && !widget.settled;
+    final swap = Duration(
+      milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : widget.style.ms(StageTokens.redrawSwap),
+    );
     final limit = roster.content.rules.redrawLimit;
     final factionName = content.factionName(me.faction);
     final hand = me.hand ?? const <CardInstance>[];
@@ -121,13 +169,28 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             for (final card in row)
-                              GwentCard(
-                                key: ValueKey(card.id),
-                                face: content.face(card),
-                                size: CardSize.grid,
-                                highlight: left > 0 ? CardHighlight.normal : CardHighlight.disabled,
-                                onTap: left > 0 ? () => widget.onIntent(RedrawCard(card.id)) : null,
-                                onLongPress: () => unawaited(showCardDetail(context, content.detail(card))),
+                              AnimatedSwitcher(
+                                key: ValueKey('slot-${hand.indexOf(card)}'),
+                                duration: swap,
+                                transitionBuilder: (child, animation) => FadeTransition(
+                                  opacity: animation,
+                                  child: ScaleTransition(
+                                    scale: Tween<double>(begin: 0.8, end: 1).animate(animation),
+                                    child: child,
+                                  ),
+                                ),
+                                child: GwentCard(
+                                  key: ValueKey(card.id),
+                                  face: content.face(card),
+                                  size: CardSize.grid,
+                                  highlight: _fresh.contains(card.id)
+                                      ? CardHighlight.justPlayed
+                                      : canReplace
+                                      ? CardHighlight.normal
+                                      : CardHighlight.disabled,
+                                  onTap: canReplace ? () => widget.onIntent(RedrawCard(card.id)) : null,
+                                  onLongPress: () => unawaited(showCardDetail(context, content.detail(card))),
+                                ),
                               ),
                             // Неполный ряд занимает свои места колонок, иначе карты в нём сползли бы друг к другу.
                             for (var i = row.length; i < _columns; i++) SizedBox(width: _cardWidth),
@@ -166,7 +229,7 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                   width: double.infinity,
                   child: GwentButton(
                     label: l10n.matchRedrawDone,
-                    onPressed: () => widget.onIntent(const FinishRedraw()),
+                    onPressed: widget.settled ? null : () => widget.onIntent(const FinishRedraw()),
                   ),
                 ),
               ],
