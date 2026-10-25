@@ -12,6 +12,9 @@ import 'package:gwent/src/features/replay/presentation/replay_cubit.dart';
 import 'package:gwent/src/features/replay/presentation/replay_screen.dart';
 import 'package:gwent/src/features/replay/presentation/replay_state.dart';
 
+import 'package:gwent_engine/gwent_engine.dart' show Seat;
+
+import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
 import '../../../support/replay_fixtures.dart';
@@ -151,6 +154,29 @@ void main() {
     await pumpReplay(tester, size: const Size(320, 568));
 
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('реплей гостя сетевой партии: поле показывает его глазами, переключателя места нет', (tester) async {
+    final full = await tester.runAsync(() => LoadReplay(match.history, match.loader)(match.record.id));
+    final data = (full! as ReplayLoaded).data;
+    final journal = (match.history.replays[match.record.id]! as JournalReplayLog).journal;
+    final guest = InMemoryMatchHistoryRepository();
+    await guest.add(
+      match.record,
+      replay: FramesReplayLog(
+        [
+          for (final frame in data.timeline.frames) (view: frame.views[Seat.one]!, events: frame.events[Seat.one]!),
+        ],
+        ruleset: journal.ruleset,
+        perspective: Seat.one,
+      ),
+    );
+
+    final cubit = await pumpReplay(tester, load: LoadReplay(guest, match.loader));
+
+    expect(find.byType(FieldView), findsOneWidget);
+    expect((cubit.state as ReplayShowing).data.timeline.seats, {Seat.one});
+    expect(find.bySemanticsLabel(RegExp('^${l10n.replayWatchAs('')}')), findsNothing);
   });
 
   testWidgets('нет такой партии: понятное сообщение и «назад»', (tester) async {

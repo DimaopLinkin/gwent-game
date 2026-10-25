@@ -58,8 +58,10 @@ final class HostNetworkGame {
         return const NetworkContentUnavailable();
     }
     final content = setup.content;
+    final journal = InMemoryMatchJournal();
     final host = MatchHost(
       engine: GwentEngine(content.catalog, rules: content.rules),
+      journal: journal,
       settings: HostSettings(
         ruleset: setup.ruleset,
         reconnectGrace: timings.reconnectWindow,
@@ -100,6 +102,7 @@ final class HostNetworkGame {
       playerName: playerName,
       host: host,
       hosted: hosted,
+      journal: journal,
       mode: mode,
     );
     final (hostEnd, clientEnd) = InMemoryTransport.pair();

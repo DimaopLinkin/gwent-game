@@ -142,6 +142,23 @@ void main() {
       }
     });
 
+    test('кадр партии (проекция и события) проходит туда и обратно, битый кадр — MalformedFrame', () {
+      final view = engine.project(_started(), Seat.one);
+      final frame = (
+        view: view,
+        events: <GameEvent>[
+          const CardsDrawnHidden(Seat.two, 2),
+          const RoundEnded(RoundResult(round: 1, scores: {Seat.one: 10, Seat.two: 12}, winner: Seat.two)),
+        ],
+      );
+      final decoded = decodeViewFrame(jsonDecode(jsonEncode(encodeViewFrame(frame))));
+      expect(decoded.view, view);
+      expect(decoded.events, frame.events);
+
+      expect(() => decodeViewFrame({'view': 1}), throwsA(isA<MalformedFrame>()));
+      expect(() => decodeViewFrame('кадр'), throwsA(isA<MalformedFrame>()));
+    });
+
     test('все служебные сообщения, колода и отказы проходят туда и обратно', () {
       const violations = <DeckViolation>[
         UnknownLeader(LeaderId('x')),

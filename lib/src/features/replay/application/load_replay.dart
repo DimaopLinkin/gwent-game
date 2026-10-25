@@ -115,11 +115,27 @@ final class LoadReplay {
             perspective: perspective,
           );
         } on Object {
-          // Журнал не проигрывается (`JournalNotReplayable`) или движок на чужом наборе карт упал: он может упасть любым исключением (карты, которой нет в справочнике, и т. п.):
-          // для игрока это то же самое, что недоступный реплей.
+          // Журнал не проигрывается (`JournalNotReplayable`) или движок на чужом наборе карт упал: он может упасть
+          // любым исключением (карты, которой нет в справочнике, и т. п.). Для игрока это недоступный реплей.
           return ReplayUnavailable(failure);
         }
         if (!timeline.matches(record)) return ReplayUnavailable(failure);
+        return ReplayLoaded(ReplayData(record: record, content: content, timeline: timeline));
+      case FramesReplayLog(:final frames, :final ruleset, :final perspective):
+        // Кадры готовые, движок не нужен; но карты на них показываются по текущему набору, и если набор другой,
+        // сверить их нечем.
+        if (ruleset.hash != content.pack.manifest.contentHash || ruleset.engineVersion != engineVersion) {
+          return const ReplayUnavailable(ReplayUnavailableReason.contentChanged);
+        }
+        final timeline = ReplayTimeline(
+          frames: [
+            for (final frame in frames)
+              ReplayFrame(views: {perspective: frame.view}, events: {perspective: frame.events}),
+          ],
+          seats: {perspective},
+          perspective: perspective,
+        );
+        if (!timeline.matches(record)) return const ReplayUnavailable(ReplayUnavailableReason.corrupted);
         return ReplayLoaded(ReplayData(record: record, content: content, timeline: timeline));
     }
   }

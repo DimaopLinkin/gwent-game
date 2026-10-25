@@ -19,6 +19,8 @@ final class ReplayLogCodec {
 
   static const String _journal = 'journal';
   static const int _journalFormat = 1;
+  static const String _frames = 'frames';
+  static const int _framesFormat = 1;
 
   static String _seatCode(Seat seat) => switch (seat) {
     Seat.one => 'one',
@@ -32,6 +34,15 @@ final class ReplayLogCodec {
       kind: _journal,
       formatVersion: _journalFormat,
       payload: jsonEncode(net.encodeMatchRecord(journal)),
+    ),
+    FramesReplayLog(:final frames, :final ruleset, :final perspective) => (
+      perspective: _seatCode(perspective),
+      kind: _frames,
+      formatVersion: _framesFormat,
+      payload: jsonEncode({
+        'ruleset': {'id': ruleset.id, 'hash': ruleset.hash, 'engine': ruleset.engineVersion},
+        'frames': [for (final frame in frames) net.encodeViewFrame(frame)],
+      }),
     ),
   };
 
@@ -57,8 +68,37 @@ final class ReplayLogCodec {
         } on net.ProtocolException catch (error) {
           throw ReplayCorrupted('журнал не читается: ${error.message}');
         }
+      case _frames:
+        if (encoded.formatVersion != _framesFormat) {
+          throw ReplayCorrupted('кадры формата ${encoded.formatVersion} не поддерживаются');
+        }
+        try {
+          return _decodeFrames(jsonDecode(encoded.payload), perspective);
+        } on FormatException catch (error) {
+          throw ReplayCorrupted('кадры не читаются: ${error.message}');
+        } on net.ProtocolException catch (error) {
+          throw ReplayCorrupted('кадры не читаются: ${error.message}');
+        }
       default:
         throw ReplayCorrupted('неизвестный вид записи ${encoded.kind}');
     }
+  }
+
+  FramesReplayLog _decodeFrames(Object? json, Seat perspective) {
+    if (json is! Map<String, Object?>) throw const FormatException('ожидался объект');
+    final ruleset = json['ruleset'];
+    final frames = json['frames'];
+    if (ruleset is! Map<String, Object?> || frames is! List<Object?> || frames.isEmpty) {
+      throw const FormatException('нет набора правил или кадров');
+    }
+    final id = ruleset['id'];
+    final hash = ruleset['hash'];
+    final engine = ruleset['engine'];
+    if (id is! String || hash is! String || engine is! int) throw const FormatException('набор правил не читается');
+    return FramesReplayLog(
+      [for (final frame in frames) net.decodeViewFrame(frame)],
+      ruleset: net.Ruleset(id: id, hash: hash, engineVersion: engine),
+      perspective: perspective,
+    );
   }
 }
