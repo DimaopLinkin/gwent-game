@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:gwent/src/core/presentation/card/parts/card_coin.dart';
 import 'package:gwent/src/core/presentation/card/parts/power_medallion.dart';
@@ -28,6 +30,9 @@ class CompactPower extends StatelessWidget {
   /// Способность карты; `null` у карты без способности.
   final GwentIcon? ability;
 
+  /// Наибольший диаметр монеты способности.
+  static const double maxCoin = 12;
+
   /// Кегль числа.
   static const double fontSize = 14;
 
@@ -46,8 +51,9 @@ class CompactPower extends StatelessWidget {
     };
     final style = GwentText.powerCard.copyWith(fontWeight: FontWeight.w900, fontSize: fontSize);
     // Между соседними картами остаётся зазор 1 pt, чтобы значки не сливались.
-    final inner = width - 1;
-    final coin = inner.clamp(0.0, 12.0);
+    final inner = math.max(0.0, width - 1);
+    // Тонкий ободок монеты (0,75 pt с каждой стороны) тоже должен уложиться в полоску.
+    final coin = (inner - 1.5).clamp(0.0, maxCoin);
     return SizedBox(
       width: inner,
       child: Column(
@@ -58,15 +64,17 @@ class CompactPower extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Stack(
               children: [
-                Text(
-                  '$power',
-                  textScaler: TextScaler.noScaling,
-                  style: style.copyWith(
-                    foreground: Paint()
-                      ..style = PaintingStyle.stroke
-                      ..strokeWidth = 3
-                      ..strokeJoin = StrokeJoin.round
-                      ..color = GwentColors.bg,
+                ExcludeSemantics(
+                  child: Text(
+                    '$power',
+                    textScaler: TextScaler.noScaling,
+                    style: style.copyWith(
+                      foreground: Paint()
+                        ..style = PaintingStyle.stroke
+                        ..strokeWidth = 3
+                        ..strokeJoin = StrokeJoin.round
+                        ..color = GwentColors.bg,
+                    ),
                   ),
                 ),
                 Text(
@@ -78,7 +86,13 @@ class CompactPower extends StatelessWidget {
             ),
           ),
           if (arrow != null) GwentIconView(arrow, size: 7, color: color),
-          if (ability != null) CardCoin(icon: ability!, look: CoinLook.brass, diameter: coin, iconSize: coin * 0.7),
+          if (ability != null && coin > 0)
+            CardCoin.effect(
+              icon: ability!,
+              diameter: coin,
+              iconSize: coin * 0.7,
+              rings: const [BoxShadow(color: GwentColors.brassDeep, spreadRadius: 0.75)],
+            ),
         ],
       ),
     );
