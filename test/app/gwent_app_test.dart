@@ -298,8 +298,6 @@ void main() {
     await openVsBotSetup(tester);
     await tester.tap(find.text(l10n.factionSelectConfirm));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.leaderSelectConfirm));
-    await tester.pumpAndSettle();
     expect(find.text(l10n.deckSelectTitle), findsOneWidget);
 
     await tester.tap(find.text(l10n.deckSelectEdit));

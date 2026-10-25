@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/card_content_mapper.dart';
+import 'package:gwent/src/core/presentation/card/leader_name.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_faction.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
@@ -10,12 +11,10 @@ import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
-import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_issue_text.dart';
 import 'package:gwent/src/features/match/presentation/match_setup_state.dart';
 import 'package:gwent/src/features/match/presentation/setup/deck_select_view.dart';
 import 'package:gwent/src/features/match/presentation/setup/faction_select_view.dart';
-import 'package:gwent/src/features/match/presentation/setup/leader_select_view.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Faction;
 
 import '../../../../support/fonts.dart';
@@ -109,73 +108,6 @@ void main() {
     });
   });
 
-  group('LeaderSelectView', () {
-    FactionInfo skellige() => rules.factionInfos.firstWhere((faction) => faction.key == 'skellige');
-
-    Widget view(FactionInfo faction, {String? selected, void Function(String)? onSelect, VoidCallback? onConfirm}) =>
-        LeaderSelectView(
-          eyebrow: 'Шаг 2 из 2',
-          faction: faction,
-          selectedId: selected,
-          faceOf: (id) => mapper.leader(rules.pack.rules.leaderCardsById[id]!).face,
-          onSelect: onSelect ?? (_) {},
-          onConfirm: onConfirm ?? () {},
-          onBack: () {},
-        );
-
-    testWidgets('показывает способность выбранного лидера; кнопка подтверждает', (tester) async {
-      var confirmed = 0;
-      final faction = skellige();
-      await pump(tester, view(faction, selected: faction.leaders.first.id, onConfirm: () => confirmed++));
-
-      expect(find.textContaining(faction.leaders.first.ability), findsWidgets);
-      await tester.tap(find.text(l10n.leaderSelectConfirm));
-      expect(confirmed, 1);
-    });
-
-    testWidgets('недоступный лидер: замок, подтвердить нельзя', (tester) async {
-      var confirmed = 0;
-      final base = skellige();
-      final locked = FactionInfo(
-        id: base.id,
-        key: base.key,
-        name: base.name,
-        perk: base.perk,
-        leaders: [
-          LeaderInfo(
-            id: base.leaders.first.id,
-            factionId: base.id,
-            name: base.leaders.first.name,
-            ability: base.leaders.first.ability,
-            available: false,
-          ),
-          ...base.leaders.skip(1),
-        ],
-      );
-      await pump(tester, view(locked, selected: locked.leaders.first.id, onConfirm: () => confirmed++));
-
-      expect(find.text(l10n.leaderSelectUnavailable), findsWidgets);
-      expect(find.text(l10n.leaderSelectConfirm), findsNothing, reason: 'кнопка вместо подтверждения говорит о замке');
-      await tester.tap(find.text(l10n.leaderSelectUnavailable).last, warnIfMissed: false);
-      expect(confirmed, 0);
-    });
-
-    testWidgets('на экране средней высоты сетка не сжимается до щели', (tester) async {
-      final faction = rules.factionInfos.firstWhere((faction) => faction.leaders.length > 4);
-      await pump(tester, view(faction, selected: faction.leaders.first.id), size: const Size(375, 760));
-      expect(tester.takeException(), isNull);
-
-      final grid = tester.getSize(find.byType(SingleChildScrollView).first);
-      expect(grid.height, greaterThanOrEqualTo(160), reason: 'сетке остаётся место хотя бы для строки карт');
-    });
-
-    testWidgets('на маленьком экране ничего не переполняется', (tester) async {
-      final faction = rules.factionInfos.firstWhere((faction) => faction.leaders.length > 4);
-      await pump(tester, view(faction, selected: faction.leaders.first.id), size: const Size(320, 568));
-      expect(tester.takeException(), isNull);
-    });
-  });
-
   group('DeckSelectView', () {
     Deck deck(String id, String name, {bool small = false}) {
       final full = realDeck(content, Faction.skellige, id: id);
@@ -191,14 +123,18 @@ void main() {
       void Function(String)? onSelect,
     }) {
       final faction = rules.factionInfos.firstWhere((faction) => faction.key == 'skellige');
-      final leader = faction.leaders.first;
       return DeckSelectView(
         eyebrow: 'Перед матчем',
         choices: choices,
         selectedId: selected,
         faction: (name: faction.name, look: GwentFaction.fromKey(faction.key)),
-        leaderName: leader.name,
-        leaderFace: mapper.leader(rules.pack.rules.leaderCardsById[leader.id]!).face,
+        leaderOf: (deck) => switch (faction.leader(deck.leaderId)) {
+          final leader? => (
+            name: leader.name,
+            face: mapper.leader(rules.pack.rules.leaderCardsById[leader.id]!).face,
+          ),
+          null => null,
+        },
         issueText: DeckIssueText(pack: rules.pack, l10n: l10n),
         playLabel: l10n.deckSelectPlay,
         onSelect: onSelect ?? (_) {},
@@ -245,6 +181,30 @@ void main() {
       await tester.tap(find.text(l10n.deckSelectEdit));
       expect(played, 1);
       expect(edited, ['good']);
+    });
+
+    testWidgets('в строке стоит лидер самой колоды, у колод с разными лидерами они разные', (tester) async {
+      final faction = rules.factionInfos.firstWhere((faction) => faction.key == 'skellige');
+      final first = deck('first', 'Первая').copyWith(leaderId: faction.leaders.first.id);
+      final second = deck('second', 'Вторая').copyWith(leaderId: faction.leaders.last.id);
+      await pump(
+        tester,
+        view([
+          DeckChoice(deck: first, issues: const []),
+          DeckChoice(deck: second, issues: const []),
+        ], selected: 'first'),
+      );
+
+      expect(find.text(shortLeaderName(faction.leaders.first.name)), findsOneWidget);
+      expect(find.text(shortLeaderName(faction.leaders.last.name)), findsOneWidget);
+    });
+
+    testWidgets('лидера колоды нет в пакете: строка без лидера, ничего не падает', (tester) async {
+      final stale = deck('stale', 'Старая').copyWith(leaderId: 'нет-такого');
+      await pump(tester, view([DeckChoice(deck: stale, issues: const [])], selected: 'stale'));
+
+      expect(find.text('Старая'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('несколько колод на маленьком экране: список прокручивается, ничего не переполняется', (tester) async {

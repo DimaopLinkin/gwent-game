@@ -20,20 +20,15 @@ import 'package:meta/meta.dart';
 /// и догадки о руке соперника, поэтому с одним сидом бот играет одинаково.
 typedef BotFactory = MatchBot Function(MatchEngine engine, CardCatalog catalog, BotDifficulty difficulty, int seed);
 
-/// Что выбрал игрок перед местной партией: режим, колоды мест и, если игрок выбрал, лидеры.
+/// Что выбрал игрок перед местной партией: режим и колоды мест.
 @immutable
 final class LocalMatchRequest {
   /// Создаёт запрос. Против бота [deckTwo] — колода бота: если собранной колоды нет ([opponentDeck]), она лежит
   /// в хранилище.
-  ///
-  /// [leaderOne] и [leaderTwo] — UUID лидеров, с которыми места идут в эту партию вместо лидера колоды: лидер
-  /// выбирается перед партией и не меняет сохранённую колоду. Без них места играют лидерами своих колод.
   const LocalMatchRequest({
     required this.mode,
     required this.deckOne,
     required this.deckTwo,
-    this.leaderOne,
-    this.leaderTwo,
     this.difficulty = BotDifficulty.normal,
     this.opponentDeck,
   });
@@ -54,22 +49,10 @@ final class LocalMatchRequest {
   /// Идентификатор колоды второго места.
   final String deckTwo;
 
-  /// UUID лидера первого места на эту партию или `null`, если играет лидер колоды.
-  final String? leaderOne;
-
-  /// UUID лидера второго места на эту партию или `null`, если играет лидер колоды.
-  final String? leaderTwo;
-
   /// Колода места [seat].
   String deck(Seat seat) => switch (seat) {
     Seat.one => deckOne,
     Seat.two => deckTwo,
-  };
-
-  /// Выбранный лидер места [seat] или `null`, если играет лидер колоды.
-  String? leader(Seat seat) => switch (seat) {
-    Seat.one => leaderOne,
-    Seat.two => leaderTwo,
   };
 }
 
@@ -159,10 +142,7 @@ final class StartMatch {
       final built = seat == Seat.two ? request.opponentDeck : null;
       final deck = built ?? await _decks.findById(request.deck(seat));
       if (deck == null) return MatchDeckNotFound(seat, request.deck(seat));
-      decks[seat] = switch (request.leader(seat)) {
-        final leaderId? => deck.copyWith(leaderId: leaderId),
-        null => deck,
-      };
+      decks[seat] = deck;
     }
     return _start(request, content, decks);
   }

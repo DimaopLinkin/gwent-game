@@ -159,14 +159,12 @@ void main() {
     }
   }
 
-  /// Проходит три шага выбора для места: фракция с ключом [factionKey], её первый лидер, первая колода.
+  /// Проходит два шага выбора для места: фракция с ключом [factionKey], потом предвыбранная колода.
   Future<void> chooseSeat(WidgetTester tester, String factionKey) async {
     final ready = setupCubit.state as MatchSetupReady;
     setupCubit.showFaction(ready.rules.factionInfos.indexWhere((faction) => faction.key == factionKey));
     await tester.pump();
     await tester.tap(find.text(l10n.factionSelectConfirm));
-    await settleSetup(tester);
-    await tester.tap(find.text(l10n.leaderSelectConfirm));
     await settleSetup(tester);
     final last = (setupCubit.state as MatchSetupReady).isLastSeat;
     await tester.tap(find.text(last ? l10n.deckSelectPlay : l10n.deckSelectNext));
@@ -212,8 +210,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  group('выбор фракции, лидера и колоды', () {
-    testWidgets('против бота: сложность, фракция, лидер, колода; второго места нет', (tester) async {
+  group('выбор фракции и колоды', () {
+    testWidgets('против бота: сложность, фракция, колода; второго места нет', (tester) async {
       await pumpScreen(tester, passDifficulty: false);
       expect(find.text(l10n.setupStep(1, 3).toUpperCase()), findsOneWidget);
       expect(find.text(l10n.difficultySelectTitle), findsOneWidget);
@@ -233,11 +231,7 @@ void main() {
       await tester.tap(find.text(l10n.factionSelectConfirm));
       await settleSetup(tester);
       expect(find.text(l10n.setupStep(3, 3).toUpperCase()), findsOneWidget);
-      expect(find.text(l10n.leaderSelectConfirm), findsOneWidget);
-
-      await tester.tap(find.text(l10n.leaderSelectConfirm));
-      await settleSetup(tester);
-      expect(find.text(l10n.deckSelectEyebrow.toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.deckSelectTitle), findsOneWidget, reason: 'после фракции сразу колоды, без выбора лидера');
       expect(find.text(l10n.deckSelectPlay), findsOneWidget);
       expect(find.text('monsters'), findsOneWidget, reason: 'колода выбранной фракции');
       expect(find.text('realms'), findsNothing, reason: 'колод других фракций в списке нет');
@@ -257,7 +251,7 @@ void main() {
       await pumpScreen(tester);
       await tester.tap(find.text(l10n.factionSelectConfirm));
       await settleSetup(tester);
-      expect(find.text(l10n.leaderSelectConfirm), findsOneWidget);
+      expect(find.text(l10n.deckSelectTitle), findsOneWidget);
 
       await tester.tap(find.bySemanticsLabel(l10n.setupBack));
       await settleSetup(tester);
@@ -278,8 +272,6 @@ void main() {
       setupCubit.showFaction(2);
       await tester.pump();
       await tester.tap(find.text(l10n.factionSelectConfirm));
-      await settleSetup(tester);
-      await tester.tap(find.text(l10n.leaderSelectConfirm));
       await settleSetup(tester);
 
       await tester.tap(find.text(l10n.deckSelectEdit));
