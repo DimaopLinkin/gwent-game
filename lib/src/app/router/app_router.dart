@@ -293,7 +293,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         GoRoute(
           path: _child(AppRoutes.settings),
           builder: (context, state) {
-            final overGame = state.uri.queryParameters.containsKey(AppRoutes.overGameParam);
+            final overGame = state.uri.queryParameters[AppRoutes.overGameParam] == '1';
             return BlocProvider(
               create: (_) => SettingsCubit(
                 watchSettings: dependencies.watchSettings,
@@ -317,15 +317,12 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         GoRoute(
           path: _child(AppRoutes.howToPlayPath),
           builder: (context, state) {
-            final overGame = state.uri.queryParameters.containsKey(AppRoutes.overGameParam);
-            return BlocProvider(
-              create: (_) => HowToPlayCubit(dependencies.loadGameContent),
-              child: HowToPlayScreen(
-                onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
-                onOpen: (topic) => context.push(AppRoutes.howToTopic(topic.key)),
-                // Из партии справочник открывают поверх неё; «Первая партия» оборвала бы её.
-                onTutorial: overGame ? null : () => context.go(AppRoutes.tutorial),
-              ),
+            final overGame = state.uri.queryParameters[AppRoutes.overGameParam] == '1';
+            return HowToPlayScreen(
+              onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
+              onOpen: (topic) => context.push(AppRoutes.howToTopic(topic.key)),
+              // Из партии справочник открывают поверх неё; «Первая партия» оборвала бы её.
+              onTutorial: overGame ? null : () => context.go(AppRoutes.tutorial),
             );
           },
           routes: [

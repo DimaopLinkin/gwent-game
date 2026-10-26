@@ -13,6 +13,8 @@ import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/how_to_play/presentation/how_to_play_screen.dart';
 import 'package:gwent/src/features/how_to_play/presentation/how_to_topic_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
+import 'package:gwent/src/features/match/presentation/start/match_intro_view.dart';
+import 'package:gwent/src/features/match/presentation/start/match_toss_view.dart';
 import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
@@ -284,6 +286,64 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(HowToPlayScreen), findsNothing);
     expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+  });
+
+  testWidgets('пауза в «Первой партии»: «Как играть» открывается поверх партии без кнопки обучения, «назад» в паузу', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(l10n.menuSettings));
+    await settleReal(tester);
+    await tester.ensureVisible(find.text(l10n.settingsReplayTutorial));
+    await tester.tap(find.text(l10n.settingsReplayTutorial));
+    await settleReal(tester);
+    expect(find.byType(FirstMatchScreen), findsOneWidget);
+
+    for (var i = 0; i < 400 && find.text(l10n.tutorialStepCounter(1, 15)).evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump(const Duration(milliseconds: 200));
+      if (find.byType(MatchIntroView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchIntroView));
+      if (find.byType(MatchTossView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchTossView));
+    }
+    await tester.tap(find.text(l10n.tutorialNext));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.bySemanticsLabel(l10n.pauseButtonSemantics));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text(l10n.pauseHowToPlay));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(HowToPlayScreen), findsNothing);
+    expect(find.text(l10n.pauseTitle), findsOneWidget, reason: 'пауза осталась открытой');
+  });
+
+  testWidgets('пауза в партии с ботом: «Как играть» открывается поверх партии без кнопки обучения', (tester) async {
+    await pumpApp(tester);
+    await openVsBotSetup(tester);
+    await tester.tap(find.text(l10n.factionSelectConfirm));
+    await settleReal(tester);
+    await tester.tap(find.text(l10n.deckSelectPlay));
+    for (var i = 0; i < 400 && find.bySemanticsLabel(l10n.pauseButtonSemantics).evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump(const Duration(milliseconds: 200));
+      if (find.byType(MatchIntroView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchIntroView));
+      if (find.byType(MatchTossView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchTossView));
+      if (find.text(l10n.matchRedrawDone).evaluate().isNotEmpty) await tester.tap(find.text(l10n.matchRedrawDone));
+    }
+    await tester.tap(find.bySemanticsLabel(l10n.pauseButtonSemantics));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text(l10n.pauseHowToPlay));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.pauseTitle), findsOneWidget);
   });
 
   testWidgets('настройки поверх партии: «Как играть» есть, «Пройти обучение заново» нет', (tester) async {
