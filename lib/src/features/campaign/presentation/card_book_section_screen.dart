@@ -314,23 +314,27 @@ class _CopiesPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final full = owned >= total;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: full ? GwentColors.gold : GwentColors.bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: GwentColors.gold),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        child: Text(
-          '$owned/$total',
-          textScaler: TextScaler.noScaling,
-          style: TextStyle(
-            fontFamily: GwentText.cormorant,
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-            height: 1,
-            color: full ? GwentColors.onGold : GwentColors.gold,
+    return Semantics(
+      label: context.l10n.campaignBookCopies(owned, total),
+      excludeSemantics: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: full ? GwentColors.gold : GwentColors.bg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: GwentColors.gold),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Text(
+            '$owned/$total',
+            textScaler: TextScaler.noScaling,
+            style: TextStyle(
+              fontFamily: GwentText.cormorant,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              height: 1,
+              color: full ? GwentColors.onGold : GwentColors.gold,
+            ),
           ),
         ),
       ),

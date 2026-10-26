@@ -198,7 +198,7 @@ class _SectionRow extends StatelessWidget {
     final touched = section.opened > 0;
     return Semantics(
       button: true,
-      label: '$name. $count',
+      label: l10n.campaignBookRowLabel(name, count),
       onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(

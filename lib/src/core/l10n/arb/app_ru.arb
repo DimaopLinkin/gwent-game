@@ -4144,5 +4144,29 @@
   "campaignBookUnavailable": "«Книга карт» недоступна",
   "@campaignBookUnavailable": {
     "description": "Книга карт не загрузилась."
+  },
+  "campaignBookCopies": "{owned} из {total} копий",
+  "@campaignBookCopies": {
+    "description": "Подпись для диктора у числа открытых копий карты в «Книге карт».",
+    "placeholders": {
+      "owned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignBookRowLabel": "{name}. {count}",
+  "@campaignBookRowLabel": {
+    "description": "Подпись для диктора у строки раздела «Книги карт»: название и сколько открыто.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
   }
 }

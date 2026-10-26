@@ -323,6 +323,8 @@ final class AppDependencies {
 
   /// Обзор кампании для тропы: узлы, колода, открытые карты.
   late final LoadCampaignOverview loadCampaignOverview;
+
+  /// «Книга карт»: открытые карты по фракциям.
   late final LoadCardBook loadCardBook;
 
   /// Запись итога партии узла и выдача наград.

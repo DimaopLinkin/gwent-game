@@ -144,6 +144,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                 GoRoute(
                   path: ':${AppRoutes.campaignBookSectionParam}',
                   builder: (context, state) => BlocProvider(
+                    // Страница одна на все разделы (ключ по шаблону пути): ключ сбрасывает вкладку прежнего раздела.
+                    key: ValueKey(state.pathParameters[AppRoutes.campaignBookSectionParam]),
                     create: (_) => CardBookCubit(dependencies.loadCardBook),
                     child: CardBookSectionScreen(
                       sectionId: state.pathParameters[AppRoutes.campaignBookSectionParam]!,

@@ -39,9 +39,9 @@ void main() {
 
   setUp(() => collection = InMemoryCollectionRepository());
 
-  Future<void> pumpBook(WidgetTester tester, Widget screen) async {
+  Future<void> pumpBook(WidgetTester tester, Widget screen, {double width = 390}) async {
     tester.view
-      ..physicalSize = const Size(390, 844)
+      ..physicalSize = Size(width, 844)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final cubit = CardBookCubit(LoadCardBook(campaign, collection));
@@ -104,5 +104,28 @@ void main() {
 
     await pumpBook(tester, CardBookSectionScreen(sectionId: CardBook.commonId, onBack: () {}));
     expect(find.text(l10n.campaignBookTabLeaders), findsNothing);
+  });
+
+  testWidgets('неизвестный раздел: «Книга карт недоступна», а не падение', (tester) async {
+    await pumpBook(tester, CardBookSectionScreen(sectionId: 'нет-такого', onBack: () {}));
+
+    expect(find.text(l10n.campaignBookUnavailable), findsOneWidget);
+    expectBackButtonAtEdge(tester);
+  });
+
+  testWidgets('ширина 360 и крупный шрифт: обзор и раздел не переполняются', (tester) async {
+    final book = (await tester.runAsync(LoadCardBook(campaign, collection).call))!.book;
+    Widget large(Widget child) => Builder(
+      builder: (context) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)),
+        child: child,
+      ),
+    );
+
+    await pumpBook(tester, large(CardBookScreen(onBack: () {}, onOpenSection: (_) {})), width: 360);
+    expect(tester.takeException(), isNull);
+
+    await pumpBook(tester, large(CardBookSectionScreen(sectionId: book.sections.first.id, onBack: () {})), width: 360);
+    expect(tester.takeException(), isNull);
   });
 }
