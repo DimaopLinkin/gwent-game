@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:gwent/src/core/database/app_database.steps.dart';
+import 'package:gwent/src/core/database/tables/campaign_tables.dart';
 import 'package:gwent/src/core/database/tables/decks_table.dart';
 import 'package:gwent/src/core/database/tables/match_records_table.dart';
 import 'package:gwent/src/core/database/tables/settings_table.dart';
@@ -12,13 +13,15 @@ part 'app_database.g.dart';
 /// Изменение схемы: поправить таблицы, увеличить [schemaVersion], запустить `tools/scripts/setup.sh`
 /// (он сохранит схему новой версии в `drift_schemas/` и соберёт шаги миграции), дописать шаг в [migration]
 /// и закоммитить новый файл схемы. Тест миграций проверяет переход со всех прежних версий.
-@DriftDatabase(tables: [Decks, DeckCards, ActiveDecks, Settings, MatchRecords, MatchReplays])
+@DriftDatabase(
+  tables: [Decks, DeckCards, ActiveDecks, Settings, MatchRecords, MatchReplays, OwnedCardEntries, CampaignProgress],
+)
 class AppDatabase extends _$AppDatabase {
   /// Открывает базу через исполнитель запросов [e]: файл на устройстве или память в тестах.
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// Шаги обновления по версиям. Отдельно от [migration], чтобы тест мог подставить сбойный шаг.
   @visibleForTesting
@@ -35,6 +38,12 @@ class AppDatabase extends _$AppDatabase {
     // и «Подтверждать пас» у каждого выключено; кто захочет диалог, включит его в настройках.
     from3To4: (m, schema) async {
       await m.database.customStatement("DELETE FROM settings WHERE key = 'confirm_pass'");
+    },
+    // Версия 5: коллекция и прогресс кампании (ADR 0033). Только новые таблицы: колоды, история и настройки не меняются,
+    // открытых карт у обновившегося игрока нет, кампания начинается с нуля.
+    from4To5: (m, schema) async {
+      await m.createTable(schema.ownedCards);
+      await m.createTable(schema.campaignProgress);
     },
   );
 

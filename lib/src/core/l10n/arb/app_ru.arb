@@ -1602,6 +1602,10 @@
   "@leaderSelectConfirm": {
     "description": "Кнопка подтверждения лидера в конструкторе колод."
   },
+  "leaderSelectLocked": "Откроется в кампании",
+  "@leaderSelectLocked": {
+    "description": "Вместо способности закрытого лидера в конструкторе колоды кампании."
+  },
   "deckSelectTitle": "Выбор колоды",
   "@deckSelectTitle": {
     "description": "Заголовок экрана выбора колоды перед партией."
@@ -1642,6 +1646,34 @@
   "deckIssueLeaderOfOtherFaction": "Лидер не из фракции колоды: выберите лидера этой фракции.",
   "@deckIssueLeaderOfOtherFaction": {
     "description": "Причина, по которой колода не годится: лидер чужой фракции."
+  },
+  "deckIssueLeaderNotOpened": "Лидер колоды ещё не открыт в кампании: выберите другого.",
+  "@deckIssueLeaderNotOpened": {
+    "description": "Причина, по которой колода не годится для кампании: её лидер ещё не открыт."
+  },
+  "deckIssueCardNotOpened": "Карта «{card}» ещё не открыта в кампании.",
+  "@deckIssueCardNotOpened": {
+    "description": "Причина, по которой колода не годится для кампании: карта ещё не открыта.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "deckIssueCardFewOpened": "Карты «{card}» в колоде {count}, а в кампании открыто только {open}.",
+  "@deckIssueCardFewOpened": {
+    "description": "Причина, по которой колода не годится для кампании: открыто меньше копий карты, чем в колоде.",
+    "placeholders": {
+      "card": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "open": {
+        "type": "int"
+      }
+    }
   },
   "deckIssueUnknownCard": "В колоде есть карта, которой нет в наборе: откройте колоду и поправьте её.",
   "@deckIssueUnknownCard": {
@@ -1860,6 +1892,14 @@
   "@editorMsgHero": {
     "description": "Сообщение конструктора: герой уже в колоде."
   },
+  "editorMsgNotOpened": "Эта карта откроется в кампании",
+  "@editorMsgNotOpened": {
+    "description": "Сообщение конструктора колоды кампании: карта ещё не открыта."
+  },
+  "editorMsgAllOpenedCopies": "Все открытые копии уже в колоде",
+  "@editorMsgAllOpenedCopies": {
+    "description": "Сообщение конструктора колоды кампании: открытых копий этой карты больше нет."
+  },
   "editorMsgSpecial": "Не больше {max} особых карт",
   "@editorMsgSpecial": {
     "description": "Сообщение конструктора: особых карт уже максимум.",
@@ -1924,6 +1964,10 @@
         "type": "int"
       }
     }
+  },
+  "editorCopiesLocked": "закрыта",
+  "@editorCopiesLocked": {
+    "description": "Метка карты в конструкторе колоды кампании: карта ещё не открыта."
   },
   "editorGroupHeroes": "Герои",
   "@editorGroupHeroes": {
@@ -2039,6 +2083,10 @@
         "type": "int"
       }
     }
+  },
+  "editorPreviewLocked": "Откроется в кампании",
+  "@editorPreviewLocked": {
+    "description": "Строка под картой при просмотре в конструкторе колоды кампании: карта ещё не открыта."
   },
   "editorNeutralName": "Общая карта",
   "@editorNeutralName": {

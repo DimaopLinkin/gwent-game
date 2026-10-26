@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:gwent/src/features/collection/application/load_collection.dart';
 import 'package:gwent/src/features/deck_builder/application/get_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/load_deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
@@ -19,18 +20,22 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
   ///
   /// [deckId] `null` открывает новую колоду у первой фракции пакета. [newDeckName] называет новую колоду и
   /// подставляется, если игрок стёр название.
+  ///
+  /// С [loadCollection] конструктор работает для кампании (ADR 0033): колоду собирают только из открытых карт и лидеров,
+  /// остальные закрыты. Без него доступны все карты, как в свободной игре.
   DeckEditorCubit({
     required LoadDeckRules loadDeckRules,
     required GetDeck getDeck,
     required SaveDeck saveDeck,
     required String newDeckName,
     String? deckId,
+    LoadCollection? loadCollection,
     PlaySound? sound,
   }) : _saveDeck = saveDeck,
        _sound = sound,
        _fallbackName = newDeckName,
        super(const DeckEditorLoading()) {
-    unawaited(_load(loadDeckRules, getDeck, deckId));
+    unawaited(_load(loadDeckRules, getDeck, deckId, loadCollection));
   }
 
   /// Сколько сообщение об отказе остаётся в строке подсказки.
@@ -41,10 +46,16 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
   final String _fallbackName;
   Timer? _messageTimer;
 
-  Future<void> _load(LoadDeckRules loadDeckRules, GetDeck getDeck, String? deckId) async {
+  Future<void> _load(
+    LoadDeckRules loadDeckRules,
+    GetDeck getDeck,
+    String? deckId,
+    LoadCollection? loadCollection,
+  ) async {
     try {
       final rules = await loadDeckRules();
       final deck = deckId == null ? null : await getDeck(deckId);
+      final owned = loadCollection == null ? null : await loadCollection();
       if (isClosed) return;
       if (deckId != null && deck == null) {
         emit(const DeckEditorNotFound());
@@ -66,6 +77,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
           onlyAvailable: false,
           factionIndex: index,
           saving: false,
+          owned: owned,
         ),
       );
     } on Object catch (error, stackTrace) {
@@ -120,7 +132,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
     final ready = _ready;
     final card = ready?.rules.cardsById[cardId];
     if (ready == null || card == null) return;
-    final refusal = ready.rules.refusalToAdd(ready.draft, card);
+    final refusal = ready.rules.refusalToAdd(ready.draft, card, owned: ready.owned);
     if (refusal != null) {
       _sound?.call(SoundEffect.warning);
       _say(ready, EditorMessage(refusal, max: ready.rules.gameRules.maxSpecialCards));
@@ -181,6 +193,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
         onlyAvailable: ready.onlyAvailable,
         factionIndex: change.target,
         saving: false,
+        owned: ready.owned,
       ),
     );
   }
@@ -252,6 +265,7 @@ final class DeckEditorCubit extends Cubit<DeckEditorState> {
     onlyAvailable: onlyAvailable ?? ready.onlyAvailable,
     factionIndex: ready.factionIndex,
     saving: saving ?? ready.saving,
+    owned: ready.owned,
     message: clearMessage ? null : message ?? ready.message,
     saveFailed: !clearMessage && (saveFailed ?? ready.saveFailed),
     lastMoved: lastMoved ?? ready.lastMoved,

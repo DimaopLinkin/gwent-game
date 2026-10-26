@@ -46,3 +46,46 @@ final class LeaderOfOtherFaction extends DeckIssue {
   @override
   String toString() => 'LeaderOfOtherFaction($leaderId, $leaderFactionId)';
 }
+
+/// В колоде больше копий карты [cardId], чем открыто игроком в кампании (ADR 0033).
+final class CardNotOwned extends DeckIssue {
+  /// Создаёт проблему: в колоде [copies] копий, открыто [owned].
+  const CardNotOwned({required this.cardId, required this.copies, required this.owned});
+
+  /// UUID карты.
+  final String cardId;
+
+  /// Сколько копий в колоде.
+  final int copies;
+
+  /// Сколько копий открыто.
+  final int owned;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CardNotOwned && other.cardId == cardId && other.copies == copies && other.owned == owned;
+
+  @override
+  int get hashCode => Object.hash(cardId, copies, owned);
+
+  @override
+  String toString() => 'CardNotOwned($cardId, в колоде $copies, открыто $owned)';
+}
+
+/// Лидер колоды ещё не открыт игроком в кампании (ADR 0033).
+final class LeaderNotOwned extends DeckIssue {
+  /// Создаёт проблему для лидера [leaderId].
+  const LeaderNotOwned(this.leaderId);
+
+  /// UUID карты лидера.
+  final String leaderId;
+
+  @override
+  bool operator ==(Object other) => other is LeaderNotOwned && other.leaderId == leaderId;
+
+  @override
+  int get hashCode => leaderId.hashCode;
+
+  @override
+  String toString() => 'LeaderNotOwned($leaderId)';
+}

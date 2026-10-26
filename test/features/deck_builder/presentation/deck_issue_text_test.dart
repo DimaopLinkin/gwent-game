@@ -39,6 +39,18 @@ void main() {
     );
   });
 
+  test('кампания: закрытый лидер, закрытая карта и нехватка открытых копий', () {
+    expect(text.describe(const LeaderNotOwned(Small.crach)), l10n.deckIssueLeaderNotOpened);
+    expect(
+      text.describe(const CardNotOwned(cardId: Small.cerys, copies: 1, owned: 0)),
+      l10n.deckIssueCardNotOpened('Цирилла'),
+    );
+    expect(
+      text.describe(const CardNotOwned(cardId: Small.cerys, copies: 3, owned: 2)),
+      l10n.deckIssueCardFewOpened('Цирилла', 3, 2),
+    );
+  });
+
   test('карты нет в пакете: показан её идентификатор', () {
     expect(
       text.describe(const DeckRuleViolation(CreatedCardInDeck(CardId('нет такой')))),

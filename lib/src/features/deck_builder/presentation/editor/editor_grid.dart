@@ -114,10 +114,12 @@ class EditorGrid extends StatelessWidget {
                 top: 4,
                 child: IgnorePointer(
                   child: _CopiesPill(
-                    text: inCollection
-                        ? context.l10n.editorCopiesOf(entry.copies, entry.card.maxCopies)
+                    text: entry.locked
+                        ? context.l10n.editorCopiesLocked
+                        : inCollection
+                        ? context.l10n.editorCopiesOf(entry.copies, entry.limit)
                         : context.l10n.editorCopiesIn(entry.copies),
-                    full: entry.copies >= entry.card.maxCopies,
+                    full: !entry.locked && entry.copies >= entry.limit,
                     empty: entry.copies == 0,
                   ),
                 ),

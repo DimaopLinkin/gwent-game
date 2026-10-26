@@ -4,6 +4,8 @@ import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
+import 'package:gwent/src/features/collection/domain/collection_repository.dart';
+import 'package:gwent/src/features/collection/domain/owned_cards.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_repository.dart';
@@ -161,6 +163,34 @@ base class InMemorySettingsRepository implements SettingsRepository {
   Future<void> save(AppSettings settings) async {
     saved = settings;
     _changes.add(null);
+  }
+}
+
+/// Открытые карты в памяти для тестов.
+final class InMemoryCollectionRepository implements CollectionRepository {
+  InMemoryCollectionRepository([Map<String, int> copies = const {}]) : _copies = {...copies};
+
+  final Map<String, int> _copies;
+  final StreamController<CardCollection> _changes = StreamController.broadcast();
+
+  @override
+  Future<CardCollection> load() async => CardCollection(_copies);
+
+  @override
+  Stream<CardCollection> watch() async* {
+    yield CardCollection(_copies);
+    yield* _changes.stream;
+  }
+
+  @override
+  Future<void> grant(Map<String, int> copies) async {
+    for (final MapEntry(key: cardId, value: count) in copies.entries) {
+      if (count < 1) throw ArgumentError.value(count, 'copies[$cardId]');
+    }
+    for (final MapEntry(key: cardId, value: count) in copies.entries) {
+      _copies[cardId] = (_copies[cardId] ?? 0) + count;
+    }
+    _changes.add(CardCollection(_copies));
   }
 }
 

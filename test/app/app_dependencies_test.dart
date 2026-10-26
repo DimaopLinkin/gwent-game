@@ -17,6 +17,7 @@ void main() {
       contentSource: AssetContentSource.basePack(rootBundle),
       appInfo: const FakeAppInfo(),
       deckRepository: decks,
+      collectionRepository: InMemoryCollectionRepository(),
       settingsRepository: InMemorySettingsRepository(),
       matchHistoryRepository: InMemoryMatchHistoryRepository(),
       clock: FakeClock(DateTime.utc(2026, 10, 12)),

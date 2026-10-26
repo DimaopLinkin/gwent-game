@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:gwent/src/features/collection/domain/owned_cards.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:meta/meta.dart';
 
@@ -81,6 +84,9 @@ final class CollectionCard {
 
   /// Базовая сила; у особых карт 0.
   final int strength;
+
+  /// Сколько копий карты можно положить в колоду при открытой коллекции [owned]; без неё — [maxCopies].
+  int limit(OwnedCards? owned) => owned == null ? maxCopies : math.min(maxCopies, owned.copiesOf(id));
 
   /// Группа карты в сетке конструктора.
   CollectionGroup get group => switch (kind) {
@@ -199,4 +205,10 @@ enum AddRefusal {
 
   /// Особых карт уже максимум.
   specialLimit,
+
+  /// Карта ещё не открыта в кампании.
+  notOpened,
+
+  /// Все открытые в кампании копии карты уже в колоде.
+  allOpenedCopiesInDeck,
 }

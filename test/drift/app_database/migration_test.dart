@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/database/app_database.dart';
@@ -106,6 +106,56 @@ void main() {
         );
     expect((await db.select(db.matchReplays).getSingle()).recordId, 'm1');
     expect(schema.rawDatabase.select('PRAGMA user_version').single['user_version'], db.schemaVersion);
+  });
+
+  test('миграция с версии 4 сохраняет колоды, историю и настройки и добавляет пустые таблицы кампании', () async {
+    final schema = await verifier.schemaAt(4);
+    schema.rawDatabase
+      ..execute("INSERT INTO decks VALUES ('d1', 'Моя колода', 'faction', 'leader', '2026-10-11T12:00:00.000Z')")
+      ..execute("INSERT INTO deck_cards VALUES ('d1', 'card', 3)")
+      ..execute("INSERT INTO active_decks VALUES ('faction', 'd1')")
+      ..execute("INSERT INTO settings VALUES ('music_volume', '40')")
+      ..execute(
+        "INSERT INTO match_records VALUES ('m1', 'ai', 'f1', 'f2', 'Геральт', 'victory', 2, 1, "
+        "'2026-10-11T13:00:00.000Z', 1)",
+      )
+      ..execute("INSERT INTO match_replays VALUES ('m1', 'one', 'journal', 1, '{}')");
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+
+    final deck = await db.select(db.decks).getSingle();
+    expect((deck.id, deck.name, deck.factionId, deck.leaderId), ('d1', 'Моя колода', 'faction', 'leader'));
+    final card = await db.select(db.deckCards).getSingle();
+    expect((card.deckId, card.cardId, card.copies), ('d1', 'card', 3));
+    final active = await db.select(db.activeDecks).getSingle();
+    expect((active.factionId, active.deckId), ('faction', 'd1'));
+    expect((await db.select(db.settings).getSingle()).value, '40');
+    final record = await db.select(db.matchRecords).getSingle();
+    expect((record.id, record.hasReplay), ('m1', true));
+    expect((await db.select(db.matchReplays).getSingle()).recordId, 'm1');
+    // Открытых карт у обновившегося игрока нет: кампания начинается с нуля (ADR 0033).
+    expect(await db.select(db.ownedCardEntries).get(), isEmpty);
+    expect(await db.select(db.campaignProgress).get(), isEmpty);
+
+    await db.into(db.ownedCardEntries).insert(OwnedCardEntriesCompanion.insert(cardId: 'card', copies: 2));
+    await db
+        .into(db.campaignProgress)
+        .insert(CampaignProgressCompanion.insert(nodeId: 'c1-00', wins: 1, firstWinAt: DateTime.utc(2026, 10, 27)));
+    expect((await db.select(db.ownedCardEntries).getSingle()).copies, 2);
+    expect((await db.select(db.campaignProgress).getSingle()).bonusClaimedAt, isNull);
+    expect(schema.rawDatabase.select('PRAGMA user_version').single['user_version'], db.schemaVersion);
+  });
+
+  test('число открытых копий в базе не бывает меньше единицы', () async {
+    final schema = await verifier.schemaAt(5);
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+
+    await expectLater(
+      db.into(db.ownedCardEntries).insert(OwnedCardEntriesCompanion.insert(cardId: 'card', copies: 0)),
+      throwsA(isA<Object>()),
+    );
   });
 
   test('сбой шага откатывает всё обновление и не двигает версию', () async {

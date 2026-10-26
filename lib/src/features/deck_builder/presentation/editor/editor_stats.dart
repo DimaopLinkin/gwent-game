@@ -121,6 +121,8 @@ class EditorHint extends StatelessWidget {
           AddRefusal.allCopiesInDeck => l10n.editorMsgAllCopies,
           AddRefusal.heroLimit => l10n.editorMsgHero,
           AddRefusal.specialLimit => l10n.editorMsgSpecial(max),
+          AddRefusal.notOpened => l10n.editorMsgNotOpened,
+          AddRefusal.allOpenedCopiesInDeck => l10n.editorMsgAllOpenedCopies,
         },
         true,
       ),

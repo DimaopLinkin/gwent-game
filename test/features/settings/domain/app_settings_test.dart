@@ -44,6 +44,16 @@ void main() {
     expect(const AppSettings(localNetworkExplained: true).withPlayerName('Ласка').localNetworkExplained, isTrue);
   });
 
+  test('withCampaignDeck меняет только колоду кампании, null стирает выбор; остальные копии его сохраняют', () {
+    final settings = const AppSettings(hints: false).withCampaignDeck('deck-1');
+
+    expect(settings.campaignDeckId, 'deck-1');
+    expect(settings.hints, isFalse);
+    expect(settings.copyWith(haptics: false).campaignDeckId, 'deck-1');
+    expect(settings.withPlayerName('Цири').campaignDeckId, 'deck-1');
+    expect(settings.withCampaignDeck(null).campaignDeckId, isNull);
+  });
+
   test('равенство учитывает все поля', () {
     const base = AppSettings(playerName: 'А');
 
@@ -59,5 +69,6 @@ void main() {
     expect(base, isNot(base.copyWith(effectsVolume: 0)));
     expect(base, isNot(base.copyWith(contentCheckedAt: DateTime.utc(2026))));
     expect(base, isNot(base.withPlayerName('Б')));
+    expect(base, isNot(base.withCampaignDeck('deck-1')));
   });
 }
