@@ -23,14 +23,27 @@ import 'package:intl/intl.dart';
 /// скорость анимаций, подсказки, громкость, подтверждение паса), сохраняются и показываются как есть. Переходы приходят
 /// снаружи: экран не знает о маршрутах.
 class SettingsScreen extends StatelessWidget {
-  /// Создаёт экран; [onBack] выходит из настроек, [onLicenses] открывает лицензии шрифтов и библиотек.
-  const SettingsScreen({super.key, required this.onBack, required this.onLicenses});
+  /// Создаёт экран; [onBack] выходит из настроек, [onLicenses] открывает лицензии шрифтов и библиотек, [onHowToPlay] — справочник «Как играть», [onTutorial] запускает
+  /// «Первую партию».
+  const SettingsScreen({
+    super.key,
+    required this.onBack,
+    required this.onLicenses,
+    this.onHowToPlay,
+    this.onTutorial,
+  });
 
   /// Игрок вернулся назад.
   final VoidCallback onBack;
 
   /// Игрок открыл лицензии.
   final VoidCallback onLicenses;
+
+  /// Игрок открыл справочник «Как играть»; `null` — строки нет.
+  final VoidCallback? onHowToPlay;
+
+  /// Игрок запустил «Первую партию» заново; `null` — строки нет (настройки открыты поверх партии).
+  final VoidCallback? onTutorial;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +66,12 @@ class SettingsScreen extends StatelessWidget {
                       style: GwentText.body.copyWith(fontSize: 17, color: GwentColors.textSecondary),
                     ),
                   ),
-                  final SettingsLoaded loaded => _Settings(state: loaded, onLicenses: onLicenses),
+                  final SettingsLoaded loaded => _Settings(
+                    state: loaded,
+                    onLicenses: onLicenses,
+                    onHowToPlay: onHowToPlay,
+                    onTutorial: onTutorial,
+                  ),
                 },
               ),
             ),
@@ -65,10 +83,12 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class _Settings extends StatelessWidget {
-  const _Settings({required this.state, required this.onLicenses});
+  const _Settings({required this.state, required this.onLicenses, this.onHowToPlay, this.onTutorial});
 
   final SettingsLoaded state;
   final VoidCallback onLicenses;
+  final VoidCallback? onHowToPlay;
+  final VoidCallback? onTutorial;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +126,7 @@ class _Settings extends StatelessWidget {
             ),
             SettingsSwitchRow(
               label: l10n.settingsHints,
+              note: l10n.settingsHintsNote,
               value: settings.hints,
               onChanged: (value) => cubit.setHints(value: value),
             ),
@@ -114,6 +135,8 @@ class _Settings extends StatelessWidget {
               value: settings.haptics,
               onChanged: (value) => cubit.setHaptics(value: value),
             ),
+            if (onHowToPlay case final open?) SettingsLinkRow(label: l10n.settingsHowToPlay, onTap: open),
+            if (onTutorial case final start?) SettingsLinkRow(label: l10n.settingsReplayTutorial, onTap: start),
           ],
         ),
         const SizedBox(height: 22),

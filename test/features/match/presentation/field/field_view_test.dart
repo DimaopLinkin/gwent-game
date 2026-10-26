@@ -37,7 +37,6 @@ import 'package:gwent/src/features/match/presentation/hand_order.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
-import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
@@ -87,6 +86,7 @@ void main() {
     bool hotSeat = false,
     bool readOnly = false,
     VoidCallback? onSettings,
+    VoidCallback? onHowToPlay,
     Size size = const Size(390, 844),
   }) async {
     tester.view.physicalSize = size;
@@ -110,6 +110,7 @@ void main() {
               hints: hints,
               readOnly: readOnly,
               onSettings: onSettings,
+              onHowToPlay: onHowToPlay,
             ),
           ),
         ),
@@ -1420,7 +1421,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
       expect(find.byType(PauseMenuLayer), findsOneWidget);
       expect(find.text('Продолжить'), findsOneWidget);
-      expect(find.text('Правила'), findsOneWidget);
+      expect(find.text('Как играть'), findsOneWidget);
       expect(find.text('Сдаться'), findsOneWidget);
 
       await tester.tap(find.text('Продолжить'));
@@ -1462,19 +1463,25 @@ void main() {
       expect(find.byType(PauseMenuLayer), findsOneWidget);
     });
 
-    testWidgets('«Правила» открывают справочник, «назад» возвращает в меню паузы', (tester) async {
+    testWidgets('«Как играть» в паузе недоступно без перехода', (tester) async {
       final harness = await pumpField(tester, viewOf(cards));
       harness.cubit.openPause();
       await tester.pump(const Duration(milliseconds: 250));
-      await tester.tap(find.text('Правила'));
-      await tester.pump(const Duration(milliseconds: 250));
-      expect(find.byType(RulesView), findsOneWidget);
-      expect(find.text('Цель'), findsOneWidget);
+      expect(tester.widget<PauseMenuLayer>(find.byType(PauseMenuLayer)).onHowToPlay, isNull);
+    });
 
-      await tester.binding.handlePopRoute();
+    testWidgets('«Как играть» в паузе открывает справочник, партия остаётся на паузе', (tester) async {
+      var opened = 0;
+      final harness = await pumpField(tester, viewOf(cards), onHowToPlay: () => opened++);
+      harness.cubit.openPause();
       await tester.pump(const Duration(milliseconds: 250));
-      expect(find.byType(RulesView), findsNothing);
+      expect(find.text('Правила'), findsNothing);
+
+      await tester.tap(find.text('Как играть'));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(opened, 1);
       expect(harness.cubit.state.pause, PauseLayer.menu);
+      expect(find.byType(PauseMenuLayer), findsOneWidget);
     });
 
     testWidgets('«Сдаться» спрашивает подтверждение; «Отмена» возвращает в меню, ход не отправляется', (tester) async {

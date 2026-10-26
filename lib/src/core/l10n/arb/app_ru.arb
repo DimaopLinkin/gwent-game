@@ -1008,10 +1008,6 @@
   "@pauseResume": {
     "description": "Кнопка меню паузы."
   },
-  "pauseRules": "Правила",
-  "@pauseRules": {
-    "description": "Кнопка меню паузы."
-  },
   "pauseSettings": "Настройки",
   "@pauseSettings": {
     "description": "Кнопка меню паузы."
@@ -1027,246 +1023,6 @@
   "surrenderBody": "Матч будет засчитан как поражение.",
   "@surrenderBody": {
     "description": "Пояснение подтверждения сдачи."
-  },
-  "rulesTitle": "Правила",
-  "@rulesTitle": {
-    "description": "Заголовок справочника правил."
-  },
-  "rulesBackSemantics": "Назад",
-  "@rulesBackSemantics": {
-    "description": "Подпись кнопки «назад» справочника правил."
-  },
-  "rulesGoalTitle": "Цель",
-  "@rulesGoalTitle": {
-    "description": "Раздел правил."
-  },
-  "rulesGoalText": "Выиграйте два раунда из трёх. Раунд выигрывает игрок с большей суммой силы на поле, когда оба спасовали. Спасовавший игрок больше не ходит до конца раунда. У каждого два камня жизни: проигравший раунд теряет один, при ничьей теряют оба.",
-  "@rulesGoalText": {
-    "description": "Правила: цель игры."
-  },
-  "rulesRowsTitle": "Ряды",
-  "@rulesRowsTitle": {
-    "description": "Раздел правил."
-  },
-  "rulesRowsText": "Сила считается отдельно в каждом ряду, сумма трёх рядов — счёт раунда.",
-  "@rulesRowsText": {
-    "description": "Правила: ряды."
-  },
-  "rulesRowMeleeName": "Ближний бой",
-  "@rulesRowMeleeName": {
-    "description": "Правила: ряд."
-  },
-  "rulesRowMeleeText": "Рукопашные отряды.",
-  "@rulesRowMeleeText": {
-    "description": "Правила: ряд."
-  },
-  "rulesRowRangedName": "Дальний бой",
-  "@rulesRowRangedName": {
-    "description": "Правила: ряд."
-  },
-  "rulesRowRangedText": "Лучники и стрелки.",
-  "@rulesRowRangedText": {
-    "description": "Правила: ряд."
-  },
-  "rulesRowSiegeName": "Осадные",
-  "@rulesRowSiegeName": {
-    "description": "Правила: ряд."
-  },
-  "rulesRowSiegeText": "Катапульты и другие осадные орудия.",
-  "@rulesRowSiegeText": {
-    "description": "Правила: ряд."
-  },
-  "rulesRowAgileName": "Проворство",
-  "@rulesRowAgileName": {
-    "description": "Правила: ряд."
-  },
-  "rulesRowAgileText": "Отряд можно выложить в ближний или дальний ряд.",
-  "@rulesRowAgileText": {
-    "description": "Правила: ряд."
-  },
-  "rulesWeatherTitle": "Погода",
-  "@rulesWeatherTitle": {
-    "description": "Раздел правил."
-  },
-  "rulesWeatherText": "Погодная карта действует на оба поля. Герои погоде не подвержены.",
-  "@rulesWeatherText": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherFrostName": "Мороз",
-  "@rulesWeatherFrostName": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherFrostText": "Снижает силу рукопашных отрядов до 1.",
-  "@rulesWeatherFrostText": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherFogName": "Мгла",
-  "@rulesWeatherFogName": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherFogText": "Снижает силу отрядов дальнего боя до 1.",
-  "@rulesWeatherFogText": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherRainName": "Ливень",
-  "@rulesWeatherRainName": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherRainText": "Снижает силу осадных отрядов до 1.",
-  "@rulesWeatherRainText": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherStormName": "Шторм со Скеллиге",
-  "@rulesWeatherStormName": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherStormText": "Снижает силу дальних и осадных отрядов до 1 у обоих игроков.",
-  "@rulesWeatherStormText": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherClearName": "Ясное небо",
-  "@rulesWeatherClearName": {
-    "description": "Правила: погода."
-  },
-  "rulesWeatherClearText": "Снимает все эффекты погодных карт.",
-  "@rulesWeatherClearText": {
-    "description": "Правила: погода."
-  },
-  "rulesAbilitiesTitle": "Способности",
-  "@rulesAbilitiesTitle": {
-    "description": "Раздел правил."
-  },
-  "rulesAbilityBondName": "Прочная связь",
-  "@rulesAbilityBondName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityBondText": "Сила умножается на число карт с тем же названием в ряду.",
-  "@rulesAbilityBondText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityMoraleName": "Прилив сил",
-  "@rulesAbilityMoraleName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityMoraleText": "Даёт +1 к силе всем отрядам в своём ряду, кроме себя.",
-  "@rulesAbilityMoraleText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityMedicName": "Медик",
-  "@rulesAbilityMedicName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityMedicText": "Выберите отряд в своём сбросе и сыграйте его немедленно.",
-  "@rulesAbilityMedicText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilitySpyName": "Шпион",
-  "@rulesAbilitySpyName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilitySpyText": "Выкладывается на поле противника, сила карты прибавляется ему. Взамен вы берёте две карты.",
-  "@rulesAbilitySpyText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityBerserkName": "Берсерк",
-  "@rulesAbilityBerserkName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityBerserkText": "Превращается в медведя, если в его ряду сыгран Мардрём.",
-  "@rulesAbilityBerserkText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityMardroemeName": "Мардрём",
-  "@rulesAbilityMardroemeName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityMardroemeText": "Превращает Берсерков в ряду.",
-  "@rulesAbilityMardroemeText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityScorchName": "Казнь",
-  "@rulesAbilityScorchName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityScorchText": "Уничтожает самую сильную карту.",
-  "@rulesAbilityScorchText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityTwinName": "Двойник",
-  "@rulesAbilityTwinName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityTwinText": "Вместе с картой выкладываются все связанные с ней.",
-  "@rulesAbilityTwinText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityAvengerName": "Приманка",
-  "@rulesAbilityAvengerName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityAvengerText": "При уходе с поля призывает на своё место сильную карту.",
-  "@rulesAbilityAvengerText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityHornName": "Командирский рог",
-  "@rulesAbilityHornName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityHornText": "Удваивает силу отрядов в ряду. В ряду может быть один рог.",
-  "@rulesAbilityHornText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityDecoyName": "Чучело",
-  "@rulesAbilityDecoyName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityDecoyText": "Заменяет отряд на поле и возвращает его в руку.",
-  "@rulesAbilityDecoyText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityHeroName": "Герой",
-  "@rulesAbilityHeroName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityHeroText": "На героя не действуют погода, рог и способности.",
-  "@rulesAbilityHeroText": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityLeaderName": "Лидер",
-  "@rulesAbilityLeaderName": {
-    "description": "Правила: способность."
-  },
-  "rulesAbilityLeaderText": "Способность лидера используется один раз за матч.",
-  "@rulesAbilityLeaderText": {
-    "description": "Правила: способность."
-  },
-  "rulesFactionsTitle": "Фракции",
-  "@rulesFactionsTitle": {
-    "description": "Раздел правил."
-  },
-  "rulesFactionsText": "Способность фракции срабатывает в конце раунда.",
-  "@rulesFactionsText": {
-    "description": "Правила: фракции."
-  },
-  "rulesFactionNorthernRealms": "После победы в раунде вы берёте дополнительную карту.",
-  "@rulesFactionNorthernRealms": {
-    "description": "Правила: Королевства Севера."
-  },
-  "rulesFactionNilfgaard": "Побеждает при ничьей.",
-  "@rulesFactionNilfgaard": {
-    "description": "Правила: Нильфгаард."
-  },
-  "rulesFactionMonsters": "После раунда одна случайная карта отряда остаётся на поле.",
-  "@rulesFactionMonsters": {
-    "description": "Правила: Чудовища."
-  },
-  "rulesFactionScoiatael": "Сами решают, кто ходит первым.",
-  "@rulesFactionScoiatael": {
-    "description": "Правила: Скоя'таэли."
-  },
-  "rulesFactionSkellige": "В третьем раунде две случайные карты из сброса возвращаются на поле.",
-  "@rulesFactionSkellige": {
-    "description": "Правила: Скеллиге."
   },
   "menuVsBot": "Игра с ИИ",
   "@menuVsBot": {
@@ -3350,5 +3106,410 @@
   "tutorialOpponentDeckName": "Скеллиге",
   "@tutorialOpponentDeckName": {
     "description": "Название колоды соперника в «Первой партии»: его видно на экране знакомства перед партией."
+  },
+  "pauseHowToPlay": "Как играть",
+  "@pauseHowToPlay": {
+    "description": "Кнопка меню паузы: открывает справочник «Как играть»."
+  },
+  "settingsHowToPlay": "Как играть",
+  "@settingsHowToPlay": {
+    "description": "Строка настроек: открывает справочник «Как играть»."
+  },
+  "settingsReplayTutorial": "Пройти обучение заново",
+  "@settingsReplayTutorial": {
+    "description": "Строка настроек: запускает обучающую «Первую партию»."
+  },
+  "settingsHintsNote": "Подсказки работают в обычных партиях. Обучение всегда идёт с подсказками.",
+  "@settingsHintsNote": {
+    "description": "Пояснение под переключателем подсказок."
+  },
+  "howToTitle": "Как играть",
+  "@howToTitle": {
+    "description": "Заголовок справочника."
+  },
+  "howToEyebrow": "Справочник",
+  "@howToEyebrow": {
+    "description": "Надпись над заголовком справочника."
+  },
+  "howToStartTutorial": "Пройти первую партию",
+  "@howToStartTutorial": {
+    "description": "Кнопка внизу списка тем: запускает обучающую партию."
+  },
+  "howToTopicSemantics": "Тема «{title}»: {summary}",
+  "@howToTopicSemantics": {
+    "description": "Подпись строки темы для экранного диктора.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "howToRemember": "Запомните",
+  "@howToRemember": {
+    "description": "Подпись блока с главной мыслью страницы."
+  },
+  "howToPreviousTopic": "Предыдущая тема",
+  "@howToPreviousTopic": {
+    "description": "Ссылка на предыдущую тему справочника."
+  },
+  "howToNextTopic": "Следующая тема",
+  "@howToNextTopic": {
+    "description": "Ссылка на следующую тему справочника."
+  },
+  "howToScore": "Счёт: {score}",
+  "@howToScore": {
+    "description": "Сумма трёх рядов в примере поля.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "howToGoalTitle": "Цель партии",
+  "@howToGoalTitle": {
+    "description": "Название темы справочника «Цель партии»."
+  },
+  "howToGoalSummary": "Два раунда из трёх и кристаллы",
+  "@howToGoalSummary": {
+    "description": "Подпись темы «Цель партии» в списке справочника."
+  },
+  "howToGoalText1": "Партия идёт до двух выигранных раундов из трёх. У каждого игрока по два кристалла жизни.",
+  "@howToGoalText1": {
+    "description": "Абзац 1 темы «Цель партии»."
+  },
+  "howToGoalText2": "Раунд выигрывает тот, у кого к его концу больше силы на поле. Проигравший раунд теряет кристалл, а без кристаллов остаётся проигравший партию.",
+  "@howToGoalText2": {
+    "description": "Абзац 2 темы «Цель партии»."
+  },
+  "howToGoalText3": "При равном счёте кристалл теряют оба. Но если колода Нильфгаарда только у одного из игроков, ничья в раунде — его победа.",
+  "@howToGoalText3": {
+    "description": "Абзац 3 темы «Цель партии»."
+  },
+  "howToGoalRemember": "Потеряйте оба кристалла — и партия проиграна.",
+  "@howToGoalRemember": {
+    "description": "Главная мысль темы «Цель партии»."
+  },
+  "howToHandAndDeckTitle": "Рука и колода",
+  "@howToHandAndDeckTitle": {
+    "description": "Название темы справочника «Рука и колода»."
+  },
+  "howToHandAndDeckSummary": "10 карт на партию и пересдача",
+  "@howToHandAndDeckSummary": {
+    "description": "Подпись темы «Рука и колода» в списке справочника."
+  },
+  "howToHandAndDeckText1": "В начале партии вы берёте 10 карт. Добора каждый ход нет: новые карты приходят только от способностей, например от шпиона.",
+  "@howToHandAndDeckText1": {
+    "description": "Абзац 1 темы «Рука и колода»."
+  },
+  "howToHandAndDeckText2": "Перед первым раундом можно заменить до двух карт: выбранная уходит под низ колоды, а сверху берётся новая.",
+  "@howToHandAndDeckText2": {
+    "description": "Абзац 2 темы «Рука и колода»."
+  },
+  "howToHandAndDeckText3": "Сыгранные и уничтоженные карты уходят в сброс. Рука, колода и сброс переходят из раунда в раунд, поэтому берегите сильные карты.",
+  "@howToHandAndDeckText3": {
+    "description": "Абзац 3 темы «Рука и колода»."
+  },
+  "howToHandAndDeckRemember": "Карты даны на всю партию, а не на один раунд.",
+  "@howToHandAndDeckRemember": {
+    "description": "Главная мысль темы «Рука и колода»."
+  },
+  "howToTurnAndPassTitle": "Ход и пас",
+  "@howToTurnAndPassTitle": {
+    "description": "Название темы справочника «Ход и пас»."
+  },
+  "howToTurnAndPassSummary": "Одно действие за ход",
+  "@howToTurnAndPassSummary": {
+    "description": "Подпись темы «Ход и пас» в списке справочника."
+  },
+  "howToTurnAndPassText1": "В свой ход делайте одно действие: сыграйте карту из руки, примените способность лидера или спасуйте.",
+  "@howToTurnAndPassText1": {
+    "description": "Абзац 1 темы «Ход и пас»."
+  },
+  "howToTurnAndPassText2": "Пас действует до конца раунда: спасовавший больше не ходит, а соперник доигрывает свои карты. Раунд заканчивается, когда спасовали оба.",
+  "@howToTurnAndPassText2": {
+    "description": "Абзац 2 темы «Ход и пас»."
+  },
+  "howToTurnAndPassText3": "Пасовать можно в любой момент, даже с картами в руке: иногда выгодно остановиться и сберечь карты на следующий раунд. Если в начале хода нечего сыграть, пас ставится сам.",
+  "@howToTurnAndPassText3": {
+    "description": "Абзац 3 темы «Ход и пас»."
+  },
+  "howToTurnAndPassRemember": "Один ход — одно действие, а пас отменить нельзя.",
+  "@howToTurnAndPassRemember": {
+    "description": "Главная мысль темы «Ход и пас»."
+  },
+  "howToRowsAndPowerTitle": "Ряды и сила",
+  "@howToRowsAndPowerTitle": {
+    "description": "Название темы справочника «Ряды и сила»."
+  },
+  "howToRowsAndPowerSummary": "Три ряда, счёт раунда, герои",
+  "@howToRowsAndPowerSummary": {
+    "description": "Подпись темы «Ряды и сила» в списке справочника."
+  },
+  "howToRowsAndPowerText1": "На поле три ряда: ближний бой, дальний бой и осадные орудия. Сила считается отдельно в каждом ряду, а сумма трёх рядов — ваш счёт в раунде.",
+  "@howToRowsAndPowerText1": {
+    "description": "Абзац 1 темы «Ряды и сила»."
+  },
+  "howToRowsAndPowerText2": "Число в медальоне карты — её сила, значок под ним — ряд, куда карту можно положить. Карта с двумя значками годится в любой из двух рядов.",
+  "@howToRowsAndPowerText2": {
+    "description": "Абзац 2 темы «Ряды и сила»."
+  },
+  "howToRowsAndPowerText3": "Герои в золотой рамке сильнее обычных карт: погода, рог и чужие способности на них не действуют.",
+  "@howToRowsAndPowerText3": {
+    "description": "Абзац 3 темы «Ряды и сила»."
+  },
+  "howToRowsAndPowerRemember": "Выигрывает тот, у кого сумма трёх рядов больше.",
+  "@howToRowsAndPowerRemember": {
+    "description": "Главная мысль темы «Ряды и сила»."
+  },
+  "howToWeatherTitle": "Погода",
+  "@howToWeatherTitle": {
+    "description": "Название темы справочника «Погода»."
+  },
+  "howToWeatherSummary": "Что снижает силу и как её снять",
+  "@howToWeatherSummary": {
+    "description": "Подпись темы «Погода» в списке справочника."
+  },
+  "howToWeatherText1": "Карта погоды ложится на центральную полосу и действует на оба поля сразу: сила обычных отрядов в затронутом ряду падает до 1. Героев погода не трогает.",
+  "@howToWeatherText1": {
+    "description": "Абзац 1 темы «Погода»."
+  },
+  "howToWeatherText2": "Мороз бьёт по ближнему бою, Мгла по дальнему, Ливень по осадным орудиям. Шторм со Скеллиге накрывает сразу дальний и осадный ряды.",
+  "@howToWeatherText2": {
+    "description": "Абзац 2 темы «Погода»."
+  },
+  "howToWeatherText3": "Ясное небо снимает всю погоду. А в начале каждого раунда поле очищается само.",
+  "@howToWeatherText3": {
+    "description": "Абзац 3 темы «Погода»."
+  },
+  "howToWeatherRemember": "Погода бьёт по обоим игрокам; снимают её только Ясное небо и новый раунд.",
+  "@howToWeatherRemember": {
+    "description": "Главная мысль темы «Погода»."
+  },
+  "howToAbilitiesTitle": "Способности отрядов",
+  "@howToAbilitiesTitle": {
+    "description": "Название темы справочника «Способности отрядов»."
+  },
+  "howToAbilitiesSummary": "Связь, шпион, медик и другие",
+  "@howToAbilitiesSummary": {
+    "description": "Подпись темы «Способности отрядов» в списке справочника."
+  },
+  "howToAbilitiesText1": "Способность отряда видна по значку под медальоном силы. Нажмите на карту и подержите, чтобы прочитать полное описание.",
+  "@howToAbilitiesText1": {
+    "description": "Абзац 1 темы «Способности отрядов»."
+  },
+  "howToAbilitiesRemember": "Способность срабатывает, когда карта выходит на поле, или действует, пока она лежит в ряду.",
+  "@howToAbilitiesRemember": {
+    "description": "Главная мысль темы «Способности отрядов»."
+  },
+  "howToSpecialsTitle": "Особые карты",
+  "@howToSpecialsTitle": {
+    "description": "Название темы справочника «Особые карты»."
+  },
+  "howToSpecialsSummary": "Рог, Чучело, Мардрём и Казнь",
+  "@howToSpecialsSummary": {
+    "description": "Подпись темы «Особые карты» в списке справочника."
+  },
+  "howToSpecialsText1": "У особых карт нет силы: в медальоне вместо неё значок эффекта. В колоду можно положить не больше десяти особых карт, считая погоду.",
+  "@howToSpecialsText1": {
+    "description": "Абзац 1 темы «Особые карты»."
+  },
+  "howToSpecialsRemember": "Особая карта тратит ход, как и любая другая.",
+  "@howToSpecialsRemember": {
+    "description": "Главная мысль темы «Особые карты»."
+  },
+  "howToLeadersTitle": "Лидеры и фракции",
+  "@howToLeadersTitle": {
+    "description": "Название темы справочника «Лидеры и фракции»."
+  },
+  "howToLeadersSummary": "Один раз за партию и перки колод",
+  "@howToLeadersSummary": {
+    "description": "Подпись темы «Лидеры и фракции» в списке справочника."
+  },
+  "howToLeadersText1": "У каждой колоды есть лидер. Способность лидера применяется один раз за партию и занимает весь ход, но у некоторых лидеров она действует сама всю партию.",
+  "@howToLeadersText1": {
+    "description": "Абзац 1 темы «Лидеры и фракции»."
+  },
+  "howToLeadersText2": "Фракция колоды даёт перк, который срабатывает без вашего участия: обычно между раундами или в начале партии.",
+  "@howToLeadersText2": {
+    "description": "Абзац 2 темы «Лидеры и фракции»."
+  },
+  "howToLeadersRemember": "Способность лидера разовая: выбирайте момент.",
+  "@howToLeadersRemember": {
+    "description": "Главная мысль темы «Лидеры и фракции»."
+  },
+  "howToRowMelee": "Ближний бой",
+  "@howToRowMelee": {
+    "description": "Название ряда «Ближний бой» в примере поля."
+  },
+  "howToRowRanged": "Дальний бой",
+  "@howToRowRanged": {
+    "description": "Название ряда «Дальний бой» в примере поля."
+  },
+  "howToRowSiege": "Осадные орудия",
+  "@howToRowSiege": {
+    "description": "Название ряда «Осадные орудия» в примере поля."
+  },
+  "howToWeatherFrostName": "Мороз",
+  "@howToWeatherFrostName": {
+    "description": "Название погоды «Мороз»."
+  },
+  "howToWeatherFrostText": "Ближний бой: сила обычных отрядов падает до 1.",
+  "@howToWeatherFrostText": {
+    "description": "Что делает погода «Мороз»."
+  },
+  "howToWeatherFogName": "Мгла",
+  "@howToWeatherFogName": {
+    "description": "Название погоды «Мгла»."
+  },
+  "howToWeatherFogText": "Дальний бой: сила обычных отрядов падает до 1.",
+  "@howToWeatherFogText": {
+    "description": "Что делает погода «Мгла»."
+  },
+  "howToWeatherRainName": "Ливень",
+  "@howToWeatherRainName": {
+    "description": "Название погоды «Ливень»."
+  },
+  "howToWeatherRainText": "Осадные орудия: сила обычных отрядов падает до 1.",
+  "@howToWeatherRainText": {
+    "description": "Что делает погода «Ливень»."
+  },
+  "howToWeatherStormName": "Шторм со Скеллиге",
+  "@howToWeatherStormName": {
+    "description": "Название погоды «Шторм со Скеллиге»."
+  },
+  "howToWeatherStormText": "Дальний и осадный ряды: сила обычных отрядов падает до 1.",
+  "@howToWeatherStormText": {
+    "description": "Что делает погода «Шторм со Скеллиге»."
+  },
+  "howToWeatherClearName": "Ясное небо",
+  "@howToWeatherClearName": {
+    "description": "Название погоды «Ясное небо»."
+  },
+  "howToWeatherClearText": "Снимает всю погоду с обоих полей.",
+  "@howToWeatherClearText": {
+    "description": "Что делает погода «Ясное небо»."
+  },
+  "howToAbilityTightBondName": "Прочная связь",
+  "@howToAbilityTightBondName": {
+    "description": "Название способности «Прочная связь»."
+  },
+  "howToAbilityTightBondText": "Одинаковые карты в ряду умножают силу друг друга: две по 4 дадут по 8.",
+  "@howToAbilityTightBondText": {
+    "description": "Что делает способность «Прочная связь»."
+  },
+  "howToAbilityMoraleBoostName": "Прилив сил",
+  "@howToAbilityMoraleBoostName": {
+    "description": "Название способности «Прилив сил»."
+  },
+  "howToAbilityMoraleBoostText": "Даёт +1 к силе каждому другому отряду в своём ряду.",
+  "@howToAbilityMoraleBoostText": {
+    "description": "Что делает способность «Прилив сил»."
+  },
+  "howToAbilityMedicName": "Медик",
+  "@howToAbilityMedicName": {
+    "description": "Название способности «Медик»."
+  },
+  "howToAbilityMedicText": "Возвращает в игру обычный отряд из вашего сброса. Героев воскресить нельзя.",
+  "@howToAbilityMedicText": {
+    "description": "Что делает способность «Медик»."
+  },
+  "howToAbilitySpyName": "Шпион",
+  "@howToAbilitySpyName": {
+    "description": "Название способности «Шпион»."
+  },
+  "howToAbilitySpyText": "Кладётся на поле соперника, и его сила идёт в счёт соперника, зато вы берёте из колоды две карты.",
+  "@howToAbilitySpyText": {
+    "description": "Что делает способность «Шпион»."
+  },
+  "howToAbilityBerserkName": "Берсерк",
+  "@howToAbilityBerserkName": {
+    "description": "Название способности «Берсерк»."
+  },
+  "howToAbilityBerserkText": "Превращается в сильного медведя, если в его ряду лежит Мардрём.",
+  "@howToAbilityBerserkText": {
+    "description": "Что делает способность «Берсерк»."
+  },
+  "howToAbilityMusterName": "Двойник",
+  "@howToAbilityMusterName": {
+    "description": "Название способности «Двойник»."
+  },
+  "howToAbilityMusterText": "Вместе с картой на поле сразу выходят все связанные с ней карты из руки и колоды.",
+  "@howToAbilityMusterText": {
+    "description": "Что делает способность «Двойник»."
+  },
+  "howToAbilityScorchName": "Казнь отряда",
+  "@howToAbilityScorchName": {
+    "description": "Название способности «Казнь отряда»."
+  },
+  "howToAbilityScorchText": "Если в ряду соперника не меньше 10 силы, уничтожает в нём самые сильные карты.",
+  "@howToAbilityScorchText": {
+    "description": "Что делает способность «Казнь отряда»."
+  },
+  "howToAbilityBaitName": "Приманка",
+  "@howToAbilityBaitName": {
+    "description": "Название способности «Приманка»."
+  },
+  "howToAbilityBaitText": "Когда карта уходит с поля, на её место приходит более сильная.",
+  "@howToAbilityBaitText": {
+    "description": "Что делает способность «Приманка»."
+  },
+  "howToAbilityCommanderHornName": "Командирский рог отряда",
+  "@howToAbilityCommanderHornName": {
+    "description": "Название способности «Командирский рог отряда»."
+  },
+  "howToAbilityCommanderHornText": "Удваивает силу других отрядов в своём ряду.",
+  "@howToAbilityCommanderHornText": {
+    "description": "Что делает способность «Командирский рог отряда»."
+  },
+  "howToAbilityHeroName": "Герой",
+  "@howToAbilityHeroName": {
+    "description": "Название способности «Герой»."
+  },
+  "howToAbilityHeroText": "Золотая рамка: погода, рог и чужие способности на героя не действуют.",
+  "@howToAbilityHeroText": {
+    "description": "Что делает способность «Герой»."
+  },
+  "howToSpecialCommanderHornName": "Командирский рог",
+  "@howToSpecialCommanderHornName": {
+    "description": "Название особой карты «Командирский рог»."
+  },
+  "howToSpecialCommanderHornText": "Ложится в слот рога своего ряда и удваивает силу его отрядов. Если слот занят, карта уйдёт в сброс без эффекта.",
+  "@howToSpecialCommanderHornText": {
+    "description": "Что делает особая карта «Командирский рог»."
+  },
+  "howToSpecialDecoyName": "Чучело",
+  "@howToSpecialDecoyName": {
+    "description": "Название особой карты «Чучело»."
+  },
+  "howToSpecialDecoyText": "Меняется местами с вашим обычным отрядом на поле: отряд возвращается в руку, а Чучело остаётся на его месте.",
+  "@howToSpecialDecoyText": {
+    "description": "Что делает особая карта «Чучело»."
+  },
+  "howToSpecialMardroemeName": "Мардрём",
+  "@howToSpecialMardroemeName": {
+    "description": "Название особой карты «Мардрём»."
+  },
+  "howToSpecialMardroemeText": "Ложится в слот рога своего ряда и превращает всех Берсерков в нём. Силу ряда не удваивает.",
+  "@howToSpecialMardroemeText": {
+    "description": "Что делает особая карта «Мардрём»."
+  },
+  "howToSpecialScorchName": "Казнь",
+  "@howToSpecialScorchName": {
+    "description": "Название особой карты «Казнь»."
+  },
+  "howToSpecialScorchText": "Уничтожает самые сильные обычные отряды на всём поле, у обоих игроков.",
+  "@howToSpecialScorchText": {
+    "description": "Что делает особая карта «Казнь»."
+  },
+  "howToFactionsTitle": "Фракции",
+  "@howToFactionsTitle": {
+    "description": "Заголовок списка фракций на странице «Лидеры и фракции»."
+  },
+  "howToFactionPerkMissing": "Перк в этом наборе карт не задан.",
+  "@howToFactionPerkMissing": {
+    "description": "Строка фракции, если в пакете контента нет описания её перка."
   }
 }

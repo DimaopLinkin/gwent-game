@@ -39,7 +39,11 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('ru'));
   });
 
-  Future<void> pumpSettings(WidgetTester tester, {Duration minCheck = Duration.zero}) async {
+  Future<void> pumpSettings(
+    WidgetTester tester, {
+    Duration minCheck = Duration.zero,
+    bool lessons = false,
+  }) async {
     tester.view.physicalSize = const Size(390, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -61,7 +65,12 @@ void main() {
       BlocProvider.value(
         value: cubit,
         child: localizedScreen(
-          SettingsScreen(onBack: () => taps.add('back'), onLicenses: () => taps.add('licenses')),
+          SettingsScreen(
+            onBack: () => taps.add('back'),
+            onLicenses: () => taps.add('licenses'),
+            onHowToPlay: lessons ? () => taps.add('how-to-play') : null,
+            onTutorial: lessons ? () => taps.add('tutorial') : null,
+          ),
         ),
       ),
     );
@@ -195,5 +204,24 @@ void main() {
     await tester.tap(find.text(l10n.settingsLicenses));
 
     expect(taps, ['back', 'licenses']);
+  });
+
+  testWidgets('«Как играть» и «Пройти обучение заново» отдают переходы наружу', (tester) async {
+    await pumpSettings(tester, lessons: true);
+
+    await tester.ensureVisible(find.text(l10n.settingsHowToPlay));
+    await tester.tap(find.text(l10n.settingsHowToPlay));
+    await tester.ensureVisible(find.text(l10n.settingsReplayTutorial));
+    await tester.tap(find.text(l10n.settingsReplayTutorial));
+
+    expect(taps, ['how-to-play', 'tutorial']);
+    expect(find.text(l10n.settingsHintsNote), findsOneWidget, reason: 'подсказки отвечают за обычные партии');
+  });
+
+  testWidgets('без переходов строк «Как играть» и «Пройти обучение заново» нет', (tester) async {
+    await pumpSettings(tester);
+
+    expect(find.text(l10n.settingsHowToPlay), findsNothing);
+    expect(find.text(l10n.settingsReplayTutorial), findsNothing);
   });
 }

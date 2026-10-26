@@ -6,16 +6,16 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
 /// Меню паузы (макет 5, раздел 4): панель по центру на затемнённом на 80 % поле.
 ///
-/// «Продолжить» — главное действие, «Правила» и «Настройки» второстепенные, «Сдаться» — приглушённый красный контур,
-/// чтобы не нажать случайно. «Настройки» недоступны, если экран настроек не передан ([onSettings] `null`). Нажатие мимо
+/// «Продолжить» — главное действие, «Как играть» и «Настройки» второстепенные, «Сдаться» — приглушённый красный контур,
+/// чтобы не нажать случайно. «Как играть» и «Настройки» недоступны, если переход не передан ([onHowToPlay] и [onSettings] `null`). Нажатие мимо
 /// панели продолжает игру.
 class PauseMenuLayer extends StatelessWidget {
   /// Создаёт меню паузы.
   const PauseMenuLayer({
     super.key,
     required this.onResume,
-    required this.onRules,
     required this.onSurrender,
+    this.onHowToPlay,
     this.onSettings,
     this.onRestart,
     this.onExit,
@@ -24,11 +24,11 @@ class PauseMenuLayer extends StatelessWidget {
   /// Продолжить игру.
   final VoidCallback onResume;
 
-  /// Открыть правила.
-  final VoidCallback onRules;
-
   /// Спросить, сдаваться ли.
   final VoidCallback onSurrender;
+
+  /// Открыть справочник «Как играть»; `null` — кнопка недоступна.
+  final VoidCallback? onHowToPlay;
 
   /// Открыть настройки; `null` — кнопка недоступна.
   final VoidCallback? onSettings;
@@ -81,11 +81,11 @@ class PauseMenuLayer extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: GwentButton(
-                label: l10n.pauseRules,
+                label: l10n.pauseHowToPlay,
                 style: GwentButtonStyle.secondary,
                 height: 52,
                 fontSize: 21,
-                onPressed: onRules,
+                onPressed: onHowToPlay,
               ),
             ),
             SizedBox(

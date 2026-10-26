@@ -10,11 +10,14 @@ import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_play_screen.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_topic_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
 import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent/src/features/sound/domain/sound_effect.dart';
+import 'package:gwent/src/features/tutorial/presentation/first_match_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../features/lobby/support/fake_game_lobby.dart';
@@ -224,6 +227,85 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SettingsScreen), findsNothing);
     expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+  });
+
+  testWidgets('настройки из меню: «Как играть» открывает список и тему, «назад» идёт по шагам обратно', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(l10n.menuSettings));
+    await settleReal(tester);
+
+    await tester.ensureVisible(find.text(l10n.settingsHowToPlay));
+    await tester.tap(find.text(l10n.settingsHowToPlay));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsOneWidget, reason: 'вне партии «Первую партию» можно начать');
+
+    await tester.tap(find.text(l10n.howToRowsAndPowerTitle));
+    await settleReal(tester);
+    expect(find.byType(HowToTopicScreen), findsOneWidget);
+    expect(find.text(l10n.howToRowsAndPowerText1), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.textContaining(l10n.howToNextTopic), 300);
+    await tester.tap(find.textContaining(l10n.howToNextTopic));
+    await settleReal(tester);
+    expect(find.text(l10n.howToWeatherText1), findsOneWidget, reason: 'следующая тема заменяет страницу');
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+  });
+
+  testWidgets('настройки из меню: «Пройти обучение заново» запускает «Первую партию»', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(l10n.menuSettings));
+    await settleReal(tester);
+
+    await tester.ensureVisible(find.text(l10n.settingsReplayTutorial));
+    await tester.tap(find.text(l10n.settingsReplayTutorial));
+    await settleReal(tester);
+    expect(find.byType(FirstMatchScreen), findsOneWidget);
+  });
+
+  testWidgets('справочник поверх партии: без «Первой партии», «назад» возвращает на экран партии', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+    await openVsBotSetup(tester);
+
+    unawaited(router.push(AppRoutes.howToPlay(overGame: true)));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(HowToPlayScreen), findsNothing);
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+  });
+
+  testWidgets('настройки поверх партии: «Как играть» есть, «Пройти обучение заново» нет', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+    await openVsBotSetup(tester);
+
+    unawaited(router.push(AppRoutes.settingsOverGame));
+    await settleReal(tester);
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    await tester.ensureVisible(find.text(l10n.settingsHowToPlay));
+    expect(find.text(l10n.settingsHowToPlay), findsOneWidget);
+    expect(find.text(l10n.settingsReplayTutorial), findsNothing);
+  });
+
+  testWidgets('неизвестная тема справочника ведёт к списку тем', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.howToTopic('нет-такой'));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
   });
 
   testWidgets('комната и сетевая партия без активной игры уводят: комната на выбор способа, партия в меню', (

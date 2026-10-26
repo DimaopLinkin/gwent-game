@@ -27,7 +27,7 @@ import 'package:gwent/src/features/tutorial/presentation/tutorial_layer.dart';
 /// «Начать заново» и «В меню» в паузе, лист завершения вместо итога матча. Держатели партии создаются заново с каждой
 /// попыткой.
 class FirstMatchScreen extends StatelessWidget {
-  /// Создаёт экран; [onExit] ведёт в меню, [onPlayBot] — к партии против бота, [onSettings] открывает настройки.
+  /// Создаёт экран; [onExit] ведёт в меню, [onPlayBot] — к партии против бота, [onSettings] открывает настройки, [onHowToPlay] — справочник.
   const FirstMatchScreen({
     super.key,
     required this.startMatch,
@@ -36,6 +36,7 @@ class FirstMatchScreen extends StatelessWidget {
     required this.onExit,
     required this.onPlayBot,
     this.onSettings,
+    this.onHowToPlay,
     this.animationScale = 1,
     this.sound,
     this.haptic,
@@ -58,6 +59,9 @@ class FirstMatchScreen extends StatelessWidget {
 
   /// Открыть настройки из паузы; `null` — кнопка недоступна.
   final VoidCallback? onSettings;
+
+  /// Открыть справочник «Как играть» из паузы; `null` — кнопка недоступна.
+  final VoidCallback? onHowToPlay;
 
   /// Доля обычных длительностей анимаций карт.
   final double animationScale;
@@ -100,6 +104,7 @@ class FirstMatchScreen extends StatelessWidget {
           onExit: onExit,
           onEditDeck: (_) {},
           onSettings: onSettings,
+          onHowToPlay: onHowToPlay,
           hints: true,
           animationScale: animationScale,
           lesson: FieldLesson(
