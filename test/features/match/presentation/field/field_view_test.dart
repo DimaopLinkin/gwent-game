@@ -27,6 +27,7 @@ import 'package:gwent/src/features/match/presentation/field/drag_feedback.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
+import 'package:gwent/src/features/match/presentation/field/field_overlays.dart';
 import 'package:gwent/src/features/match/presentation/field/field_sheets.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
@@ -609,6 +610,28 @@ void main() {
       expect(find.byType(LiftedCard), findsOneWidget);
       await release(tester, near);
       expect(harness.intents, [PlayCard(decoy.id, target: row[2].id)]);
+      await endBanners(tester);
+    });
+
+    testWidgets('зоны магнита не рисуются: ни слабой рамки целей, ни яркого прямоугольника захваченной', (
+      tester,
+    ) async {
+      await pumpDecoy(tester, [for (var i = 0; i < 3; i++) cards.unit(Row.melee)]);
+      Iterable<TargetLook> lit() => tester
+          .widgetList<TargetHighlight>(find.byType(TargetHighlight))
+          .map((h) => h.look)
+          .where(
+            (look) => look != TargetLook.none,
+          );
+      final gesture = await aimAt(tester, Offset(cardRect(1, 3).center.dx, cardRect(1, 3).top - 70));
+      expect(find.byType(LiftedCard), findsNothing);
+      expect(lit(), isEmpty, reason: 'допустимые отряды рамкой не подсвечены');
+      await gesture.moveTo(cardRect(1, 3).center);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(lit(), isEmpty, reason: 'подсветку даёт только подъём');
+      expect(find.byType(LiftedCard), findsOneWidget);
+      await gesture.cancel();
+      await tester.pump(const Duration(milliseconds: 250));
       await endBanners(tester);
     });
 
