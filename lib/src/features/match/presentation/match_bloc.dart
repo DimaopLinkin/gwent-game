@@ -381,6 +381,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     emit(
       MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch, rematch: _rematchOf(session)),
     );
+    if (!session.recordsHistory) return;
     try {
       final record = await _recordFinishedMatch(session, view);
       // Пока писалась история, игрок мог начать реванш или уйти: итог прежней партии новое состояние не затирает.

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart' hide Intent, Row;
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,6 +21,7 @@ import 'package:gwent/src/features/match/presentation/field/drag_hover.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
+import 'package:gwent/src/features/match/presentation/field/field_lesson.dart';
 import 'package:gwent/src/features/match/presentation/field/field_overlays.dart';
 import 'package:gwent/src/features/match/presentation/field/field_row_view.dart';
 import 'package:gwent/src/features/match/presentation/field/field_sheets.dart';
@@ -62,6 +62,7 @@ class FieldView extends StatefulWidget {
     this.onSettings,
     this.readOnly = false,
     this.opponentStatus,
+    this.lesson,
   });
 
   /// Проекция партии.
@@ -91,6 +92,9 @@ class FieldView extends StatefulWidget {
 
   /// Индикатор в полосе соперника (связь в сетевой партии, ADR 0019); `null` — индикатора нет.
   final Widget? opponentStatus;
+
+  /// Урок поверх поля («Первая партия», ADR 0034): слой подсказок и своё меню паузы; `null` — обычная партия.
+  final FieldLesson? lesson;
 
   @override
   State<FieldView> createState() => _FieldViewState();
@@ -371,18 +375,13 @@ class _FieldViewState extends State<FieldView> {
               child: SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final scale = math.min(1.0, constraints.maxHeight / FieldGeometry.budgetHeight);
-                    final width = constraints.maxWidth / scale;
-                    final height = constraints.maxHeight / scale;
-                    final geometry = FieldGeometry(
-                      width: width,
-                      handHeight: height - (FieldGeometry.budgetHeight - FieldGeometry.minHandHeight),
-                    );
+                    final fit = FieldFit(constraints.maxWidth, constraints.maxHeight);
+                    final geometry = fit.geometry;
                     return FittedBox(
                       alignment: Alignment.topLeft,
                       child: SizedBox(
-                        width: width,
-                        height: height,
+                        width: fit.width,
+                        height: fit.height,
                         child: StageHost(
                           script: field.stage,
                           onDone: _cubit.endStage,
@@ -405,6 +404,23 @@ class _FieldViewState extends State<FieldView> {
                   onDismissed: _cubit.dismissSummary,
                 ),
               ),
+            if (widget.lesson case final lesson?)
+              Positioned.fill(
+                child: SafeArea(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => lesson.layerBuilder(
+                      context,
+                      FieldLayout(
+                        fit: FieldFit(constraints.maxWidth, constraints.maxHeight),
+                        field: field,
+                        view: _view,
+                        hand: _fieldContent.handOrder(_view.me.hand ?? const <CardInstance>[]).toList(),
+                        anchors: _anchors,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ?_pauseLayer(field),
           ],
         ),
@@ -422,6 +438,8 @@ class _FieldViewState extends State<FieldView> {
           onRules: cubit.openRules,
           onSettings: widget.onSettings,
           onSurrender: cubit.askSurrender,
+          onRestart: widget.lesson?.onRestart,
+          onExit: widget.lesson?.onExit,
         ),
       ),
       PauseLayer.rules => Positioned.fill(

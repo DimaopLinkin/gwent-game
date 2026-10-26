@@ -7,7 +7,7 @@ import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
 /// Настройки в таблице «ключ — значение» базы Drift.
 ///
 /// Ключи и форматы значений ниже хранятся в базе: переименование ключа требует миграции. Булевы значения хранятся как
-/// `true`/`false`, перечисления (скорость анимаций, сложность бота) по имени, громкость целым, момент проверки набора как ISO 8601 в UTC, колода кампании идентификатором. Нечитаемое
+/// `true`/`false`, перечисления (скорость анимаций, сложность бота) по имени, громкость целым, момент проверки набора как ISO 8601 в UTC, колода кампании идентификатором, прохождение «Первой партии» флагом. Нечитаемое
 /// значение читается как значение по умолчанию.
 final class DriftSettingsRepository implements SettingsRepository {
   /// Создаёт репозиторий над [database].
@@ -24,6 +24,7 @@ final class DriftSettingsRepository implements SettingsRepository {
   static const String _botDifficultyKey = 'bot_difficulty';
   static const String _localNetworkExplainedKey = 'local_network_explained';
   static const String _campaignDeckKey = 'campaign_deck';
+  static const String _firstMatchPassedKey = 'first_match_passed';
 
   final AppDatabase _db;
 
@@ -44,6 +45,7 @@ final class DriftSettingsRepository implements SettingsRepository {
     await _put(_botDifficultyKey, _differs(settings.botDifficulty, defaults.botDifficulty)?.name);
     await _put(_localNetworkExplainedKey, _differs(settings.localNetworkExplained, defaults.localNetworkExplained));
     await _put(_campaignDeckKey, settings.campaignDeckId);
+    await _put(_firstMatchPassedKey, _differs(settings.firstMatchPassed, defaults.firstMatchPassed));
   });
 
   /// Значение в виде, пригодном для записи, или `null`, если оно равно значению по умолчанию и ключ не нужен.
@@ -74,6 +76,7 @@ final class DriftSettingsRepository implements SettingsRepository {
       botDifficulty: BotDifficulty.values.asNameMap()[values[_botDifficultyKey]] ?? defaults.botDifficulty,
       localNetworkExplained: _bool(values[_localNetworkExplainedKey]) ?? defaults.localNetworkExplained,
       campaignDeckId: values[_campaignDeckKey],
+      firstMatchPassed: _bool(values[_firstMatchPassedKey]) ?? defaults.firstMatchPassed,
     );
   }
 

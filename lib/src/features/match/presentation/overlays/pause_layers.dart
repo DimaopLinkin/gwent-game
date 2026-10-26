@@ -17,6 +17,8 @@ class PauseMenuLayer extends StatelessWidget {
     required this.onRules,
     required this.onSurrender,
     this.onSettings,
+    this.onRestart,
+    this.onExit,
   });
 
   /// Продолжить игру.
@@ -31,9 +33,17 @@ class PauseMenuLayer extends StatelessWidget {
   /// Открыть настройки; `null` — кнопка недоступна.
   final VoidCallback? onSettings;
 
+  /// «Начать заново» в уроке («Первая партия»); вместе с [onExit] заменяет «Сдаться»: партию в обучении не проиграть.
+  final VoidCallback? onRestart;
+
+  /// «В меню» в уроке.
+  final VoidCallback? onExit;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final onRestart = this.onRestart;
+    final onExit = this.onExit;
     return _Dimmed(
       color: const Color(0xCC0A0806),
       onDismissed: onResume,
@@ -88,16 +98,38 @@ class PauseMenuLayer extends StatelessWidget {
                 onPressed: onSettings,
               ),
             ),
-            SizedBox(
-              width: double.infinity,
-              child: GwentButton(
-                label: l10n.pauseSurrender,
-                style: GwentButtonStyle.danger,
-                height: 52,
-                fontSize: 21,
-                onPressed: onSurrender,
+            if (onRestart != null && onExit != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: GwentButton(
+                  label: l10n.pauseRestart,
+                  style: GwentButtonStyle.secondary,
+                  height: 52,
+                  fontSize: 21,
+                  onPressed: onRestart,
+                ),
               ),
-            ),
+              SizedBox(
+                width: double.infinity,
+                child: GwentButton(
+                  label: l10n.pauseToMenu,
+                  style: GwentButtonStyle.secondary,
+                  height: 52,
+                  fontSize: 21,
+                  onPressed: onExit,
+                ),
+              ),
+            ] else
+              SizedBox(
+                width: double.infinity,
+                child: GwentButton(
+                  label: l10n.pauseSurrender,
+                  style: GwentButtonStyle.danger,
+                  height: 52,
+                  fontSize: 21,
+                  onPressed: onSurrender,
+                ),
+              ),
           ],
         ),
       ),

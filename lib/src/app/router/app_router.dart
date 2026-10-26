@@ -48,6 +48,8 @@ import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
+import 'package:gwent/src/features/tutorial/presentation/first_match_cubit.dart';
+import 'package:gwent/src/features/tutorial/presentation/first_match_screen.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Resign;
 
 /// Навигация приложения.
@@ -65,6 +67,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         onNetworkGame: () => context.go(AppRoutes.play),
         onDecks: () => context.go(AppRoutes.decks),
         onHistory: () => context.go(AppRoutes.history),
+        onTutorial: () => context.go(AppRoutes.tutorial),
         onSettings: () => context.go(AppRoutes.settings),
       ),
       routes: [
@@ -298,6 +301,30 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
               onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
               onLicenses: () => showLicensePage(context: context, applicationName: context.l10n.appTitle),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: _child(AppRoutes.tutorial),
+          builder: (context, state) => BlocProvider(
+            create: (_) => FirstMatchCubit(dependencies.startFirstMatch),
+            child: StreamBuilder<AppSettings>(
+              stream: dependencies.watchSettings(),
+              initialData: const AppSettings(),
+              builder: (context, snapshot) => FirstMatchScreen(
+                startMatch: dependencies.startMatch,
+                recordFinishedMatch: dependencies.recordFinishedMatch,
+                markPassed: dependencies.markFirstMatchPassed,
+                onExit: () => context.go(AppRoutes.menu),
+                onPlayBot: () => context.go(AppRoutes.matchBot),
+                onSettings: () => context.push(AppRoutes.settings),
+                animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
+                  AnimationSpeed.normal => 1,
+                  AnimationSpeed.fast => StageTokens.fastFactor,
+                },
+                sound: dependencies.playSound,
+                haptic: dependencies.playHaptic,
+              ),
             ),
           ),
         ),

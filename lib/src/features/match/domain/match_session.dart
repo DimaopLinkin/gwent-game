@@ -26,6 +26,7 @@ final class MatchSession {
     Map<Seat, String> deckNames = const {},
     this.opponentName,
     this.recorder,
+    this.recordsHistory = true,
   }) : factionIds = Map.unmodifiable(factionIds),
        deckNames = Map.unmodifiable(deckNames);
 
@@ -49,6 +50,10 @@ final class MatchSession {
 
   /// Запись партии для реплея; `null` — партия не записывается (ADR 0029).
   final ReplayRecorder? recorder;
+
+  /// Законченная партия попадает в историю; `false` у «Первой партии» (ADR 0034): учебная партия в списке сыгранных
+  /// не нужна.
+  final bool recordsHistory;
 
   /// Чьими глазами партия записывается в историю: первое здешнее место (в hot-seat это первый игрок).
   Seat get perspective => Seat.values.firstWhere(table.localSeats.contains);

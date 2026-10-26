@@ -2879,10 +2879,6 @@
   "@netNoticeOnlineHostLostText": {
     "description": "Пояснение: хост потерял комнату до начала партии (игра через интернет)."
   },
-  "menuHistory": "История партий",
-  "@menuHistory": {
-    "description": "Кнопка главного меню: история сыгранных партий и реплеи."
-  },
   "historyEyebrow": "Меню",
   "@historyEyebrow": {
     "description": "Надпись над заголовком истории партий."
@@ -3078,5 +3074,273 @@
         "type": "int"
       }
     }
+  },
+  "pauseRestart": "Начать заново",
+  "@pauseRestart": {
+    "description": "Кнопка меню паузы в обучении: «Первая партия» начинается с первого шага."
+  },
+  "pauseToMenu": "В меню",
+  "@pauseToMenu": {
+    "description": "Кнопка меню паузы в обучении: выход в главное меню."
+  },
+  "menuHistoryShort": "История",
+  "@menuHistoryShort": {
+    "description": "Малая кнопка главного меню: история партий."
+  },
+  "menuTutorial": "Обучение",
+  "@menuTutorial": {
+    "description": "Малая кнопка главного меню: «Первая партия»."
+  },
+  "menuTutorialNew": "Новое",
+  "@menuTutorialNew": {
+    "description": "Марка над кнопкой «Обучение», пока «Первая партия» не пройдена."
+  },
+  "menuTutorialDone": "Пройдено",
+  "@menuTutorialDone": {
+    "description": "Подпись для экранного диктора: «Первая партия» пройдена."
+  },
+  "tutorialStepCounter": "Шаг {step} из {total}",
+  "@tutorialStepCounter": {
+    "description": "Счётчик шагов на карточке подсказки обучения.",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "tutorialNext": "Дальше",
+  "@tutorialNext": {
+    "description": "Кнопка карточки подсказки обучения: к следующему шагу."
+  },
+  "tutorialSkip": "Пропустить",
+  "@tutorialSkip": {
+    "description": "Ссылка на карточке подсказки обучения: пропустить обучение."
+  },
+  "tutorialCollapse": "Свернуть подсказку",
+  "@tutorialCollapse": {
+    "description": "Подпись для экранного диктора: свернуть карточку подсказки."
+  },
+  "tutorialExpand": "Показать подсказку",
+  "@tutorialExpand": {
+    "description": "Подпись для экранного диктора: развернуть карточку подсказки."
+  },
+  "tutorialWaiting": "Ждём ваш ход",
+  "@tutorialWaiting": {
+    "description": "Полоса на карточке подсказки, пока игрок должен сделать ход."
+  },
+  "tutorialNowNext": "Сейчас: нажмите «Дальше»",
+  "@tutorialNowNext": {
+    "description": "Строка на карточке подсказки: игрок нажал не туда на показе."
+  },
+  "tutorialNowCard": "Сейчас: выберите подсвеченную карту",
+  "@tutorialNowCard": {
+    "description": "Строка на карточке подсказки: игрок нажал не туда, нужно выбрать карту."
+  },
+  "tutorialNowTarget": "Сейчас: положите карту в подсвеченное место",
+  "@tutorialNowTarget": {
+    "description": "Строка на карточке подсказки: игрок нажал не туда, карту нужно положить на цель."
+  },
+  "tutorialNowPass": "Сейчас: удерживайте «Пас» секунду",
+  "@tutorialNowPass": {
+    "description": "Строка на карточке подсказки: игрок нажал не туда, нужно спасовать."
+  },
+  "tutorialNowLeader": "Сейчас: нажмите на лидера",
+  "@tutorialNowLeader": {
+    "description": "Строка на карточке подсказки: игрок нажал не туда, нужно применить лидера."
+  },
+  "tutorialSkipTitle": "Пропустить обучение?",
+  "@tutorialSkipTitle": {
+    "description": "Заголовок диалога пропуска обучения."
+  },
+  "tutorialSkipBody": "Пройти его можно в любой момент из главного меню.",
+  "@tutorialSkipBody": {
+    "description": "Пояснение в диалоге пропуска обучения."
+  },
+  "tutorialSkipConfirm": "Пропустить",
+  "@tutorialSkipConfirm": {
+    "description": "Кнопка диалога пропуска обучения."
+  },
+  "tutorialStepGoalTitle": "Цель партии",
+  "@tutorialStepGoalTitle": {
+    "description": "Заголовок шага обучения «Цель партии»."
+  },
+  "tutorialStepGoalText": "Выиграйте два раунда из трёх. Кристалл теряет тот, кто проиграл раунд.",
+  "@tutorialStepGoalText": {
+    "description": "Текст шага обучения «Цель партии»."
+  },
+  "tutorialStepHandAndDeckTitle": "Рука и колода",
+  "@tutorialStepHandAndDeckTitle": {
+    "description": "Заголовок шага обучения «Рука и колода»."
+  },
+  "tutorialStepHandAndDeckText": "10 карт на партию. Новые приходят только от способностей. Сыгранное уходит в сброс.",
+  "@tutorialStepHandAndDeckText": {
+    "description": "Текст шага обучения «Рука и колода»."
+  },
+  "tutorialStepCardPowerTitle": "Сила карты",
+  "@tutorialStepCardPowerTitle": {
+    "description": "Заголовок шага обучения «Сила карты»."
+  },
+  "tutorialStepCardPowerText": "Число на карте — её сила, значок — ряд, где она воюет.",
+  "@tutorialStepCardPowerText": {
+    "description": "Текст шага обучения «Сила карты»."
+  },
+  "tutorialStepFirstCardTitle": "Первая карта",
+  "@tutorialStepFirstCardTitle": {
+    "description": "Заголовок шага обучения «Первая карта»."
+  },
+  "tutorialStepFirstCardText": "Выберите Реданского пехотинца и положите в ближний ряд.",
+  "@tutorialStepFirstCardText": {
+    "description": "Текст шага обучения «Первая карта»."
+  },
+  "tutorialStepScoreTitle": "Счёт",
+  "@tutorialStepScoreTitle": {
+    "description": "Заголовок шага обучения «Счёт»."
+  },
+  "tutorialStepScoreText": "Сумма всех ваших рядов — ваш счёт. У кого больше к концу раунда, тот выигрывает.",
+  "@tutorialStepScoreText": {
+    "description": "Текст шага обучения «Счёт»."
+  },
+  "tutorialStepOpponentMoveTitle": "Ход соперника",
+  "@tutorialStepOpponentMoveTitle": {
+    "description": "Заголовок шага обучения «Ход соперника»."
+  },
+  "tutorialStepOpponentMoveText": "Соперник сыграл карту. Следите за его счётом.",
+  "@tutorialStepOpponentMoveText": {
+    "description": "Текст шага обучения «Ход соперника»."
+  },
+  "tutorialStepRowsTitle": "Ряды",
+  "@tutorialStepRowsTitle": {
+    "description": "Заголовок шага обучения «Ряды»."
+  },
+  "tutorialStepRowsText": "Ближний, дальний и осадный ряд считаются отдельно. Кейре Мец место в дальнем.",
+  "@tutorialStepRowsText": {
+    "description": "Текст шага обучения «Ряды»."
+  },
+  "tutorialStepHeroTitle": "Герой",
+  "@tutorialStepHeroTitle": {
+    "description": "Заголовок шага обучения «Герой»."
+  },
+  "tutorialStepHeroText": "Герой силён и не боится погоды и способностей. Его нельзя убрать с поля.",
+  "@tutorialStepHeroText": {
+    "description": "Текст шага обучения «Герой»."
+  },
+  "tutorialStepPassIntroTitle": "Пас",
+  "@tutorialStepPassIntroTitle": {
+    "description": "Заголовок шага обучения «Пас»."
+  },
+  "tutorialStepPassIntroText": "Вы впереди и карты стоит беречь: спасуйте. Тогда соперник доигрывает раунд один.",
+  "@tutorialStepPassIntroText": {
+    "description": "Текст шага обучения «Пас»."
+  },
+  "tutorialStepPassHoldTitle": "Пас",
+  "@tutorialStepPassHoldTitle": {
+    "description": "Заголовок шага обучения «Пас»."
+  },
+  "tutorialStepPassHoldText": "Удерживайте «Пас» секунду.",
+  "@tutorialStepPassHoldText": {
+    "description": "Текст шага обучения «Пас»."
+  },
+  "tutorialStepRoundResultTitle": "Итог раунда",
+  "@tutorialStepRoundResultTitle": {
+    "description": "Заголовок шага обучения «Итог раунда»."
+  },
+  "tutorialStepRoundResultText": "Раунд ваш. Поле очищается, ваши оставшиеся карты остаются в руке. Север берёт карту за победу в раунде.",
+  "@tutorialStepRoundResultText": {
+    "description": "Текст шага обучения «Итог раунда»."
+  },
+  "tutorialStepWeatherTitle": "Погода",
+  "@tutorialStepWeatherTitle": {
+    "description": "Заголовок шага обучения «Погода»."
+  },
+  "tutorialStepWeatherText": "Мороз опускает силу отрядов в ближних рядах до 1 у обоих игроков. Героев не трогает.",
+  "@tutorialStepWeatherText": {
+    "description": "Текст шага обучения «Погода»."
+  },
+  "tutorialStepSpyTitle": "Шпион",
+  "@tutorialStepSpyTitle": {
+    "description": "Заголовок шага обучения «Шпион»."
+  },
+  "tutorialStepSpyText": "Шпион ложится на сторону соперника, но вы берёте две карты из колоды.",
+  "@tutorialStepSpyText": {
+    "description": "Текст шага обучения «Шпион»."
+  },
+  "tutorialStepHornTitle": "Рог",
+  "@tutorialStepHornTitle": {
+    "description": "Заголовок шага обучения «Рог»."
+  },
+  "tutorialStepHornText": "Рог удваивает силу ряда. Положите его в дальний ряд.",
+  "@tutorialStepHornText": {
+    "description": "Текст шага обучения «Рог»."
+  },
+  "tutorialStepLeaderTitle": "Лидер",
+  "@tutorialStepLeaderTitle": {
+    "description": "Заголовок шага обучения «Лидер»."
+  },
+  "tutorialStepLeaderText": "Лидер Фольтест кладёт рог в осадный ряд: его сила удвоится. Нажмите на лидера.",
+  "@tutorialStepLeaderText": {
+    "description": "Текст шага обучения «Лидер»."
+  },
+  "tutorialStepFinalPassTitle": "Пас",
+  "@tutorialStepFinalPassTitle": {
+    "description": "Заголовок последнего шага обучения."
+  },
+  "tutorialStepFinalPassText": "Вы ведёте {mine} : {theirs}. Удерживайте «Пас» секунду, и матч ваш.",
+  "@tutorialStepFinalPassText": {
+    "description": "Текст последнего шага обучения: счёт игрока и соперника.",
+    "placeholders": {
+      "mine": {
+        "type": "int"
+      },
+      "theirs": {
+        "type": "int"
+      }
+    }
+  },
+  "tutorialDoneTitle": "Первая партия пройдена",
+  "@tutorialDoneTitle": {
+    "description": "Заголовок листа завершения обучения."
+  },
+  "tutorialDoneSubtitle": "Теперь вы знаете главное:",
+  "@tutorialDoneSubtitle": {
+    "description": "Строка под заголовком листа завершения обучения."
+  },
+  "tutorialDoneGoal": "Цель: выиграть два раунда из трёх",
+  "@tutorialDoneGoal": {
+    "description": "Пункт листа завершения обучения."
+  },
+  "tutorialDoneRows": "Ряды, сила и счёт",
+  "@tutorialDoneRows": {
+    "description": "Пункт листа завершения обучения."
+  },
+  "tutorialDonePass": "Пас и итог раунда",
+  "@tutorialDonePass": {
+    "description": "Пункт листа завершения обучения."
+  },
+  "tutorialDoneWeather": "Погода и герои",
+  "@tutorialDoneWeather": {
+    "description": "Пункт листа завершения обучения."
+  },
+  "tutorialDoneAbilities": "Шпион, рог и лидер",
+  "@tutorialDoneAbilities": {
+    "description": "Пункт листа завершения обучения."
+  },
+  "tutorialDonePlay": "Играть против бота",
+  "@tutorialDonePlay": {
+    "description": "Кнопка листа завершения обучения: партия против бота."
+  },
+  "tutorialDoneAgain": "Пройти ещё раз",
+  "@tutorialDoneAgain": {
+    "description": "Кнопка листа завершения обучения: «Первая партия» заново."
+  },
+  "tutorialDoneMenu": "В меню",
+  "@tutorialDoneMenu": {
+    "description": "Кнопка листа завершения обучения: выход в главное меню."
+  },
+  "tutorialStartFailed": "Не удалось начать обучение",
+  "@tutorialStartFailed": {
+    "description": "Сообщение, когда «Первая партия» не началась: набор карт не загрузился или не подошёл сценарию."
   }
 }

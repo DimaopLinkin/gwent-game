@@ -20,6 +20,7 @@ final class MenuReady extends MenuState {
     this.packVersion,
     required this.contentAvailable,
     required this.hasDeck,
+    this.firstMatchPassed = true,
   });
 
   /// Версия приложения; `null`, если узнать её не удалось.
@@ -34,6 +35,9 @@ final class MenuReady extends MenuState {
   /// У игрока есть хотя бы одна колода.
   final bool hasDeck;
 
+  /// Игрок прошёл «Первую партию»: пока нет, «Обучение» в меню помечено «Новое».
+  final bool firstMatchPassed;
+
   /// Можно начинать партию: есть набор карт и колода.
   bool get canPlay => contentAvailable && hasDeck;
 
@@ -43,8 +47,9 @@ final class MenuReady extends MenuState {
       other.appVersion == appVersion &&
       other.packVersion == packVersion &&
       other.contentAvailable == contentAvailable &&
-      other.hasDeck == hasDeck;
+      other.hasDeck == hasDeck &&
+      other.firstMatchPassed == firstMatchPassed;
 
   @override
-  int get hashCode => Object.hash(appVersion, packVersion, contentAvailable, hasDeck);
+  int get hashCode => Object.hash(appVersion, packVersion, contentAvailable, hasDeck, firstMatchPassed);
 }

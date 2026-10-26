@@ -23,6 +23,19 @@ void main() {
     expect(tall.hand.height, 200);
   });
 
+  test('вписывание в область: высокий экран отдаёт лишнее руке, низкий уменьшает холст целиком', () {
+    final tall = FieldFit(390, 844);
+    expect(tall.scale, 1);
+    expect((tall.width, tall.height), (390, 844));
+    expect(tall.geometry.handHeight, 844 - (751 - 135));
+
+    final low = FieldFit(390, 600);
+    expect(low.scale, closeTo(600 / 751, 1e-9));
+    expect(low.height, closeTo(751, 1e-9), reason: 'холст остаётся высотой в бюджет макета');
+    expect(low.width, closeTo(390 * 751 / 600, 1e-9));
+    expect(low.geometry.handHeight, closeTo(135, 1e-9));
+  });
+
   test('ряды соперника сверху вниз: осадный, дальний, ближний; мои: ближний, дальний, осадный', () {
     expect(geometry.rowRect(Row.siege, mine: false).top, 48);
     expect(geometry.rowRect(Row.melee, mine: false).top, 48 + 160);

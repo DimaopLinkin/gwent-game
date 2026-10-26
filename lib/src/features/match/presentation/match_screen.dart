@@ -7,6 +7,7 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/game_loader.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
+import 'package:gwent/src/features/match/presentation/field/field_lesson.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
@@ -48,6 +49,7 @@ class MatchScreen extends StatefulWidget {
     this.overlay,
     this.opponentStatus,
     this.onRematchAgreed,
+    this.lesson,
   });
 
   /// Выход из партии.
@@ -76,6 +78,10 @@ class MatchScreen extends StatefulWidget {
 
   /// Оба игрока сетевой партии согласились на реванш: уйти в комнату, где выбирают колоды (ADR 0028).
   final VoidCallback? onRematchAgreed;
+
+  /// Урок («Первая партия», ADR 0034): слой подсказок на поле и лист завершения вместо итога матча; `null` — обычная
+  /// партия.
+  final FieldLesson? lesson;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -292,8 +298,10 @@ class _MatchScreenState extends State<MatchScreen> {
           hints: widget.hints,
           onSettings: widget.onSettings,
           opponentStatus: widget.opponentStatus,
+          lesson: widget.lesson,
         ),
       },
+      final MatchFinished finished when widget.lesson != null => widget.lesson!.finishedBuilder(context, finished),
       MatchFinished(:final view, :final roster, :final canRematch, :final rematch) => MatchResultView(
         view: view,
         roster: roster,

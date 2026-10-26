@@ -72,6 +72,9 @@ abstract final class AppRoutes {
   /// Игровое поле.
   static const String match = '/match';
 
+  /// «Первая партия»: обучение (ADR 0034).
+  static const String tutorial = '/tutorial';
+
   /// Настройки.
   static const String settings = '/settings';
 
