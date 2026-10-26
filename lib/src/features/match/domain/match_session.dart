@@ -14,6 +14,11 @@ enum LocalMatchMode {
   vsBot,
 }
 
+/// Что делает партия, когда закончилась: получает сессию и итоговую проекцию места [MatchSession.perspective].
+///
+/// Через него партия кампании узнаёт о своём конце, не отдавая экрану партии знание о кампании (ADR 0033).
+typedef MatchFinishedHook = Future<void> Function(MatchSession session, PlayerView finalView);
+
 /// Начатая партия: стол и то, что о ней нужно знать вне движка (для истории партий).
 @immutable
 final class MatchSession {
@@ -27,6 +32,7 @@ final class MatchSession {
     this.opponentName,
     this.recorder,
     this.recordsHistory = true,
+    this.onFinished,
   }) : factionIds = Map.unmodifiable(factionIds),
        deckNames = Map.unmodifiable(deckNames);
 
@@ -54,6 +60,10 @@ final class MatchSession {
   /// Законченная партия попадает в историю; `false` у «Первой партии» (ADR 0034): учебная партия в списке сыгранных
   /// не нужна.
   final bool recordsHistory;
+
+  /// Вызывается один раз, когда партия закончилась, одновременно с записью в историю (не дожидаясь её); `null` у обычных партий. Сбой хука идёт
+  /// в журнал ошибок и итог партии не меняет.
+  final MatchFinishedHook? onFinished;
 
   /// Чьими глазами партия записывается в историю: первое здешнее место (в hot-seat это первый игрок).
   Seat get perspective => Seat.values.firstWhere(table.localSeats.contains);

@@ -31,6 +31,7 @@ final class LocalMatchRequest {
     required this.deckTwo,
     this.difficulty = BotDifficulty.normal,
     this.opponentDeck,
+    this.onFinished,
   });
 
   /// Режим.
@@ -42,6 +43,9 @@ final class LocalMatchRequest {
   /// Колода бота, собранная под уровень: в хранилище её нет. `null` — колода второго места берётся из хранилища
   /// по [deckTwo].
   final app.Deck? opponentDeck;
+
+  /// Хук конца партии (партия кампании, ADR 0033). Реванш повторяет запрос, а с ним и хук.
+  final MatchFinishedHook? onFinished;
 
   /// Идентификатор колоды первого места.
   final String deckOne;
@@ -202,6 +206,7 @@ final class StartMatch {
             factionIds: {for (final seat in Seat.values) seat: decks[seat]!.factionId},
             deckNames: {for (final seat in Seat.values) seat: decks[seat]!.name},
             recorder: JournalReplayRecorder(journal, perspective: Seat.one),
+            onFinished: request.onFinished,
           ),
         );
     }

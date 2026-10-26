@@ -160,7 +160,8 @@ void _checkStrings(PackRules rules, Map<String, StringTable> strings, IssueSink 
       if (table[key] == null) sink.add(path, 'missing_string', 'нет текста $key на языке $locale');
     }
     for (final key in table.entries.keys) {
-      if (!used.containsKey(key)) {
+      // Строки кампании нужны каталогу, их проверяет `checkCampaign`.
+      if (!used.containsKey(key) && !key.startsWith(campaignStringPrefix)) {
         sink.add('\$["$key"]', 'unused_string', 'текст не нужен ни одной записи', file: stringsFileName(locale));
       }
     }

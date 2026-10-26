@@ -5,8 +5,14 @@ import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
 import 'package:gwent/src/features/campaign/application/choose_campaign_deck.dart';
+import 'package:gwent/src/features/campaign/application/claim_starting_set.dart';
 import 'package:gwent/src/features/campaign/application/get_campaign_deck.dart';
 import 'package:gwent/src/features/campaign/application/list_campaign_decks.dart';
+import 'package:gwent/src/features/campaign/application/load_campaign.dart';
+import 'package:gwent/src/features/campaign/application/prepare_campaign_match.dart';
+import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
+import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
+import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
 import 'package:gwent/src/features/collection/application/load_collection.dart';
 import 'package:gwent/src/features/collection/domain/collection_repository.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
@@ -73,6 +79,7 @@ final class AppDependencies {
     required AppInfo appInfo,
     required DeckRepository deckRepository,
     required CollectionRepository collectionRepository,
+    required CampaignRepository campaignRepository,
     required SettingsRepository settingsRepository,
     required MatchHistoryRepository matchHistoryRepository,
     required Clock clock,
@@ -99,6 +106,7 @@ final class AppDependencies {
       deckRules: deckRules,
       deckRepository: deckRepository,
       collectionRepository: collectionRepository,
+      campaignRepository: campaignRepository,
       createStarterDeck: createStarterDeck,
       deckSelectionLock: deckSelectionLock,
       settingsRepository: settingsRepository,
@@ -125,6 +133,7 @@ final class AppDependencies {
     required DeckRulesSource deckRules,
     required DeckRepository deckRepository,
     required CollectionRepository collectionRepository,
+    required CampaignRepository campaignRepository,
     required CreateStarterDeck createStarterDeck,
     required DeckSelectionLock deckSelectionLock,
     required SettingsRepository settingsRepository,
@@ -164,6 +173,23 @@ final class AppDependencies {
     listCampaignDecks = ListCampaignDecks(deckRepository, deckRules, collectionRepository);
     chooseCampaignDeck = ChooseCampaignDeck(deckRepository, deckRules, collectionRepository, settingsRepository);
     getCampaignDeck = GetCampaignDeck(listCampaignDecks, settingsRepository);
+    loadCampaign = LoadCampaign(loadGameContent);
+    watchCampaignPath = WatchCampaignPath(loadCampaign, campaignRepository);
+    recordCampaignResult = RecordCampaignResult(
+      loadCampaign,
+      campaignRepository,
+      collectionRepository,
+      deckRepository,
+      settingsRepository,
+      clock,
+    );
+    claimStartingSet = ClaimStartingSet(loadCampaign, campaignRepository, settingsRepository, recordCampaignResult);
+    prepareCampaignMatch = PrepareCampaignMatch(
+      loadCampaign,
+      campaignRepository,
+      getCampaignDeck,
+      recordCampaignResult,
+    );
     chooseOpponentDeck = ChooseOpponentDeck(deckRules, seedGenerator);
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
@@ -274,6 +300,21 @@ final class AppDependencies {
 
   /// Колода для партии кампании.
   late final GetCampaignDeck getCampaignDeck;
+
+  /// Каталог кампании из активного пакета контента.
+  late final LoadCampaign loadCampaign;
+
+  /// Тропа кампании: узлы, их состояния и прогресс игрока.
+  late final WatchCampaignPath watchCampaignPath;
+
+  /// Запись итога партии узла и выдача наград.
+  late final RecordCampaignResult recordCampaignResult;
+
+  /// Стартовый набор для того, кто прошёл «Первую партию» раньше.
+  late final ClaimStartingSet claimStartingSet;
+
+  /// Подготовка партии узла кампании.
+  late final PrepareCampaignMatch prepareCampaignMatch;
 
   /// Начало местной партии (hot-seat или против бота).
   late final StartMatch startMatch;
