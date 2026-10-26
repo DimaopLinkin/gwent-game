@@ -84,17 +84,28 @@ final class MenuCubit extends Cubit<MenuState> {
     final watch = _watchFirstMatchPassed;
     if (watch == null) return;
     final first = Completer<void>();
-    _passedSubscription = watch().listen(
-      (passed) {
-        _firstMatchPassed = passed;
-        if (state is MenuReady) _emitReady();
-        if (!first.isCompleted) first.complete();
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        addError(error, stackTrace);
-        if (!first.isCompleted) first.complete();
-      },
-    );
+    void release() {
+      if (!first.isCompleted) first.complete();
+    }
+
+    try {
+      _passedSubscription = watch().listen(
+        (passed) {
+          _firstMatchPassed = passed;
+          if (state is MenuReady) _emitReady();
+          release();
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          addError(error, stackTrace);
+          release();
+        },
+        onDone: release,
+      );
+    } on Object catch (error, stackTrace) {
+      // Флаг не читается: марки «Новое» нет, меню открывается.
+      addError(error, stackTrace);
+      release();
+    }
     await first.future;
   }
 

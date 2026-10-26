@@ -1,17 +1,16 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/confirm_dialog.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
-import 'package:gwent/src/core/presentation/components/pause_button.dart';
 import 'package:gwent/src/core/presentation/components/player_bar.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_space.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
-import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
 import 'package:gwent/src/features/match/presentation/field/field_lesson.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/tutorial/domain/hint_target.dart';
@@ -44,26 +43,28 @@ class TutorialLayer extends StatefulWidget {
   State<TutorialLayer> createState() => _TutorialLayerState();
 }
 
-class _TutorialLayerState extends State<TutorialLayer> with SingleTickerProviderStateMixin {
+class _TutorialLayerState extends State<TutorialLayer> with TickerProviderStateMixin {
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1100),
   );
   Map<GlobalKey, Rect> _measured = const {};
-  bool _measureScheduled = false;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _pulse.stop();
-    } else if (!_pulse.isAnimating) {
-      unawaited(_pulse.repeat(reverse: true));
-    }
+  /// Пока слой что-то рисует, места на поле перемеряются каждый кадр: карты в руке поворачиваются и поднимаются.
+  late final Ticker _ticker = createTicker((_) => _measure());
+
+  /// Пульс рамок и перемеры идут, только пока слой на виду: на ходах бота и анимациях он молчит и кадров не просит.
+  void _setActive({required bool active}) {
+    final pulsing = active && !MediaQuery.disableAnimationsOf(context);
+    if (active && !_ticker.isActive) unawaited(_ticker.start());
+    if (!active && _ticker.isActive) _ticker.stop();
+    if (pulsing && !_pulse.isAnimating) unawaited(_pulse.repeat(reverse: true));
+    if (!pulsing && _pulse.isAnimating) _pulse.stop();
   }
 
   @override
   void dispose() {
+    _ticker.dispose();
     _pulse.dispose();
     super.dispose();
   }
@@ -72,19 +73,11 @@ class _TutorialLayerState extends State<TutorialLayer> with SingleTickerProvider
     final mine = widget.layout.anchors[true]!;
     final theirs = widget.layout.anchors[false]!;
     yield* [mine.leader, mine.deck, mine.discard, mine.score, mine.gems, mine.trailing, theirs.score, theirs.gems];
+    yield* widget.layout.handKeys.values;
   }
 
-  /// Метки частей полос лежат внутри поля, масштабированного по холсту, поэтому их место читается из отрисованных
-  /// объектов после раскладки, а не считается по геометрии.
-  void _scheduleMeasure() {
-    if (_measureScheduled) return;
-    _measureScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _measureScheduled = false;
-      if (mounted) _measure();
-    });
-  }
-
+  /// Метки частей полос и карт лежат внутри поля, масштабированного по холсту, поэтому их место читается из
+  /// отрисованных объектов после раскладки, а не считается по геометрии.
   void _measure() {
     final me = context.findRenderObject();
     if (me is! RenderBox || !me.hasSize) return;
@@ -141,13 +134,23 @@ class _TutorialLayerState extends State<TutorialLayer> with SingleTickerProvider
     final hand = layout.hand;
     final index = hand.indexWhere((card) => card.cardId.value == cardId);
     if (index < 0) return const [];
-    final geometry = layout.geometry;
-    final frame = _scaled(geometry.handCardRect(index, hand.length));
+    final card = hand[index];
+    // Карта измеряется там, где она нарисована: веер поворачивает карты, выбранная карта поднимается, а в режиме
+    // прокрутки место зависит от сдвига.
+    final frame = switch (layout.handKeys[card.id]) {
+      final GlobalKey key when _measured.containsKey(key) => _measured[key]!,
+      _ => null,
+    };
+    if (frame == null) return const [];
     // В веере карты лежат внахлёст: нажатие по закрытой соседом части попало бы в соседа, поэтому пропускаем только
-    // видимую полосу карты.
+    // видимую полосу карты. Последняя и выбранная карта лежат сверху целиком.
+    final geometry = layout.geometry;
+    final scale = layout.fit.scale;
     var touch = frame;
-    if (index < hand.length - 1 && !geometry.handScrolls(hand.length)) {
-      touch = Rect.fromLTWH(frame.left, frame.top, geometry.fanStep(hand.length) * layout.fit.scale, frame.height);
+    final covered = index < hand.length - 1 && card.id != layout.field.selected && !geometry.handScrolls(hand.length);
+    if (covered) {
+      final stripe = geometry.fanStep(hand.length) * scale;
+      touch = Rect.fromLTWH(frame.center.dx - (77 * scale - stripe) / 2 - stripe / 2, frame.top, stripe, frame.height);
     }
     return [HintWindow(frame, touch: interactive ? touch : null)];
   }
@@ -165,7 +168,6 @@ class _TutorialLayerState extends State<TutorialLayer> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    _scheduleMeasure();
     final layout = widget.layout;
     return BlocBuilder<TutorialCubit, TutorialState>(
       builder: (context, state) {
@@ -178,6 +180,7 @@ class _TutorialLayerState extends State<TutorialLayer> with SingleTickerProvider
             field.overlay is! NoOverlay ||
             layout.view.choice != null ||
             layout.view.phase != MatchPhase.playing;
+        _setActive(active: !quiet);
         if (quiet) return const SizedBox.shrink();
         return _content(context, state, beat);
       },
@@ -218,30 +221,11 @@ class _TutorialLayerState extends State<TutorialLayer> with SingleTickerProvider
       BotBeat() => null,
     };
     final dimmed = step != null;
-    final geometry = layout.geometry;
+    final pauseRect = _scaled(layout.geometry.pauseButtonRect);
     final all = [
       ...windows,
       // Кнопка паузы работает при любом шаге: из меню паузы можно начать заново или выйти.
-      if (dimmed)
-        HintWindow(
-          _scaled(
-            Rect.fromLTWH(
-              geometry.width - 47,
-              geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
-              PauseButton.hitSize,
-              PauseButton.hitSize,
-            ),
-          ),
-          touch: _scaled(
-            Rect.fromLTWH(
-              geometry.width - 47,
-              geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
-              PauseButton.hitSize,
-              PauseButton.hitSize,
-            ),
-          ),
-          framed: false,
-        ),
+      if (dimmed) HintWindow(pauseRect, touch: pauseRect, framed: false),
     ];
 
     final now = switch (beat) {

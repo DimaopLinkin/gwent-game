@@ -108,6 +108,7 @@ class _FieldViewState extends State<FieldView> {
 
   /// Метка холста и меток полос игроков: по ним анимации карт находят места на полосах.
   final GlobalKey _canvasKey = GlobalKey();
+  final Map<CardInstanceId, GlobalKey> _handKeys = {};
   final Map<bool, PlayerBarAnchors> _anchors = {true: PlayerBarAnchors(), false: PlayerBarAnchors()};
 
   /// Как полоса погоды называет себя перед `DragHover`.
@@ -416,6 +417,7 @@ class _FieldViewState extends State<FieldView> {
                         view: _view,
                         hand: _fieldContent.handOrder(_view.me.hand ?? const <CardInstance>[]).toList(),
                         anchors: _anchors,
+                        handKeys: _handKeys,
                       ),
                     ),
                   ),
@@ -595,6 +597,7 @@ class _FieldViewState extends State<FieldView> {
                         onDragEnded: _dragEnded,
                         hover: _hover,
                         hidden: frame?.handHidden ?? const {},
+                        cardKeys: _handKeys,
                       ),
                     ),
                     if (frame != null && frame.handVeil > 0)
@@ -620,11 +623,8 @@ class _FieldViewState extends State<FieldView> {
                 ),
             ],
             if (!widget.readOnly)
-              Positioned(
-                left: geometry.width - 47,
-                top: geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
-                width: PauseButton.hitSize,
-                height: PauseButton.hitSize,
+              Positioned.fromRect(
+                rect: geometry.pauseButtonRect,
                 child: PauseButton(onPressed: _cubit.openPause, semanticsLabel: l10n.pauseButtonSemantics),
               ),
             if (field.summary == null && field.pause == PauseLayer.none && field.stage == null)

@@ -46,7 +46,10 @@ void main() {
   });
 
   test('набор карт не загрузился: партия не начинается, причина называется', () async {
-    final result = await StartFirstMatch(LoadGameContent(InMemoryContentSource(const {})))();
+    final result = await StartFirstMatch(LoadGameContent(InMemoryContentSource(const {})))(
+      playerDeckName: 'Первая партия',
+      opponentDeckName: 'Скеллиге',
+    );
     expect(result, isA<FirstMatchUnavailable>().having((unavailable) => unavailable.issues, 'issues', isNotEmpty));
   });
 
@@ -54,7 +57,7 @@ void main() {
     final result = await StartFirstMatch(
       LoadGameContent(AssetContentSource.basePack(rootBundle)),
       botThinkTime: Duration.zero,
-    )();
+    )(playerDeckName: 'Первая партия', opponentDeckName: 'Скеллиге');
     expect(result, isA<FirstMatchStarted>());
     final started = result as FirstMatchStarted;
     expect(started.session.recordsHistory, isFalse);

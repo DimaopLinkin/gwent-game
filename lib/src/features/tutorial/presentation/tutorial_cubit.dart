@@ -23,8 +23,11 @@ final class TutorialCubit extends Cubit<TutorialState> {
   late final List<StreamSubscription<void>> _subscriptions;
   bool _marked = false;
 
-  /// Игрок нажал «Дальше».
-  void acknowledge() => _director.acknowledge();
+  /// Игрок нажал «Дальше» на показе, который сейчас на экране.
+  void acknowledge() {
+    final shown = state.beat;
+    if (shown != null) _director.acknowledge(shown);
+  }
 
   /// Игрок тронул то, что сейчас не нужно: карточка напоминает, что делать.
   void nudge() => _director.nudge();
@@ -42,8 +45,9 @@ final class TutorialCubit extends Cubit<TutorialState> {
   }
 
   void _onNudge() {
-    if (isClosed || state.nudged) return;
-    emit(state.copyWith(nudged: true));
+    // Свёрнутая карточка напоминания не покажет: она разворачивается.
+    if (isClosed || (state.nudged && !state.collapsed)) return;
+    emit(state.copyWith(nudged: true, collapsed: false));
   }
 
   Future<void> _mark() async {

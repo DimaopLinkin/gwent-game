@@ -48,14 +48,28 @@ void main() {
 
   test('«Дальше» двигает только показ', () {
     final director = newDirector();
-    director.acknowledge();
+    director.acknowledge(director.current!);
     expect(director.index, 1);
-    director.acknowledge();
+    director.acknowledge(director.current!);
     expect(director.index, 1, reason: 'на ходе игрока «Дальше» ничего не делает');
   });
 
+  test('второй тап «Дальше» по уже сменившейся карточке следующий показ не пропускает', () {
+    final director = ScenarioDirector(const [
+      ShowBeat(TutorialStep.goal, []),
+      ShowBeat(TutorialStep.handAndDeck, []),
+    ]);
+    final first = director.current!;
+
+    director.acknowledge(first);
+    director.acknowledge(first);
+
+    expect(director.index, 1);
+  });
+
   test('принятый ход нужного места двигает звено, чужого — нет', () {
-    final director = newDirector()..acknowledge();
+    final director = newDirector();
+    director.acknowledge(director.current!);
 
     director.journal.append(move(Seat.two));
     expect(director.index, 1, reason: 'ход бота, когда ждут игрока');
@@ -74,7 +88,7 @@ void main() {
     director.nudges.listen((_) => nudges++);
 
     expect(director.allows(state, Seat.one, const Pass()), isFalse, reason: 'ждут «Дальше»');
-    director.acknowledge();
+    director.acknowledge(director.current!);
     expect(director.allows(state, Seat.two, const Pass()), isFalse, reason: 'ходит не тот');
     expect(director.allows(state, Seat.one, const UseLeader()), isFalse, reason: 'ждут пас');
     expect(director.allows(state, Seat.one, const Pass()), isTrue);
@@ -90,7 +104,7 @@ void main() {
     await pumpEventQueue();
     expect(done, isFalse, reason: 'звено бота ещё не наступило');
 
-    director.acknowledge();
+    director.acknowledge(director.current!);
     director.journal.append(move(Seat.one));
     expect(await waiting, isA<Pass>());
 

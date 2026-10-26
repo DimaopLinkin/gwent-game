@@ -9,7 +9,7 @@ import 'package:gwent_engine/gwent_engine.dart' show Row;
 ///
 /// Сценарий состоит из данных: сид, две колоды и последовательность звеньев ([beats]). Сид подобран так, чтобы
 /// раздача положила в руки игрока и бота нужные карты, а первым ходил игрок; если случайность движка изменится,
-/// тест `first_match_script_test.dart` скажет, что сид надо подобрать заново (`tools/first_match_seed`).
+/// тест `first_match_script_test.dart` скажет, что сид надо подобрать заново (перебором сидов тем же прогоном сценария).
 /// Карты и лидеры названы UUID пакета контента, как в колодах и протоколе.
 abstract final class FirstMatchScript {
   /// Сид партии: раздача и порядок колод.
@@ -24,7 +24,7 @@ abstract final class FirstMatchScript {
   /// Колода игрока: Королевства Севера, лидер «Фольтест: Завоеватель», 22 отряда и 3 особые карты.
   static final Deck playerDeck = Deck(
     id: playerDeckId,
-    name: 'Первая партия',
+    name: 'first-match-player',
     factionId: _northernRealms,
     leaderId: _foltestConqueror,
     cards: const {
@@ -52,7 +52,7 @@ abstract final class FirstMatchScript {
   /// Колода бота: Скеллиге, лидер «Крах ан Крайт», 24 отряда без особых карт.
   static final Deck opponentDeck = Deck(
     id: opponentDeckId,
-    name: 'Скеллиге',
+    name: 'first-match-opponent',
     factionId: _skellige,
     leaderId: _crachAnCraite,
     cards: const {

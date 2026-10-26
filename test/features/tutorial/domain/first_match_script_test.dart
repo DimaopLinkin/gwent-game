@@ -20,7 +20,7 @@ void main() {
     final result = await StartFirstMatch(
       LoadGameContent(AssetContentSource.basePack(rootBundle)),
       botThinkTime: Duration.zero,
-    )();
+    )(playerDeckName: 'Первая партия', opponentDeckName: 'Скеллиге');
     return result as FirstMatchStarted;
   }
 
@@ -70,7 +70,7 @@ void main() {
       final index = director.index;
       switch (director.current!) {
         case ShowBeat():
-          director.acknowledge();
+          director.acknowledge(director.current!);
         case PlayerBeat(:final move):
           table.submit(Seat.one, intentFor(view!, move));
           await untilBeatChanges(index);

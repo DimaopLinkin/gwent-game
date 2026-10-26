@@ -15,6 +15,7 @@ final class FieldLayout {
     required this.view,
     required List<CardInstance> hand,
     required this.anchors,
+    required this.handKeys,
   }) : hand = List.unmodifiable(hand);
 
   /// Как поле вписано в область слоя: координаты слоя равны координатам холста, умноженным на `fit.scale`.
@@ -34,6 +35,9 @@ final class FieldLayout {
 
   /// Метки частей полос игроков: `true` — своя полоса, `false` — соперника.
   final Map<bool, PlayerBarAnchors> anchors;
+
+  /// Метки карт руки по их номеру в партии: показывают, где карта лежит сейчас.
+  final Map<CardInstanceId, GlobalKey> handKeys;
 }
 
 /// Урок поверх поля (ADR 0034): слой подсказок, пауза урока и лист завершения вместо итога матча.

@@ -3342,5 +3342,13 @@
   "tutorialStartFailed": "Не удалось начать обучение",
   "@tutorialStartFailed": {
     "description": "Сообщение, когда «Первая партия» не началась: набор карт не загрузился или не подошёл сценарию."
+  },
+  "tutorialPlayerDeckName": "Первая партия",
+  "@tutorialPlayerDeckName": {
+    "description": "Название колоды игрока в «Первой партии»: его видно на экране знакомства перед партией."
+  },
+  "tutorialOpponentDeckName": "Скеллиге",
+  "@tutorialOpponentDeckName": {
+    "description": "Название колоды соперника в «Первой партии»: его видно на экране знакомства перед партией."
   }
 }

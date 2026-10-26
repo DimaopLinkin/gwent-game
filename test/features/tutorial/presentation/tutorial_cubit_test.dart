@@ -53,6 +53,21 @@ void main() {
     expect(cubit.state.nudged, isFalse);
   });
 
+  test('напоминание раскрывает свёрнутую подсказку, даже если уже включалось', () async {
+    cubit
+      ..toggleCollapsed()
+      ..nudge();
+    await pumpEventQueue();
+    expect(cubit.state.collapsed, isFalse);
+    expect(cubit.state.nudged, isTrue);
+
+    cubit.toggleCollapsed();
+    expect(cubit.state.collapsed, isTrue);
+    cubit.nudge();
+    await pumpEventQueue();
+    expect(cubit.state.collapsed, isFalse, reason: 'ход мимо окон снова показывает подсказку');
+  });
+
   test('обучение отмечается пройденным, когда сценарий дошёл до конца, и не раньше', () async {
     cubit.acknowledge();
     await pumpEventQueue();

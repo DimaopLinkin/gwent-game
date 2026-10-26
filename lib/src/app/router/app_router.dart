@@ -307,7 +307,11 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         GoRoute(
           path: _child(AppRoutes.tutorial),
           builder: (context, state) => BlocProvider(
-            create: (_) => FirstMatchCubit(dependencies.startFirstMatch),
+            create: (_) => FirstMatchCubit(
+              dependencies.startFirstMatch,
+              playerDeckName: context.l10n.tutorialPlayerDeckName,
+              opponentDeckName: context.l10n.tutorialOpponentDeckName,
+            ),
             child: StreamBuilder<AppSettings>(
               stream: dependencies.watchSettings(),
               initialData: const AppSettings(),

@@ -19,6 +19,7 @@ import 'package:gwent/src/features/match_history/application/record_match.dart';
 import 'package:gwent/src/features/tutorial/application/mark_first_match_passed.dart';
 import 'package:gwent/src/features/tutorial/application/start_first_match.dart';
 import 'package:gwent/src/features/tutorial/domain/scenario_beat.dart';
+import 'package:gwent/src/features/tutorial/domain/tutorial_move.dart';
 import 'package:gwent/src/features/tutorial/presentation/first_match_cubit.dart';
 import 'package:gwent/src/features/tutorial/presentation/first_match_screen.dart';
 import 'package:gwent/src/features/tutorial/presentation/first_match_state.dart';
@@ -29,7 +30,6 @@ import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
 import '../../../support/screen_guards.dart';
-import '../support/tutorial_intents.dart';
 
 /// «Первая партия» целиком на настоящем пакете карт, движке и экране партии: показы, ходы игрока, ход бота, конец
 /// раундов и лист завершения. Время партии настоящее (стол и бот живут на потоках), поэтому тест ждёт его кусками.
@@ -57,7 +57,11 @@ void main() {
     settings = InMemorySettingsRepository();
     history = InMemoryMatchHistoryRepository();
     final content = LoadGameContent(AssetContentSource.basePack(rootBundle));
-    cubit = FirstMatchCubit(StartFirstMatch(content, botThinkTime: Duration.zero));
+    cubit = FirstMatchCubit(
+      StartFirstMatch(content, botThinkTime: Duration.zero),
+      playerDeckName: 'Первая партия',
+      opponentDeckName: 'Скеллиге',
+    );
     addTearDown(cubit.close);
     await tester.pumpWidget(
       BlocProvider.value(
@@ -96,6 +100,42 @@ void main() {
     reason: 'шага $step',
   );
 
+  List<HintWindow> hintWindows(WidgetTester tester) =>
+      tester.widget<HintScrim>(find.byType(HintScrim)).windows.where((window) => window.framed).toList();
+
+  /// Делает ход игрока пальцем: нажимает подсвеченные окна слоя, как это делает человек.
+  Future<void> playByTapping(WidgetTester tester, PlayerBeat beat) async {
+    // Окна измеряются кадром после появления слоя, а поле может ещё показывать ход соперника: слой должен простоять.
+    bool ready() =>
+        find.byType(HintScrim).evaluate().isNotEmpty && hintWindows(tester).any((window) => window.touch != null);
+    await pumpUntil(tester, ready, reason: 'окон для нажатия');
+    await tester.pump(const Duration(milliseconds: 700));
+    await pumpUntil(tester, ready, reason: 'окон для нажатия после показа');
+    switch (beat.move) {
+      case PlayMove():
+        final card = hintWindows(tester).first;
+        expect(card.touch, isNotNull, reason: 'у карты есть место для нажатия');
+        await tester.tapAt(card.touch!.center);
+        await tester.pump(const Duration(milliseconds: 400));
+        // Карта с единственным местом (погода) играется сразу, остальным нужно ещё место.
+        if (find.byType(HintScrim).evaluate().isEmpty) return;
+        final destination = hintWindows(tester)[1];
+        await tester.tapAt(destination.touch!.center);
+      case PassMove():
+        final pass = hintWindows(tester).first;
+        final gesture = await tester.startGesture(pass.touch!.center);
+        // Заливка идёт от первого кадра после нажатия, а не от самого нажатия.
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.pump(const Duration(milliseconds: 1200));
+        await gesture.up();
+      case LeaderMove():
+        final leader = hintWindows(tester).first;
+        await tester.tapAt(leader.touch!.center);
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(find.text(l10n.fieldLeaderUse));
+    }
+  }
+
   FirstMatchPlaying playing() => cubit.state as FirstMatchPlaying;
 
   testWidgets('первый шаг: карточка «Шаг 1 из 15», «Дальше» ведёт к шагу 2, нажатие мимо напоминает', (tester) async {
@@ -106,7 +146,7 @@ void main() {
     expectNoFallbackTextStyle(tester);
 
     // Затемнение ловит нажатие по полю и напоминает, что нужно «Дальше».
-    await tester.tapAt(const Offset(195, 120));
+    await tester.tapAt(const Offset(195, 400));
     await tester.pump();
     expect(find.text(l10n.tutorialNowNext), findsOneWidget);
     expect(playing().director.index, 0);
@@ -218,58 +258,75 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('вся партия: 15 шагов, победа 2:0, лист «Первая партия пройдена», флаг записан, история пуста', (
-    tester,
-  ) async {
-    await pumpScreen(tester);
-    await untilStep(tester, 1);
-    final started = playing();
-    final table = started.session.table;
-    final director = started.director;
-    // Проекцию игрока читает держатель партии: стол слушает он один.
-    PlayerView view() => switch (tester.element(find.byType(MatchScreen)).read<MatchBloc>().state) {
-      MatchInProgress(:final view) || MatchFinished(:final view) => view,
-      final other => fail('партия не на поле: $other'),
-    };
-    final steps = <int>{};
+  for (final size in const [Size(390, 844), Size(375, 667)]) {
+    testWidgets(
+      'вся партия ${size.width.toInt()}×${size.height.toInt()}: 15 шагов, ходы пальцем, победа 2:0, лист, флаг',
+      (
+        tester,
+      ) async {
+        await pumpScreen(tester, size: size);
+        await untilStep(tester, 1);
+        final started = playing();
+        final director = started.director;
+        // Проекцию игрока читает держатель партии: стол слушает он один.
+        PlayerView view() => switch (tester.element(find.byType(MatchScreen)).read<MatchBloc>().state) {
+          MatchInProgress(:final view) || MatchFinished(:final view) => view,
+          final other => fail('партия не на поле: $other'),
+        };
+        final steps = <int>{};
 
-    var guard = 0;
-    while (!director.isCompleted && guard++ < 60) {
-      final index = director.index;
-      switch (director.current!) {
-        case ShowBeat(:final step):
-          steps.add(step.number);
-          await pumpUntil(tester, () => find.text(l10n.tutorialNext).evaluate().isNotEmpty, reason: 'кнопки «Дальше»');
-          await tester.tap(find.text(l10n.tutorialNext));
-        case PlayerBeat(:final move, :final step):
-          if (step != null) steps.add(step.number);
-          // Слой появляется, когда поле закончило показ: тогда ход можно делать.
-          await pumpUntil(tester, () => find.byType(HintScrim).evaluate().isNotEmpty, reason: 'хода игрока');
-          table.submit(Seat.one, intentFor(view(), move));
-        case BotBeat():
-          break;
-      }
-      await pumpUntil(tester, () => director.index > index, reason: 'следующего звена после $index');
-    }
-    expect(director.isCompleted, isTrue);
-    expect(steps, {for (var step = 1; step <= 15; step++) step});
+        var guard = 0;
+        while (!director.isCompleted && guard++ < 60) {
+          final index = director.index;
+          switch (director.current!) {
+            case ShowBeat(:final step):
+              steps.add(step.number);
+              await pumpUntil(
+                tester,
+                () => find.text(l10n.tutorialNext).evaluate().isNotEmpty,
+                reason: 'кнопки «Дальше»',
+              );
+              await tester.tap(find.text(l10n.tutorialNext));
+            case final PlayerBeat beat:
+              final step = beat.step;
+              if (step != null) steps.add(step.number);
+              // Слой появляется, когда поле закончило показ: тогда ход можно делать.
+              await pumpUntil(tester, () => find.byType(HintScrim).evaluate().isNotEmpty, reason: 'хода игрока');
+              await playByTapping(tester, beat);
+            case BotBeat():
+              break;
+          }
+          await pumpUntil(tester, () => director.index > index, reason: 'следующего звена после $index');
+        }
+        expect(director.isCompleted, isTrue);
+        expect(steps, {for (var step = 1; step <= 15; step++) step});
 
-    await pumpUntil(tester, () => find.text(l10n.tutorialDoneTitle).evaluate().isNotEmpty, reason: 'листа завершения');
-    expect(find.text(l10n.tutorialDonePlay), findsOneWidget);
-    expect(find.text(l10n.tutorialDoneAgain), findsOneWidget);
-    expect(find.text(l10n.tutorialDoneMenu), findsOneWidget);
-    expect(view().outcome!.winner, Seat.one);
-    expect(settings.saved.firstMatchPassed, isTrue);
-    expect(history.records, isEmpty, reason: 'учебная партия в историю не попадает');
-    expectNoFallbackTextStyle(tester);
+        await pumpUntil(
+          tester,
+          () => find.text(l10n.tutorialDoneTitle).evaluate().isNotEmpty,
+          reason: 'листа завершения',
+        );
+        expect(find.text(l10n.tutorialDonePlay), findsOneWidget);
+        expect(find.text(l10n.tutorialDoneAgain), findsOneWidget);
+        expect(find.text(l10n.tutorialDoneMenu), findsOneWidget);
+        expect(view().outcome!.winner, Seat.one);
+        expect(settings.saved.firstMatchPassed, isTrue);
+        expect(history.records, isEmpty, reason: 'учебная партия в историю не попадает');
+        expectNoFallbackTextStyle(tester);
 
-    await tester.tap(find.text(l10n.tutorialDonePlay));
-    expect(botPlays, 1);
-    await tester.tap(find.text(l10n.tutorialDoneMenu));
-    expect(exits, 1);
+        await tester.tap(find.text(l10n.tutorialDonePlay));
+        expect(botPlays, 1);
+        await tester.tap(find.text(l10n.tutorialDoneMenu));
+        expect(exits, 1);
 
-    await tester.tap(find.text(l10n.tutorialDoneAgain));
-    await pumpUntil(tester, () => find.text(l10n.tutorialStepCounter(1, 15)).evaluate().isNotEmpty, reason: 'шага 1');
-    expect(playing().attempt, 1);
-  });
+        await tester.tap(find.text(l10n.tutorialDoneAgain));
+        await pumpUntil(
+          tester,
+          () => find.text(l10n.tutorialStepCounter(1, 15)).evaluate().isNotEmpty,
+          reason: 'шага 1',
+        );
+        expect(playing().attempt, 1);
+      },
+    );
+  }
 }

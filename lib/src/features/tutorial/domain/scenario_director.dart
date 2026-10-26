@@ -41,9 +41,10 @@ final class ScenarioDirector {
   /// Журнал партии для стола: каждое принятое движком намерение двигает сценарий дальше.
   MatchJournal get journal => _DirectorJournal(this);
 
-  /// Игрок нажал «Дальше» на показе. Остальные звенья от нажатия не меняются.
-  void acknowledge() {
-    if (current is ShowBeat) _advance();
+  /// Игрок нажал «Дальше» на показе [shown]. Остальные звенья от нажатия не меняются, а нажатие по уже сменившейся
+  /// карточке (второй тап подряд) не пропускает следующий показ.
+  void acknowledge(Beat shown) {
+    if (current is ShowBeat && current == shown) _advance();
   }
 
   /// Можно ли пустить на стол намерение [intent] места [seat] при состоянии [state]: только ход игрока, которого ждёт

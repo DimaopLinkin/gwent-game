@@ -52,8 +52,8 @@ final class StartFirstMatch {
   final LoadGameContent _content;
   final Duration _botThinkTime;
 
-  /// Начинает партию.
-  Future<StartFirstMatchResult> call() async {
+  /// Начинает партию; [playerDeckName] и [opponentDeckName] — названия колод для экрана знакомства.
+  Future<StartFirstMatchResult> call({required String playerDeckName, required String opponentDeckName}) async {
     final GameContent content;
     switch (await _content()) {
       case GameContentReady(content: final ready):
@@ -90,7 +90,7 @@ final class StartFirstMatch {
             table: table,
             content: content,
             factionIds: {Seat.one: one.factionId, Seat.two: two.factionId},
-            deckNames: {Seat.one: one.name, Seat.two: two.name},
+            deckNames: {Seat.one: playerDeckName, Seat.two: opponentDeckName},
             recordsHistory: false,
           ),
           director,

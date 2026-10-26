@@ -95,6 +95,9 @@ final class FieldGeometry {
   /// Зона руки.
   Rect get hand => Rect.fromLTWH(0, handTop, width, handHeight);
 
+  /// Кнопка паузы: зона нажатия 44 pt у правого края, по центру центральной полосы.
+  Rect get pauseButtonRect => Rect.fromLTWH(width - 47, stripTop - (44 - stripHeight) / 2, 44, 44);
+
   /// Ряд типа [row] у соперника (сверху вниз: осадный, дальний, ближний) или у меня (ближний, дальний, осадный).
   Rect rowRect(Row row, {required bool mine}) {
     final index = mine ? row.index : Row.values.length - 1 - row.index;
