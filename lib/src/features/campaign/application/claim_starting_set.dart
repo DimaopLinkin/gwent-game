@@ -11,7 +11,7 @@ import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 /// теми же шагами: партия отмечает обучение пройденным, а тропа при возврате вызывает этот сценарий.
 final class ClaimStartingSet {
   /// Создаёт сценарий.
-  const ClaimStartingSet(this._campaign, this._repository, this._settings, this._record);
+  ClaimStartingSet(this._campaign, this._repository, this._settings, this._record);
 
   final LoadCampaign _campaign;
   final CampaignRepository _repository;
@@ -20,15 +20,26 @@ final class ClaimStartingSet {
 
   /// Выдаёт набор, если «Первая партия» пройдена, а узел 0 нет. Возвращает победу для экрана награды или `null`,
   /// когда выдавать нечего (набор уже выдан, обучение не пройдено или каталога нет).
-  Future<CampaignWon?> call() async {
+  ///
+  /// Вызовы идут по очереди: проверка «узел 0 не пройден» и запись не должны пересекаться у двух вызовов.
+  Future<CampaignWon?> call() {
+    final result = _queue.then((_) => _claim());
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _queue = Future.value();
+
+  Future<CampaignWon?> _claim() async {
     final data = await _campaign();
     if (data == null) return null;
     final first = data.catalog.firstNode;
     if ((await _repository.load()).containsKey(first.id)) return null;
     if (!(await _settings.watch().first).firstMatchPassed) return null;
     return switch (await _record(first.id, const CampaignMatchFacts.withoutMatch())) {
-      final CampaignWon won => won,
-      CampaignNoReward() => null,
+      // Узел 0 уже записал другой вызов, пока шла проверка: показывать нечего.
+      final CampaignWon won when won.firstWin => won,
+      _ => null,
     };
   }
 }

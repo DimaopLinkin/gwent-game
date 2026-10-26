@@ -85,6 +85,16 @@ void main() {
       expect(await decks.watchAll().first, hasLength(1));
     });
 
+    test('два входа одновременно: набор выдан один раз, второй вызов ничего не показывает', () async {
+      await settings.save(settings.saved.copyWith(firstMatchPassed: true));
+
+      final once = claim();
+      final results = await Future.wait([once(), once()]);
+
+      expect(results.whereType<CampaignWon>(), hasLength(1));
+      expect((await progress.load())['c1-00']!.wins, 1);
+    });
+
     test('обучение не пройдено: набор не выдаётся, его выдаст партия миссии 0', () async {
       expect(await claim()(), isNull);
       expect((await collection.load()).total, 0);

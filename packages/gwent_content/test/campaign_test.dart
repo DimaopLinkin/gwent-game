@@ -36,6 +36,14 @@ void main() {
     expect(pack.text(campaign.nodesById['n-01']!.opponent.nameKey), startsWith('текст campaign.node.n-01'));
   });
 
+  test('каталог без узлов отклоняется, а не валит загрузку', () async {
+    final campaign = sampleCampaignJson();
+    for (final chapter in (campaign['chapters']! as List<Object?>).cast<Map<String, Object?>>()) {
+      chapter['nodes'] = <Object?>[];
+    }
+    expect(await codes(campaign), contains('no_nodes'));
+  });
+
   test('пакет без каталога допустим', () async {
     final pack = (await load(buildSampleFiles()) as PackLoaded).pack;
     expect(pack.campaign, isNull);

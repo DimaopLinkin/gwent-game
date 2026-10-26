@@ -17,6 +17,10 @@ List<ValidationIssue> checkCampaign(CampaignCatalog catalog, PackRules rules, Ma
   if (references.issues.isNotEmpty) return references.issues;
 
   final invariants = IssueSink(ValidationLevel.invariants);
+  if (catalog.nodes.isEmpty) {
+    invariants.add(r'$.chapters', 'no_nodes', 'в каталоге нет ни одного узла', file: campaignFileName);
+    return invariants.issues;
+  }
   _checkChain(catalog, invariants);
   _checkKinds(catalog, invariants);
   _checkRewards(catalog, rules, invariants);
