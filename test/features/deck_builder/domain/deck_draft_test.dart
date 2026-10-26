@@ -112,6 +112,7 @@ void main() {
     test('второй экземпляр героя запрещён отдельным отказом', () {
       const hero = CollectionCard(
         id: 'hero',
+        name: 'Герой',
         fractionId: Small.common,
         isNeutral: true,
         kind: CollectionKind.hero,

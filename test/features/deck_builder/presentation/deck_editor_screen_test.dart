@@ -17,6 +17,7 @@ import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
+import 'package:gwent/src/features/deck_builder/presentation/editor/editor_grid.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Faction;
 
 import '../../../support/deck_rules_fixtures.dart';
@@ -234,6 +235,30 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('метки групп «Герои», «Отряды», «Особые» есть без фильтра и пропадают под фильтром с одной группой', (
+      tester,
+    ) async {
+      await pumpEditor(tester);
+
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(l10n.editorGroupUnits.toUpperCase()),
+        300,
+        scrollable: find.descendant(of: find.byType(EditorGrid), matching: find.byType(Scrollable)).first,
+      );
+      expect(find.text(l10n.editorGroupUnits.toUpperCase()), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(l10n.editorGroupHeroes.toUpperCase()),
+        -300,
+        scrollable: find.descendant(of: find.byType(EditorGrid), matching: find.byType(Scrollable)).first,
+      );
+
+      await tester.tap(find.text(l10n.editorFilterHero).last);
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsNothing);
+    });
+
     testWidgets('вкладка «Колода» пуста, фильтр без карт показывает пояснение', (tester) async {
       await pumpEditor(tester);
 
@@ -304,6 +329,22 @@ void main() {
 
       expect(find.text(l10n.editorHintValid), findsNothing);
       expect(find.text(l10n.editorSave), findsOneWidget);
+    });
+
+    testWidgets('на маленьком экране метки групп видны, а внешняя прокрутка доходит до группы «Особые»', (
+      tester,
+    ) async {
+      await pumpEditor(tester, size: const Size(320, 568));
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsOneWidget);
+
+      await tester.dragUntilVisible(
+        find.text(l10n.editorGroupSpecials.toUpperCase()),
+        find.byType(SingleChildScrollView).first,
+        const Offset(0, -300),
+      );
+
+      expect(find.text(l10n.editorGroupSpecials.toUpperCase()), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('на маленьком экране кнопки сохранения остаются видны, а карты прокручиваются', (tester) async {

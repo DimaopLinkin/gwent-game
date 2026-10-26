@@ -16,6 +16,18 @@ enum CollectionKind {
   weather,
 }
 
+/// Группа карты в сетке конструктора: так карты разделены метками.
+enum CollectionGroup {
+  /// Герои.
+  heroes,
+
+  /// Обычные отряды.
+  units,
+
+  /// Особые карты и погода.
+  specials,
+}
+
 /// Куда играется карта отряда.
 enum CollectionPlacement {
   /// Ближний ряд.
@@ -41,6 +53,7 @@ final class CollectionCard {
     required this.isNeutral,
     required this.kind,
     required this.maxCopies,
+    required this.name,
     this.placement,
     this.strength = 0,
   });
@@ -57,6 +70,9 @@ final class CollectionCard {
   /// Вид карты.
   final CollectionKind kind;
 
+  /// Название карты из пакета контента: по нему равные по силе карты идут в сетке по имени.
+  final String name;
+
   /// Сколько копий карты можно положить в колоду: число из набора карт, у героя не больше одной.
   final int maxCopies;
 
@@ -65,6 +81,13 @@ final class CollectionCard {
 
   /// Базовая сила; у особых карт 0.
   final int strength;
+
+  /// Группа карты в сетке конструктора.
+  CollectionGroup get group => switch (kind) {
+    CollectionKind.hero => CollectionGroup.heroes,
+    CollectionKind.unit => CollectionGroup.units,
+    CollectionKind.special || CollectionKind.weather => CollectionGroup.specials,
+  };
 
   /// Отряд или герой: считается в «Отряды» и «Силу».
   bool get isUnit => kind == CollectionKind.unit || kind == CollectionKind.hero;

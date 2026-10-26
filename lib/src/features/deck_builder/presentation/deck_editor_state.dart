@@ -1,4 +1,5 @@
 import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
+import 'package:gwent/src/features/deck_builder/domain/collection_order.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
@@ -101,6 +102,19 @@ final class EditorCard {
 
   /// Карту сейчас нельзя добавить (все копии в колоде, герой уже есть или особых максимум).
   final bool blocked;
+}
+
+/// Карты одной группы сетки («Герои», «Отряды», «Особые»).
+@immutable
+final class EditorCardGroup {
+  /// Создаёт группу.
+  const EditorCardGroup({required this.group, required this.cards});
+
+  /// Группа.
+  final CollectionGroup group;
+
+  /// Карты группы в порядке сетки.
+  final List<EditorCard> cards;
 }
 
 /// Состояние конструктора колоды.
@@ -213,9 +227,9 @@ final class DeckEditorReady extends DeckEditorState {
   /// Больше особых карт, чем можно.
   bool get tooManySpecials => stats.specials > rules.gameRules.maxSpecialCards;
 
-  /// Карты коллекции фракции в порядке пакета, с копиями в колоде и признаком «добавить нельзя».
+  /// Карты коллекции фракции в порядке конструктора (`CollectionOrder`), с копиями в колоде и признаком «добавить нельзя».
   late final List<EditorCard> collection = List.unmodifiable([
-    for (final card in rules.collectionFor(draft.factionId))
+    for (final card in CollectionOrder.sort(rules.collectionFor(draft.factionId)))
       EditorCard(
         card: card,
         copies: draft.copiesOf(card.id),
@@ -236,9 +250,18 @@ final class DeckEditorReady extends DeckEditorState {
         if (filter.accepts(entry.card) && (!onlyAvailable || !entry.blocked)) entry,
     ],
     DeckEditorTab.deck => [
-      for (final card in rules.allCards)
+      for (final card in CollectionOrder.sort(rules.allCards))
         if (filter.accepts(card) && draft.copiesOf(card.id) > 0)
           EditorCard(card: card, copies: draft.copiesOf(card.id), blocked: rules.refusalToAdd(draft, card) != null),
     ],
   });
+
+  /// Карты открытой вкладки по группам в порядке сетки; пустых групп нет.
+  ///
+  /// Метки групп в сетке показывают, только если групп больше одной.
+  List<EditorCardGroup> get visibleGroups => List.unmodifiable([
+    for (final group in CollectionGroup.values)
+      if (visible.where((entry) => entry.card.group == group).toList() case final cards when cards.isNotEmpty)
+        EditorCardGroup(group: group, cards: cards),
+  ]);
 }

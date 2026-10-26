@@ -39,4 +39,23 @@ void main() {
       }
     }
   });
+
+  test(
+    'у карт коллекции есть имя из строк пакета, а allCards остаются в порядке пакета (бот зависит от него)',
+    () async {
+      final pack = await loadBasePack();
+      final rules = deckRulesFor(pack);
+
+      for (final card in rules.allCards) {
+        expect(card.name, isNotEmpty, reason: card.id);
+        expect(card.name, isNot(startsWith('card.')), reason: 'имя карты взято из строк пакета');
+      }
+      final packIds = [
+        for (final card in pack.rules.squadCards) card.id,
+        for (final card in pack.rules.specialCards) card.id,
+      ];
+      final ids = [for (final card in rules.allCards) card.id];
+      expect(ids, packIds.where(ids.contains).toList());
+    },
+  );
 }
