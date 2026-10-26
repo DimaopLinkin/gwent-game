@@ -72,7 +72,7 @@ final class DeckRules {
   /// и так одна копия, но правило не зависит от данных.
   static const int heroCopies = 1;
 
-  /// Все карты коллекции в порядке пакета: сначала отряды, потом особые; созданные карты (`count` = 0) не входят.
+  /// Все карты коллекции в порядке пакета (порядок сетки конструктора: `CollectionOrder`): сначала отряды, потом особые; созданные карты (`count` = 0) не входят.
   late final List<CollectionCard> allCards = List.unmodifiable([
     for (final card in pack.rules.squadCards) ?_unit(card),
     for (final card in pack.rules.specialCards) ?_special(card),
@@ -91,6 +91,7 @@ final class DeckRules {
     if (card.count < 1 || definition is! UnitCardDefinition) return null;
     return CollectionCard(
       id: card.id,
+      name: pack.text(card.nameKey),
       fractionId: card.fractionId,
       isNeutral: !isDeckFaction(card.fractionId),
       kind: definition.isHero ? CollectionKind.hero : CollectionKind.unit,
@@ -110,6 +111,7 @@ final class DeckRules {
     if (card.count < 1 || definition is! SpecialCardDefinition) return null;
     return CollectionCard(
       id: card.id,
+      name: pack.text(card.nameKey),
       fractionId: card.fractionId,
       isNeutral: !isDeckFaction(card.fractionId),
       kind: switch (definition.ability) {

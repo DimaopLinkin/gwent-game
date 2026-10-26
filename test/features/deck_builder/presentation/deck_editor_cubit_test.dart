@@ -40,6 +40,54 @@ void main() {
 
   DeckEditorReady ready(DeckEditorCubit cubit) => cubit.state as DeckEditorReady;
 
+  group('порядок и группы сетки', () {
+    test('коллекция идёт по порядку конструктора: герои, отряды, особые, погода', () async {
+      final state = ready(await open());
+
+      final groups = [for (final entry in state.visible) entry.card.group];
+      expect(groups, [...groups]..sort((a, b) => a.index.compareTo(b.index)));
+      expect(state.visible.first.card.kind, CollectionKind.hero);
+      expect(state.visible.last.card.kind, CollectionKind.weather);
+      final units = [
+        for (final entry in state.visible)
+          if (entry.card.group == CollectionGroup.units) entry.card,
+      ];
+      expect(
+        [for (final card in units) card.strength],
+        [for (final card in units) card.strength]..sort((a, b) => b.compareTo(a)),
+        reason: 'отряды по убыванию силы',
+      );
+    });
+
+    test('порядок не меняется, когда карту кладут в колоду и убирают', () async {
+      final cubit = await open();
+      final before = ready(cubit).visible.map((entry) => entry.card.id).toList();
+
+      cubit
+        ..addCard(Small.warrior)
+        ..addCard(Small.cerys);
+
+      expect(ready(cubit).visible.map((entry) => entry.card.id), before);
+      cubit.removeCard(Small.warrior);
+      expect(ready(cubit).visible.map((entry) => entry.card.id), before);
+    });
+
+    test('visibleGroups: группы в порядке сетки, пустых нет, под фильтром одна', () async {
+      final cubit = await open();
+
+      final all = ready(cubit).visibleGroups;
+      expect(all.map((entry) => entry.group), [
+        CollectionGroup.heroes,
+        CollectionGroup.units,
+        CollectionGroup.specials,
+      ]);
+      expect(all.expand((entry) => entry.cards), ready(cubit).visible);
+
+      cubit.selectFilter(CardFilter.hero);
+      expect(ready(cubit).visibleGroups.map((entry) => entry.group), [CollectionGroup.heroes]);
+    });
+  });
+
   group('открытие', () {
     test('новая колода: первая фракция, без лидера и карт, открыта коллекция', () async {
       final cubit = await open();
@@ -129,7 +177,11 @@ void main() {
         ..selectTab(DeckEditorTab.deck)
         ..removeCard(Small.warrior);
       state = ready(cubit);
-      expect(state.visible.map((entry) => entry.card.id), [Small.warrior, Small.cerys, Small.frost]);
+      expect(state.visible.map((entry) => entry.card.id), [
+        Small.cerys,
+        Small.warrior,
+        Small.frost,
+      ], reason: 'герой, отряд, погода');
       expect(state.draft.copiesOf(Small.warrior), 1);
     });
 

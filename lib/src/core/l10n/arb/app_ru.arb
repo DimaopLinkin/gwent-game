@@ -1925,6 +1925,18 @@
       }
     }
   },
+  "editorGroupHeroes": "Герои",
+  "@editorGroupHeroes": {
+    "description": "Метка группы сетки конструктора: герои."
+  },
+  "editorGroupUnits": "Отряды",
+  "@editorGroupUnits": {
+    "description": "Метка группы сетки конструктора: обычные отряды."
+  },
+  "editorGroupSpecials": "Особые",
+  "@editorGroupSpecials": {
+    "description": "Метка группы сетки конструктора: особые карты и погода."
+  },
   "editorCopiesIn": "× {count}",
   "@editorCopiesIn": {
     "description": "Метка карты на вкладке колоды: сколько копий в колоде.",

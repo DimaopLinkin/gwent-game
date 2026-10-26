@@ -17,6 +17,7 @@ import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
+import 'package:gwent/src/features/deck_builder/presentation/editor/editor_grid.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Faction;
 
 import '../../../support/deck_rules_fixtures.dart';
@@ -232,6 +233,30 @@ void main() {
       expect(exits, 1);
       expect((await repository.findById('id-1'))!.cards.values.fold(0, (a, b) => a + b), 1);
       handle.dispose();
+    });
+
+    testWidgets('метки групп «Герои», «Отряды», «Особые» есть без фильтра и пропадают под фильтром с одной группой', (
+      tester,
+    ) async {
+      await pumpEditor(tester);
+
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(l10n.editorGroupUnits.toUpperCase()),
+        300,
+        scrollable: find.descendant(of: find.byType(EditorGrid), matching: find.byType(Scrollable)).first,
+      );
+      expect(find.text(l10n.editorGroupUnits.toUpperCase()), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(l10n.editorGroupHeroes.toUpperCase()),
+        -300,
+        scrollable: find.descendant(of: find.byType(EditorGrid), matching: find.byType(Scrollable)).first,
+      );
+
+      await tester.tap(find.text(l10n.editorFilterHero).last);
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsNothing);
     });
 
     testWidgets('вкладка «Колода» пуста, фильтр без карт показывает пояснение', (tester) async {
