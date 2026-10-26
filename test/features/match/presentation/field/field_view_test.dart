@@ -616,10 +616,19 @@ void main() {
     testWidgets('зоны магнита не рисуются: ни слабой рамки целей, ни яркого прямоугольника захваченной', (
       tester,
     ) async {
-      final (_, _, _) = await pumpDecoy(tester, [for (var i = 0; i < 3; i++) cards.unit(Row.melee)]);
-      final gesture = await aimAt(tester, cardRect(1, 3).center);
-      final looks = tester.widgetList<TargetHighlight>(find.byType(TargetHighlight)).map((h) => h.look);
-      expect(looks.where((look) => look != TargetLook.none), isEmpty, reason: 'подсветку даёт только подъём');
+      await pumpDecoy(tester, [for (var i = 0; i < 3; i++) cards.unit(Row.melee)]);
+      Iterable<TargetLook> lit() => tester
+          .widgetList<TargetHighlight>(find.byType(TargetHighlight))
+          .map((h) => h.look)
+          .where(
+            (look) => look != TargetLook.none,
+          );
+      final gesture = await aimAt(tester, Offset(cardRect(1, 3).center.dx, cardRect(1, 3).top - 70));
+      expect(find.byType(LiftedCard), findsNothing);
+      expect(lit(), isEmpty, reason: 'допустимые отряды рамкой не подсвечены');
+      await gesture.moveTo(cardRect(1, 3).center);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(lit(), isEmpty, reason: 'подсветку даёт только подъём');
       expect(find.byType(LiftedCard), findsOneWidget);
       await gesture.cancel();
       await tester.pump(const Duration(milliseconds: 250));
