@@ -319,9 +319,11 @@ void main() {
       final searching = cubit.stream.firstWhere((state) => state is FindGamesSearching);
       await cubit.continueAfterExplainer();
       await searching;
+      // Подписка раньше хоста: игра может появиться в списке быстрее, чем тест начнёт ждать.
+      final found = cubit.stream.firstWhere((state) => state is FindGamesSearching && state.games.isNotEmpty);
       await hostGame(gameName: 'Цири', playerName: 'Цири');
 
-      await cubit.stream.firstWhere((state) => state is FindGamesSearching && state.games.isNotEmpty);
+      await found;
       expect(settings.saved.localNetworkExplained, isTrue);
     });
 
