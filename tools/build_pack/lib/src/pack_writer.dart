@@ -1,6 +1,6 @@
 import 'dart:io';
 
-final RegExp _packFile = RegExp(r'^(manifest|pack|strings\.[a-z]{2,3})\.json$');
+final RegExp _packFile = RegExp(r'^(manifest|pack|campaign|strings\.[a-z]{2,3})\.json$');
 
 /// Папку пакета нельзя перезаписать: в ней лежит что-то, кроме файлов пакета.
 final class PackOutputException implements Exception {
@@ -19,7 +19,7 @@ final class PackOutputException implements Exception {
 
 /// Записывает файлы пакета [files] (путь → байты) в папку [out].
 ///
-/// Старые файлы пакета (`manifest.json`, `pack.json`, `strings.<язык>.json`) удаляются. Если в папке есть
+/// Старые файлы пакета (`manifest.json`, `pack.json`, `campaign.json`, `strings.<язык>.json`) удаляются. Если в папке есть
 /// что-то другое, ничего не трогается и бросается [PackOutputException]: так `--out` с опечаткой не сотрёт
 /// чужие файлы.
 void writePackFiles(Directory out, Map<String, List<int>> files) {

@@ -47,7 +47,8 @@ build_content_pack() {
     dart run bin/build_pack.dart \
       --data "$root/docs/hand/data" \
       --identity "$root/docs/hand/content_pack.json" \
-      --out "$root/assets/content/gwent-w3-base"
+      --out "$root/assets/content/gwent-w3-base" \
+      --campaign "$root/docs/hand/campaign"
   )
 }
 

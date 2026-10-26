@@ -11,3 +11,9 @@ Map<String, Object?> realTables() => readHandTables(Directory('${handDir.path}/d
 
 /// Идентичность пакета из `docs/hand/content_pack.json`.
 PackIdentity realIdentity() => readPackIdentity(File('${handDir.path}/content_pack.json'));
+
+/// Папка данных кампании `docs/hand/campaign`.
+final Directory campaignDir = Directory('${handDir.path}/campaign');
+
+/// Данные кампании из `docs/hand/campaign`.
+CampaignSource realCampaignSource() => readCampaignSource(campaignDir)!;

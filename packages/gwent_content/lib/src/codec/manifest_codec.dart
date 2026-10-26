@@ -12,8 +12,8 @@ final RegExp _locale = RegExp(r'^[a-z]{2,3}$');
 /// Имя поля с версией формата. Его читают отдельно, до разбора всего манифеста.
 const String formatVersionField = 'format_version';
 
-/// Разбирает `manifest.json`. Кроме типов проверяет, что файлы пакета это ровно `pack.json` и файлы строк
-/// всех языков из `locales`, а среди языков есть запасной.
+/// Разбирает `manifest.json`. Кроме типов проверяет, что файлы пакета это `pack.json`, файлы строк всех языков
+/// из `locales` и необязательный `campaign.json`, а среди языков есть запасной.
 DecodeResult<Manifest> decodeManifest(Object? json) {
   final r = JsonReader(manifestFileName);
   final root = r.object(
@@ -62,7 +62,8 @@ DecodeResult<Manifest> decodeManifest(Object? json) {
         ),
       );
     }
-    final expected = {rulesFileName, for (final locale in locales) stringsFileName(locale)};
+    final required = {rulesFileName, for (final locale in locales) stringsFileName(locale)};
+    final expected = {...required, campaignFileName};
     final actual = <String>{};
     for (var i = 0; i < files.length; i++) {
       final filePath = files[i].path;
@@ -72,7 +73,7 @@ DecodeResult<Manifest> decodeManifest(Object? json) {
         r.error('\$.files[$i].path', 'duplicate_file', 'файл $filePath указан дважды');
       }
     }
-    for (final missing in expected.difference(actual)) {
+    for (final missing in required.difference(actual)) {
       r.error(r'$.files', 'missing_file', 'нет записи о файле $missing');
     }
   }

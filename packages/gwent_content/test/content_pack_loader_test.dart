@@ -107,7 +107,7 @@ void main() {
   group('совместимость', () {
     test('другая версия формата отклоняется до разбора манифеста', () async {
       final files = buildSampleFiles();
-      files[manifestFileName] = utf8.encode(jsonEncode({'format_version': 2, 'whatever': true}));
+      files[manifestFileName] = utf8.encode(jsonEncode({'format_version': 99, 'whatever': true}));
       expect(await rejectionCodes(files), ['unsupported_format']);
     });
 
