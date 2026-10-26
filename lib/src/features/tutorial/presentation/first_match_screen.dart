@@ -40,6 +40,7 @@ class FirstMatchScreen extends StatelessWidget {
     this.animationScale = 1,
     this.sound,
     this.haptic,
+    this.playLabel,
   });
 
   /// Сценарий начала партии: держателю партии он нужен для устройства, сама партия приходит готовой.
@@ -71,6 +72,9 @@ class FirstMatchScreen extends StatelessWidget {
 
   /// Вибрация партии.
   final PlayHaptic? haptic;
+
+  /// Подпись главной кнопки листа завершения вместо «Играть с ИИ»; `null` — обычная.
+  final String? playLabel;
 
   @override
   Widget build(BuildContext context) => BlocBuilder<FirstMatchCubit, FirstMatchState>(
@@ -123,6 +127,7 @@ class FirstMatchScreen extends StatelessWidget {
                   onPlay: onPlayBot,
                   onAgain: context.read<FirstMatchCubit>().restart,
                   onMenu: onExit,
+                  playLabel: playLabel,
                 ),
               ],
             ),

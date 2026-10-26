@@ -37,6 +37,9 @@ class MatchResultView extends StatefulWidget {
     this.onChangeDeck,
     this.rematch,
     this.field,
+    this.note,
+    this.exitLabel,
+    this.changeDeckLabel,
   });
 
   /// Сколько лист выезжает, сворачивается и разворачивается (токен `sheet.slide` макета 13).
@@ -73,6 +76,16 @@ class MatchResultView extends StatefulWidget {
 
   /// Поле партии за листом; `null` — спокойный фон.
   final Widget? field;
+
+  /// Строка над кнопками (партия узла кампании: что с наградой); `null` — строки нет. Договорённость о реванше
+  /// ([rematch]) главнее.
+  final Widget? note;
+
+  /// Подпись кнопки выхода вместо «В меню».
+  final String? exitLabel;
+
+  /// Подпись кнопки смены колоды вместо «Другая колода».
+  final String? changeDeckLabel;
 
   @override
   State<MatchResultView> createState() => _MatchResultViewState();
@@ -207,6 +220,11 @@ class _MatchResultViewState extends State<MatchResultView> {
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _RematchNote(offer: offer),
                           ),
+                        )
+                      else if (widget.note case final note?)
+                        ExcludeSemantics(
+                          excluding: _collapsed,
+                          child: Padding(padding: const EdgeInsets.only(bottom: 10), child: note),
                         ),
                       ExcludeSemantics(
                         excluding: _collapsed,
@@ -242,7 +260,7 @@ class _MatchResultViewState extends State<MatchResultView> {
           if (widget.onRematch != null) Expanded(child: _rematchButton(l10n)),
           Expanded(
             child: GwentButton(
-              label: l10n.matchResultChangeDeck,
+              label: widget.changeDeckLabel ?? l10n.matchResultChangeDeck,
               style: GwentButtonStyle.secondary,
               height: 56,
               fontSize: 20,
@@ -264,7 +282,7 @@ class _MatchResultViewState extends State<MatchResultView> {
   );
 
   Widget _exitButton(AppLocalizations l10n) => GwentButton(
-    label: l10n.matchExit,
+    label: widget.exitLabel ?? l10n.matchExit,
     style: GwentButtonStyle.secondary,
     height: 56,
     onPressed: widget.onExit,

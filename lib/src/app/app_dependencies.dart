@@ -9,9 +9,11 @@ import 'package:gwent/src/features/campaign/application/claim_starting_set.dart'
 import 'package:gwent/src/features/campaign/application/get_campaign_deck.dart';
 import 'package:gwent/src/features/campaign/application/list_campaign_decks.dart';
 import 'package:gwent/src/features/campaign/application/load_campaign.dart';
+import 'package:gwent/src/features/campaign/application/load_campaign_overview.dart';
 import 'package:gwent/src/features/campaign/application/prepare_campaign_match.dart';
 import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
 import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
+import 'package:gwent/src/features/campaign/application/watch_campaign_summary.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
 import 'package:gwent/src/features/collection/application/load_collection.dart';
 import 'package:gwent/src/features/collection/domain/collection_repository.dart';
@@ -183,6 +185,13 @@ final class AppDependencies {
       settingsRepository,
       clock,
     );
+    watchCampaignSummary = WatchCampaignSummary(loadCampaign, campaignRepository);
+    loadCampaignOverview = LoadCampaignOverview(
+      loadCampaign,
+      campaignRepository,
+      collectionRepository,
+      getCampaignDeck,
+    );
     claimStartingSet = ClaimStartingSet(loadCampaign, campaignRepository, settingsRepository, recordCampaignResult);
     prepareCampaignMatch = PrepareCampaignMatch(
       loadCampaign,
@@ -306,6 +315,12 @@ final class AppDependencies {
 
   /// Тропа кампании: узлы, их состояния и прогресс игрока.
   late final WatchCampaignPath watchCampaignPath;
+
+  /// Сводка кампании для главного меню.
+  late final WatchCampaignSummary watchCampaignSummary;
+
+  /// Обзор кампании для тропы: узлы, колода, открытые карты.
+  late final LoadCampaignOverview loadCampaignOverview;
 
   /// Запись итога партии узла и выдача наград.
   late final RecordCampaignResult recordCampaignResult;

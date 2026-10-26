@@ -7,6 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_deck_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_deck_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_widgets.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
@@ -73,8 +80,58 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         onHistory: () => context.go(AppRoutes.history),
         onTutorial: () => context.go(AppRoutes.tutorial),
         onSettings: () => context.go(AppRoutes.settings),
+        onCampaign: () => context.go(AppRoutes.campaign),
       ),
       routes: [
+        GoRoute(
+          path: _child(AppRoutes.campaign),
+          builder: (context, state) => BlocProvider(
+            create: (_) => CampaignCubit(
+              dependencies.watchCampaignPath,
+              dependencies.loadCampaignOverview,
+              dependencies.claimStartingSet,
+            ),
+            child: CampaignScreen(
+              onBack: () => context.go(AppRoutes.menu),
+              onPlay: (nodeId) => context.go(AppRoutes.campaignPlay(nodeId)),
+              onFirstMatch: () => context.go(AppRoutes.tutorialFromCampaign),
+              onPickDeck: (nodeId) =>
+                  context.push<void>(nodeId == null ? AppRoutes.campaignDecks : AppRoutes.campaignDecksFor(nodeId)),
+              onBuildDeck: () => context.go(AppRoutes.campaignDeckNew),
+            ),
+          ),
+          routes: [
+            GoRoute(
+              path: 'decks',
+              builder: (context, state) => BlocProvider(
+                create: (_) => CampaignDeckCubit(
+                  dependencies.listCampaignDecks,
+                  dependencies.getCampaignDeck,
+                  dependencies.chooseCampaignDeck,
+                  dependencies.loadCampaign,
+                  nodeId: state.uri.queryParameters[AppRoutes.campaignNodeParam],
+                ),
+                child: CampaignDeckScreen(
+                  onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+                  onBattle: (nodeId) => context.go(AppRoutes.campaignPlay(nodeId)),
+                  onChosen: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+                  onBuild: () => context.push<void>(AppRoutes.campaignDeckNew),
+                ),
+              ),
+              routes: [
+                GoRoute(
+                  path: 'new',
+                  builder: (context, state) => _campaignDeckEditor(context, dependencies),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'play/:${AppRoutes.campaignNodeIdParam}',
+              builder: (context, state) =>
+                  _campaignMatch(context, dependencies, state.pathParameters[AppRoutes.campaignNodeIdParam]!),
+            ),
+          ],
+        ),
         GoRoute(
           path: _child(AppRoutes.history),
           builder: (context, state) => BlocProvider(
@@ -347,32 +404,37 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         ),
         GoRoute(
           path: _child(AppRoutes.tutorial),
-          builder: (context, state) => BlocProvider(
-            create: (_) => FirstMatchCubit(
-              dependencies.startFirstMatch,
-              playerDeckName: context.l10n.tutorialPlayerDeckName,
-              opponentDeckName: context.l10n.tutorialOpponentDeckName,
-            ),
-            child: StreamBuilder<AppSettings>(
-              stream: dependencies.watchSettings(),
-              initialData: const AppSettings(),
-              builder: (context, snapshot) => FirstMatchScreen(
-                startMatch: dependencies.startMatch,
-                recordFinishedMatch: dependencies.recordFinishedMatch,
-                markPassed: dependencies.markFirstMatchPassed,
-                onExit: () => context.go(AppRoutes.menu),
-                onPlayBot: () => context.go(AppRoutes.matchBot),
-                onSettings: () => context.push(AppRoutes.settingsOverGame),
-                onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
-                animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
-                  AnimationSpeed.normal => 1,
-                  AnimationSpeed.fast => StageTokens.fastFactor,
-                },
-                sound: dependencies.playSound,
-                haptic: dependencies.playHaptic,
+          builder: (context, state) {
+            final fromCampaign = state.uri.queryParameters[AppRoutes.fromCampaignParam] == '1';
+            return BlocProvider(
+              create: (_) => FirstMatchCubit(
+                dependencies.startFirstMatch,
+                playerDeckName: context.l10n.tutorialPlayerDeckName,
+                opponentDeckName: context.l10n.tutorialOpponentDeckName,
               ),
-            ),
-          ),
+              child: StreamBuilder<AppSettings>(
+                stream: dependencies.watchSettings(),
+                initialData: const AppSettings(),
+                builder: (context, snapshot) => FirstMatchScreen(
+                  startMatch: dependencies.startMatch,
+                  recordFinishedMatch: dependencies.recordFinishedMatch,
+                  markPassed: dependencies.markFirstMatchPassed,
+                  onExit: () => context.go(AppRoutes.menu),
+                  // Миссия 0 кампании ведёт обратно на тропу, где игрок получает стартовый набор.
+                  onPlayBot: () => context.go(fromCampaign ? AppRoutes.campaign : AppRoutes.matchBot),
+                  playLabel: fromCampaign ? context.l10n.campaignContinueCampaign : null,
+                  onSettings: () => context.push(AppRoutes.settingsOverGame),
+                  onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
+                  animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
+                    AnimationSpeed.normal => 1,
+                    AnimationSpeed.fast => StageTokens.fastFactor,
+                  },
+                  sound: dependencies.playSound,
+                  haptic: dependencies.playHaptic,
+                ),
+              ),
+            );
+          },
         ),
         GoRoute(
           path: _child(AppRoutes.match),
@@ -434,6 +496,53 @@ Widget _deckEditor(BuildContext context, AppDependencies dependencies, {String? 
     sound: dependencies.playSound,
   ),
   child: DeckEditorScreen(onExit: () => context.pop()),
+);
+
+/// Конструктор колоды в режиме кампании (ADR 0033): только открытые карты, плашка «Режим кампании». Закрывается
+/// возвратом на экран, с которого его открыли.
+Widget _campaignDeckEditor(BuildContext context, AppDependencies dependencies) => BlocProvider(
+  create: (_) => DeckEditorCubit(
+    loadDeckRules: dependencies.loadDeckRules,
+    getDeck: dependencies.getDeck,
+    saveDeck: dependencies.saveDeck,
+    newDeckName: context.l10n.deckListNew,
+    loadCollection: dependencies.loadCollection,
+    sound: dependencies.playSound,
+  ),
+  child: DeckEditorScreen(
+    onExit: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+    banner: const CampaignModeBanner(),
+  ),
+);
+
+/// Партия узла [nodeId] кампании: обычная партия против бота с итогом и наградой.
+Widget _campaignMatch(BuildContext context, AppDependencies dependencies, String nodeId) => BlocProvider(
+  create: (_) => CampaignMatchCubit(dependencies.prepareCampaignMatch, dependencies.loadCampaign, nodeId),
+  child: StreamBuilder<AppSettings>(
+    stream: dependencies.watchSettings(),
+    initialData: const AppSettings(),
+    builder: (context, snapshot) {
+      final settings = snapshot.data ?? const AppSettings();
+      return CampaignMatchScreen(
+        startMatch: dependencies.startMatch,
+        recordFinishedMatch: dependencies.recordFinishedMatch,
+        onExit: () => context.go(AppRoutes.campaign),
+        onNext: (next) => context.go(AppRoutes.campaignPlay(next)),
+        onChangeDeck: (node) => context.go(AppRoutes.campaignDecksFor(node)),
+        onBuildDeck: () => context.go(AppRoutes.campaignDeckNew),
+        onSettings: () => context.push(AppRoutes.settingsOverGame),
+        onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
+        confirmPass: settings.confirmPass,
+        hints: settings.hints,
+        animationScale: switch (settings.animationSpeed) {
+          AnimationSpeed.normal => 1,
+          AnimationSpeed.fast => StageTokens.fastFactor,
+        },
+        sound: dependencies.playSound,
+        haptic: dependencies.playHaptic,
+      );
+    },
+  ),
 );
 
 /// Конструктор колоды в режиме лобби: колоду [deckId] или новую. Закрывается, вернув идентификатор сохранённой колоды

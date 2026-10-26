@@ -75,6 +75,33 @@ abstract final class AppRoutes {
   /// «Первая партия»: обучение (ADR 0034).
   static const String tutorial = '/tutorial';
 
+  /// Параметр адреса обучения: «Первая партия» открыта из кампании (миссия 0), выход ведёт на тропу.
+  static const String fromCampaignParam = 'campaign';
+
+  /// «Первая партия» как миссия 0 кампании: выход и итог ведут на тропу.
+  static const String tutorialFromCampaign = '$tutorial?$fromCampaignParam=1';
+
+  /// Тропа кампании «Тропа ведьмака» (ADR 0033).
+  static const String campaign = '/campaign';
+
+  /// Выбор колоды кампании («Колода для боя»).
+  static const String campaignDecks = '$campaign/decks';
+
+  /// Параметр адреса выбора колоды: узел, в бой на который идёт игрок.
+  static const String campaignNodeParam = 'node';
+
+  /// Выбор колоды перед боем на узле [nodeId].
+  static String campaignDecksFor(String nodeId) => '$campaignDecks?$campaignNodeParam=${Uri.encodeComponent(nodeId)}';
+
+  /// Конструктор новой колоды в режиме кампании.
+  static const String campaignDeckNew = '$campaignDecks/new';
+
+  /// Параметр пути партии узла: идентификатор узла.
+  static const String campaignNodeIdParam = 'nodeId';
+
+  /// Партия узла [nodeId] кампании.
+  static String campaignPlay(String nodeId) => '$campaign/play/${Uri.encodeComponent(nodeId)}';
+
   /// Настройки.
   static const String settings = '/settings';
 

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:gwent/src/features/campaign/application/watch_campaign_summary.dart';
+import 'package:gwent/src/features/campaign/domain/campaign_summary.dart';
 import 'package:gwent/src/features/deck_builder/application/watch_decks.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/menu/application/load_menu.dart';
@@ -24,8 +26,10 @@ final class MenuCubit extends Cubit<MenuState> {
     this.minSplash = const Duration(milliseconds: 1200),
     PlaySound? sound,
     WatchFirstMatchPassed? watchFirstMatchPassed,
+    WatchCampaignSummary? watchCampaignSummary,
   }) : _sound = sound,
        _watchFirstMatchPassed = watchFirstMatchPassed,
+       _watchCampaignSummary = watchCampaignSummary,
        super(const MenuLoading()) {
     unawaited(_load());
   }
@@ -34,12 +38,15 @@ final class MenuCubit extends Cubit<MenuState> {
   final WatchDecks _watchDecks;
   final PlaySound? _sound;
   final WatchFirstMatchPassed? _watchFirstMatchPassed;
+  final WatchCampaignSummary? _watchCampaignSummary;
 
   /// Наименьшее время заставки.
   final Duration minSplash;
 
   StreamSubscription<List<Deck>>? _subscription;
   StreamSubscription<bool>? _passedSubscription;
+  StreamSubscription<CampaignSummary?>? _campaignSubscription;
+  CampaignSummary? _campaign;
   MenuInfo? _info;
   bool _hasDeck = false;
 
@@ -60,6 +67,7 @@ final class MenuCubit extends Cubit<MenuState> {
     if (isClosed) return;
     await _watchPassed();
     if (isClosed) return;
+    _watchCampaign();
     try {
       _subscription = _watchDecks().listen(
         (decks) {
@@ -76,6 +84,23 @@ final class MenuCubit extends Cubit<MenuState> {
       // Колоды не читаются: меню всё равно открывается, играть нельзя.
       addError(error, stackTrace);
       _emitReady();
+    }
+  }
+
+  /// Следит за сводкой кампании для кнопки «Кампания». Сбой чтения кнопку не ломает: её просто нет.
+  void _watchCampaign() {
+    final watch = _watchCampaignSummary;
+    if (watch == null) return;
+    try {
+      _campaignSubscription = watch().listen(
+        (summary) {
+          _campaign = summary;
+          if (state is MenuReady) _emitReady();
+        },
+        onError: addError,
+      );
+    } on Object catch (error, stackTrace) {
+      addError(error, stackTrace);
     }
   }
 
@@ -124,6 +149,7 @@ final class MenuCubit extends Cubit<MenuState> {
         contentAvailable: info?.contentAvailable ?? false,
         hasDeck: _hasDeck,
         firstMatchPassed: _firstMatchPassed,
+        campaign: _campaign,
       ),
     );
   }
@@ -132,6 +158,7 @@ final class MenuCubit extends Cubit<MenuState> {
   Future<void> close() async {
     await _subscription?.cancel();
     await _passedSubscription?.cancel();
+    await _campaignSubscription?.cancel();
     return super.close();
   }
 }

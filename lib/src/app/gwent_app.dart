@@ -69,6 +69,7 @@ class _GwentAppState extends State<GwentApp> {
       widget.dependencies.watchDecks,
       sound: widget.dependencies.playSound,
       watchFirstMatchPassed: widget.dependencies.watchFirstMatchPassed,
+      watchCampaignSummary: widget.dependencies.watchCampaignSummary,
     ),
     child: MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
