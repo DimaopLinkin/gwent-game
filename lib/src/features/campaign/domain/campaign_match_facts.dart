@@ -31,7 +31,12 @@ final class RoundScore {
 final class CampaignMatchFacts {
   /// Создаёт итог партии.
   CampaignMatchFacts({required this.won, List<RoundScore> rounds = const [], this.specialsPlayed = 0})
-    : rounds = List.unmodifiable(rounds);
+    : rounds = List.unmodifiable(rounds),
+      played = true;
+
+  /// Победа без партии: «Первая партия» пройдена в обучении, и кампания засчитывает узел 0 при первом входе.
+  /// Условия дополнительной награды при этом не выполнены: «ни одной особой карты» нельзя выполнить, не играя.
+  const CampaignMatchFacts.withoutMatch() : won = true, rounds = const [], specialsPlayed = 0, played = false;
 
   /// Итог партии, снятый с журнала [record] и последней проекции [finalView] глазами места [me].
   ///
@@ -78,6 +83,9 @@ final class CampaignMatchFacts {
   /// Игрок выиграл партию. Сдача, выход и обрыв это поражение (ADR 0033).
   final bool won;
 
+  /// Партия была сыграна в кампании; `false` у [CampaignMatchFacts.withoutMatch].
+  final bool played;
+
   /// Итоги сыгранных раундов по порядку.
   final List<RoundScore> rounds;
 
@@ -87,7 +95,7 @@ final class CampaignMatchFacts {
 
   /// Выполнено ли условие [condition]. У проигранной партии условие не выполнено.
   bool meets(BonusCondition condition) {
-    if (!won) return false;
+    if (!won || !played) return false;
     return switch (condition) {
       // «2:0»: два раунда, оба выиграны, без проигранных и ничейных.
       BonusCondition.winTwoZero => rounds.length == 2 && rounds.every((round) => round.won),

@@ -26,7 +26,7 @@ final class ClaimStartingSet {
     final first = data.catalog.firstNode;
     if ((await _repository.load()).containsKey(first.id)) return null;
     if (!(await _settings.watch().first).firstMatchPassed) return null;
-    return switch (await _record(first.id, CampaignMatchFacts(won: true))) {
+    return switch (await _record(first.id, const CampaignMatchFacts.withoutMatch())) {
       final CampaignWon won => won,
       CampaignNoReward() => null,
     };

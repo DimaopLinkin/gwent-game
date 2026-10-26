@@ -381,7 +381,9 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     emit(
       MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch, rematch: _rematchOf(session)),
     );
-    await _notifyFinished(session, view);
+    // Хук идёт сам по себе: тяжёлый или зависший хук не задерживает запись в историю, а закрытие экрана не обрывает
+    // запись награды.
+    unawaited(_notifyFinished(session, view));
     if (!session.recordsHistory) return;
     try {
       final record = await _recordFinishedMatch(session, view);

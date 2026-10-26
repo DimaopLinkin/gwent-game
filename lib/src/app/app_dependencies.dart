@@ -182,7 +182,6 @@ final class AppDependencies {
       deckRepository,
       settingsRepository,
       clock,
-      idGenerator,
     );
     claimStartingSet = ClaimStartingSet(loadCampaign, campaignRepository, settingsRepository, recordCampaignResult);
     prepareCampaignMatch = PrepareCampaignMatch(

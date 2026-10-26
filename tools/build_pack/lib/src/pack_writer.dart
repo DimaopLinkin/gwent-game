@@ -19,8 +19,8 @@ final class PackOutputException implements Exception {
 
 /// Записывает файлы пакета [files] (путь → байты) в папку [out].
 ///
-/// Старые файлы пакета (`manifest.json`, `pack.json`, `campaign.json`, `strings.<язык>.json`) удаляются. Если в папке есть
-/// что-то другое, ничего не трогается и бросается [PackOutputException]: так `--out` с опечаткой не сотрёт
+/// Старые файлы пакета (`manifest.json`, `pack.json`, `campaign.json`, `strings.<язык>.json`) удаляются. Если в папке
+/// есть что-то другое, ничего не трогается и бросается [PackOutputException]: так `--out` с опечаткой не сотрёт
 /// чужие файлы.
 void writePackFiles(Directory out, Map<String, List<int>> files) {
   if (out.existsSync()) {

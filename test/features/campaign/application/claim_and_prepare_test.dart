@@ -18,6 +18,7 @@ import 'package:gwent/src/features/match_history/domain/match_record.dart' as hi
 import 'package:gwent/src/features/match_history/domain/replay_log.dart';
 import 'package:gwent/src/features/match_history/domain/replay_recorder.dart';
 import 'package:gwent_ai/gwent_ai.dart' show BotDifficulty;
+import 'package:gwent_content/gwent_content.dart' show BonusCondition;
 import 'package:gwent_engine/gwent_engine.dart' hide Deck;
 
 import '../../../support/bot_match.dart';
@@ -54,7 +55,6 @@ void main() {
       decks,
       settings,
       FakeClock(DateTime.utc(2026, 10, 27)),
-      SequentialIdGenerator(),
     );
   });
 
@@ -70,6 +70,11 @@ void main() {
       expect((await progress.load())['c1-00']!.wins, 1);
       expect((await collection.load()).copiesOf(idOf(data, 'Золтан Хивай')), 1);
       expect(await decks.watchAll().first, hasLength(1));
+    });
+
+    test('условие «без особых карт» без партии не выполнено: дополнительной награды нет', () {
+      expect(const CampaignMatchFacts.withoutMatch().meets(BonusCondition.noSpecials), isFalse);
+      expect(const CampaignMatchFacts.withoutMatch().meets(BonusCondition.winTwoZero), isFalse);
     });
 
     test('второй вход ничего не выдаёт', () async {
@@ -135,6 +140,30 @@ void main() {
         final prepared = _preparedOpponent(data, node.id);
         expect(deckRules.check(prepared), isEmpty, reason: '${node.id}: ${deckRules.check(prepared)}');
       }
+    });
+
+    test('партия без журнала: ошибка уходит в onError, а не тихий отказ в награде', () async {
+      await passFirstNode();
+      final errors = <Object>[];
+      final prepared =
+          await prepare()('c1-01', onResult: (_) {}, onError: (error, _) => errors.add(error)) as CampaignMatchPrepared;
+      final gameContent = await readyContent(content);
+      final session = MatchSession(
+        mode: history.MatchMode.ai,
+        table: _NoTable(),
+        content: gameContent,
+        factionIds: const {Seat.one: 'a', Seat.two: 'b'},
+      );
+      final finalView = playBotMatch(
+        gameContent,
+        (await decks.watchAll().first).single,
+        prepared.request.opponentDeck!,
+      ).finalView;
+
+      await prepared.request.onFinished!(session, finalView);
+
+      expect(errors.single, isA<StateError>());
+      expect((await progress.load()).containsKey('c1-01'), isFalse);
     });
 
     test('по концу партии итог доходит до onResult: победа выдаёт награду, поражение нет', () async {

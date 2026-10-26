@@ -122,7 +122,7 @@ final class CampaignPath {
     return CampaignPath._(catalog, chapters);
   }
 
-  const CampaignPath._(this.catalog, this.chapters);
+  CampaignPath._(this.catalog, this.chapters);
 
   /// Каталог кампании.
   final CampaignCatalog catalog;
@@ -133,8 +133,10 @@ final class CampaignPath {
   /// Все узлы по порядку.
   Iterable<NodeView> get nodes => chapters.expand((chapter) => chapter.nodes);
 
+  late final Map<String, NodeView> _byId = {for (final view in nodes) view.node.id: view};
+
   /// Вид узла по идентификатору или `null`.
-  NodeView? node(String nodeId) => nodes.where((view) => view.node.id == nodeId).firstOrNull;
+  NodeView? node(String nodeId) => _byId[nodeId];
 
   /// Пройдено узлов всего.
   int get passedCount => nodes.where((node) => node.status == NodeStatus.passed).length;
@@ -155,7 +157,9 @@ final class CampaignPath {
   /// Глава, в которой сейчас идёт игрок: глава текущего узла, а без него последняя выпущенная.
   ChapterView? get currentChapter {
     final node = current;
-    if (node != null) return chapters.firstWhere((chapter) => chapter.nodes.contains(node));
+    if (node != null) {
+      return chapters.firstWhere((chapter) => chapter.nodes.any((view) => view.node.id == node.node.id));
+    }
     return chapters.where((chapter) => !chapter.isComingSoon).lastOrNull;
   }
 }

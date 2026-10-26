@@ -45,7 +45,6 @@ void main() {
       decks,
       settings,
       FakeClock(DateTime.utc(2026, 10, 27, 12)),
-      SequentialIdGenerator(),
     );
   });
 
@@ -178,6 +177,33 @@ void main() {
     });
   });
 
+  group('повторы и одновременные вызовы', () {
+    test('два одновременных вызова для одного узла выдают награду первой победы один раз', () async {
+      await passAll(['c1-00']);
+
+      final results = await Future.wait([record('c1-01', win()), record('c1-01', win())]);
+
+      expect(results.whereType<CampaignWon>().where((result) => result.firstWin), hasLength(1));
+      expect((await collection.load()).copiesOf(id('Корова')), 1);
+      expect((await progress.load())['c1-01']!.wins, 2);
+    });
+
+    test('сбой одной записи не ломает очередь: следующая запись проходит', () async {
+      await passAll(['c1-00']);
+
+      await expectLater(record('c9-99', win()), throwsArgumentError);
+
+      expect((await won('c1-01', win())).firstWin, isTrue);
+    });
+
+    test('стартовая колода одна, повторная победа в первом узле её не плодит', () async {
+      await won('c1-00', CampaignMatchFacts(won: true));
+      await won('c1-00', CampaignMatchFacts(won: true));
+
+      expect((await decks.watchAll().first).map((deck) => deck.id), [RecordCampaignResult.starterDeckId]);
+    });
+  });
+
   group('поражение и сбои', () {
     test('поражение ничего не записывает и не выдаёт', () async {
       await passAll(['c1-00']);
@@ -201,7 +227,6 @@ void main() {
         decks,
         settings,
         FakeClock(DateTime.utc(2026, 10, 27)),
-        SequentialIdGenerator(),
       );
       await passAll(['c1-00']);
 

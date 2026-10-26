@@ -64,10 +64,12 @@ final class PrepareCampaignMatch {
   /// Идентификатор колоды противника в запросе: в хранилище её нет.
   static String opponentDeckId(String nodeId) => 'campaign-opponent-$nodeId';
 
-  /// Готовит партию узла [nodeId]; итог партии придёт в [onResult] по её концу.
+  /// Готовит партию узла [nodeId]; итог партии придёт в [onResult] по её концу, а если итог не удалось посчитать
+  /// или записать, в [onError] (награда в этом случае не выдана, партию можно сыграть заново).
   Future<PrepareCampaignMatchResult> call(
     String nodeId, {
     required void Function(CampaignResult result) onResult,
+    void Function(Object error, StackTrace stackTrace)? onError,
   }) async {
     final data = await _campaign();
     final node = data?.catalog.nodesById[nodeId];
@@ -94,15 +96,23 @@ final class PrepareCampaignMatch {
         deckTwo: opponentDeck.id,
         difficulty: _botDifficulty(node.difficulty),
         opponentDeck: opponentDeck,
-        onFinished: (session, finalView) async => onResult(await _record(nodeId, _facts(session, finalView))),
+        onFinished: (session, finalView) async {
+          try {
+            onResult(await _record(nodeId, _facts(session, finalView)));
+          } on Object catch (error, stackTrace) {
+            if (onError == null) rethrow;
+            onError(error, stackTrace);
+          }
+        },
       ),
     );
   }
 
-  /// Итог партии по журналу сессии. Партия без журнала считается проигранной: награду без доказательства не выдаём.
+  /// Итог партии по журналу сессии. Партия кампании без журнала это ошибка сборки партии: без журнала нечем
+  /// подтвердить условия, а молча отказать в награде за честную победу нельзя.
   CampaignMatchFacts _facts(MatchSession session, PlayerView finalView) {
     final log = session.recorder?.log;
-    if (log is! JournalReplayLog) return CampaignMatchFacts(won: false);
+    if (log is! JournalReplayLog) throw StateError('У партии кампании нет журнала ходов');
     final content = session.content;
     return CampaignMatchFacts.fromMatch(
       record: log.journal,

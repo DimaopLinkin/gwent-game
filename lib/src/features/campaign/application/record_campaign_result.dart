@@ -1,5 +1,4 @@
 import 'package:gwent/src/core/domain/clock.dart';
-import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/features/campaign/application/load_campaign.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
@@ -90,14 +89,13 @@ final class CampaignWon extends CampaignResult {
 /// (`CampaignRepository.recordWin`). Победа в первом узле создаёт ещё и стартовую колоду кампании и запоминает её.
 final class RecordCampaignResult {
   /// Создаёт сценарий.
-  const RecordCampaignResult(
+  RecordCampaignResult(
     this._campaign,
     this._repository,
     this._collection,
     this._decks,
     this._settings,
     this._clock,
-    this._ids,
   );
 
   final LoadCampaign _campaign;
@@ -106,12 +104,26 @@ final class RecordCampaignResult {
   final DeckRepository _decks;
   final SettingsRepository _settings;
   final Clock _clock;
-  final IdGenerator _ids;
+
+  /// Идентификатор стартовой колоды кампании: колода одна, повторная запись заменяет её, а не плодит копии.
+  static const String starterDeckId = 'campaign-starter';
 
   /// Записывает итог партии узла [nodeId] по [facts].
   ///
+  /// Записи идут по одной (очередью): «прочитать прогресс, посчитать награду, записать» не должно пересекаться
+  /// у двух вызовов, иначе награда первой победы выдалась бы дважды.
+  ///
   /// Бросает [ArgumentError], если узла нет в каталоге, и [StateError], если каталога кампании нет.
-  Future<CampaignResult> call(String nodeId, CampaignMatchFacts facts) async {
+  Future<CampaignResult> call(String nodeId, CampaignMatchFacts facts) {
+    final result = _queue.then((_) => _record(nodeId, facts));
+    // Очередь не должна ломаться из-за ошибки одной записи: следующая идёт, ошибка уходит тому, кто вызывал.
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _queue = Future.value();
+
+  Future<CampaignResult> _record(String nodeId, CampaignMatchFacts facts) async {
     final data = await _campaign() ?? (throw StateError('В пакете контента нет каталога кампании'));
     final node = data.catalog.nodesById[nodeId] ?? (throw ArgumentError.value(nodeId, 'nodeId', 'Нет такого узла'));
     if (!facts.won) return const CampaignNoReward();
@@ -135,7 +147,7 @@ final class RecordCampaignResult {
       grants.update(grant.cardId, (copies) => copies + grant.copies, ifAbsent: () => grant.copies);
     }
 
-    if (firstWin && node.id == data.catalog.firstNode.id) await _saveStarterDeck(data, firstWinReward);
+    if (firstWin && node.id == data.catalog.firstNode.id) await _saveStarterDeck(data, node.reward);
     await _repository.recordWin(NodeWin(nodeId: nodeId, at: _clock.now(), grants: grants, claimsBonus: claimsBonus));
 
     final after = await _collection.load();
@@ -192,11 +204,14 @@ final class RecordCampaignResult {
       rules.leaderCards.length;
 
   /// Стартовая колода кампании: лидер из каталога и все карты награды первого узла, кроме лидеров.
+  ///
+  /// Колода пишется до победы под постоянным идентификатором: если запись победы потом не удалась, повтор заменит
+  /// колоду той же записью, а не создаст вторую.
   Future<void> _saveStarterDeck(CampaignData data, List<CardGrant> reward) async {
     final rules = data.pack.rules;
     final leader = rules.leaderCardsById[data.catalog.starterDeck.leaderId]!;
     final deck = Deck(
-      id: _ids.next(),
+      id: starterDeckId,
       name: data.text(data.catalog.starterDeck.nameKey),
       factionId: leader.fractionId,
       leaderId: leader.id,
