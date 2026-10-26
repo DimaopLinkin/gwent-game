@@ -33,6 +33,12 @@ class PlayerBarAnchors {
 
   /// Круг общего счёта.
   final GlobalKey score = GlobalKey();
+
+  /// Камни жизни.
+  final GlobalKey gems = GlobalKey();
+
+  /// Правая часть полосы: «Пас» у своего игрока.
+  final GlobalKey trailing = GlobalKey();
 }
 
 /// Полоса игрока на поле (макет поля, «Панель игрока»): высота 48 pt, поля 8, промежуток 8.
@@ -207,7 +213,10 @@ class PlayerBar extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    _Gems(remaining: lifeRemaining, total: lifeTotal, breaking: lifeBreak),
+                    KeyedSubtree(
+                      key: anchors?.gems,
+                      child: _Gems(remaining: lifeRemaining, total: lifeTotal, breaking: lifeBreak),
+                    ),
                     const SizedBox(width: 8),
                     KeyedSubtree(
                       key: anchors?.hand,
@@ -256,7 +265,11 @@ class PlayerBar extends StatelessWidget {
               onTap: onDiscardTap,
             ),
           ),
-          if (trailing != null) SizedBox(width: 70, child: Center(child: trailing)),
+          if (trailing != null)
+            KeyedSubtree(
+              key: anchors?.trailing,
+              child: SizedBox(width: 70, child: Center(child: trailing)),
+            ),
         ],
       ),
     );

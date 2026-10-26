@@ -1,3 +1,4 @@
+import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/domain/app_info.dart';
@@ -12,8 +13,11 @@ import 'package:gwent/src/features/menu/application/load_menu.dart';
 import 'package:gwent/src/features/menu/presentation/menu_cubit.dart';
 import 'package:gwent/src/features/menu/presentation/menu_state.dart';
 import 'package:gwent/src/features/settings/application/watch_settings.dart';
+import 'package:gwent/src/features/settings/domain/app_settings.dart';
+import 'package:gwent/src/features/settings/domain/settings_repository.dart';
 import 'package:gwent/src/features/sound/application/play_sound.dart';
 import 'package:gwent/src/features/sound/domain/sound_effect.dart';
+import 'package:gwent/src/features/tutorial/application/watch_first_match_passed.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../../../support/deck_rules_fixtures.dart';
@@ -151,6 +155,36 @@ void main() {
     expect(state.canPlay, isFalse);
   });
 
+  test('флаг «Первая партия пройдена» не читается: меню открывается без марки «Новое»', () async {
+    final errors = <Object>[];
+    final observer = Bloc.observer;
+    Bloc.observer = _RecordingObserver(errors);
+    addTearDown(() => Bloc.observer = observer);
+    final cubit = MenuCubit(
+      loadMenu(AssetContentSource.basePack(rootBundle)),
+      WatchDecks(decks),
+      minSplash: Duration.zero,
+      watchFirstMatchPassed: WatchFirstMatchPassed(_BrokenSettings()),
+    );
+    addTearDown(cubit.close);
+
+    final state = await ready(cubit);
+    expect(state.canPlay, isTrue);
+    expect(errors, [isA<StateError>()]);
+  });
+
+  test('поток флага закончился, не выдав значения: меню всё равно открывается', () async {
+    final cubit = MenuCubit(
+      loadMenu(AssetContentSource.basePack(rootBundle)),
+      WatchDecks(decks),
+      minSplash: Duration.zero,
+      watchFirstMatchPassed: WatchFirstMatchPassed(_EmptySettings()),
+    );
+    addTearDown(cubit.close);
+
+    expect((await ready(cubit)).canPlay, isTrue);
+  });
+
   test('меню закрыли во время заставки: ничего не падает', () async {
     final cubit = MenuCubit(
       loadMenu(AssetContentSource.basePack(rootBundle)),
@@ -178,4 +212,32 @@ final class _ThrowingAppInfo implements AppInfo {
 
   @override
   Future<String> buildNumber() => Future.error(StateError('нет данных'));
+}
+
+final class _BrokenSettings implements SettingsRepository {
+  @override
+  Stream<AppSettings> watch() => Stream.error(StateError('нет базы'));
+
+  @override
+  Future<void> save(AppSettings settings) async {}
+}
+
+final class _EmptySettings implements SettingsRepository {
+  @override
+  Stream<AppSettings> watch() => const Stream.empty();
+
+  @override
+  Future<void> save(AppSettings settings) async {}
+}
+
+class _RecordingObserver extends BlocObserver {
+  _RecordingObserver(this.errors);
+
+  final List<Object> errors;
+
+  @override
+  void onError(BlocBase<dynamic> bloc, Object error, StackTrace stackTrace) {
+    super.onError(bloc, error, stackTrace);
+    errors.add(error);
+  }
 }

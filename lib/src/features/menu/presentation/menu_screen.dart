@@ -23,6 +23,7 @@ class MenuScreen extends StatefulWidget {
     required this.onNetworkGame,
     required this.onDecks,
     required this.onHistory,
+    required this.onTutorial,
     required this.onSettings,
   });
 
@@ -40,6 +41,9 @@ class MenuScreen extends StatefulWidget {
 
   /// История партий.
   final VoidCallback onHistory;
+
+  /// Обучение: «Первая партия».
+  final VoidCallback onTutorial;
 
   /// Настройки.
   final VoidCallback onSettings;
@@ -67,6 +71,7 @@ class _MenuScreenState extends State<MenuScreen> {
               onNetworkGame: widget.onNetworkGame,
               onDecks: widget.onDecks,
               onHistory: widget.onHistory,
+              onTutorial: widget.onTutorial,
               onSettings: widget.onSettings,
             ),
           ),
@@ -91,6 +96,7 @@ class _Menu extends StatelessWidget {
     required this.onNetworkGame,
     required this.onDecks,
     required this.onHistory,
+    required this.onTutorial,
     required this.onSettings,
   });
 
@@ -100,6 +106,7 @@ class _Menu extends StatelessWidget {
   final VoidCallback onNetworkGame;
   final VoidCallback onDecks;
   final VoidCallback onHistory;
+  final VoidCallback onTutorial;
   final VoidCallback onSettings;
 
   @override
@@ -166,8 +173,28 @@ class _Menu extends StatelessWidget {
                         labelColor: highlightDecks ? GwentColors.goldHighlight : null,
                         onPressed: onDecks,
                       ),
-                      _Button(label: l10n.menuHistory, gold: false, onPressed: onHistory),
-                      _Button(label: l10n.menuSettings, gold: false, onPressed: onSettings),
+                      Row(
+                        spacing: 8,
+                        children: [
+                          Expanded(
+                            child: _SmallButton(label: l10n.menuHistoryShort, onPressed: onHistory),
+                          ),
+                          Expanded(
+                            child: _SmallButton(
+                              label: l10n.menuTutorial,
+                              onPressed: onTutorial,
+                              mark: switch (ready) {
+                                null => null,
+                                MenuReady(firstMatchPassed: true) => _Mark.done(l10n.menuTutorialDone),
+                                MenuReady() => _Mark.fresh(l10n.menuTutorialNew),
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: _SmallButton(label: l10n.menuSettings, onPressed: onSettings),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   if (version != null)
@@ -219,6 +246,83 @@ class _Button extends StatelessWidget {
       style: (gold ?? true) ? GwentButtonStyle.primary : GwentButtonStyle.secondary,
       onPressed: onPressed,
     ),
+  );
+}
+
+/// Метка в углу малой кнопки: «Новое» у непройденного обучения, галочка у пройденного.
+class _Mark {
+  const _Mark.fresh(this.label) : fresh = true;
+  const _Mark.done(this.label) : fresh = false;
+
+  final String label;
+  final bool fresh;
+}
+
+/// Малая кнопка ряда «История / Обучение / Настройки»: подпись сжимается, а не обрезается, на узких экранах.
+class _SmallButton extends StatelessWidget {
+  const _SmallButton({required this.label, required this.onPressed, this.mark});
+
+  final String label;
+  final VoidCallback onPressed;
+  final _Mark? mark;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      SizedBox(
+        width: double.infinity,
+        child: GwentButton(
+          label: label,
+          fontSize: 16,
+          height: 48,
+          shrinkToFit: true,
+          solid: true,
+          style: GwentButtonStyle.secondary,
+          onPressed: onPressed,
+        ),
+      ),
+      if (mark case final mark?)
+        Positioned(
+          top: -7,
+          right: 8,
+          child: IgnorePointer(
+            child: Semantics(
+              label: mark.label,
+              child: ExcludeSemantics(
+                child: mark.fresh
+                    ? DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: GwentColors.gold,
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: const [BoxShadow(color: GwentColors.bg, spreadRadius: 1.5)],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          child: Text(
+                            mark.label,
+                            textScaler: TextScaler.noScaling,
+                            style: const TextStyle(
+                              fontFamily: GwentText.cormorant,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                              height: 1,
+                              letterSpacing: 11 * 0.05,
+                              color: GwentColors.onGold,
+                            ),
+                          ),
+                        ),
+                      )
+                    : const Text(
+                        '✓',
+                        textScaler: TextScaler.noScaling,
+                        style: TextStyle(fontSize: 14, height: 1, color: GwentColors.gold),
+                      ),
+              ),
+            ),
+          ),
+        ),
+    ],
   );
 }
 

@@ -34,6 +34,7 @@ class GwentButton extends StatefulWidget {
     this.labelColor,
     this.semanticsLabel,
     this.maxLines = 1,
+    this.shrinkToFit = false,
   }) : assert(height >= GwentSpace.minTapTarget, 'зона нажатия не меньше 44 pt');
 
   /// Подпись.
@@ -62,6 +63,9 @@ class GwentButton extends StatefulWidget {
 
   /// Сколько строк занимает подпись; длинная подпись узкой кнопки переносится, а не обрезается.
   final int maxLines;
+
+  /// Подпись, которая не помещается в одну строку, уменьшается, а не обрезается: для узких кнопок в ряду.
+  final bool shrinkToFit;
 
   @override
   State<GwentButton> createState() => _GwentButtonState();
@@ -128,7 +132,9 @@ class _GwentButtonState extends State<GwentButton> {
     );
     final padded = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Center(child: text),
+      child: Center(
+        child: widget.shrinkToFit ? FittedBox(fit: BoxFit.scaleDown, child: text) : text,
+      ),
     );
     return switch (widget.style) {
       GwentButtonStyle.primary when enabled => _primary(padded),

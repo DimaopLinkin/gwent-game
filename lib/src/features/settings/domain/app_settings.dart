@@ -22,6 +22,7 @@ final class AppSettings {
     this.botDifficulty = BotDifficulty.normal,
     this.localNetworkExplained = false,
     this.campaignDeckId,
+    this.firstMatchPassed = false,
   }) : assert(musicVolume >= 0 && musicVolume <= maxVolume, 'громкость музыки от 0 до $maxVolume'),
        assert(effectsVolume >= 0 && effectsVolume <= maxVolume, 'громкость эффектов от 0 до $maxVolume');
 
@@ -69,6 +70,9 @@ final class AppSettings {
   /// свободной игры кампания не использует.
   final String? campaignDeckId;
 
+  /// Игрок прошёл «Первую партию» (обучение, ADR 0034): меню перестаёт звать на неё.
+  final bool firstMatchPassed;
+
   /// Копия с другой колодой кампании; `null` стирает выбор.
   AppSettings withCampaignDeck(String? campaignDeckId) => AppSettings(
     playerName: playerName,
@@ -82,6 +86,7 @@ final class AppSettings {
     botDifficulty: botDifficulty,
     localNetworkExplained: localNetworkExplained,
     campaignDeckId: campaignDeckId,
+    firstMatchPassed: firstMatchPassed,
   );
 
   /// Копия с другим именем игрока; `null` стирает имя.
@@ -97,6 +102,7 @@ final class AppSettings {
     botDifficulty: botDifficulty,
     localNetworkExplained: localNetworkExplained,
     campaignDeckId: campaignDeckId,
+    firstMatchPassed: firstMatchPassed,
   );
 
   /// Копия с другими значениями; не названные поля остаются прежними. Имя игрока меняет [withPlayerName], колоду кампании [withCampaignDeck].
@@ -110,6 +116,7 @@ final class AppSettings {
     DateTime? contentCheckedAt,
     BotDifficulty? botDifficulty,
     bool? localNetworkExplained,
+    bool? firstMatchPassed,
   }) => AppSettings(
     playerName: playerName,
     confirmPass: confirmPass ?? this.confirmPass,
@@ -122,6 +129,7 @@ final class AppSettings {
     botDifficulty: botDifficulty ?? this.botDifficulty,
     localNetworkExplained: localNetworkExplained ?? this.localNetworkExplained,
     campaignDeckId: campaignDeckId,
+    firstMatchPassed: firstMatchPassed ?? this.firstMatchPassed,
   );
 
   @override
@@ -137,7 +145,8 @@ final class AppSettings {
       other.contentCheckedAt == contentCheckedAt &&
       other.botDifficulty == botDifficulty &&
       other.localNetworkExplained == localNetworkExplained &&
-      other.campaignDeckId == campaignDeckId;
+      other.campaignDeckId == campaignDeckId &&
+      other.firstMatchPassed == firstMatchPassed;
 
   @override
   int get hashCode => Object.hash(
@@ -152,6 +161,7 @@ final class AppSettings {
     botDifficulty,
     localNetworkExplained,
     campaignDeckId,
+    firstMatchPassed,
   );
 
   @override
@@ -159,5 +169,6 @@ final class AppSettings {
       'AppSettings(playerName: $playerName, confirmPass: $confirmPass, animationSpeed: $animationSpeed, '
       'hints: $hints, haptics: $haptics, musicVolume: $musicVolume, effectsVolume: $effectsVolume, contentCheckedAt: $contentCheckedAt, '
       'botDifficulty: $botDifficulty, '
-      'localNetworkExplained: $localNetworkExplained, campaignDeckId: $campaignDeckId)';
+      'localNetworkExplained: $localNetworkExplained, campaignDeckId: $campaignDeckId, '
+      'firstMatchPassed: $firstMatchPassed)';
 }

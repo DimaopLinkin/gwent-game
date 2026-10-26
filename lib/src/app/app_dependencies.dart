@@ -56,6 +56,9 @@ import 'package:gwent/src/features/sound/application/background_music.dart';
 import 'package:gwent/src/features/sound/application/play_sound.dart';
 import 'package:gwent/src/features/sound/domain/music_output.dart';
 import 'package:gwent/src/features/sound/domain/sound_output.dart';
+import 'package:gwent/src/features/tutorial/application/mark_first_match_passed.dart';
+import 'package:gwent/src/features/tutorial/application/start_first_match.dart';
+import 'package:gwent/src/features/tutorial/application/watch_first_match_passed.dart';
 import 'package:gwent_content/gwent_content.dart';
 import 'package:gwent_net/gwent_net.dart' show Entropy, Scheduler, SecureEntropy, SystemScheduler;
 
@@ -165,6 +168,9 @@ final class AppDependencies {
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
+    startFirstMatch = StartFirstMatch(loadGameContent, botThinkTime: botThinkTime);
+    markFirstMatchPassed = MarkFirstMatchPassed(settingsRepository);
+    watchFirstMatchPassed = WatchFirstMatchPassed(settingsRepository);
     loadReplay = LoadReplay(matchHistoryRepository, loadGameContent);
     activeNetworkGame = ActiveNetworkGame();
     loadNetworkSetup = LoadNetworkSetup(loadGameContent, appInfo, watchSettings);
@@ -274,6 +280,15 @@ final class AppDependencies {
 
   /// Запись законченной партии в историю.
   late final RecordFinishedMatch recordFinishedMatch;
+
+  /// Начало «Первой партии»: сценарная партия обучения (ADR 0034).
+  late final StartFirstMatch startFirstMatch;
+
+  /// Запоминает, что игрок прошёл «Первую партию».
+  late final MarkFirstMatchPassed markFirstMatchPassed;
+
+  /// Следит за тем, прошёл ли игрок «Первую партию»: меню по нему ставит марку «Новое».
+  late final WatchFirstMatchPassed watchFirstMatchPassed;
 
   /// Загрузка реплея партии из истории.
   late final LoadReplay loadReplay;
