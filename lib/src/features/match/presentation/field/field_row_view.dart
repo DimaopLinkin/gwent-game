@@ -435,7 +435,8 @@ class _FieldCard extends StatelessWidget {
   }
 }
 
-/// Зона магнита карты ряда (Чучело, макет 14): ловит бросок и называет себя перед `DragHover`.
+/// Зона магнита карты ряда (Чучело, макет 14): ловит бросок и называет себя перед `DragHover`. Сама ничего не рисует:
+/// захваченную карту показывает подъём (`LiftedCard`).
 ///
 /// Зона шире карты, но не пересекается с соседними (`FieldGeometry.magnetZones`), поэтому палец в щели или у края
 /// ряда достаётся ближайшей допустимой карте, а над картой, на которую играть нельзя (герой), зоны нет и ничего не
@@ -476,14 +477,7 @@ class _MagnetZone extends StatelessWidget {
       },
       onLeave: (_) => onDragLeave?.call(_target),
       onAcceptWithDetails: (details) => onDrop?.call(details.data, card),
-      builder: (context, candidates, _) => Stack(
-        children: [
-          TargetHighlight(
-            radius: 3,
-            look: candidates.isNotEmpty ? TargetLook.hot : TargetLook.candidate,
-          ),
-        ],
-      ),
+      builder: (context, candidates, _) => const SizedBox.expand(),
     ),
   );
 }
