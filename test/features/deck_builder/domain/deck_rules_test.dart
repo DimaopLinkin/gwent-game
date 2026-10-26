@@ -146,6 +146,35 @@ void main() {
       expect(rules.refusalToAdd(withWarriors, warrior, owned: owned), AddRefusal.allCopiesInDeck);
     });
 
+    test('лидер другой фракции и неизвестная карта проверяются вместе с коллекцией', () {
+      final deck = smallSkelligeDeck(leaderId: Small.eredin, cards: const {Small.warrior: 3, 'нет такой': 1});
+      final owned = CardCollection(const {Small.eredin: 1, Small.warrior: 3});
+
+      expect(rules.check(deck, owned: owned), [
+        const DeckRuleViolation(WrongFaction(CardId(Small.warrior))),
+        const DeckRuleViolation(UnknownCard(CardId('нет такой'))),
+        const DeckRuleViolation(TooFewUnitCards(count: 3, min: 5)),
+        const LeaderOfOtherFaction(leaderId: Small.eredin, leaderFactionId: Small.monsters),
+        const CardNotOwned(cardId: 'нет такой', copies: 1, owned: 0),
+      ]);
+    });
+
+    test('закрытая особая карта при заполненном лимите особых: причина — карта закрыта', () {
+      final draft = DeckDraft(
+        name: 'Новая',
+        factionId: Small.skellige,
+        cards: const {Small.frost: 1, Small.horn: 1},
+      );
+      final owned = CardCollection(const {Small.frost: 1, Small.horn: 1});
+
+      expect(rules.refusalToAdd(draft, rules.cardsById[Small.mardroeme]!, owned: owned), AddRefusal.notOpened);
+      expect(rules.refusalToAdd(draft, rules.cardsById[Small.frost]!, owned: owned), AddRefusal.allOpenedCopiesInDeck);
+      expect(
+        rules.refusalToAdd(draft, rules.cardsById[Small.frost]!, owned: CardCollection(const {Small.frost: 3})),
+        AddRefusal.specialLimit,
+      );
+    });
+
     test('предел копий карты в конструкторе: меньшее из набора и открытого', () {
       final warrior = rules.cardsById[Small.warrior]!;
 

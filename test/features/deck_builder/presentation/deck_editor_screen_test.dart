@@ -410,6 +410,35 @@ void main() {
       expect(find.text(l10n.deckIssueLeaderNotOpened), findsOneWidget);
     });
 
+    testWidgets('вкладка «Колода»: закрытая карта из колоды свободной игры подписана «закрыта» и убирается', (
+      tester,
+    ) async {
+      await repository.save(skelligeDeck());
+      await pumpEditor(tester, deckId: 'deck-1', owned: const {});
+
+      // Сохранённая колода открывается на вкладке «Колода».
+      expect(find.text(l10n.editorCopiesLocked), findsWidgets);
+      final before = (await repository.findById('deck-1'))!.cardCount;
+
+      await tester.tap(find.byType(GwentCard).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.editorSaveDraft));
+      await tester.pump();
+      await tester.pump();
+
+      expect((await repository.findById('deck-1'))!.cardCount, lessThan(before));
+    });
+
+    testWidgets('просмотр закрытой карты: вместо числа копий «Откроется в кампании», добавить нельзя', (tester) async {
+      await pumpEditor(tester, owned: const {});
+
+      await tester.longPress(find.byType(GwentCard).at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.editorPreviewLocked), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('на маленьком экране ничего не переполняется', (tester) async {
       await pumpEditor(tester, owned: const {}, size: const Size(320, 568));
 

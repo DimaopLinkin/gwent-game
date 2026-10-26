@@ -71,6 +71,16 @@ void main() {
       expect(settings.saved.campaignDeckId, isNull);
     });
 
+    test('колода, нарушающая обычные правила, отклоняется, даже когда все карты открыты', () async {
+      await decks.save(smallSkelligeDeck(id: 'short', cards: const {Small.warrior: 3, Small.cerys: 1}));
+      await collection.grant(everything);
+
+      await expectLater(
+        choose()('short'),
+        throwsA(isA<InvalidDeckException>().having((e) => e.issues, 'issues', [isA<DeckRuleViolation>()])),
+      );
+    });
+
     test('колоды нет: DeckNotFoundException', () async {
       await expectLater(choose()('нет такой'), throwsA(isA<DeckNotFoundException>()));
     });
@@ -112,6 +122,22 @@ void main() {
       await decks.save(skellige.copyWith(leaderId: Small.bran));
 
       expect((await get()())?.id, 'newer');
+    });
+
+    test('выбора не было: берётся самая недавно изменённая из нескольких годных колод', () async {
+      await collection.grant(everything);
+      await decks.save(smallSkelligeDeck(id: 'newer', updatedAt: DateTime.utc(2026, 10, 25)));
+
+      expect((await get()())?.id, 'newer');
+    });
+
+    test('выбранную колоду удалили: берётся годная колода, выбор не падает', () async {
+      await collection.grant(everything);
+      await choose()('skellige');
+      await decks.delete('skellige');
+      await decks.save(smallSkelligeDeck(id: 'other'));
+
+      expect((await get()())?.id, 'other');
     });
 
     test('годных колод нет: null, и колода сама не создаётся', () async {

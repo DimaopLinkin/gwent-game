@@ -147,16 +147,18 @@ void main() {
     expect(schema.rawDatabase.select('PRAGMA user_version').single['user_version'], db.schemaVersion);
   });
 
-  test('число открытых копий в базе не бывает меньше единицы', () async {
-    final schema = await verifier.schemaAt(5);
-    final db = AppDatabase(schema.newConnection());
-    addTearDown(db.close);
+  for (final from in [4, 5]) {
+    test('число открытых копий в базе не бывает меньше единицы (база с версии $from)', () async {
+      final schema = await verifier.schemaAt(from);
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
 
-    await expectLater(
-      db.into(db.ownedCardEntries).insert(OwnedCardEntriesCompanion.insert(cardId: 'card', copies: 0)),
-      throwsA(isA<Object>()),
-    );
-  });
+      await expectLater(
+        db.into(db.ownedCardEntries).insert(OwnedCardEntriesCompanion.insert(cardId: 'card', copies: 0)),
+        throwsA(predicate<Object>((error) => error.toString().contains('CHECK constraint failed'))),
+      );
+    });
+  }
 
   test('сбой шага откатывает всё обновление и не двигает версию', () async {
     final schema = await verifier.schemaAt(1);

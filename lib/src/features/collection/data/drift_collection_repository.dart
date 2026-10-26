@@ -23,12 +23,12 @@ final class DriftCollectionRepository implements CollectionRepository {
     }
     await _db.transaction(() async {
       for (final MapEntry(key: cardId, value: count) in copies.entries) {
-        await _db.customInsert(
-          'INSERT INTO owned_cards (card_id, copies) VALUES (?, ?) '
-          'ON CONFLICT(card_id) DO UPDATE SET copies = copies + excluded.copies',
-          variables: [Variable<String>(cardId), Variable<int>(count)],
-          updates: {_db.ownedCardEntries},
-        );
+        await _db
+            .into(_db.ownedCardEntries)
+            .insert(
+              OwnedCardEntriesCompanion.insert(cardId: cardId, copies: count),
+              onConflict: DoUpdate((old) => OwnedCardEntriesCompanion.custom(copies: old.copies + Constant(count))),
+            );
       }
     });
   }
