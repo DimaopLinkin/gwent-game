@@ -4,6 +4,7 @@ import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
+import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
 import 'package:gwent/src/features/collection/domain/collection_repository.dart';
 import 'package:gwent/src/features/collection/domain/owned_cards.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
@@ -191,6 +192,38 @@ final class InMemoryCollectionRepository implements CollectionRepository {
       _copies[cardId] = (_copies[cardId] ?? 0) + count;
     }
     _changes.add(CardCollection(_copies));
+  }
+}
+
+/// Прогресс кампании в памяти для тестов; победа пишет и награду в [collection], как транзакция Drift.
+final class InMemoryCampaignRepository implements CampaignRepository {
+  InMemoryCampaignRepository(this.collection);
+
+  final InMemoryCollectionRepository collection;
+  final Map<String, NodeProgress> _progress = {};
+  final StreamController<Map<String, NodeProgress>> _changes = StreamController.broadcast();
+
+  @override
+  Future<Map<String, NodeProgress>> load() async => Map.of(_progress);
+
+  @override
+  Stream<Map<String, NodeProgress>> watch() async* {
+    yield Map.of(_progress);
+    yield* _changes.stream;
+  }
+
+  @override
+  Future<void> recordWin(NodeWin win) async {
+    // Награда первой: если она отклонена, пометка об узле не пишется.
+    if (win.grants.isNotEmpty) await collection.grant(win.grants);
+    final existing = _progress[win.nodeId];
+    _progress[win.nodeId] = NodeProgress(
+      nodeId: win.nodeId,
+      wins: (existing?.wins ?? 0) + 1,
+      firstWinAt: existing?.firstWinAt ?? win.at,
+      bonusClaimedAt: existing?.bonusClaimedAt ?? (win.claimsBonus ? win.at : null),
+    );
+    _changes.add(Map.of(_progress));
   }
 }
 

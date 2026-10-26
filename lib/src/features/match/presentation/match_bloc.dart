@@ -381,6 +381,7 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
     emit(
       MatchFinished(view: view, roster: roster, events: events, canRematch: canRematch, rematch: _rematchOf(session)),
     );
+    await _notifyFinished(session, view);
     if (!session.recordsHistory) return;
     try {
       final record = await _recordFinishedMatch(session, view);
@@ -398,6 +399,17 @@ final class MatchBloc extends Bloc<MatchEvent, MatchScreenState> {
       );
     } on Object catch (error, stackTrace) {
       // Итог партии важнее записи в историю: экран остаётся на итоге, ошибка уходит в журнал.
+      addError(error, stackTrace);
+    }
+  }
+
+  /// Сообщает о конце партии тому, кто попросил (`MatchSession.onFinished`). Сбой хука итог партии не меняет.
+  Future<void> _notifyFinished(MatchSession session, PlayerView view) async {
+    final hook = session.onFinished;
+    if (hook == null) return;
+    try {
+      await hook(session, view);
+    } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
     }
   }

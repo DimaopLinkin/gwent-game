@@ -60,13 +60,15 @@ void main() {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    final collection = InMemoryCollectionRepository();
     await tester.pumpWidget(
       GwentApp(
         dependencies: AppDependencies(
           contentSource: source ?? AssetContentSource.basePack(rootBundle),
           appInfo: const FakeAppInfo('1.2.3'),
           deckRepository: decks,
-          collectionRepository: InMemoryCollectionRepository(),
+          collectionRepository: collection,
+          campaignRepository: InMemoryCampaignRepository(collection),
           settingsRepository: settings ?? InMemorySettingsRepository(),
           matchHistoryRepository: InMemoryMatchHistoryRepository(),
           clock: FakeClock(DateTime.utc(2026, 10, 11)),
