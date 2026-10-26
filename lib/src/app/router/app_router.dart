@@ -11,6 +11,10 @@ import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.d
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_screen.dart';
+import 'package:gwent/src/features/how_to_play/domain/how_to_topic.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_play_cubit.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_play_screen.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_topic_screen.dart';
 import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_screen.dart';
@@ -288,21 +292,58 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         ),
         GoRoute(
           path: _child(AppRoutes.settings),
-          builder: (context, state) => BlocProvider(
-            create: (_) => SettingsCubit(
-              watchSettings: dependencies.watchSettings,
-              saveSettings: dependencies.saveSettings,
-              loadAboutInfo: dependencies.loadAboutInfo,
-              checkContentUpdate: dependencies.checkContentUpdate,
-              sound: dependencies.playSound,
-              haptic: dependencies.playHaptic,
-            ),
-            child: SettingsScreen(
-              // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
+          builder: (context, state) {
+            final overGame = state.uri.queryParameters[AppRoutes.overGameParam] == '1';
+            return BlocProvider(
+              create: (_) => SettingsCubit(
+                watchSettings: dependencies.watchSettings,
+                saveSettings: dependencies.saveSettings,
+                loadAboutInfo: dependencies.loadAboutInfo,
+                checkContentUpdate: dependencies.checkContentUpdate,
+                sound: dependencies.playSound,
+                haptic: dependencies.playHaptic,
+              ),
+              child: SettingsScreen(
+                // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
+                onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
+                onLicenses: () => showLicensePage(context: context, applicationName: context.l10n.appTitle),
+                onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: overGame)),
+                // Поверх партии «Первую партию» не запускают: она оборвала бы идущую игру.
+                onTutorial: overGame ? null : () => context.go(AppRoutes.tutorial),
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: _child(AppRoutes.howToPlayPath),
+          builder: (context, state) {
+            final overGame = state.uri.queryParameters[AppRoutes.overGameParam] == '1';
+            return HowToPlayScreen(
               onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
-              onLicenses: () => showLicensePage(context: context, applicationName: context.l10n.appTitle),
+              onOpen: (topic) => context.push(AppRoutes.howToTopic(topic.key)),
+              // Из партии справочник открывают поверх неё; «Первая партия» оборвала бы её.
+              onTutorial: overGame ? null : () => context.go(AppRoutes.tutorial),
+            );
+          },
+          routes: [
+            GoRoute(
+              path: ':${AppRoutes.howToTopicParam}',
+              redirect: (context, state) => HowToTopic.fromKey(state.pathParameters[AppRoutes.howToTopicParam]!) == null
+                  ? AppRoutes.howToPlay()
+                  : null,
+              builder: (context, state) {
+                final topic = HowToTopic.fromKey(state.pathParameters[AppRoutes.howToTopicParam]!)!;
+                return BlocProvider(
+                  create: (_) => HowToPlayCubit(dependencies.loadGameContent),
+                  child: HowToTopicScreen(
+                    topic: topic,
+                    onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.howToPlay()),
+                    onOpen: (next) => context.pushReplacement(AppRoutes.howToTopic(next.key)),
+                  ),
+                );
+              },
             ),
-          ),
+          ],
         ),
         GoRoute(
           path: _child(AppRoutes.tutorial),
@@ -321,7 +362,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                 markPassed: dependencies.markFirstMatchPassed,
                 onExit: () => context.go(AppRoutes.menu),
                 onPlayBot: () => context.go(AppRoutes.matchBot),
-                onSettings: () => context.push(AppRoutes.settings),
+                onSettings: () => context.push(AppRoutes.settingsOverGame),
+                onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
                 animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
                   AnimationSpeed.normal => 1,
                   AnimationSpeed.fast => StageTokens.fastFactor,
@@ -362,7 +404,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   onExit: () => context.go(AppRoutes.menu),
                   // Конструктор открывается поверх выбора, а не вместо него: после правки игрок возвращается к тому же шагу.
                   onEditDeck: (deckId) => context.push(AppRoutes.deckEdit(deckId)),
-                  onSettings: () => context.push(AppRoutes.settings),
+                  onSettings: () => context.push(AppRoutes.settingsOverGame),
+                  onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
                   confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
                   hints: (snapshot.data ?? const AppSettings()).hints,
                   animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
@@ -436,7 +479,8 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
         // Оба согласились на реванш: колоды выбирают заново в той же комнате.
         onRematchAgreed: () => context.go(AppRoutes.playRoom),
         onEditDeck: (_) {},
-        onSettings: () => context.push(AppRoutes.settings),
+        onSettings: () => context.push(AppRoutes.settingsOverGame),
+        onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
         confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
         hints: (snapshot.data ?? const AppSettings()).hints,
         animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {

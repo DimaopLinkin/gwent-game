@@ -5,7 +5,6 @@ import 'package:gwent/src/features/match/domain/rematch_offer.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/match_result_view.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
-import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 import '../../../../support/fonts.dart';
@@ -525,44 +524,6 @@ void main() {
       await tester.pump(MatchResultView.sheetSlide);
       await tester.tap(find.text('поле партии'), warnIfMissed: false);
       expect(taps, 0);
-    });
-  });
-
-  group('справочник правил', () {
-    testWidgets('разделы: цель, ряды, погода, способности, фракции с названиями из пакета', (tester) async {
-      await pumpView(tester, RulesView(roster: rosterOf(cards), onBack: () {}));
-      expect(find.text('Правила'), findsOneWidget);
-      expect(find.text('Цель'), findsOneWidget);
-      for (final title in ['Ряды', 'Погода', 'Способности', 'Фракции']) {
-        await tester.scrollUntilVisible(find.text(title), 300, scrollable: find.byType(Scrollable).first);
-        expect(find.text(title), findsOneWidget);
-      }
-      for (final faction in ['Королевства Севера', 'Нильфгаард', 'Чудовища', "Скоя'таэли", 'Скеллиге']) {
-        await tester.scrollUntilVisible(find.text(faction), 300, scrollable: find.byType(Scrollable).first);
-        expect(find.text(faction), findsOneWidget);
-      }
-    });
-
-    testWidgets('«назад» возвращается в меню паузы', (tester) async {
-      var back = 0;
-      await pumpView(tester, RulesView(roster: rosterOf(cards), onBack: () => back++));
-      await tester.tap(find.bySemanticsLabel('Назад'));
-      expect(back, 1);
-    });
-
-    testWidgets('все слова справочника умещаются на узком экране без переполнения', (tester) async {
-      await pumpView(
-        tester,
-        RulesView(roster: rosterOf(cards), onBack: () {}),
-        size: const Size(320, 568),
-      );
-      expect(tester.takeException(), isNull);
-      await tester.dragUntilVisible(
-        find.text('Скеллиге'),
-        find.byType(Scrollable).first,
-        const Offset(0, -300),
-      );
-      expect(tester.takeException(), isNull);
     });
   });
 }

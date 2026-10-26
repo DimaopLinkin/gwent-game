@@ -36,7 +36,7 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// чем идут анимации, но игрок видит ходы по порядку. Тот же порядок будет у анимаций карт (ADR 0013).
 class MatchScreen extends StatefulWidget {
   /// Создаёт экран; [onExit] уводит из партии в меню, [onEditDeck] открывает колоду в конструкторе, [confirmPass]
-  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт, [onSettings] открывает настройки
+  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт, [onSettings] открывает настройки, [onHowToPlay] — справочник «Как играть»
   /// из меню паузы.
   const MatchScreen({
     super.key,
@@ -46,6 +46,7 @@ class MatchScreen extends StatefulWidget {
     this.hints = false,
     this.animationScale = 1,
     this.onSettings,
+    this.onHowToPlay,
     this.overlay,
     this.opponentStatus,
     this.onRematchAgreed,
@@ -69,6 +70,9 @@ class MatchScreen extends StatefulWidget {
 
   /// Открыть настройки поверх партии; `null` — в меню паузы кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
+
+  /// Открыть справочник «Как играть» поверх партии; `null` — в меню паузы кнопка недоступна.
+  final VoidCallback? onHowToPlay;
 
   /// Слой поверх поля, пока партия идёт (связь в сетевой партии, ADR 0019); `null` — слоя нет.
   final Widget? overlay;
@@ -297,6 +301,7 @@ class _MatchScreenState extends State<MatchScreen> {
           confirmPass: widget.confirmPass,
           hints: widget.hints,
           onSettings: widget.onSettings,
+          onHowToPlay: widget.onHowToPlay,
           opponentStatus: widget.opponentStatus,
           lesson: widget.lesson,
         ),

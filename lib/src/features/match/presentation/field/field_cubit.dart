@@ -158,15 +158,12 @@ final class FieldCubit extends Cubit<FieldState> {
     if (state.pause != PauseLayer.none) emit(state.copyWith(pause: PauseLayer.none));
   }
 
-  /// Открывает справочник правил из меню паузы.
-  void openRules() => emit(state.copyWith(pause: PauseLayer.rules));
-
   /// Спрашивает, сдаваться ли.
   void askSurrender() => emit(state.copyWith(pause: PauseLayer.surrenderConfirm));
 
-  /// Возвращает из правил или подтверждения сдачи в меню паузы.
+  /// Возвращает из подтверждения сдачи в меню паузы.
   void backToPauseMenu() {
-    if (state.pause == PauseLayer.rules || state.pause == PauseLayer.surrenderConfirm) {
+    if (state.pause == PauseLayer.surrenderConfirm) {
       emit(state.copyWith(pause: PauseLayer.menu));
     }
   }

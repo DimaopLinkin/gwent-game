@@ -78,6 +78,24 @@ abstract final class AppRoutes {
   /// Настройки.
   static const String settings = '/settings';
 
+  /// Настройки поверх идущей партии: из них нельзя запустить «Первую партию».
+  static const String settingsOverGame = '$settings?$overGameParam=1';
+
+  /// Справочник «Как играть»: список тем.
+  static const String howToPlayPath = '/how-to-play';
+
+  /// Параметр адреса темы справочника.
+  static const String howToTopicParam = 'topic';
+
+  /// Параметр адреса: справочник открыт поверх партии, поэтому кнопки «Пройти первую партию» в нём нет.
+  static const String overGameParam = 'overGame';
+
+  /// Список тем справочника; [overGame] — открыт поверх идущей партии.
+  static String howToPlay({bool overGame = false}) => overGame ? '$howToPlayPath?$overGameParam=1' : howToPlayPath;
+
+  /// Страница темы справочника [topicKey].
+  static String howToTopic(String topicKey) => '$howToPlayPath/${Uri.encodeComponent(topicKey)}';
+
   /// Параметр пути партии: режим, `hotSeat` или `bot`.
   static const String matchModeParam = 'mode';
 

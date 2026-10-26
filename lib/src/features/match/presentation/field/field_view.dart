@@ -32,7 +32,6 @@ import 'package:gwent/src/features/match/presentation/field/play_targets.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
-import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_geometry.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_host.dart';
@@ -60,6 +59,7 @@ class FieldView extends StatefulWidget {
     this.confirmPass = false,
     this.hints = false,
     this.onSettings,
+    this.onHowToPlay,
     this.readOnly = false,
     this.opponentStatus,
     this.lesson,
@@ -85,6 +85,9 @@ class FieldView extends StatefulWidget {
 
   /// Открыть настройки поверх партии из меню паузы; `null` — кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
+
+  /// Открывает справочник «Как играть» из меню паузы; `null` — в паузе кнопки нет.
+  final VoidCallback? onHowToPlay;
 
   /// Поле только смотрят (за листом итога матча, в реплее): ходов нет, пауза и пас недоступны, системная «назад»
   /// не открывает паузу, а уходит дальше. Просмотр карт, сброса и лидера остаётся.
@@ -437,15 +440,12 @@ class _FieldViewState extends State<FieldView> {
       PauseLayer.menu => Positioned.fill(
         child: PauseMenuLayer(
           onResume: cubit.closePause,
-          onRules: cubit.openRules,
+          onHowToPlay: widget.onHowToPlay,
           onSettings: widget.onSettings,
           onSurrender: cubit.askSurrender,
           onRestart: widget.lesson?.onRestart,
           onExit: widget.lesson?.onExit,
         ),
-      ),
-      PauseLayer.rules => Positioned.fill(
-        child: RulesView(roster: widget.roster, onBack: cubit.backToPauseMenu),
       ),
       PauseLayer.surrenderConfirm => Positioned.fill(
         child: SurrenderConfirmLayer(onCancel: cubit.backToPauseMenu, onConfirm: _surrender),
