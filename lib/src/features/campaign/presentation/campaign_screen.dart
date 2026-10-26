@@ -46,8 +46,8 @@ class CampaignScreen extends StatefulWidget {
   /// Выбрать колоду кампании; с узлом после выбора идут в бой на него. Завершается, когда игрок вернулся.
   final Future<void> Function(String? nodeId) onPickDeck;
 
-  /// Собрать колоду в конструкторе кампании.
-  final VoidCallback onBuildDeck;
+  /// Собрать колоду в конструкторе кампании. Завершается, когда игрок вернулся: тропа читается заново.
+  final Future<void> Function() onBuildDeck;
 
   /// Открыть «Книгу карт»; `null` — пилюля «Книга» только показывает счёт.
   final VoidCallback? onBook;
@@ -135,9 +135,10 @@ class _CampaignScreenState extends State<CampaignScreen> {
                     widget.onPlay(nodeId);
                   },
                   onTrail: context.read<CampaignCubit>().rewardSeen,
-                  onBuildDeck: () {
-                    context.read<CampaignCubit>().rewardSeen();
-                    widget.onBuildDeck();
+                  onBuildDeck: () async {
+                    final cubit = context.read<CampaignCubit>()..rewardSeen();
+                    await widget.onBuildDeck();
+                    if (mounted) unawaited(cubit.refresh());
                   },
                 ),
             ],

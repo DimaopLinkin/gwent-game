@@ -15,6 +15,7 @@ import 'package:gwent/src/features/campaign/application/record_campaign_result.d
 import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
+import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_cubit.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_node_sheet.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_screen.dart';
@@ -66,21 +67,26 @@ void main() {
     );
   });
 
-  Future<void> pumpTrail(WidgetTester tester, {Size size = const Size(390, 844)}) async {
+  Future<void> pumpTrail(
+    WidgetTester tester, {
+    Size size = const Size(390, 844),
+    CampaignRepository? repository,
+  }) async {
+    final path = repository ?? progress;
     tester.view
       ..physicalSize = size
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final campaign = LoadCampaign(content);
     cubit = CampaignCubit(
-      WatchCampaignPath(campaign, progress),
+      WatchCampaignPath(campaign, path),
       LoadCampaignOverview(
         campaign,
-        progress,
+        path,
         collection,
         GetCampaignDeck(ListCampaignDecks(decks, GameContentDeckRulesSource(content), collection), settings),
       ),
-      ClaimStartingSet(campaign, progress, settings, record),
+      ClaimStartingSet(campaign, path, settings, record),
     );
     // Подписка создана в зоне теста: её отмена завершается там же, ждать её снаружи нельзя.
     addTearDown(() => unawaited(cubit.close()));
@@ -93,7 +99,7 @@ void main() {
             onPlay: played.add,
             onFirstMatch: () => firstMatches++,
             onPickDeck: (_) async {},
-            onBuildDeck: () {},
+            onBuildDeck: () async {},
           ),
         ),
       ),
@@ -142,6 +148,15 @@ void main() {
     );
   });
 
+  testWidgets('выдача стартового набора не удалась: тропа всё равно открывается', (tester) async {
+    await settings.save(settings.saved.copyWith(firstMatchPassed: true));
+
+    await pumpTrail(tester, repository: _FailsFirstLoad(progress));
+
+    expect(find.text(l10n.campaignTitle), findsOneWidget);
+    expect(find.text(l10n.campaignStartingSetLabel.toUpperCase()), findsNothing, reason: 'награда не выдана');
+  });
+
   testWidgets('закрытый узел: «В бой» недоступна, награда силуэтом без имён карт', (tester) async {
     await tester.runAsync(() => record('c1-00', CampaignMatchFacts(won: true)));
     await pumpTrail(tester);
@@ -179,4 +194,25 @@ Future<void> settle(WidgetTester tester) async {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+/// Хранилище прогресса, первое чтение которого падает: так «ломается» выдача стартового набора.
+final class _FailsFirstLoad implements CampaignRepository {
+  _FailsFirstLoad(this._inner);
+
+  final CampaignRepository _inner;
+  var _failed = false;
+
+  @override
+  Future<Map<String, NodeProgress>> load() {
+    if (_failed) return _inner.load();
+    _failed = true;
+    return Future.error(StateError('база недоступна'));
+  }
+
+  @override
+  Stream<Map<String, NodeProgress>> watch() => _inner.watch();
+
+  @override
+  Future<void> recordWin(NodeWin win) => _inner.recordWin(win);
 }

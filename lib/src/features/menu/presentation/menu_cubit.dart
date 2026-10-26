@@ -65,9 +65,13 @@ final class MenuCubit extends Cubit<MenuState> {
     }
     await minimum;
     if (isClosed) return;
-    await _watchPassed();
-    if (isClosed) return;
-    _watchCampaign();
+    await Future.wait([_watchPassed(), _watchCampaign()]);
+    if (isClosed) {
+      // Меню закрыли, пока ждали первых значений: `close` ещё не видел этих подписок.
+      unawaited(_passedSubscription?.cancel());
+      unawaited(_campaignSubscription?.cancel());
+      return;
+    }
     try {
       _subscription = _watchDecks().listen(
         (decks) {
@@ -87,36 +91,34 @@ final class MenuCubit extends Cubit<MenuState> {
     }
   }
 
-  /// Следит за сводкой кампании для кнопки «Кампания». Сбой чтения кнопку не ломает: её просто нет.
-  void _watchCampaign() {
+  /// Следит за сводкой кампании для кнопки «Кампания» и ждёт её первого значения: кнопка стоит первой в колонке, и
+  /// если она появится позже меню, остальные кнопки сдвинутся. Сбой чтения кнопку не ломает: её просто нет.
+  Future<void> _watchCampaign() async {
     final watch = _watchCampaignSummary;
     if (watch == null) return;
-    try {
-      _campaignSubscription = watch().listen(
-        (summary) {
-          _campaign = summary;
-          if (state is MenuReady) _emitReady();
-        },
-        onError: addError,
-      );
-    } on Object catch (error, stackTrace) {
-      addError(error, stackTrace);
-    }
+    _campaignSubscription = await _listenFirst(watch(), (summary) => _campaign = summary);
   }
 
   /// Подписывается на флаг «Первая партия пройдена» и ждёт его первого значения, чтобы марка «Новое» не мигнула.
   Future<void> _watchPassed() async {
     final watch = _watchFirstMatchPassed;
     if (watch == null) return;
+    _passedSubscription = await _listenFirst(watch(), (passed) => _firstMatchPassed = passed);
+  }
+
+  /// Слушает [stream], записывая значения через [store], и завершается, когда пришло первое значение, поток
+  /// закончился или сломался: меню открывается и без него. После открытия меню новые значения перерисовывают его.
+  Future<StreamSubscription<T>?> _listenFirst<T>(Stream<T> stream, void Function(T value) store) async {
     final first = Completer<void>();
     void release() {
       if (!first.isCompleted) first.complete();
     }
 
+    StreamSubscription<T>? subscription;
     try {
-      _passedSubscription = watch().listen(
-        (passed) {
-          _firstMatchPassed = passed;
+      subscription = stream.listen(
+        (value) {
+          store(value);
           if (state is MenuReady) _emitReady();
           release();
         },
@@ -127,11 +129,11 @@ final class MenuCubit extends Cubit<MenuState> {
         onDone: release,
       );
     } on Object catch (error, stackTrace) {
-      // Флаг не читается: марки «Новое» нет, меню открывается.
       addError(error, stackTrace);
       release();
     }
     await first.future;
+    return subscription;
   }
 
   void _emitReady() {

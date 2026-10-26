@@ -24,32 +24,31 @@ final class CampaignCubit extends Cubit<CampaignState> {
 
   StreamSubscription<Object?>? _subscription;
   CampaignWon? _pending;
+  int _loads = 0;
 
   Future<void> _start() async {
     try {
       _pending = await _claimStartingSet();
-      if (isClosed) return;
-      await _reload();
-      if (isClosed) return;
-      _subscription = _watchPath()
-          .skip(1)
-          .listen(
-            (_) => unawaited(_reload()),
-            onError: addError,
-          );
     } on Object catch (error, stackTrace) {
+      // Набор не выдан сейчас: тропа всё равно открывается, а следующий вход попробует снова (выдача идемпотентна).
       addError(error, stackTrace);
-      if (!isClosed) emit(const CampaignUnavailable());
     }
+    if (isClosed) return;
+    await _reload();
+    if (isClosed) return;
+    // Первое значение потока повторяет только что прочитанное обзор; лишнее чтение отбрасывает счётчик загрузок.
+    _subscription = _watchPath().listen((_) => unawaited(_reload()), onError: addError);
   }
 
   /// Читает обзор заново: колода кампании или прогресс могли измениться.
   Future<void> refresh() => _reload();
 
   Future<void> _reload() async {
+    // Медленное старое чтение не должно затереть более новое.
+    final load = ++_loads;
     try {
       final overview = await _loadOverview();
-      if (isClosed) return;
+      if (isClosed || load != _loads) return;
       emit(overview == null ? const CampaignUnavailable() : CampaignReady(overview, pendingReward: _pending));
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);

@@ -22,6 +22,8 @@ final class CampaignDeckCubit extends Cubit<CampaignDeckState> {
   final ChooseCampaignDeck _choose;
   final LoadCampaign _campaign;
 
+  bool _confirming = false;
+
   /// Узел, в который идёт игрок; `null`, если колоду выбирают с тропы.
   final String? nodeId;
 
@@ -45,7 +47,12 @@ final class CampaignDeckCubit extends Cubit<CampaignDeckState> {
         CampaignDeckLoaded(
           data: data,
           decks: [...chosen, ...sorted.where((entry) => !chosen.contains(entry))],
-          selectedId: current?.id,
+          // Выбор, ещё не подтверждённый игроком, переживает перечитывание после конструктора, если колода годна.
+          selectedId: switch (state) {
+            CampaignDeckLoaded(:final selectedId?) when sorted.any((e) => e.deck.id == selectedId && e.isReady) =>
+              selectedId,
+            _ => current?.id,
+          },
           node: nodeId == null ? null : data.catalog.nodesById[nodeId],
         ),
       );
@@ -69,7 +76,9 @@ final class CampaignDeckCubit extends Cubit<CampaignDeckState> {
   Future<bool> confirm() async {
     final loaded = state;
     final id = loaded is CampaignDeckLoaded ? loaded.selectedId : null;
-    if (id == null) return false;
+    // Второе нажатие, пока первое пишется, ничего не делает: в бой идут один раз.
+    if (id == null || _confirming) return false;
+    _confirming = true;
     try {
       await _choose(id);
       return true;
@@ -78,6 +87,8 @@ final class CampaignDeckCubit extends Cubit<CampaignDeckState> {
       addError(error, stackTrace);
       unawaited(_load());
       return false;
+    } finally {
+      _confirming = false;
     }
   }
 }

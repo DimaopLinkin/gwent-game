@@ -97,13 +97,15 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               onFirstMatch: () => context.go(AppRoutes.tutorialFromCampaign),
               onPickDeck: (nodeId) =>
                   context.push<void>(nodeId == null ? AppRoutes.campaignDecks : AppRoutes.campaignDecksFor(nodeId)),
-              onBuildDeck: () => context.go(AppRoutes.campaignDeckNew),
+              onBuildDeck: () => context.push<void>(AppRoutes.campaignDeckNew),
             ),
           ),
           routes: [
             GoRoute(
               path: 'decks',
               builder: (context, state) => BlocProvider(
+                // Страница одна на все узлы (ключ по шаблону пути): без ключа держатель остался бы от прежнего узла.
+                key: ValueKey(state.uri.queryParameters[AppRoutes.campaignNodeParam]),
                 create: (_) => CampaignDeckCubit(
                   dependencies.listCampaignDecks,
                   dependencies.getCampaignDeck,
@@ -517,6 +519,9 @@ Widget _campaignDeckEditor(BuildContext context, AppDependencies dependencies) =
 
 /// Партия узла [nodeId] кампании: обычная партия против бота с итогом и наградой.
 Widget _campaignMatch(BuildContext context, AppDependencies dependencies, String nodeId) => BlocProvider(
+  // «Дальше» ведёт на тот же маршрут с другим узлом: страница остаётся прежней, и без ключа держатели остались бы от
+  // прежнего узла.
+  key: ValueKey(nodeId),
   create: (_) => CampaignMatchCubit(dependencies.prepareCampaignMatch, dependencies.loadCampaign, nodeId),
   child: StreamBuilder<AppSettings>(
     stream: dependencies.watchSettings(),
@@ -529,7 +534,7 @@ Widget _campaignMatch(BuildContext context, AppDependencies dependencies, String
         onExit: () => context.go(AppRoutes.campaign),
         onNext: (next) => context.go(AppRoutes.campaignPlay(next)),
         onChangeDeck: (node) => context.go(AppRoutes.campaignDecksFor(node)),
-        onBuildDeck: () => context.go(AppRoutes.campaignDeckNew),
+        onBuildDeck: () => unawaited(_buildDeckThenChoose(context, nodeId)),
         onSettings: () => context.push(AppRoutes.settingsOverGame),
         onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
         confirmPass: settings.confirmPass,
@@ -544,6 +549,12 @@ Widget _campaignMatch(BuildContext context, AppDependencies dependencies, String
     },
   ),
 );
+
+/// Собрать колоду из партии узла [nodeId] и вернуться к выбору колоды для этого же узла.
+Future<void> _buildDeckThenChoose(BuildContext context, String nodeId) async {
+  await context.push<void>(AppRoutes.campaignDeckNew);
+  if (context.mounted) context.go(AppRoutes.campaignDecksFor(nodeId));
+}
 
 /// Конструктор колоды в режиме лобби: колоду [deckId] или новую. Закрывается, вернув идентификатор сохранённой колоды
 /// (или `null`, если игрок вышел, ничего не сохранив).
