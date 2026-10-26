@@ -331,6 +331,22 @@ void main() {
       expect(find.text(l10n.editorSave), findsOneWidget);
     });
 
+    testWidgets('на маленьком экране метки групп видны, а внешняя прокрутка доходит до группы «Особые»', (
+      tester,
+    ) async {
+      await pumpEditor(tester, size: const Size(320, 568));
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsOneWidget);
+
+      await tester.dragUntilVisible(
+        find.text(l10n.editorGroupSpecials.toUpperCase()),
+        find.byType(SingleChildScrollView).first,
+        const Offset(0, -300),
+      );
+
+      expect(find.text(l10n.editorGroupSpecials.toUpperCase()), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('на маленьком экране кнопки сохранения остаются видны, а карты прокручиваются', (tester) async {
       await repository.save(skelligeDeck());
       await pumpEditor(tester, deckId: 'deck-1', size: const Size(320, 568));

@@ -53,7 +53,7 @@ final class CollectionCard {
     required this.isNeutral,
     required this.kind,
     required this.maxCopies,
-    this.name = '',
+    required this.name,
     this.placement,
     this.strength = 0,
   });
