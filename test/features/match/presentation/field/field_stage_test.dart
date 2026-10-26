@@ -12,6 +12,7 @@ import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_layer.dart';
+import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_round_views.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_tokens.dart';
 import 'package:gwent_engine/gwent_engine.dart';
@@ -98,6 +99,30 @@ void main() {
       cubit.endStage(cubit.state.stage!.id);
       expect(cubit.state.stage, isNull);
       expect(cubit.state.isBusy, isFalse);
+    });
+
+    test('сценарий хода берёт места карт по порядку руки на экране, а не по порядку проекции', () {
+      final strong = cards.hero();
+      final weak = cards.unit(Row.melee);
+      final before = viewOf(cards, me: sideOf(cards, Seat.one, hand: [strong, weak]));
+      final after = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: [strong],
+          rows: {
+            Row.melee: rowOf([weak], cards),
+          },
+          score: cards.strength(weak),
+        ),
+      );
+      feed(before, const []);
+      feed(after, [CardPlayed(Seat.one, weak), UnitPlaced(Seat.one, Row.melee, weak, EntrySource.hand)]);
+
+      final flight = cubit.state.stage!.frameAt(0).items.whereType<CardFlightItem>().single;
+
+      expect(flight.from, isA<HandPlace>().having((place) => place.index, 'index', 0), reason: 'слабая карта слева');
     });
 
     test('сценарий чужого номера поле не снимает', () {
