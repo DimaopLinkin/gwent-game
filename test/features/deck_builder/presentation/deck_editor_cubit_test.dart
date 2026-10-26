@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/features/collection/application/load_collection.dart';
 import 'package:gwent/src/features/deck_builder/application/get_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/load_deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
+import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules_source.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
@@ -24,13 +26,19 @@ void main() {
 
   setUp(() => repository = InMemoryDeckRepository());
 
-  Future<DeckEditorCubit> open({String? deckId, DeckRulesSource? source, PlaySound? sound}) async {
+  Future<DeckEditorCubit> open({
+    String? deckId,
+    DeckRulesSource? source,
+    PlaySound? sound,
+    Map<String, int>? owned,
+  }) async {
     final cubit = DeckEditorCubit(
       loadDeckRules: LoadDeckRules(source ?? FakeDeckRulesSource()),
       getDeck: GetDeck(repository),
       saveDeck: SaveDeck(repository, FakeClock(DateTime.utc(2026, 10, 18)), SequentialIdGenerator()),
       newDeckName: 'Новая колода',
       deckId: deckId,
+      loadCollection: owned == null ? null : LoadCollection(InMemoryCollectionRepository(owned)),
       sound: sound,
     );
     addTearDown(cubit.close);
@@ -401,6 +409,107 @@ void main() {
       cubit.removeCard(Small.ghoul);
 
       expect(ready(cubit).draft.cards, {Small.warrior: 3});
+    });
+  });
+
+  group('конструктор кампании: только открытые карты (ADR 0033)', () {
+    const opened = {Small.crach: 1, Small.warrior: 2, Small.geralt: 1};
+
+    test('свободная игра: все карты доступны, коллекции у конструктора нет', () async {
+      final state = ready(await open());
+
+      expect(state.isCampaign, isFalse);
+      expect(state.collection.every((entry) => !entry.locked && !entry.blocked), isTrue);
+    });
+
+    test('закрытые карты помечены, у открытых предел копий равен открытому числу', () async {
+      final state = ready(await open(owned: opened));
+
+      expect(state.isCampaign, isTrue);
+      final byId = {for (final entry in state.collection) entry.card.id: entry};
+      expect(byId[Small.warrior]!.limit, 2);
+      expect(byId[Small.warrior]!.locked, isFalse);
+      expect(byId[Small.geralt]!.limit, 1);
+      expect(byId[Small.cerys]!.locked, isTrue);
+      expect(byId[Small.cerys]!.blocked, isTrue);
+      expect(byId[Small.frost]!.locked, isTrue);
+    });
+
+    test('закрытую карту положить нельзя: в подсказке причина, состав не меняется', () async {
+      final cubit = await open(owned: opened);
+
+      cubit.addCard(Small.cerys);
+
+      expect(ready(cubit).draft.cards, isEmpty);
+      expect(ready(cubit).message?.refusal, AddRefusal.notOpened);
+    });
+
+    test('открытых копий больше нет: третья копия не кладётся', () async {
+      final cubit = await open(owned: opened);
+
+      cubit
+        ..addCard(Small.warrior)
+        ..addCard(Small.warrior)
+        ..addCard(Small.warrior);
+
+      expect(ready(cubit).draft.copiesOf(Small.warrior), 2);
+      expect(ready(cubit).message?.refusal, AddRefusal.allOpenedCopiesInDeck);
+      expect(ready(cubit).collection.firstWhere((entry) => entry.card.id == Small.warrior).blocked, isTrue);
+    });
+
+    test('«Только доступные» скрывает закрытые карты', () async {
+      final cubit = await open(owned: opened)
+        ..toggleOnlyAvailable();
+
+      expect(ready(cubit).visible.map((entry) => entry.card.id).toSet(), {Small.warrior, Small.geralt});
+    });
+
+    test('закрытого лидера выбрать нельзя, открытого можно', () async {
+      final cubit = await open(owned: opened);
+
+      cubit.selectLeader(Small.bran);
+      expect(ready(cubit).draft.leaderId, isNull);
+
+      cubit.selectLeader(Small.crach);
+      expect(ready(cubit).draft.leaderId, Small.crach);
+    });
+
+    test('при смене фракции открытое остаётся открытым: нейтральная карта и лидеры по коллекции', () async {
+      final cubit = await open(owned: {...opened, Small.eredin: 1});
+      cubit
+        ..addCard(Small.geralt)
+        ..applyFactionChange(const FactionChange(target: 1, removed: 0));
+
+      expect(ready(cubit).isCampaign, isTrue);
+      expect(ready(cubit).draft.cards, {Small.geralt: 1});
+      expect(ready(cubit).faction.leaders.single.available, isTrue);
+    });
+
+    test('сохранённая колода свободной игры показывает, чего в кампании не хватает, и сохраняется как есть', () async {
+      await repository.save(smallSkelligeDeck());
+      final cubit = await open(deckId: 'deck-skellige', owned: opened);
+
+      expect(ready(cubit).draft.cards, smallSkelligeDeck().cards);
+      expect(ready(cubit).issues, contains(isA<CardNotOwned>()));
+      expect(ready(cubit).isValid, isFalse);
+
+      await cubit.save();
+
+      expect(cubit.state, isA<DeckEditorSaved>());
+      expect((await repository.findById('deck-skellige'))!.cards, smallSkelligeDeck().cards);
+    });
+
+    test('колода из открытого собирается и признаётся годной', () async {
+      final cubit = await open(
+        owned: {Small.crach: 1, Small.warrior: 3, Small.cerys: 1, Small.geralt: 1},
+      );
+      cubit.selectLeader(Small.crach);
+      for (final id in [Small.warrior, Small.warrior, Small.warrior, Small.cerys, Small.geralt]) {
+        cubit.addCard(id);
+      }
+
+      expect(ready(cubit).issues, isEmpty);
+      expect(ready(cubit).isValid, isTrue);
     });
   });
 }

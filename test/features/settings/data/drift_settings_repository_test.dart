@@ -44,6 +44,7 @@ void main() {
       contentCheckedAt: DateTime.utc(2026, 10, 18, 9, 30),
       botDifficulty: BotDifficulty.deathMatch,
       localNetworkExplained: true,
+      campaignDeckId: 'deck-1',
     );
 
     await repository.save(settings);
@@ -60,6 +61,17 @@ void main() {
 
     await repository.save(const AppSettings());
     expect(await db.select(db.settings).get(), isEmpty, reason: 'выключили — ключ удалён, как у умолчания');
+  });
+
+  test('выбор колоды кампании хранится отдельным ключом и стирается вместе с выбором', () async {
+    await repository.save(const AppSettings().withCampaignDeck('deck-1'));
+
+    expect((await db.select(db.settings).getSingle()).key, 'campaign_deck');
+    expect((await repository.watch().first).campaignDeckId, 'deck-1');
+
+    await repository.save(const AppSettings());
+    expect(await db.select(db.settings).get(), isEmpty);
+    expect((await repository.watch().first).campaignDeckId, isNull);
   });
 
   test('нечитаемые значения читаются как значения по умолчанию, громкость зажимается в границы', () async {

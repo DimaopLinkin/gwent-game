@@ -224,7 +224,11 @@ class _LeaderSheetState extends State<_LeaderSheet> {
                     child: GwentCard(
                       face: widget.faceOf(leader.id),
                       size: CardSize.grid,
-                      highlight: leader.id == _picked ? CardHighlight.selected : CardHighlight.normal,
+                      highlight: leader.id == _picked
+                          ? CardHighlight.selected
+                          : leader.available
+                          ? CardHighlight.normal
+                          : CardHighlight.disabled,
                     ),
                   ),
                 ),
@@ -241,7 +245,7 @@ class _LeaderSheetState extends State<_LeaderSheet> {
               SizedBox(
                 width: double.infinity,
                 child: Text(
-                  picked?.ability ?? '',
+                  picked == null ? '' : (picked.available ? picked.ability : l10n.leaderSelectLocked),
                   style: const TextStyle(
                     fontFamily: GwentText.alegreya,
                     fontSize: 16,

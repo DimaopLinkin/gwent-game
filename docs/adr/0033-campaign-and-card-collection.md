@@ -64,4 +64,8 @@
 
 ## Статус
 
-Принято. Этап 0 (этот PR): ADR, `docs/spec/campaign.md`, `docs/spec/campaign-nodes.md`, правка `main.md`. Следующие этапы: коллекция в Drift и конструкторе (этап 1), кампания первой главы с экранами по макетам и миссией 0 (этап 2), главы 2–4 и «Книга карт» (этап 3).
+Принято. Этап 0: ADR, `docs/spec/campaign.md`, `docs/spec/campaign-nodes.md`, правка `main.md`.
+
+Этап 1 сделан: схема Drift 5 (`owned_cards`, `campaign_progress`), коллекция (`lib/src/features/collection/`: `OwnedCards`, `CardCollection`, `CollectionRepository`, `DriftCollectionRepository`), правила колод с фильтром (`DeckRules.check/checkDraft/refusalToAdd(owned:)`, проблемы `CardNotOwned` и `LeaderNotOwned`, отказы `AddRefusal.notOpened` и `allOpenedCopiesInDeck`), конструктор колоды в режиме кампании (`DeckEditorCubit(loadCollection:)`: закрытые карты подписаны «закрыта», закрытый лидер недоступен), выбор колоды кампании (`lib/src/features/campaign/application/`: `ListCampaignDecks`, `ChooseCampaignDeck`, `GetCampaignDeck`; выбор лежит в `AppSettings.campaignDeckId`, ключ `campaign_deck`, активные колоды фракций не затрагиваются). Награды пока выдаёт только `CollectionRepository.grant` (прибавляет копии, предела `count` не знает): предел и запись вместе с пометкой узла в одной транзакции делает `RecordCampaignResult` на этапе 2. Входа в кампанию из приложения ещё нет, конструктор в режиме кампании открывается только из кода и тестов; список колод с отметкой годности и экран выбора колоды кампании рисуются на этапе 2 по макетам.
+
+Следующие этапы: кампания первой главы с экранами по макетам и миссией 0 (этап 2), главы 2–4 и «Книга карт» (этап 3).

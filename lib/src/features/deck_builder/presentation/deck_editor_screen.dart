@@ -198,7 +198,7 @@ class _EditorBody extends StatelessWidget {
     final confirmed = await showFactionChangeSheet(
       context,
       fromName: state.faction.name,
-      to: state.rules.factionInfos[change.target],
+      to: state.factionAt(change.target),
       removed: change.removed,
     );
     if (confirmed && context.mounted) cubit.applyFactionChange(change);
@@ -223,15 +223,14 @@ class _EditorBody extends StatelessWidget {
     if (detail == null || card == null) return;
     final copies = state.draft.copiesOf(id);
     final inCollection = state.tab == DeckEditorTab.collection;
-    final blocked = state.rules.refusalToAdd(state.draft, card) != null;
+    final blocked = state.rules.refusalToAdd(state.draft, card, owned: state.owned) != null;
+    final limit = card.limit(state.owned);
     await showDeckCardPreview(
       context,
       detail: detail,
-      meta: l10n.editorPreviewMeta(
-        card.isNeutral ? l10n.editorNeutralName : state.faction.name,
-        copies,
-        card.maxCopies,
-      ),
+      meta: limit == 0
+          ? l10n.editorPreviewLocked
+          : l10n.editorPreviewMeta(card.isNeutral ? l10n.editorNeutralName : state.faction.name, copies, limit),
       actionLabel: inCollection ? l10n.editorPreviewAdd : l10n.editorPreviewRemove,
       onAction: inCollection
           ? (blocked ? null : () => cubit.addCard(id))

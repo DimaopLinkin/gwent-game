@@ -4,6 +4,11 @@ import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
+import 'package:gwent/src/features/campaign/application/choose_campaign_deck.dart';
+import 'package:gwent/src/features/campaign/application/get_campaign_deck.dart';
+import 'package:gwent/src/features/campaign/application/list_campaign_decks.dart';
+import 'package:gwent/src/features/collection/application/load_collection.dart';
+import 'package:gwent/src/features/collection/domain/collection_repository.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/deck_builder/application/create_starter_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/deck_selection_lock.dart';
@@ -64,6 +69,7 @@ final class AppDependencies {
     required ContentSource contentSource,
     required AppInfo appInfo,
     required DeckRepository deckRepository,
+    required CollectionRepository collectionRepository,
     required SettingsRepository settingsRepository,
     required MatchHistoryRepository matchHistoryRepository,
     required Clock clock,
@@ -89,6 +95,7 @@ final class AppDependencies {
       loadGameContent: loadGameContent,
       deckRules: deckRules,
       deckRepository: deckRepository,
+      collectionRepository: collectionRepository,
       createStarterDeck: createStarterDeck,
       deckSelectionLock: deckSelectionLock,
       settingsRepository: settingsRepository,
@@ -114,6 +121,7 @@ final class AppDependencies {
     required this.loadGameContent,
     required DeckRulesSource deckRules,
     required DeckRepository deckRepository,
+    required CollectionRepository collectionRepository,
     required CreateStarterDeck createStarterDeck,
     required DeckSelectionLock deckSelectionLock,
     required SettingsRepository settingsRepository,
@@ -141,6 +149,7 @@ final class AppDependencies {
        setActiveDeck = SetActiveDeck(deckRepository, deckRules, deckSelectionLock),
        getActiveDeck = GetActiveDeck(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
        ensureStarterDecks = EnsureStarterDecks(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
+       loadCollection = LoadCollection(collectionRepository),
        watchSettings = WatchSettings(settingsRepository),
        saveSettings = SaveSettings(settingsRepository),
        loadBotDifficulty = LoadBotDifficulty(settingsRepository),
@@ -149,6 +158,9 @@ final class AppDependencies {
        checkContentUpdate = CheckContentUpdate(loadGameContent, clock),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator) {
+    listCampaignDecks = ListCampaignDecks(deckRepository, deckRules, collectionRepository);
+    chooseCampaignDeck = ChooseCampaignDeck(deckRepository, deckRules, collectionRepository, settingsRepository);
+    getCampaignDeck = GetCampaignDeck(listCampaignDecks, settingsRepository);
     chooseOpponentDeck = ChooseOpponentDeck(deckRules, seedGenerator);
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
@@ -244,6 +256,18 @@ final class AppDependencies {
 
   /// Колода бота против игрока.
   late final ChooseOpponentDeck chooseOpponentDeck;
+
+  /// Открытые карты игрока в кампании (ADR 0033); свободная игра и сеть их не читают.
+  final LoadCollection loadCollection;
+
+  /// Колоды игрока с отметкой «годна для кампании».
+  late final ListCampaignDecks listCampaignDecks;
+
+  /// Выбор колоды кампании; активные колоды свободной игры не затрагивает.
+  late final ChooseCampaignDeck chooseCampaignDeck;
+
+  /// Колода для партии кампании.
+  late final GetCampaignDeck getCampaignDeck;
 
   /// Начало местной партии (hot-seat или против бота).
   late final StartMatch startMatch;
