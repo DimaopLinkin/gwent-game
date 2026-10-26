@@ -451,6 +451,28 @@ void main() {
       expect(effects(script), [SoundEffect.unitRanged]);
     });
 
+    test('добор: новая слабая карта встаёт левее сильной, а не в конец руки', () {
+      final strong = cards.hero();
+      final weak = cards.unit(Row.melee);
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: [strong]));
+      final next = viewOf(cards, me: sideOf(cards, Seat.one, hand: [strong, weak]));
+
+      final script =
+          StageScriptBuilder(
+            prev: prev,
+            next: next,
+            catalog: content.catalog,
+            handOrder: HandOrder(content),
+          ).build(1, [
+            CardsDrawn(Seat.one, [weak]),
+          ])!;
+
+      expect(
+        script.frameAt(0).items.whereType<CardFlightItem>().single.to,
+        isA<HandPlace>().having((place) => place.index, 'index', 0).having((place) => place.count, 'count', 2),
+      );
+    });
+
     test('добор звучит один раз на пачку карт', () {
       final a = cards.unit(Row.melee);
       final b = cards.unit(Row.ranged);

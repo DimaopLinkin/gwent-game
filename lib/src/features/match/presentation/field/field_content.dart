@@ -23,6 +23,8 @@ final class FieldContent {
 
   final CardContentMapper _mapper;
 
+  late final HandOrder _handOrder = HandOrder(content);
+
   /// Погода над рядом: мороз над ближним, мгла над дальним, ливень над осадным (шторм Скеллиге ложится на два
   /// ряда и рисуется теми же слоями).
   static GwentWeather weatherOf(Row row) => switch (row) {
@@ -61,7 +63,7 @@ final class FieldContent {
   int baseStrength(CardInstance card) => unit(card)?.strength ?? 0;
 
   /// Рука слева направо, как в TW3 (`HandOrder`).
-  List<CardInstance> handOrder(List<CardInstance> hand) => HandOrder(content).sort(hand);
+  List<CardInstance> handOrder(List<CardInstance> hand) => _handOrder.sort(hand);
 
   /// Лицо и описание карты. [power] — сила на столе, [frosted] — иней на арте (ряд под погодой).
   CardDetail detail(CardInstance card, {int? power, bool frosted = false}) {
