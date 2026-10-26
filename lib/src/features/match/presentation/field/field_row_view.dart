@@ -22,7 +22,8 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// рога), карты и вуаль погоды.
 ///
 /// Нажатие по ряду принимает весь ряд 80 pt, а не карта: так проще попасть пальцем. Допустимая цель хода слабо
-/// горит золотой рамкой, цель под пальцем с картой горит ярко (`TargetHighlight`).
+/// горит золотой рамкой, цель под пальцем с картой горит ярко (`TargetHighlight`); у Чучела рамок нет, захваченный
+/// отряд показывает подъём.
 class FieldRowView extends StatelessWidget {
   /// Создаёт ряд типа [row] стороны [mine] с данными проекции [data].
   const FieldRowView({
@@ -435,11 +436,11 @@ class _FieldCard extends StatelessWidget {
   }
 }
 
-/// Зона магнита карты ряда (Чучело, макет 14): ловит бросок и называет себя перед `DragHover`.
+/// Зона магнита карты ряда (Чучело, макет 14): ловит бросок и называет себя перед `DragHover`. Сама ничего не рисует:
+/// захваченную карту показывает подъём (`LiftedCard`).
 ///
 /// Зона шире карты, но не пересекается с соседними (`FieldGeometry.magnetZones`), поэтому палец в щели или у края
-/// ряда достаётся ближайшей допустимой карте, а над картой, на которую играть нельзя (герой), зоны нет и ничего не
-/// горит. Касания зона не берёт (`HitTestBehavior.translucent`): нажатия и долгое нажатие достаются карте под ней.
+/// ряда достаётся ближайшей допустимой карте, а над картой, на которую играть нельзя (герой), зоны нет, и захвата не будет. Касания зона не берёт (`HitTestBehavior.translucent`): нажатия и долгое нажатие достаются карте под ней.
 class _MagnetZone extends StatelessWidget {
   const _MagnetZone({
     super.key,
@@ -476,14 +477,7 @@ class _MagnetZone extends StatelessWidget {
       },
       onLeave: (_) => onDragLeave?.call(_target),
       onAcceptWithDetails: (details) => onDrop?.call(details.data, card),
-      builder: (context, candidates, _) => Stack(
-        children: [
-          TargetHighlight(
-            radius: 3,
-            look: candidates.isNotEmpty ? TargetLook.hot : TargetLook.candidate,
-          ),
-        ],
-      ),
+      builder: (context, candidates, _) => const SizedBox.expand(),
     ),
   );
 }
