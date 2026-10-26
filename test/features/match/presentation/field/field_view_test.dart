@@ -32,6 +32,7 @@ import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/field/hand_view.dart';
 import 'package:gwent/src/features/match/presentation/field/lifted_card.dart';
+import 'package:gwent/src/features/match/presentation/hand_order.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
@@ -70,6 +71,9 @@ void main() {
     await loadDesignFonts();
   });
   setUp(() => cards = TestCards(content));
+
+  // Рука на экране идёт слева направо по силе, а не в порядке прихода карт.
+  List<CardInstance> onScreen(List<CardInstance> hand) => HandOrder(content).sort(hand);
 
   // Размер экрана 390×844 даёт руке 228 pt вместо 135.
   const geometry = FieldGeometry(width: 390, handHeight: 844 - 616);
@@ -1563,6 +1567,25 @@ void main() {
       await endBanners(tester);
     });
 
+    testWidgets('рука идёт слева направо по возрастанию силы, особые карты левее отрядов', (tester) async {
+      final strong = cards.hero();
+      final weak = cards.unit(Row.melee);
+      final horn = cards.special<HornCardAbility>();
+      await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: [strong, weak, horn])));
+      await endBanners(tester);
+
+      final shown = [
+        for (final element in handCards().evaluate())
+          (x: tester.getCenter(find.byWidget(element.widget)).dx, name: (element.widget as GwentCard).face.name),
+      ]..sort((a, b) => a.x.compareTo(b.x));
+      final order = [for (final card in shown) card.name];
+
+      final fieldContent = FieldContent(content: content, l10n: lookupAppLocalizations(const Locale('ru')));
+      expect(order, [
+        for (final card in [horn, weak, strong]) fieldContent.face(card).name,
+      ]);
+    });
+
     testWidgets('двенадцать карт: прокрутка вместо веера, выбранная с края карта доезжает до центра', (tester) async {
       final hand = [for (var i = 0; i < 12; i++) cards.unit(Row.values[i % 3])];
       final harness = await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, hand: hand)));
@@ -1570,7 +1593,7 @@ void main() {
       // Пятая карта торчит из-за правого края экрана: тап по видимой части выбирает её.
       await tester.tapAt(Offset(375, geometry.handTop + 80));
       await tester.pumpAndSettle();
-      expect(harness.cubit.state.selected, hand[4].id);
+      expect(harness.cubit.state.selected, onScreen(hand)[4].id, reason: 'рука на экране отсортирована по силе');
       // Список ленивый: после прокрутки номера карт в дереве сдвигаются, поэтому выбранную ищем по подсветке.
       final selected = find.descendant(
         of: find.byType(HandView),
@@ -1608,7 +1631,11 @@ void main() {
       await tester.pump();
       await gesture.moveBy(const Offset(0, -60));
       await tester.pump();
-      expect(harness.cubit.state.selected, unit.id, reason: 'вертикальный сдвиг начинает перетаскивание');
+      expect(
+        harness.cubit.state.selected,
+        onScreen(hand).first.id,
+        reason: 'вертикальный сдвиг начинает перетаскивание',
+      );
       expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
       await gesture.up();
       await tester.pumpAndSettle();

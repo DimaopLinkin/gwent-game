@@ -566,7 +566,7 @@ class _FieldViewState extends State<FieldView> {
                       child: HandView(
                         geometry: geometry,
                         cards: [
-                          for (final card in me.hand ?? const <CardInstance>[])
+                          for (final card in _fieldContent.handOrder(me.hand ?? const <CardInstance>[]))
                             if (!(frame?.handAbsent.contains(card.id) ?? false))
                               (instance: card, face: _fieldContent.face(card), enabled: me.playable.contains(card.id)),
                         ],

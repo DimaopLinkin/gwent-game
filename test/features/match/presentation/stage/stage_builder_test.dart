@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/match/presentation/hand_order.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
@@ -70,6 +71,38 @@ void main() {
       expect(end.handVeil, 0);
       expect(end.counters[(kind: StageCounter.hand, mine: true, row: null)]!.settled, isTrue);
       expect(end.counters[(kind: StageCounter.hand, mine: true, row: null)]!.to, 1);
+    });
+
+    test('карта вылетает с того места руки, где её видно: рука отсортирована по силе', () {
+      final strong = cards.hero();
+      final weak = cards.unit(Row.melee);
+      final prev = viewOf(cards, me: sideOf(cards, Seat.one, hand: [strong, weak]));
+      final next = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: [strong],
+          rows: {
+            Row.melee: rowOf([weak], cards),
+          },
+          score: cards.strength(weak),
+        ),
+      );
+      final events = [CardPlayed(Seat.one, weak), UnitPlaced(Seat.one, Row.melee, weak, EntrySource.hand)];
+
+      final script = StageScriptBuilder(
+        prev: prev,
+        next: next,
+        catalog: content.catalog,
+        handOrder: HandOrder(content),
+      ).build(1, events)!;
+
+      expect(
+        script.frameAt(0).items.whereType<CardFlightItem>().single.from,
+        isA<HandPlace>().having((place) => place.index, 'index', 0).having((place) => place.count, 'count', 2),
+        reason: 'слабая карта стоит в руке левее героя',
+      );
     });
 
     test('рука закрыта вуалью, пока идёт сценарий', () {

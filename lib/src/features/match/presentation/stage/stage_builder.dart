@@ -5,6 +5,7 @@ import 'package:flutter/animation.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
+import 'package:gwent/src/features/match/presentation/hand_order.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_beat.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
@@ -124,6 +125,7 @@ final class StageScriptBuilder {
     required this.next,
     required this.catalog,
     this.style = StageStyle.normal,
+    this.handOrder,
   }) : viewer = next.viewer {
     _init();
   }
@@ -139,6 +141,9 @@ final class StageScriptBuilder {
 
   /// Скорость и режим «Уменьшить движение».
   final StageStyle style;
+
+  /// Порядок карт в руке на экране; без него места в руке считаются по порядку проекции.
+  final HandOrder? handOrder;
 
   /// Игрок, чьими глазами смотрим.
   final Seat viewer;

@@ -5,6 +5,7 @@ import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/haptics/application/play_haptic.dart';
 import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
+import 'package:gwent/src/features/match/presentation/hand_order.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/stage/last_move_board.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
@@ -311,6 +312,7 @@ final class FieldCubit extends Cubit<FieldState> {
       next: view,
       catalog: content.catalog,
       style: style,
+      handOrder: HandOrder(content),
     ).build(++_stageCount, events);
   }
 
@@ -324,6 +326,7 @@ final class FieldCubit extends Cubit<FieldState> {
       next: view,
       catalog: content.catalog,
       style: style,
+      handOrder: HandOrder(content),
     ).buildResignation(++_stageCount, events);
   }
 
@@ -358,6 +361,7 @@ final class FieldCubit extends Cubit<FieldState> {
       next: board,
       catalog: content.catalog,
       style: style,
+      handOrder: HandOrder(content),
     ).buildLastMove(++_stageCount, moves);
     return script == null ? null : (script: script, board: board);
   }
@@ -376,6 +380,7 @@ final class FieldCubit extends Cubit<FieldState> {
       next: view,
       catalog: content.catalog,
       style: style,
+      handOrder: HandOrder(content),
     ).buildRound(++_stageCount, events, summary: summary);
   }
 
