@@ -4,6 +4,7 @@ import 'package:gwent/src/core/presentation/card/card_face.dart';
 import 'package:gwent/src/core/presentation/card/card_highlight.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
+import 'package:gwent/src/features/match/presentation/hand_order.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
 import 'package:gwent/src/features/match/presentation/start/first_player_view.dart';
@@ -310,12 +311,14 @@ void main() {
       expect(find.text('Пересдача'), findsOneWidget);
       expect(find.text('Можно заменить: 2'), findsOneWidget);
       await tester.tap(find.byType(GwentCard).first);
-      expect(intents, [RedrawCard(cardsInHand.first.id)]);
+      expect(intents, [RedrawCard(HandOrder(content).sort(cardsInHand).first.id)], reason: 'первая на экране');
       await tester.tap(find.text('Готово'));
       expect(intents.last, const FinishRedraw());
     });
 
-    testWidgets('замена: старая карта сворачивается, новая проявляется на её месте и светится', (tester) async {
+    testWidgets('замена: старая карта сворачивается, затем новая проявляется на своём месте и светится', (
+      tester,
+    ) async {
       final first = hand();
       final arrived = cards.unit(Row.siege);
       final before = viewOf(
@@ -336,14 +339,41 @@ void main() {
         localizedApp(MatchRedrawView(view: after, roster: rosterOf(cards), onIntent: (_) {})),
       );
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.byType(GwentCard), findsNWidgets(3), reason: 'посреди замены видны обе карты: уходящая и пришедшая');
-      expect(_justPlayed(tester), hasLength(1));
+      expect(find.byType(GwentCard), findsNWidgets(2), reason: 'посреди замены уходящая карта ещё на своём месте');
+      expect(_shown(tester), contains(first[0].id));
+      expect(_justPlayed(tester), isEmpty, reason: 'новая карта проявится после того, как старая свернётся');
 
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(GwentCard), findsNWidgets(2), reason: 'после замены остаётся новая карта');
+      expect(_shown(tester), isNot(contains(first[0].id)));
       expect(_justPlayed(tester), hasLength(1), reason: 'пока карту не заметили, она светится');
       await tester.pump(const Duration(milliseconds: 1500));
       expect(_justPlayed(tester), isEmpty, reason: 'свечение гаснет, когда карту заметили');
+    });
+
+    testWidgets('рука идёт в порядке руки, а пришедшая карта встаёт на отсортированное место', (tester) async {
+      final order = HandOrder(content);
+      final inHand = [cards.hero(), cards.unit(Row.melee), cards.unit(Row.ranged), cards.unit(Row.siege)];
+      final arrived = cards.unit(Row.melee);
+      MatchRedrawView viewWith(List<CardInstance> shown, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: shown, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: (_) {},
+      );
+
+      await pumpView(tester, viewWith(inHand, 2));
+      expect(_shown(tester), [for (final card in order.sort(inHand)) card.id]);
+
+      final replaced = [...inHand]..[0] = arrived;
+      await tester.pumpWidget(localizedApp(viewWith(replaced, 1)));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(_shown(tester), [for (final card in order.sort(replaced)) card.id]);
+      expect(_justPlayed(tester), hasLength(1));
+      await tester.pumpWidget(const SizedBox());
     });
 
     testWidgets('«Уменьшить движение»: карта заменяется сразу, без сворачивания', (tester) async {
@@ -523,3 +553,9 @@ void main() {
 /// Карты руки со свечением «только что пришла».
 Iterable<GwentCard> _justPlayed(WidgetTester tester) =>
     tester.widgetList<GwentCard>(find.byType(GwentCard)).where((card) => card.highlight == CardHighlight.justPlayed);
+
+/// Номера карт на экране пересдачи слева направо, сверху вниз.
+List<Object?> _shown(WidgetTester tester) => [
+  for (final card in tester.widgetList<GwentCard>(find.byType(GwentCard)))
+    (card.key! as ValueKey<CardInstanceId>).value,
+];
