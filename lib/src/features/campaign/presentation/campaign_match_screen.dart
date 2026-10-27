@@ -55,7 +55,7 @@ class CampaignMatchScreen extends StatelessWidget {
   /// Выход на тропу.
   final VoidCallback onExit;
 
-  /// «Дальше»: идти в узел с этим идентификатором.
+  /// «Дальше»: открыть на тропе лист узла с этим идентификатором (партия начинается на листе).
   final ValueChanged<String> onNext;
 
   /// «Сменить колоду» для узла с этим идентификатором.

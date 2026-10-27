@@ -77,6 +77,16 @@ class _CampaignScreenState extends State<CampaignScreen> {
     });
   }
 
+  @override
+  void didUpdateWidget(CampaignScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // «Дальше» с партии ведёт на тот же маршрут тропы с другим параметром: страница и её состояние живы (ключ страницы
+    // не зависит от query). Свежее состояние приходит после чтения заново, и слушатель откроет лист на нём.
+    if (widget.openNodeId == oldWidget.openNodeId) return;
+    _openHandled = widget.openNodeId == null;
+    if (!_openHandled) unawaited(context.read<CampaignCubit>().refresh());
+  }
+
   /// Открывает лист узла из адреса, когда тропа готова и поверх неё нет экрана награды.
   void _openRequested(CampaignState state) {
     if (_openHandled || state is! CampaignReady || state.pendingReward != null) return;
@@ -158,6 +168,7 @@ class _CampaignScreenState extends State<CampaignScreen> {
                   data: overview.data,
                   onNext: (nodeId) {
                     context.read<CampaignCubit>().rewardSeen();
+                    _openHandled = true; // лист открывает эта кнопка, а не адрес
                     // Не сразу в партию: лист узла, как у «Продолжить», где колоду и условия видно до начала.
                     final view = overview.path.node(nodeId);
                     if (view != null) unawaited(_openNode(overview, view));

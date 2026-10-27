@@ -1425,6 +1425,21 @@ void main() {
       expect(find.text('Продолжить'), findsOneWidget);
     });
 
+    testWidgets('длинная строка паузы на узком низком экране помещается', (tester) async {
+      final harness = await pumpField(
+        tester,
+        viewOf(cards),
+        pauseNote: 'Дополнительное задание: Не сыграть ни одной особой карты',
+        size: const Size(320, 568),
+      );
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.textContaining('Дополнительное задание'), findsOneWidget);
+      expect(find.text('Сдаться'), findsOneWidget);
+      expect(tester.takeException(), isNull, reason: 'панель паузы не переполняет экран');
+    });
+
     testWidgets('без строки пауза выглядит как прежде', (tester) async {
       final harness = await pumpField(tester, viewOf(cards));
       harness.cubit.openPause();
