@@ -50,6 +50,25 @@ void main() {
     }
   });
 
+  test('особые карты и «Тьма» выдаются по одной копии за узел, а не стопкой', () {
+    final spread = {
+      for (final card in rules.specialCards) card.id,
+      for (final card in rules.squadCards)
+        if (pack.text(card.nameKey) == "Гюнтер о'Дим: Тьма") card.id,
+    };
+    // Стартовый набор (первый узел) выдаётся целиком по образцу первой колоды TW3.
+    for (final node in campaign.nodes.skip(1)) {
+      for (final grant in [...node.reward, ...?node.bonus?.reward]) {
+        if (!spread.contains(grant.cardId)) continue;
+        expect(
+          grant.copies,
+          1,
+          reason: '${node.id}: ${pack.text(rules.specialCardsById[grant.cardId]?.nameKey ?? '')}',
+        );
+      }
+    }
+  });
+
   test('колоды противников воспроизводятся рецептами, руками их не правят', () {
     final generated = generateOpponentDecks(tables: realTables(), campaignDir: campaignDir);
     final committed = jsonDecode(File('${campaignDir.path}/$campaignDecksFile').readAsStringSync());

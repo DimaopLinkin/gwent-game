@@ -165,15 +165,15 @@ void main() {
       expect((await collection.load()).copiesOf(id('Мороз')), 1);
     });
 
-    test('«без особых карт»: награда Чучело ×3 только если ни одной особой карты не сыграно', () async {
+    test('«без особых карт»: награда Чучело только если ни одной особой карты не сыграно', () async {
       await passAll(['c1-00', 'c1-01']);
 
       final withSpecials = await won('c1-02', win(specials: 2));
       expect(withSpecials.bonusReward, isEmpty);
 
       final clean = await won('c1-02', win(specials: 0));
-      expect(clean.bonusReward.single.copies, 3);
-      expect((await collection.load()).copiesOf(id('Чучело')), 3);
+      expect(clean.bonusReward.single.copies, 1, reason: 'остальные Чучела приходят в c1-05 и c1-08');
+      expect((await collection.load()).copiesOf(id('Чучело')), 1);
     });
   });
 
