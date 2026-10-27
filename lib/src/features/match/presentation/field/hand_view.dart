@@ -35,6 +35,7 @@ class HandView extends StatefulWidget {
     required this.onDragEnded,
     required this.hover,
     this.hidden = const {},
+    this.cardKeys,
   });
 
   /// Размеры зон поля.
@@ -64,6 +65,10 @@ class HandView extends StatefulWidget {
   /// Карты, которые ещё летят в руку (анимации карт): место занято, карты не видно.
   final Set<CardInstanceId> hidden;
 
+  /// Метки карт: по ним слой урока находит, где карта лежит сейчас (с поворотом веера, подъёмом и прокруткой). Если не
+  /// заданы, рука держит свои.
+  final Map<CardInstanceId, GlobalKey>? cardKeys;
+
   /// Точка касания в перетаскиваемом виджете: палец в центре `DragFeedback`, мини-карта рядом с ним.
   static const Offset dragAnchor = Offset(DragFeedback.side / 2, DragFeedback.side / 2);
 
@@ -78,7 +83,9 @@ class HandView extends StatefulWidget {
 }
 
 class _HandViewState extends State<HandView> {
-  final Map<CardInstanceId, GlobalKey> _keys = {};
+  final Map<CardInstanceId, GlobalKey> _ownKeys = {};
+
+  Map<CardInstanceId, GlobalKey> get _keys => widget.cardKeys ?? _ownKeys;
 
   /// Где палец, пока карту тащат; `null`, когда не тащат.
   final ValueNotifier<Offset?> _pointer = ValueNotifier(null);
@@ -139,7 +146,10 @@ class _HandViewState extends State<HandView> {
               duration: const Duration(milliseconds: 180),
               turns: cards[i].instance.id == widget.selected ? 0 : (i - center) * rotationStep / 360,
               alignment: const Alignment(0, 1.8),
-              child: _draggable(cards[i], affinity: null),
+              child: KeyedSubtree(
+                key: _keys.putIfAbsent(cards[i].instance.id, GlobalKey.new),
+                child: _draggable(cards[i], affinity: null),
+              ),
             ),
           ),
       ],

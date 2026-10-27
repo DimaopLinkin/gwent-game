@@ -6,34 +6,49 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 
 /// Меню паузы (макет 5, раздел 4): панель по центру на затемнённом на 80 % поле.
 ///
-/// «Продолжить» — главное действие, «Правила» и «Настройки» второстепенные, «Сдаться» — приглушённый красный контур,
-/// чтобы не нажать случайно. «Настройки» недоступны, если экран настроек не передан ([onSettings] `null`). Нажатие мимо
+/// «Продолжить» — главное действие, «Как играть» и «Настройки» второстепенные, «Сдаться» — приглушённый красный контур,
+/// чтобы не нажать случайно. «Как играть» и «Настройки» недоступны, если переход не передан ([onHowToPlay] и [onSettings] `null`). Нажатие мимо
 /// панели продолжает игру.
 class PauseMenuLayer extends StatelessWidget {
   /// Создаёт меню паузы.
   const PauseMenuLayer({
     super.key,
     required this.onResume,
-    required this.onRules,
     required this.onSurrender,
+    this.onHowToPlay,
     this.onSettings,
+    this.onRestart,
+    this.onExit,
+    this.note,
   });
 
   /// Продолжить игру.
   final VoidCallback onResume;
 
-  /// Открыть правила.
-  final VoidCallback onRules;
-
   /// Спросить, сдаваться ли.
   final VoidCallback onSurrender;
+
+  /// Открыть справочник «Как играть»; `null` — кнопка недоступна.
+  final VoidCallback? onHowToPlay;
 
   /// Открыть настройки; `null` — кнопка недоступна.
   final VoidCallback? onSettings;
 
+  /// «Начать заново» в уроке («Первая партия»); вместе с [onExit] заменяет «Сдаться»: партию в обучении не проиграть.
+  final VoidCallback? onRestart;
+
+  /// «В меню» в уроке.
+  final VoidCallback? onExit;
+
+  /// Строка под заголовком (дополнительное задание узла кампании); `null` — строки нет.
+  final String? note;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final onRestart = this.onRestart;
+    final onExit = this.onExit;
+    final note = this.note;
     return _Dimmed(
       color: const Color(0xCC0A0806),
       onDismissed: onResume,
@@ -64,6 +79,18 @@ class PauseMenuLayer extends StatelessWidget {
                 ),
               ),
             ),
+            if (note != null)
+              Text(
+                note,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: GwentText.alegreya,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 16,
+                  height: 1.25,
+                  color: GwentColors.textSecondary,
+                ),
+              ),
             SizedBox(
               width: double.infinity,
               child: GwentButton(label: l10n.pauseResume, height: 58, fontSize: 24, onPressed: onResume),
@@ -71,11 +98,11 @@ class PauseMenuLayer extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: GwentButton(
-                label: l10n.pauseRules,
+                label: l10n.pauseHowToPlay,
                 style: GwentButtonStyle.secondary,
                 height: 52,
                 fontSize: 21,
-                onPressed: onRules,
+                onPressed: onHowToPlay,
               ),
             ),
             SizedBox(
@@ -88,16 +115,38 @@ class PauseMenuLayer extends StatelessWidget {
                 onPressed: onSettings,
               ),
             ),
-            SizedBox(
-              width: double.infinity,
-              child: GwentButton(
-                label: l10n.pauseSurrender,
-                style: GwentButtonStyle.danger,
-                height: 52,
-                fontSize: 21,
-                onPressed: onSurrender,
+            if (onRestart != null && onExit != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: GwentButton(
+                  label: l10n.pauseRestart,
+                  style: GwentButtonStyle.secondary,
+                  height: 52,
+                  fontSize: 21,
+                  onPressed: onRestart,
+                ),
               ),
-            ),
+              SizedBox(
+                width: double.infinity,
+                child: GwentButton(
+                  label: l10n.pauseToMenu,
+                  style: GwentButtonStyle.secondary,
+                  height: 52,
+                  fontSize: 21,
+                  onPressed: onExit,
+                ),
+              ),
+            ] else
+              SizedBox(
+                width: double.infinity,
+                child: GwentButton(
+                  label: l10n.pauseSurrender,
+                  style: GwentButtonStyle.danger,
+                  height: 52,
+                  fontSize: 21,
+                  onPressed: onSurrender,
+                ),
+              ),
           ],
         ),
       ),

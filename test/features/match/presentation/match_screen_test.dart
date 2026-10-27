@@ -497,6 +497,12 @@ void main() {
       expect(find.byType(FieldView), findsNothing);
 
       await tester.pump(const Duration(milliseconds: 1500));
+      expect(
+        find.byType(MatchRedrawView),
+        findsOneWidget,
+        reason: 'выдержка идёт от появления карты, после сворачивания',
+      );
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pump();
       expect(find.byType(MatchRedrawView), findsNothing, reason: 'выдержка кончилась: ожидание соперника или поле');
       await tester.pumpWidget(const SizedBox());

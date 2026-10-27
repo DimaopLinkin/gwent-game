@@ -17,6 +17,7 @@ import 'package:gwent/src/features/menu/presentation/menu_cubit.dart';
 import 'package:gwent/src/features/menu/presentation/menu_screen.dart';
 import 'package:gwent/src/features/menu/presentation/menu_state.dart';
 import 'package:gwent/src/features/menu/presentation/splash_layer.dart';
+import 'package:gwent/src/features/tutorial/application/watch_first_match_passed.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../../../support/fakes.dart';
@@ -48,6 +49,7 @@ void main() {
     bool waitForReady = true,
     Duration minSplash = Duration.zero,
     Size size = const Size(390, 844),
+    InMemorySettingsRepository? settings,
   }) async {
     if (reduceMotion) {
       tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
@@ -68,6 +70,7 @@ void main() {
       ),
       WatchDecks(decks),
       minSplash: minSplash,
+      watchFirstMatchPassed: settings == null ? null : WatchFirstMatchPassed(settings),
     );
     addTearDown(cubit.close);
     await tester.pumpWidget(
@@ -80,6 +83,7 @@ void main() {
             onNetworkGame: () => taps.add('network'),
             onDecks: () => taps.add('decks'),
             onHistory: () => taps.add('history'),
+            onTutorial: () => taps.add('tutorial'),
             onSettings: () => taps.add('settings'),
           ),
         ),
@@ -106,7 +110,8 @@ void main() {
       l10n.menuVsBot,
       l10n.menuNetworkGame,
       l10n.menuDecks,
-      l10n.menuHistory,
+      l10n.menuHistoryShort,
+      l10n.menuTutorial,
       l10n.menuSettings,
     ]) {
       expect(button(tester, label).onPressed, isNotNull, reason: label);
@@ -125,13 +130,14 @@ void main() {
       l10n.menuVsBot,
       l10n.menuNetworkGame,
       l10n.menuDecks,
-      l10n.menuHistory,
+      l10n.menuHistoryShort,
+      l10n.menuTutorial,
       l10n.menuSettings,
     ]) {
       await tester.ensureVisible(find.text(label));
       await tester.tap(find.text(label));
     }
-    expect(taps, ['hotSeat', 'bot', 'network', 'decks', 'history', 'settings']);
+    expect(taps, ['hotSeat', 'bot', 'network', 'decks', 'history', 'tutorial', 'settings']);
   });
 
   testWidgets('зоны нажатия кнопок меню не меньше 44 pt', (tester) async {
@@ -141,7 +147,8 @@ void main() {
       l10n.menuVsBot,
       l10n.menuNetworkGame,
       l10n.menuDecks,
-      l10n.menuHistory,
+      l10n.menuHistoryShort,
+      l10n.menuTutorial,
       l10n.menuSettings,
     ]) {
       expect(tester.getSize(find.widgetWithText(GwentButton, label)).height, greaterThanOrEqualTo(44), reason: label);
@@ -238,5 +245,35 @@ void main() {
     await pumpMenu(tester, size: const Size(320, 568));
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(find.text(l10n.menuSettings), 100, scrollable: find.byType(Scrollable).first);
+  });
+
+  testWidgets('три малые кнопки ряда помещаются на узком экране без переполнения', (tester) async {
+    await pumpMenu(tester, size: const Size(320, 568));
+    await tester.scrollUntilVisible(find.text(l10n.menuTutorial), 100, scrollable: find.byType(Scrollable).first);
+    expect(tester.takeException(), isNull);
+    for (final label in [l10n.menuHistoryShort, l10n.menuTutorial, l10n.menuSettings]) {
+      final rect = tester.getRect(find.widgetWithText(GwentButton, label));
+      expect(rect.left, greaterThanOrEqualTo(0), reason: label);
+      expect(rect.right, lessThanOrEqualTo(320), reason: label);
+    }
+  });
+
+  testWidgets('пока «Первая партия» не пройдена, «Обучение» помечено «Новое», после прохождения метки нет', (
+    tester,
+  ) async {
+    final settings = InMemorySettingsRepository();
+    await pumpMenu(tester, settings: settings);
+    expect(find.text(l10n.menuTutorialNew), findsOneWidget);
+
+    await tester.runAsync(() => settings.save(settings.saved.copyWith(firstMatchPassed: true)));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+    expect(find.text(l10n.menuTutorialNew), findsNothing);
+    expect(find.bySemanticsLabel(l10n.menuTutorialDone), findsOneWidget);
+  });
+
+  testWidgets('без слежения за флагом метки «Новое» нет', (tester) async {
+    await pumpMenu(tester);
+    expect(find.text(l10n.menuTutorialNew), findsNothing);
   });
 }

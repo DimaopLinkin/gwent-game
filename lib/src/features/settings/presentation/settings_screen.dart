@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/core/presentation/components/confirm_dialog.dart';
 import 'package:gwent/src/core/presentation/components/diamond_marker.dart';
 import 'package:gwent/src/core/presentation/components/game_loader.dart';
 import 'package:gwent/src/core/presentation/components/gwent_button.dart';
@@ -23,14 +24,32 @@ import 'package:intl/intl.dart';
 /// скорость анимаций, подсказки, громкость, подтверждение паса), сохраняются и показываются как есть. Переходы приходят
 /// снаружи: экран не знает о маршрутах.
 class SettingsScreen extends StatelessWidget {
-  /// Создаёт экран; [onBack] выходит из настроек, [onLicenses] открывает лицензии шрифтов и библиотек.
-  const SettingsScreen({super.key, required this.onBack, required this.onLicenses});
+  /// Создаёт экран; [onBack] выходит из настроек, [onLicenses] открывает лицензии шрифтов и библиотек, [onHowToPlay] — справочник «Как играть», [onTutorial] запускает
+  /// «Первую партию».
+  const SettingsScreen({
+    super.key,
+    required this.onBack,
+    required this.onLicenses,
+    this.onHowToPlay,
+    this.onTutorial,
+    this.onResetCampaign,
+  });
 
   /// Игрок вернулся назад.
   final VoidCallback onBack;
 
   /// Игрок открыл лицензии.
   final VoidCallback onLicenses;
+
+  /// Игрок открыл справочник «Как играть»; `null` — строки нет.
+  final VoidCallback? onHowToPlay;
+
+  /// Игрок запустил «Первую партию» заново; `null` — строки нет (настройки открыты поверх партии).
+  final VoidCallback? onTutorial;
+
+  /// Игрок подтвердил «Начать кампанию заново»: сбрасывает кампанию; `null` — строки нет (настройки открыты поверх
+  /// партии).
+  final Future<void> Function()? onResetCampaign;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +72,13 @@ class SettingsScreen extends StatelessWidget {
                       style: GwentText.body.copyWith(fontSize: 17, color: GwentColors.textSecondary),
                     ),
                   ),
-                  final SettingsLoaded loaded => _Settings(state: loaded, onLicenses: onLicenses),
+                  final SettingsLoaded loaded => _Settings(
+                    state: loaded,
+                    onLicenses: onLicenses,
+                    onHowToPlay: onHowToPlay,
+                    onTutorial: onTutorial,
+                    onResetCampaign: onResetCampaign,
+                  ),
                 },
               ),
             ),
@@ -65,10 +90,19 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class _Settings extends StatelessWidget {
-  const _Settings({required this.state, required this.onLicenses});
+  const _Settings({
+    required this.state,
+    required this.onLicenses,
+    this.onHowToPlay,
+    this.onTutorial,
+    this.onResetCampaign,
+  });
 
   final SettingsLoaded state;
   final VoidCallback onLicenses;
+  final VoidCallback? onHowToPlay;
+  final VoidCallback? onTutorial;
+  final Future<void> Function()? onResetCampaign;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +140,7 @@ class _Settings extends StatelessWidget {
             ),
             SettingsSwitchRow(
               label: l10n.settingsHints,
+              note: l10n.settingsHintsNote,
               value: settings.hints,
               onChanged: (value) => cubit.setHints(value: value),
             ),
@@ -114,6 +149,10 @@ class _Settings extends StatelessWidget {
               value: settings.haptics,
               onChanged: (value) => cubit.setHaptics(value: value),
             ),
+            if (onHowToPlay case final open?) SettingsLinkRow(label: l10n.settingsHowToPlay, onTap: open),
+            if (onTutorial case final start?) SettingsLinkRow(label: l10n.settingsReplayTutorial, onTap: start),
+            if (onResetCampaign case final reset?)
+              SettingsLinkRow(label: l10n.settingsResetCampaign, onTap: () => _confirmReset(context, reset)),
           ],
         ),
         const SizedBox(height: 22),
@@ -192,6 +231,27 @@ class _Settings extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Спрашивает подтверждение и сбрасывает кампанию; итог показывает сообщением внизу экрана.
+  Future<void> _confirmReset(BuildContext context, Future<void> Function() reset) async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showConfirmDialog(
+      context,
+      title: l10n.settingsResetCampaignTitle,
+      body: l10n.settingsResetCampaignBody,
+      confirmLabel: l10n.settingsResetCampaignConfirm,
+    );
+    if (!confirmed) return;
+    var message = l10n.settingsResetCampaignDone;
+    try {
+      await reset();
+    } on Object {
+      // Сброс транзакционный: при ошибке кампания осталась как была, игрок видит только сообщение.
+      message = l10n.settingsResetCampaignFailed;
+    }
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Дата проверки по местному времени игрока; `null`, если проверки ещё не было.

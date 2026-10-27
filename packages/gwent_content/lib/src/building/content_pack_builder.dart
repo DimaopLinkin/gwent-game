@@ -1,8 +1,10 @@
+import 'package:gwent_content/src/codec/campaign_codec.dart';
 import 'package:gwent_content/src/codec/manifest_codec.dart';
 import 'package:gwent_content/src/codec/rules_codec.dart';
 import 'package:gwent_content/src/codec/strings_codec.dart';
 import 'package:gwent_content/src/json/canonical_json.dart';
 import 'package:gwent_content/src/json/sha256_digest.dart';
+import 'package:gwent_content/src/model/campaign.dart';
 import 'package:gwent_content/src/model/manifest.dart';
 import 'package:gwent_content/src/model/pack_rules.dart';
 import 'package:gwent_content/src/model/string_table.dart';
@@ -39,17 +41,20 @@ final class BuiltContentPack {
 ///
 /// Записи каждой таблицы сортируются по UUID, а все файлы пишутся каноническим JSON, поэтому одинаковые данные
 /// в любом порядке дают побайтово одинаковый пакет, а `content_hash` совпадает с SHA-256 файла `pack.json`.
-/// Проверку содержимого сборка не делает: её делает загрузчик над результатом.
+/// Каталог кампании [campaign] необязателен и ложится отдельным файлом. Проверку содержимого сборка не делает:
+/// её делает загрузчик над результатом.
 BuiltContentPack buildContentPack({
   required PackIdentity identity,
   required PackRules rules,
   required Map<String, StringTable> strings,
+  CampaignCatalog? campaign,
 }) {
   final rulesBytes = canonicalJsonBytes(_sortedById(encodeRules(rules)));
   final locales = strings.keys.toList()..sort();
   final files = <String, List<int>>{
     rulesFileName: rulesBytes,
     for (final locale in locales) stringsFileName(locale): canonicalJsonBytes(encodeStrings(strings[locale]!)),
+    if (campaign != null) campaignFileName: canonicalJsonBytes(encodeCampaign(campaign)),
   };
   final paths = files.keys.toList()..sort();
   final manifest = Manifest(

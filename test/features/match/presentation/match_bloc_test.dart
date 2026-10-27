@@ -404,6 +404,61 @@ void main() {
     expect(states.last, isA<MatchInProgress>().having((state) => state.view.phase, 'phase', MatchPhase.redraw));
   });
 
+  group('хук конца партии (партия кампании, ADR 0033)', () {
+    test('вызывается один раз с итоговой проекцией, до записи в историю, и повторяется при реванше', () async {
+      final calls = <(MatchSession, PlayerView)>[];
+      var historyWhenCalled = -1;
+      final states = <MatchScreenState>[];
+      final finished = _playOut(bloc, states);
+      bloc.add(
+        MatchStartRequested(
+          LocalMatchRequest(
+            mode: LocalMatchMode.vsBot,
+            deckOne: 'skellige',
+            deckTwo: 'monsters',
+            onFinished: (session, view) async {
+              historyWhenCalled = matches.records.length;
+              calls.add((session, view));
+            },
+          ),
+        ),
+      );
+      final result = await finished;
+
+      expect(calls, hasLength(1));
+      expect(calls.single.$2.outcome, result.outcome);
+      expect(calls.single.$1.mode, history.MatchMode.ai);
+      expect(historyWhenCalled, 0, reason: 'итог сообщается раньше записи в историю');
+      expect(matches.records, hasLength(1));
+    });
+
+    test('сбой хука итог партии не ломает: экран остаётся на итоге, история пишется, ошибка уходит в журнал', () async {
+      final errors = <Object>[];
+      final observer = Bloc.observer;
+      Bloc.observer = _ErrorObserver(errors);
+      addTearDown(() => Bloc.observer = observer);
+      final states = <MatchScreenState>[];
+      final failing = newBloc();
+      final finished = _playOut(failing, states);
+      failing.add(
+        MatchStartRequested(
+          LocalMatchRequest(
+            mode: LocalMatchMode.vsBot,
+            deckOne: 'skellige',
+            deckTwo: 'monsters',
+            onFinished: (session, view) => Future.error(StateError('хук упал')),
+          ),
+        ),
+      );
+      await finished;
+      await pumpEventQueue();
+
+      expect(states.last, isA<MatchFinished>());
+      expect(matches.records, hasLength(1));
+      expect(errors.single, isA<StateError>());
+    });
+  });
+
   test('сдача: Resign на любом этапе заканчивает партию поражением и записывает её', () async {
     final states = <MatchScreenState>[];
     final subscription = bloc.stream.listen((state) {

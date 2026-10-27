@@ -95,6 +95,9 @@ final class FieldGeometry {
   /// Зона руки.
   Rect get hand => Rect.fromLTWH(0, handTop, width, handHeight);
 
+  /// Кнопка паузы: зона нажатия 44 pt у правого края, по центру центральной полосы.
+  Rect get pauseButtonRect => Rect.fromLTWH(width - 47, stripTop - (44 - stripHeight) / 2, 44, 44);
+
   /// Ряд типа [row] у соперника (сверху вниз: осадный, дальний, ближний) или у меня (ближний, дальний, осадный).
   Rect rowRect(Row row, {required bool mine}) {
     final index = mine ? row.index : Row.values.length - 1 - row.index;
@@ -205,4 +208,29 @@ final class FieldGeometry {
 
   /// Слот погоды в центральной полосе: круг ⌀28 слева, по одному на тип ряда.
   Rect weatherSlotRect(Row row) => Rect.fromLTWH(10.0 + row.index * 32, stripTop + (stripHeight - 28) / 2, 28, 28);
+}
+
+/// Как поле помещается в доступную область [maxWidth] × [maxHeight]: холст шириной экрана и высотой бюджета макета
+/// (751 pt); на низких экранах он уменьшается целиком ([scale] меньше 1), на высоких лишнее достаётся руке.
+final class FieldFit {
+  /// Считает вписывание в область.
+  FieldFit(double maxWidth, double maxHeight)
+    : scale = math.min(1.0, maxHeight / FieldGeometry.budgetHeight),
+      width = maxWidth / math.min(1.0, maxHeight / FieldGeometry.budgetHeight),
+      height = maxHeight / math.min(1.0, maxHeight / FieldGeometry.budgetHeight);
+
+  /// Во сколько раз холст уменьшен.
+  final double scale;
+
+  /// Ширина холста в его координатах.
+  final double width;
+
+  /// Высота холста в его координатах.
+  final double height;
+
+  /// Размеры зон холста.
+  FieldGeometry get geometry => FieldGeometry(
+    width: width,
+    handHeight: height - (FieldGeometry.budgetHeight - FieldGeometry.minHandHeight),
+  );
 }

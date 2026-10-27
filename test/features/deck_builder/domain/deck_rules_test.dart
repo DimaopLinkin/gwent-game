@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/features/collection/domain/owned_cards.dart';
+import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent_engine/gwent_engine.dart';
@@ -62,6 +64,125 @@ void main() {
     expect(rules.isDeckFaction(Small.skellige), isTrue);
     expect(rules.isDeckFaction(Small.common), isFalse);
     expect(rules.isDeckFaction('нет такой'), isFalse);
+  });
+
+  group('колода кампании: только открытые карты (ADR 0033)', () {
+    final everything = CardCollection(const {
+      Small.crach: 1,
+      Small.warrior: 3,
+      Small.cerys: 1,
+      Small.geralt: 1,
+      Small.frost: 3,
+    });
+
+    test('без коллекции открыто всё: колода годна, как в свободной игре', () {
+      expect(rules.check(smallSkelligeDeck()), isEmpty);
+    });
+
+    test('колода годна, если открыты лидер и все карты в нужном числе копий', () {
+      expect(rules.check(smallSkelligeDeck(), owned: everything), isEmpty);
+    });
+
+    test('пустая коллекция: закрыты лидер и каждая карта', () {
+      expect(rules.check(smallSkelligeDeck(), owned: CardCollection.empty), [
+        const LeaderNotOwned(Small.crach),
+        const CardNotOwned(cardId: Small.warrior, copies: 3, owned: 0),
+        const CardNotOwned(cardId: Small.cerys, copies: 1, owned: 0),
+        const CardNotOwned(cardId: Small.geralt, copies: 1, owned: 0),
+        const CardNotOwned(cardId: Small.frost, copies: 1, owned: 0),
+      ]);
+    });
+
+    test('открыто меньше копий, чем в колоде: проблема несёт оба числа', () {
+      final owned = CardCollection({...everything.copies, Small.warrior: 2});
+
+      expect(rules.check(smallSkelligeDeck(), owned: owned), [
+        const CardNotOwned(cardId: Small.warrior, copies: 3, owned: 2),
+      ]);
+    });
+
+    test('проблемы коллекции идут после проблем правил, правила проверяются как раньше', () {
+      final deck = smallSkelligeDeck(cards: const {Small.warrior: 3, Small.cerys: 1});
+
+      expect(rules.check(deck, owned: CardCollection(const {Small.crach: 1})), [
+        const DeckRuleViolation(TooFewUnitCards(count: 4, min: 5)),
+        const CardNotOwned(cardId: Small.warrior, copies: 3, owned: 0),
+        const CardNotOwned(cardId: Small.cerys, copies: 1, owned: 0),
+      ]);
+    });
+
+    test('черновик без лидера: лидера в коллекции искать не нужно', () {
+      final draft = DeckDraft(name: 'Новая', factionId: Small.skellige, cards: const {Small.warrior: 1});
+
+      expect(rules.checkDraft(draft, owned: everything), isNot(contains(isA<LeaderNotOwned>())));
+      expect(rules.checkDraft(draft, owned: CardCollection.empty), contains(isA<CardNotOwned>()));
+    });
+
+    test('карту нельзя добавить, пока она закрыта или открытые копии уже в колоде', () {
+      final warrior = rules.cardsById[Small.warrior]!;
+      final owned = CardCollection(const {Small.warrior: 2});
+      var draft = DeckDraft(name: 'Новая', factionId: Small.skellige);
+
+      expect(rules.refusalToAdd(draft, rules.cardsById[Small.geralt]!, owned: owned), AddRefusal.notOpened);
+      expect(rules.refusalToAdd(draft, warrior, owned: owned), isNull);
+      draft = draft.withAdded(Small.warrior).withAdded(Small.warrior);
+      expect(rules.refusalToAdd(draft, warrior, owned: owned), AddRefusal.allOpenedCopiesInDeck);
+      // Без коллекции третья копия лежит в пределах набора.
+      expect(rules.refusalToAdd(draft, warrior), isNull);
+    });
+
+    test('предел набора сильнее открытого: герой в одном экземпляре, все копии набора в колоде', () {
+      final cerys = rules.cardsById[Small.cerys]!;
+      final owned = CardCollection(const {Small.cerys: 1, Small.warrior: 5});
+      final withCerys = DeckDraft(name: 'Новая', factionId: Small.skellige).withAdded(Small.cerys);
+      final warrior = rules.cardsById[Small.warrior]!;
+      final withWarriors = DeckDraft(
+        name: 'Новая',
+        factionId: Small.skellige,
+        cards: const {Small.warrior: 3},
+      );
+
+      expect(rules.refusalToAdd(withCerys, cerys, owned: owned), AddRefusal.heroLimit);
+      expect(rules.refusalToAdd(withWarriors, warrior, owned: owned), AddRefusal.allCopiesInDeck);
+    });
+
+    test('лидер другой фракции и неизвестная карта проверяются вместе с коллекцией', () {
+      final deck = smallSkelligeDeck(leaderId: Small.eredin, cards: const {Small.warrior: 3, 'нет такой': 1});
+      final owned = CardCollection(const {Small.eredin: 1, Small.warrior: 3});
+
+      expect(rules.check(deck, owned: owned), [
+        const DeckRuleViolation(WrongFaction(CardId(Small.warrior))),
+        const DeckRuleViolation(UnknownCard(CardId('нет такой'))),
+        const DeckRuleViolation(TooFewUnitCards(count: 3, min: 5)),
+        const LeaderOfOtherFaction(leaderId: Small.eredin, leaderFactionId: Small.monsters),
+        const CardNotOwned(cardId: 'нет такой', copies: 1, owned: 0),
+      ]);
+    });
+
+    test('закрытая особая карта при заполненном лимите особых: причина — карта закрыта', () {
+      final draft = DeckDraft(
+        name: 'Новая',
+        factionId: Small.skellige,
+        cards: const {Small.frost: 1, Small.horn: 1},
+      );
+      final owned = CardCollection(const {Small.frost: 1, Small.horn: 1});
+
+      expect(rules.refusalToAdd(draft, rules.cardsById[Small.mardroeme]!, owned: owned), AddRefusal.notOpened);
+      expect(rules.refusalToAdd(draft, rules.cardsById[Small.frost]!, owned: owned), AddRefusal.allOpenedCopiesInDeck);
+      expect(
+        rules.refusalToAdd(draft, rules.cardsById[Small.frost]!, owned: CardCollection(const {Small.frost: 3})),
+        AddRefusal.specialLimit,
+      );
+    });
+
+    test('предел копий карты в конструкторе: меньшее из набора и открытого', () {
+      final warrior = rules.cardsById[Small.warrior]!;
+
+      expect(warrior.limit(null), 3);
+      expect(warrior.limit(CardCollection.empty), 0);
+      expect(warrior.limit(CardCollection(const {Small.warrior: 2})), 2);
+      expect(warrior.limit(CardCollection(const {Small.warrior: 9})), 3);
+    });
   });
 
   group('стартовая колода', () {

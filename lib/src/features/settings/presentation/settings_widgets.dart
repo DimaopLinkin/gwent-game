@@ -123,10 +123,19 @@ class SettingsValueRow extends StatelessWidget {
 /// Строка-переключатель: подпись слева, переключатель справа. Нажатие на строку переключает так же, как на сам переключатель.
 class SettingsSwitchRow extends StatelessWidget {
   /// Создаёт строку.
-  const SettingsSwitchRow({super.key, required this.label, required this.value, required this.onChanged});
+  const SettingsSwitchRow({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.note,
+  });
 
   /// Подпись.
   final String label;
+
+  /// Пояснение под подписью; `null` — без пояснения.
+  final String? note;
 
   /// Включена ли настройка.
   final bool value;
@@ -146,7 +155,25 @@ class SettingsSwitchRow extends StatelessWidget {
           child: Row(
             spacing: 12,
             children: [
-              Expanded(child: Text(label, style: _labelStyle)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 2,
+                  children: [
+                    Text(label, style: _labelStyle),
+                    if (note case final note?)
+                      Text(
+                        note,
+                        style: const TextStyle(
+                          fontFamily: GwentText.alegreya,
+                          fontSize: 13,
+                          height: 1.3,
+                          color: Color(0xFF8A7D64),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               Switch(value: value, onChanged: onChanged),
             ],
           ),

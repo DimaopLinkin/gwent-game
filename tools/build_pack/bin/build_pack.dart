@@ -7,6 +7,9 @@ const String _usage = '''
 Сборка пакета контента из docs/hand/data.
 
   dart run bin/build_pack.dart --data <docs/hand/data> --identity <docs/hand/content_pack.json> --out <папка пакета>
+      [--campaign <docs/hand/campaign>]
+
+С --campaign в пакет входит каталог кампании (campaign.json).
 
 Старые файлы пакета в папке заменяются. Если в папке есть что-то ещё, сборка останавливается,
 чтобы не стереть чужие файлы.''';
@@ -21,7 +24,11 @@ Future<void> main(List<String> args) async {
 
   try {
     final identity = readPackIdentity(File(options.identity));
-    final (built, result) = await buildAndVerify(readHandTables(Directory(options.data)), identity);
+    final (built, result) = await buildAndVerify(
+      readHandTables(Directory(options.data)),
+      identity,
+      campaign: options.campaign == null ? null : readCampaignSource(Directory(options.campaign!)),
+    );
     switch (result) {
       case PackRejected(:final issues):
         stderr.writeln('Пакет не прошёл проверку:');
@@ -44,7 +51,7 @@ Future<void> main(List<String> args) async {
   }
 }
 
-({String data, String identity, String out})? _parseArgs(List<String> args) {
+({String data, String identity, String out, String? campaign})? _parseArgs(List<String> args) {
   final values = <String, String>{};
   for (var i = 0; i + 1 < args.length; i += 2) {
     values[args[i]] = args[i + 1];
@@ -52,6 +59,8 @@ Future<void> main(List<String> args) async {
   final data = values['--data'];
   final identity = values['--identity'];
   final out = values['--out'];
-  if (args.length != 6 || data == null || identity == null || out == null) return null;
-  return (data: data, identity: identity, out: out);
+  final campaign = values['--campaign'];
+  final expectedLength = campaign == null ? 6 : 8;
+  if (args.length != expectedLength || data == null || identity == null || out == null) return null;
+  return (data: data, identity: identity, out: out, campaign: campaign);
 }

@@ -5,6 +5,7 @@
 library;
 
 export 'src/building/content_pack_builder.dart';
+export 'src/codec/campaign_codec.dart' show decodeCampaign, encodeCampaign;
 export 'src/codec/decode_result.dart';
 export 'src/codec/manifest_codec.dart' show decodeManifest, encodeManifest;
 export 'src/codec/rules_codec.dart';
@@ -16,6 +17,7 @@ export 'src/loading/content_pack_loader.dart';
 export 'src/loading/pack_load_result.dart';
 export 'src/model/ability.dart';
 export 'src/model/ability_kind.dart';
+export 'src/model/campaign.dart';
 export 'src/model/combat_row.dart';
 export 'src/model/content_pack.dart';
 export 'src/model/effect_key.dart';
@@ -36,6 +38,7 @@ export 'src/model/zone_key.dart';
 export 'src/pack_format.dart';
 export 'src/source/content_source.dart';
 export 'src/source/in_memory_content_source.dart';
+export 'src/validation/campaign_check.dart' show checkCampaign;
 export 'src/validation/content_validator.dart';
 export 'src/validation/engine_capabilities.dart';
 export 'src/validation/validation_issue.dart';

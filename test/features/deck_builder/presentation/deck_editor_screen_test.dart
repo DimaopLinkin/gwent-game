@@ -6,6 +6,8 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/card/gwent_card.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/core/presentation/components/faction_medallion.dart';
+import 'package:gwent/src/core/presentation/components/gwent_button.dart';
+import 'package:gwent/src/features/collection/application/load_collection.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
@@ -13,10 +15,12 @@ import 'package:gwent/src/features/deck_builder/application/game_content_deck_ru
 import 'package:gwent/src/features/deck_builder/application/get_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/load_deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/application/save_deck.dart';
+import 'package:gwent/src/features/deck_builder/domain/collection_order.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
+import 'package:gwent/src/features/deck_builder/presentation/editor/editor_grid.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Faction;
 
 import '../../../support/deck_rules_fixtures.dart';
@@ -55,6 +59,7 @@ void main() {
     String? deckId,
     Size size = const Size(390, 844),
     Widget? banner,
+    Map<String, int>? owned,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -65,6 +70,7 @@ void main() {
       saveDeck: SaveDeck(repository, FakeClock(DateTime.utc(2026, 10, 18)), SequentialIdGenerator()),
       newDeckName: l10n.deckListNew,
       deckId: deckId,
+      loadCollection: owned == null ? null : LoadCollection(InMemoryCollectionRepository(owned)),
     );
     addTearDown(cubit.close);
     await tester.pumpWidget(
@@ -234,6 +240,30 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('метки групп «Герои», «Отряды», «Особые» есть без фильтра и пропадают под фильтром с одной группой', (
+      tester,
+    ) async {
+      await pumpEditor(tester);
+
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(l10n.editorGroupUnits.toUpperCase()),
+        300,
+        scrollable: find.descendant(of: find.byType(EditorGrid), matching: find.byType(Scrollable)).first,
+      );
+      expect(find.text(l10n.editorGroupUnits.toUpperCase()), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(l10n.editorGroupHeroes.toUpperCase()),
+        -300,
+        scrollable: find.descendant(of: find.byType(EditorGrid), matching: find.byType(Scrollable)).first,
+      );
+
+      await tester.tap(find.text(l10n.editorFilterHero).last);
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsNothing);
+    });
+
     testWidgets('вкладка «Колода» пуста, фильтр без карт показывает пояснение', (tester) async {
       await pumpEditor(tester);
 
@@ -306,6 +336,22 @@ void main() {
       expect(find.text(l10n.editorSave), findsOneWidget);
     });
 
+    testWidgets('на маленьком экране метки групп видны, а внешняя прокрутка доходит до группы «Особые»', (
+      tester,
+    ) async {
+      await pumpEditor(tester, size: const Size(320, 568));
+      expect(find.text(l10n.editorGroupHeroes.toUpperCase()), findsOneWidget);
+
+      await tester.dragUntilVisible(
+        find.text(l10n.editorGroupSpecials.toUpperCase()),
+        find.byType(SingleChildScrollView).first,
+        const Offset(0, -300),
+      );
+
+      expect(find.text(l10n.editorGroupSpecials.toUpperCase()), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('на маленьком экране кнопки сохранения остаются видны, а карты прокручиваются', (tester) async {
       await repository.save(skelligeDeck());
       await pumpEditor(tester, deckId: 'deck-1', size: const Size(320, 568));
@@ -315,6 +361,87 @@ void main() {
       expect(save.bottom, lessThanOrEqualTo(568));
       await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -300));
       await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('кампания: только открытые карты (ADR 0033)', () {
+    testWidgets('закрытые карты подписаны «закрыта», тап по ним объясняет, что карта откроется в кампании', (
+      tester,
+    ) async {
+      await pumpEditor(tester, owned: const {});
+
+      expect(find.text(l10n.editorCopiesLocked), findsWidgets);
+      await tester.tap(find.byType(GwentCard).at(1));
+      await tester.pump();
+      expect(find.text(l10n.editorMsgNotOpened), findsOneWidget);
+      expect(find.text(l10n.editorHintPickLeader), findsNothing);
+      await tester.pump(DeckEditorCubit.messageDuration);
+    });
+
+    testWidgets('у открытой карты подпись показывает открытое число копий, остальные закрыты', (tester) async {
+      final open = CollectionOrder.sort(rules.collectionFor(rules.factionInfos.first.id)).first;
+      await pumpEditor(tester, owned: {open.id: 1});
+
+      expect(find.text(l10n.editorCopiesOf(0, 1)), findsOneWidget);
+      expect(find.text(l10n.editorCopiesLocked), findsWidgets);
+    });
+
+    testWidgets('закрытый лидер: в листе вместо способности «Откроется в кампании», подтвердить нельзя', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpEditor(tester, owned: const {});
+
+      await tester.tap(find.bySemanticsLabel(l10n.editorPickLeader));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.leaderSelectLocked), findsOneWidget);
+      expect(tester.widget<GwentButton>(find.widgetWithText(GwentButton, l10n.leaderSelectConfirm)).onPressed, isNull);
+      expect(tester.takeException(), isNull);
+      handle.dispose();
+    });
+
+    testWidgets('колода свободной игры в конструкторе кампании: подсказка называет закрытого лидера', (tester) async {
+      await repository.save(skelligeDeck());
+      await pumpEditor(tester, deckId: 'deck-1', owned: const {});
+
+      expect(find.text(l10n.editorHintValid), findsNothing);
+      expect(find.text(l10n.deckIssueLeaderNotOpened), findsOneWidget);
+    });
+
+    testWidgets('вкладка «Колода»: закрытая карта из колоды свободной игры подписана «закрыта» и убирается', (
+      tester,
+    ) async {
+      await repository.save(skelligeDeck());
+      await pumpEditor(tester, deckId: 'deck-1', owned: const {});
+
+      // Сохранённая колода открывается на вкладке «Колода».
+      expect(find.text(l10n.editorCopiesLocked), findsWidgets);
+      final before = (await repository.findById('deck-1'))!.cardCount;
+
+      await tester.tap(find.byType(GwentCard).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.editorSaveDraft));
+      await tester.pump();
+      await tester.pump();
+
+      expect((await repository.findById('deck-1'))!.cardCount, lessThan(before));
+    });
+
+    testWidgets('просмотр закрытой карты: вместо числа копий «Откроется в кампании», добавить нельзя', (tester) async {
+      await pumpEditor(tester, owned: const {});
+
+      await tester.longPress(find.byType(GwentCard).at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.editorPreviewLocked), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('на маленьком экране ничего не переполняется', (tester) async {
+      await pumpEditor(tester, owned: const {}, size: const Size(320, 568));
+
       expect(tester.takeException(), isNull);
     });
   });

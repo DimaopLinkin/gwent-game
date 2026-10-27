@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:gwent/src/features/collection/domain/owned_cards.dart';
 import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_exceptions.dart';
@@ -72,7 +73,7 @@ final class DeckRules {
   /// и так одна копия, но правило не зависит от данных.
   static const int heroCopies = 1;
 
-  /// Все карты коллекции в порядке пакета: сначала отряды, потом особые; созданные карты (`count` = 0) не входят.
+  /// Все карты коллекции в порядке пакета (порядок сетки конструктора: `CollectionOrder`): сначала отряды, потом особые; созданные карты (`count` = 0) не входят.
   late final List<CollectionCard> allCards = List.unmodifiable([
     for (final card in pack.rules.squadCards) ?_unit(card),
     for (final card in pack.rules.specialCards) ?_special(card),
@@ -91,6 +92,7 @@ final class DeckRules {
     if (card.count < 1 || definition is! UnitCardDefinition) return null;
     return CollectionCard(
       id: card.id,
+      name: pack.text(card.nameKey),
       fractionId: card.fractionId,
       isNeutral: !isDeckFaction(card.fractionId),
       kind: definition.isHero ? CollectionKind.hero : CollectionKind.unit,
@@ -110,6 +112,7 @@ final class DeckRules {
     if (card.count < 1 || definition is! SpecialCardDefinition) return null;
     return CollectionCard(
       id: card.id,
+      name: pack.text(card.nameKey),
       fractionId: card.fractionId,
       isNeutral: !isDeckFaction(card.fractionId),
       kind: switch (definition.ability) {
@@ -143,16 +146,22 @@ final class DeckRules {
   }
 
   /// Почему карту [card] нельзя добавить в черновик [draft]; `null`, если можно.
-  AddRefusal? refusalToAdd(DeckDraft draft, CollectionCard card) {
-    if (draft.copiesOf(card.id) >= card.maxCopies) {
+  ///
+  /// С [owned] (кампания, ADR 0033) в колоду идут только открытые карты и открытое число копий.
+  AddRefusal? refusalToAdd(DeckDraft draft, CollectionCard card, {OwnedCards? owned}) {
+    final inDeck = draft.copiesOf(card.id);
+    if (inDeck >= card.maxCopies) {
       return card.kind == CollectionKind.hero ? AddRefusal.heroLimit : AddRefusal.allCopiesInDeck;
+    }
+    if (owned != null && inDeck >= owned.copiesOf(card.id)) {
+      return owned.copiesOf(card.id) == 0 ? AddRefusal.notOpened : AddRefusal.allOpenedCopiesInDeck;
     }
     if (card.isSpecial && statsOf(draft).specials >= gameRules.maxSpecialCards) return AddRefusal.specialLimit;
     return null;
   }
 
   /// Проблемы черновика: те же правила, что у сохранённой колоды. Пока лидер не выбран, проблема — лидер.
-  List<DeckIssue> checkDraft(DeckDraft draft) => check(
+  List<DeckIssue> checkDraft(DeckDraft draft, {OwnedCards? owned}) => check(
     Deck(
       id: draft.id ?? '',
       name: draft.name,
@@ -161,19 +170,33 @@ final class DeckRules {
       cards: draft.cards,
       updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
     ),
+    owned: owned,
   );
 
   /// Можно ли собрать колоду фракции [factionId].
   bool isDeckFaction(String factionId) => pack.rules.fractionsById[factionId]?.isDeck ?? false;
 
   /// Все проблемы колоды; пустой список значит, что с колодой можно идти в партию.
-  List<DeckIssue> check(Deck deck) {
+  ///
+  /// С [owned] (кампания, ADR 0033) колода годна, только если открыты её лидер и все карты в нужном числе копий.
+  /// Это вычисляется при каждой проверке и нигде не хранится. Без [owned] коллекцию не учитывают: свободная игра
+  /// и сеть играют со всеми картами.
+  List<DeckIssue> check(Deck deck, {OwnedCards? owned}) {
     final leader = pack.rules.leaderCardsById[deck.leaderId];
     return List.unmodifiable([
       for (final violation in _validator.validate(deck.toEngineDeck())) DeckRuleViolation(violation),
       if (leader != null && leader.fractionId != deck.factionId)
         LeaderOfOtherFaction(leaderId: leader.id, leaderFactionId: leader.fractionId),
+      if (owned != null) ..._notOwned(deck, owned),
     ]);
+  }
+
+  Iterable<DeckIssue> _notOwned(Deck deck, OwnedCards owned) sync* {
+    if (deck.leaderId.isNotEmpty && owned.copiesOf(deck.leaderId) < 1) yield LeaderNotOwned(deck.leaderId);
+    for (final MapEntry(key: cardId, value: copies) in deck.cards.entries) {
+      final open = owned.copiesOf(cardId);
+      if (open < copies) yield CardNotOwned(cardId: cardId, copies: copies, owned: open);
+    }
   }
 
   /// Стартовая колода фракции [factionId]: годная колода, с которой можно сразу идти в партию.

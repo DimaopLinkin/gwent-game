@@ -4,6 +4,22 @@ import 'package:gwent/src/core/domain/app_info.dart';
 import 'package:gwent/src/core/domain/clock.dart';
 import 'package:gwent/src/core/domain/id_generator.dart';
 import 'package:gwent/src/core/domain/seed_generator.dart';
+import 'package:gwent/src/features/campaign/application/choose_campaign_deck.dart';
+import 'package:gwent/src/features/campaign/application/claim_starting_set.dart';
+import 'package:gwent/src/features/campaign/application/get_campaign_deck.dart';
+import 'package:gwent/src/features/campaign/application/list_campaign_decks.dart';
+import 'package:gwent/src/features/campaign/application/load_campaign.dart';
+import 'package:gwent/src/features/campaign/application/load_campaign_overview.dart';
+import 'package:gwent/src/features/campaign/application/load_card_book.dart';
+import 'package:gwent/src/features/campaign/application/prepare_campaign_match.dart';
+import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
+import 'package:gwent/src/features/campaign/application/reset_campaign.dart';
+import 'package:gwent/src/features/campaign/application/sync_campaign_rewards.dart';
+import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
+import 'package:gwent/src/features/campaign/application/watch_campaign_summary.dart';
+import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
+import 'package:gwent/src/features/collection/application/load_collection.dart';
+import 'package:gwent/src/features/collection/domain/collection_repository.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/deck_builder/application/create_starter_deck.dart';
 import 'package:gwent/src/features/deck_builder/application/deck_selection_lock.dart';
@@ -51,6 +67,9 @@ import 'package:gwent/src/features/sound/application/background_music.dart';
 import 'package:gwent/src/features/sound/application/play_sound.dart';
 import 'package:gwent/src/features/sound/domain/music_output.dart';
 import 'package:gwent/src/features/sound/domain/sound_output.dart';
+import 'package:gwent/src/features/tutorial/application/mark_first_match_passed.dart';
+import 'package:gwent/src/features/tutorial/application/start_first_match.dart';
+import 'package:gwent/src/features/tutorial/application/watch_first_match_passed.dart';
 import 'package:gwent_content/gwent_content.dart';
 import 'package:gwent_net/gwent_net.dart' show Entropy, Scheduler, SecureEntropy, SystemScheduler;
 
@@ -64,6 +83,8 @@ final class AppDependencies {
     required ContentSource contentSource,
     required AppInfo appInfo,
     required DeckRepository deckRepository,
+    required CollectionRepository collectionRepository,
+    required CampaignRepository campaignRepository,
     required SettingsRepository settingsRepository,
     required MatchHistoryRepository matchHistoryRepository,
     required Clock clock,
@@ -89,6 +110,8 @@ final class AppDependencies {
       loadGameContent: loadGameContent,
       deckRules: deckRules,
       deckRepository: deckRepository,
+      collectionRepository: collectionRepository,
+      campaignRepository: campaignRepository,
       createStarterDeck: createStarterDeck,
       deckSelectionLock: deckSelectionLock,
       settingsRepository: settingsRepository,
@@ -114,6 +137,8 @@ final class AppDependencies {
     required this.loadGameContent,
     required DeckRulesSource deckRules,
     required DeckRepository deckRepository,
+    required CollectionRepository collectionRepository,
+    required CampaignRepository campaignRepository,
     required CreateStarterDeck createStarterDeck,
     required DeckSelectionLock deckSelectionLock,
     required SettingsRepository settingsRepository,
@@ -141,6 +166,7 @@ final class AppDependencies {
        setActiveDeck = SetActiveDeck(deckRepository, deckRules, deckSelectionLock),
        getActiveDeck = GetActiveDeck(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
        ensureStarterDecks = EnsureStarterDecks(deckRepository, deckRules, createStarterDeck, deckSelectionLock),
+       loadCollection = LoadCollection(collectionRepository),
        watchSettings = WatchSettings(settingsRepository),
        saveSettings = SaveSettings(settingsRepository),
        loadBotDifficulty = LoadBotDifficulty(settingsRepository),
@@ -149,10 +175,43 @@ final class AppDependencies {
        checkContentUpdate = CheckContentUpdate(loadGameContent, clock),
        watchMatchHistory = WatchMatchHistory(matchHistoryRepository),
        recordMatch = RecordMatch(matchHistoryRepository, clock, idGenerator) {
+    listCampaignDecks = ListCampaignDecks(deckRepository, deckRules, collectionRepository);
+    chooseCampaignDeck = ChooseCampaignDeck(deckRepository, deckRules, collectionRepository, settingsRepository);
+    getCampaignDeck = GetCampaignDeck(listCampaignDecks, settingsRepository);
+    loadCampaign = LoadCampaign(loadGameContent);
+    watchCampaignPath = WatchCampaignPath(loadCampaign, campaignRepository);
+    recordCampaignResult = RecordCampaignResult(
+      loadCampaign,
+      campaignRepository,
+      collectionRepository,
+      deckRepository,
+      settingsRepository,
+      clock,
+    );
+    watchCampaignSummary = WatchCampaignSummary(loadCampaign, campaignRepository);
+    loadCampaignOverview = LoadCampaignOverview(
+      loadCampaign,
+      campaignRepository,
+      collectionRepository,
+      getCampaignDeck,
+    );
+    loadCardBook = LoadCardBook(loadCampaign, collectionRepository);
+    claimStartingSet = ClaimStartingSet(loadCampaign, campaignRepository, settingsRepository, recordCampaignResult);
+    syncCampaignRewards = SyncCampaignRewards(loadCampaign, campaignRepository, collectionRepository);
+    resetCampaign = ResetCampaign(campaignRepository, settingsRepository);
+    prepareCampaignMatch = PrepareCampaignMatch(
+      loadCampaign,
+      campaignRepository,
+      getCampaignDeck,
+      recordCampaignResult,
+    );
     chooseOpponentDeck = ChooseOpponentDeck(deckRules, seedGenerator);
     loadMenu = LoadMenu(appInfo, loadGameContent, ensureStarterDecks);
     startMatch = StartMatch(loadGameContent, deckRepository, seedGenerator, botThinkTime: botThinkTime);
     recordFinishedMatch = RecordFinishedMatch(recordMatch);
+    startFirstMatch = StartFirstMatch(loadGameContent, botThinkTime: botThinkTime);
+    markFirstMatchPassed = MarkFirstMatchPassed(settingsRepository);
+    watchFirstMatchPassed = WatchFirstMatchPassed(settingsRepository);
     loadReplay = LoadReplay(matchHistoryRepository, loadGameContent);
     activeNetworkGame = ActiveNetworkGame();
     loadNetworkSetup = LoadNetworkSetup(loadGameContent, appInfo, watchSettings);
@@ -245,11 +304,62 @@ final class AppDependencies {
   /// Колода бота против игрока.
   late final ChooseOpponentDeck chooseOpponentDeck;
 
+  /// Открытые карты игрока в кампании (ADR 0033); свободная игра и сеть их не читают.
+  final LoadCollection loadCollection;
+
+  /// Колоды игрока с отметкой «годна для кампании».
+  late final ListCampaignDecks listCampaignDecks;
+
+  /// Выбор колоды кампании; активные колоды свободной игры не затрагивает.
+  late final ChooseCampaignDeck chooseCampaignDeck;
+
+  /// Колода для партии кампании.
+  late final GetCampaignDeck getCampaignDeck;
+
+  /// Каталог кампании из активного пакета контента.
+  late final LoadCampaign loadCampaign;
+
+  /// Тропа кампании: узлы, их состояния и прогресс игрока.
+  late final WatchCampaignPath watchCampaignPath;
+
+  /// Сводка кампании для главного меню.
+  late final WatchCampaignSummary watchCampaignSummary;
+
+  /// Обзор кампании для тропы: узлы, колода, открытые карты.
+  late final LoadCampaignOverview loadCampaignOverview;
+
+  /// «Книга карт»: открытые карты по фракциям.
+  late final LoadCardBook loadCardBook;
+
+  /// Запись итога партии узла и выдача наград.
+  late final RecordCampaignResult recordCampaignResult;
+
+  /// Стартовый набор для того, кто прошёл «Первую партию» раньше.
+  late final ClaimStartingSet claimStartingSet;
+
+  /// Сверка открытых карт с наградами пройденных узлов (после смены раздачи наград).
+  late final SyncCampaignRewards syncCampaignRewards;
+
+  /// Начать кампанию заново.
+  late final ResetCampaign resetCampaign;
+
+  /// Подготовка партии узла кампании.
+  late final PrepareCampaignMatch prepareCampaignMatch;
+
   /// Начало местной партии (hot-seat или против бота).
   late final StartMatch startMatch;
 
   /// Запись законченной партии в историю.
   late final RecordFinishedMatch recordFinishedMatch;
+
+  /// Начало «Первой партии»: сценарная партия обучения (ADR 0034).
+  late final StartFirstMatch startFirstMatch;
+
+  /// Запоминает, что игрок прошёл «Первую партию».
+  late final MarkFirstMatchPassed markFirstMatchPassed;
+
+  /// Следит за тем, прошёл ли игрок «Первую партию»: меню по нему ставит марку «Новое».
+  late final WatchFirstMatchPassed watchFirstMatchPassed;
 
   /// Загрузка реплея партии из истории.
   late final LoadReplay loadReplay;

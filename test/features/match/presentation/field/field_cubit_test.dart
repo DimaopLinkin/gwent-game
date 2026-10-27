@@ -599,17 +599,12 @@ void main() {
     expect(cubit.state.summary, isNull);
   });
 
-  test('слои паузы: меню, правила, сдача и возврат в меню; выбор карты при паузе снимается', () {
+  test('слои паузы: меню, сдача и возврат в меню; выбор карты при паузе снимается', () {
     cubit
       ..select(const CardInstanceId(1))
       ..openPause();
     expect(cubit.state.pause, PauseLayer.menu);
     expect(cubit.state.selected, isNull);
-
-    cubit.openRules();
-    expect(cubit.state.pause, PauseLayer.rules);
-    cubit.backToPauseMenu();
-    expect(cubit.state.pause, PauseLayer.menu);
 
     cubit.askSurrender();
     expect(cubit.state.pause, PauseLayer.surrenderConfirm);

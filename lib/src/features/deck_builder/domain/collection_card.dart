@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:gwent/src/features/collection/domain/owned_cards.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck.dart';
 import 'package:meta/meta.dart';
 
@@ -14,6 +17,18 @@ enum CollectionKind {
 
   /// Погода и «Ясное небо».
   weather,
+}
+
+/// Группа карты в сетке конструктора: так карты разделены метками.
+enum CollectionGroup {
+  /// Герои.
+  heroes,
+
+  /// Обычные отряды.
+  units,
+
+  /// Особые карты и погода.
+  specials,
 }
 
 /// Куда играется карта отряда.
@@ -41,6 +56,7 @@ final class CollectionCard {
     required this.isNeutral,
     required this.kind,
     required this.maxCopies,
+    required this.name,
     this.placement,
     this.strength = 0,
   });
@@ -57,6 +73,9 @@ final class CollectionCard {
   /// Вид карты.
   final CollectionKind kind;
 
+  /// Название карты из пакета контента: по нему равные по силе карты идут в сетке по имени.
+  final String name;
+
   /// Сколько копий карты можно положить в колоду: число из набора карт, у героя не больше одной.
   final int maxCopies;
 
@@ -65,6 +84,16 @@ final class CollectionCard {
 
   /// Базовая сила; у особых карт 0.
   final int strength;
+
+  /// Сколько копий карты можно положить в колоду при открытой коллекции [owned]; без неё — [maxCopies].
+  int limit(OwnedCards? owned) => owned == null ? maxCopies : math.min(maxCopies, owned.copiesOf(id));
+
+  /// Группа карты в сетке конструктора.
+  CollectionGroup get group => switch (kind) {
+    CollectionKind.hero => CollectionGroup.heroes,
+    CollectionKind.unit => CollectionGroup.units,
+    CollectionKind.special || CollectionKind.weather => CollectionGroup.specials,
+  };
 
   /// Отряд или герой: считается в «Отряды» и «Силу».
   bool get isUnit => kind == CollectionKind.unit || kind == CollectionKind.hero;
@@ -176,4 +205,10 @@ enum AddRefusal {
 
   /// Особых карт уже максимум.
   specialLimit,
+
+  /// Карта ещё не открыта в кампании.
+  notOpened,
+
+  /// Все открытые в кампании копии карты уже в колоде.
+  allOpenedCopiesInDeck,
 }

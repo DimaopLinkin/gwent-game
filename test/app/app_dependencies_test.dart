@@ -13,10 +13,13 @@ void main() {
 
   test('сценарии колод делят одну очередь: одновременные вызовы не задваивают стартовые колоды', () async {
     final decks = InMemoryDeckRepository()..yieldOnRead = true;
+    final collection = InMemoryCollectionRepository();
     final dependencies = AppDependencies(
       contentSource: AssetContentSource.basePack(rootBundle),
       appInfo: const FakeAppInfo(),
       deckRepository: decks,
+      collectionRepository: collection,
+      campaignRepository: InMemoryCampaignRepository(collection),
       settingsRepository: InMemorySettingsRepository(),
       matchHistoryRepository: InMemoryMatchHistoryRepository(),
       clock: FakeClock(DateTime.utc(2026, 10, 12)),

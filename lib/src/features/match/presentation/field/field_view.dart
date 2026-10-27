@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart' hide Intent, Row;
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,6 +21,7 @@ import 'package:gwent/src/features/match/presentation/field/drag_hover.dart';
 import 'package:gwent/src/features/match/presentation/field/field_content.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
 import 'package:gwent/src/features/match/presentation/field/field_geometry.dart';
+import 'package:gwent/src/features/match/presentation/field/field_lesson.dart';
 import 'package:gwent/src/features/match/presentation/field/field_overlays.dart';
 import 'package:gwent/src/features/match/presentation/field/field_row_view.dart';
 import 'package:gwent/src/features/match/presentation/field/field_sheets.dart';
@@ -32,7 +32,6 @@ import 'package:gwent/src/features/match/presentation/field/play_targets.dart';
 import 'package:gwent/src/features/match/presentation/match_roster.dart';
 import 'package:gwent/src/features/match/presentation/overlays/pause_layers.dart';
 import 'package:gwent/src/features/match/presentation/overlays/round_summary_view.dart';
-import 'package:gwent/src/features/match/presentation/overlays/rules_view.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_geometry.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_host.dart';
@@ -60,8 +59,11 @@ class FieldView extends StatefulWidget {
     this.confirmPass = false,
     this.hints = false,
     this.onSettings,
+    this.onHowToPlay,
     this.readOnly = false,
     this.opponentStatus,
+    this.lesson,
+    this.pauseNote,
   });
 
   /// Проекция партии.
@@ -85,12 +87,21 @@ class FieldView extends StatefulWidget {
   /// Открыть настройки поверх партии из меню паузы; `null` — кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
 
+  /// Открывает справочник «Как играть» из меню паузы; `null` — в паузе кнопки нет.
+  final VoidCallback? onHowToPlay;
+
   /// Поле только смотрят (за листом итога матча, в реплее): ходов нет, пауза и пас недоступны, системная «назад»
   /// не открывает паузу, а уходит дальше. Просмотр карт, сброса и лидера остаётся.
   final bool readOnly;
 
   /// Индикатор в полосе соперника (связь в сетевой партии, ADR 0019); `null` — индикатора нет.
   final Widget? opponentStatus;
+
+  /// Урок поверх поля («Первая партия», ADR 0034): слой подсказок и своё меню паузы; `null` — обычная партия.
+  final FieldLesson? lesson;
+
+  /// Строка в меню паузы под заголовком (дополнительное задание узла кампании); `null` — строки нет.
+  final String? pauseNote;
 
   @override
   State<FieldView> createState() => _FieldViewState();
@@ -104,6 +115,7 @@ class _FieldViewState extends State<FieldView> {
 
   /// Метка холста и меток полос игроков: по ним анимации карт находят места на полосах.
   final GlobalKey _canvasKey = GlobalKey();
+  final Map<CardInstanceId, GlobalKey> _handKeys = {};
   final Map<bool, PlayerBarAnchors> _anchors = {true: PlayerBarAnchors(), false: PlayerBarAnchors()};
 
   /// Как полоса погоды называет себя перед `DragHover`.
@@ -123,7 +135,20 @@ class _FieldViewState extends State<FieldView> {
   double? _stageGeometryWidth;
 
   /// Поле экрана; пока идёт последний ход раунда, поле до подсчёта (экран уже получил поле после уборки).
-  PlayerView get _view => _cubit.state.stage?.board ?? widget.view;
+  PlayerView get _view {
+    final source = _cubit.state.stage?.board ?? widget.view;
+    final known = _cubit.replacedCount;
+    if (!identical(source, _orderedFrom) || known != _orderedKnown) {
+      _orderedFrom = source;
+      _orderedKnown = known;
+      _ordered = _cubit.rowOrder(widget.content).apply(source);
+    }
+    return _ordered!;
+  }
+
+  PlayerView? _orderedFrom;
+  int _orderedKnown = 0;
+  PlayerView? _ordered;
   FieldCubit get _cubit => context.read<FieldCubit>();
 
   @override
@@ -371,18 +396,13 @@ class _FieldViewState extends State<FieldView> {
               child: SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final scale = math.min(1.0, constraints.maxHeight / FieldGeometry.budgetHeight);
-                    final width = constraints.maxWidth / scale;
-                    final height = constraints.maxHeight / scale;
-                    final geometry = FieldGeometry(
-                      width: width,
-                      handHeight: height - (FieldGeometry.budgetHeight - FieldGeometry.minHandHeight),
-                    );
+                    final fit = FieldFit(constraints.maxWidth, constraints.maxHeight);
+                    final geometry = fit.geometry;
                     return FittedBox(
                       alignment: Alignment.topLeft,
                       child: SizedBox(
-                        width: width,
-                        height: height,
+                        width: fit.width,
+                        height: fit.height,
                         child: StageHost(
                           script: field.stage,
                           onDone: _cubit.endStage,
@@ -405,6 +425,24 @@ class _FieldViewState extends State<FieldView> {
                   onDismissed: _cubit.dismissSummary,
                 ),
               ),
+            if (widget.lesson case final lesson?)
+              Positioned.fill(
+                child: SafeArea(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => lesson.layerBuilder(
+                      context,
+                      FieldLayout(
+                        fit: FieldFit(constraints.maxWidth, constraints.maxHeight),
+                        field: field,
+                        view: _view,
+                        hand: _fieldContent.handOrder(_view.me.hand ?? const <CardInstance>[]).toList(),
+                        anchors: _anchors,
+                        handKeys: _handKeys,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ?_pauseLayer(field),
           ],
         ),
@@ -419,13 +457,13 @@ class _FieldViewState extends State<FieldView> {
       PauseLayer.menu => Positioned.fill(
         child: PauseMenuLayer(
           onResume: cubit.closePause,
-          onRules: cubit.openRules,
+          onHowToPlay: widget.onHowToPlay,
           onSettings: widget.onSettings,
           onSurrender: cubit.askSurrender,
+          onRestart: widget.lesson?.onRestart,
+          onExit: widget.lesson?.onExit,
+          note: widget.pauseNote,
         ),
-      ),
-      PauseLayer.rules => Positioned.fill(
-        child: RulesView(roster: widget.roster, onBack: cubit.backToPauseMenu),
       ),
       PauseLayer.surrenderConfirm => Positioned.fill(
         child: SurrenderConfirmLayer(onCancel: cubit.backToPauseMenu, onConfirm: _surrender),
@@ -566,7 +604,7 @@ class _FieldViewState extends State<FieldView> {
                       child: HandView(
                         geometry: geometry,
                         cards: [
-                          for (final card in me.hand ?? const <CardInstance>[])
+                          for (final card in _fieldContent.handOrder(me.hand ?? const <CardInstance>[]))
                             if (!(frame?.handAbsent.contains(card.id) ?? false))
                               (instance: card, face: _fieldContent.face(card), enabled: me.playable.contains(card.id)),
                         ],
@@ -577,6 +615,7 @@ class _FieldViewState extends State<FieldView> {
                         onDragEnded: _dragEnded,
                         hover: _hover,
                         hidden: frame?.handHidden ?? const {},
+                        cardKeys: _handKeys,
                       ),
                     ),
                     if (frame != null && frame.handVeil > 0)
@@ -602,11 +641,8 @@ class _FieldViewState extends State<FieldView> {
                 ),
             ],
             if (!widget.readOnly)
-              Positioned(
-                left: geometry.width - 47,
-                top: geometry.stripTop - (PauseButton.hitSize - FieldGeometry.stripHeight) / 2,
-                width: PauseButton.hitSize,
-                height: PauseButton.hitSize,
+              Positioned.fromRect(
+                rect: geometry.pauseButtonRect,
                 child: PauseButton(onPressed: _cubit.openPause, semanticsLabel: l10n.pauseButtonSemantics),
               ),
             if (field.summary == null && field.pause == PauseLayer.none && field.stage == null)

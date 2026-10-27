@@ -1,3 +1,4 @@
+import 'package:gwent_content/src/model/campaign.dart';
 import 'package:gwent_content/src/model/manifest.dart';
 import 'package:gwent_content/src/model/pack_rules.dart';
 import 'package:gwent_content/src/model/string_table.dart';
@@ -6,7 +7,7 @@ import 'package:gwent_content/src/pack_format.dart';
 /// Загруженный и проверенный пакет контента: манифест, таблицы правил и строки всех языков.
 final class ContentPack {
   /// Создаёт пакет.
-  ContentPack({required this.manifest, required this.rules, required Map<String, StringTable> strings})
+  ContentPack({required this.manifest, required this.rules, required Map<String, StringTable> strings, this.campaign})
     : strings = Map.unmodifiable(strings);
 
   /// Манифест.
@@ -17,6 +18,9 @@ final class ContentPack {
 
   /// Строки по языку.
   final Map<String, StringTable> strings;
+
+  /// Каталог кампании или `null`, если в пакете его нет.
+  final CampaignCatalog? campaign;
 
   /// Текст по ключу [key] на языке [locale]; если его нет, то на запасном языке, а если нет и там, сам ключ.
   ///

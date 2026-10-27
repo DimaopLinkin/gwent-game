@@ -7,6 +7,7 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/game_loader.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/features/match/presentation/field/field_cubit.dart';
+import 'package:gwent/src/features/match/presentation/field/field_lesson.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/field/field_view.dart';
 import 'package:gwent/src/features/match/presentation/match_bloc.dart';
@@ -35,7 +36,7 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// чем идут анимации, но игрок видит ходы по порядку. Тот же порядок будет у анимаций карт (ADR 0013).
 class MatchScreen extends StatefulWidget {
   /// Создаёт экран; [onExit] уводит из партии в меню, [onEditDeck] открывает колоду в конструкторе, [confirmPass]
-  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт, [onSettings] открывает настройки
+  /// включает диалог подтверждения паса, [animationScale] задаёт скорость анимаций карт, [onSettings] открывает настройки, [onHowToPlay] — справочник «Как играть»
   /// из меню паузы.
   const MatchScreen({
     super.key,
@@ -45,9 +46,13 @@ class MatchScreen extends StatefulWidget {
     this.hints = false,
     this.animationScale = 1,
     this.onSettings,
+    this.onHowToPlay,
     this.overlay,
     this.opponentStatus,
     this.onRematchAgreed,
+    this.lesson,
+    this.pauseNote,
+    this.resultBuilder,
   });
 
   /// Выход из партии.
@@ -68,6 +73,9 @@ class MatchScreen extends StatefulWidget {
   /// Открыть настройки поверх партии; `null` — в меню паузы кнопка «Настройки» недоступна.
   final VoidCallback? onSettings;
 
+  /// Открыть справочник «Как играть» поверх партии; `null` — в меню паузы кнопка недоступна.
+  final VoidCallback? onHowToPlay;
+
   /// Слой поверх поля, пока партия идёт (связь в сетевой партии, ADR 0019); `null` — слоя нет.
   final Widget? overlay;
 
@@ -76,6 +84,17 @@ class MatchScreen extends StatefulWidget {
 
   /// Оба игрока сетевой партии согласились на реванш: уйти в комнату, где выбирают колоды (ADR 0028).
   final VoidCallback? onRematchAgreed;
+
+  /// Урок («Первая партия», ADR 0034): слой подсказок на поле и лист завершения вместо итога матча; `null` — обычная
+  /// партия.
+  final FieldLesson? lesson;
+
+  /// Строка в меню паузы под заголовком (дополнительное задание узла кампании); `null` — строки нет.
+  final String? pauseNote;
+
+  /// Итог партии вместо обычного листа (партия узла кампании, ADR 0033); `null` — обычный лист. Урок, если он есть,
+  /// главнее.
+  final Widget Function(BuildContext context, MatchFinished finished)? resultBuilder;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -183,10 +202,15 @@ class _MatchScreenState extends State<MatchScreen> {
     _redrawHold?.cancel();
     _redrawHold = null;
     if (state is MatchRedrawSettled) {
-      _redrawHold = Timer(Duration(milliseconds: _stageStyle.ms(StageTokens.redrawHold)), () {
-        _redrawHold = null;
-        _release();
-      });
+      _redrawHold = Timer(
+        Duration(
+          milliseconds: _stageStyle.ms(StageTokens.redrawHold + (_stageStyle.reduceMotion ? 0 : StageTokens.flight)),
+        ),
+        () {
+          _redrawHold = null;
+          _release();
+        },
+      );
     }
     setState(() => _shown = state);
     context.read<FieldCubit>().onMatchState(state, style: _stageStyle);
@@ -291,9 +315,14 @@ class _MatchScreenState extends State<MatchScreen> {
           confirmPass: widget.confirmPass,
           hints: widget.hints,
           onSettings: widget.onSettings,
+          onHowToPlay: widget.onHowToPlay,
           opponentStatus: widget.opponentStatus,
+          lesson: widget.lesson,
+          pauseNote: widget.pauseNote,
         ),
       },
+      final MatchFinished finished when widget.lesson != null => widget.lesson!.finishedBuilder(context, finished),
+      final MatchFinished finished when widget.resultBuilder != null => widget.resultBuilder!(context, finished),
       MatchFinished(:final view, :final roster, :final canRematch, :final rematch) => MatchResultView(
         view: view,
         roster: roster,

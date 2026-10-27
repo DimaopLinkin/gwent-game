@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:gwent_content/src/codec/campaign_codec.dart';
 import 'package:gwent_content/src/codec/decode_result.dart';
 import 'package:gwent_content/src/codec/manifest_codec.dart';
 import 'package:gwent_content/src/loading/pack_load_result.dart';
+import 'package:gwent_content/src/model/campaign.dart';
 import 'package:gwent_content/src/model/content_pack.dart';
 import 'package:gwent_content/src/pack_format.dart';
 import 'package:gwent_content/src/source/content_source.dart';
+import 'package:gwent_content/src/validation/campaign_check.dart';
 import 'package:gwent_content/src/validation/compatibility_check.dart';
 import 'package:gwent_content/src/validation/content_validator.dart';
 import 'package:gwent_content/src/validation/engine_capabilities.dart';
@@ -20,7 +23,8 @@ import 'package:gwent_content/src/validation/validation_issue.dart';
 /// 3. файлы: доступность, размер и SHA-256 (целостность);
 /// 4. JSON файлов и `content_hash` правил (целостность);
 /// 5. схема, затем ссылки, затем инварианты (`validateContent`);
-/// 6. эффекты, которые реализует движок (совместимость).
+/// 6. эффекты, которые реализует движок (совместимость);
+/// 7. каталог кампании, если он есть: схема, ссылки, инварианты (`checkCampaign`).
 ///
 /// Итог — [PackLoaded] или [PackRejected]; исключения наружу не выходят.
 final class ContentPackLoader {
@@ -65,7 +69,17 @@ final class ContentPackLoader {
 
     final content = _decoded(validateContent(rulesJson, stringsJson));
     _rejectIfAny(checkEffectCompatibility(content.rules, engine));
-    return ContentPack(manifest: manifest, rules: content.rules, strings: content.strings);
+
+    final campaignBytes = bytes[campaignFileName];
+    CampaignCatalog? campaign;
+    if (campaignBytes == null) {
+      _rejectIfAny(checkCampaignStringsWithoutCatalog(content.strings));
+    } else {
+      final decoded = _decoded<CampaignCatalog>(decodeCampaign(_parseJson(campaignFileName, campaignBytes)));
+      _rejectIfAny(checkCampaign(decoded, content.rules, content.strings));
+      campaign = decoded;
+    }
+    return ContentPack(manifest: manifest, rules: content.rules, strings: content.strings, campaign: campaign);
   }
 
   static Future<List<int>> _read(ContentSource source, String path) async {

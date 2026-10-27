@@ -9,10 +9,12 @@ import 'package:gwent/src/core/presentation/design_system/gwent_colors.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_icon_view.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
+import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_state.dart';
 import 'package:gwent/src/features/deck_builder/presentation/editor/editor_filters.dart';
 
-/// Сетка карт открытой вкладки (макет 8): три колонки карт 103×148 со счётчиком «N из M» или «× N».
+/// Сетка карт открытой вкладки (макеты 8 и 15): три колонки карт 103×148 со счётчиком «N из M» или «× N», карты
+/// сверху вниз от сильных к слабым по группам «Герои», «Отряды», «Особые» (`CollectionOrder`).
 ///
 /// Тап перемещает карту между коллекцией и колодой, долгое нажатие открывает просмотр. Карты, которые сейчас нельзя
 /// добавить, приглушены. Если под фильтр ничего не попало, вместо сетки пустое состояние с пояснением.
@@ -48,70 +50,141 @@ class EditorGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = state.visible;
-    if (cards.isEmpty) return _EmptyGrid(state: state);
+    final groups = state.visibleGroups;
+    if (groups.isEmpty) return _EmptyGrid(state: state);
     final inCollection = state.tab == DeckEditorTab.collection;
+    final labelled = groups.length > 1;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: _cardWidth * 3 + _columnGap * 2),
-        child: GridView.builder(
+        child: CustomScrollView(
           shrinkWrap: shrinkWrap,
           physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
-          padding: const EdgeInsets.only(top: 6, bottom: 18),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: _columnGap,
-            mainAxisSpacing: 14,
-            childAspectRatio: _cardWidth / _cardHeight,
-          ),
-          itemCount: cards.length,
-          itemBuilder: (context, index) {
-            final entry = cards[index];
-            final detail = mapper.byId(entry.card.id);
-            if (detail == null) return const SizedBox.shrink();
-            final id = entry.card.id;
-            return _Pop(
-              key: ValueKey(id),
-              serial: state.lastMoved == id ? state.moveSerial : 0,
-              child: FittedBox(
-                child: SizedBox(
-                  width: _cardWidth,
-                  height: _cardHeight,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      GwentCard(
-                        face: detail.face,
-                        size: CardSize.grid,
-                        highlight: inCollection && entry.blocked ? CardHighlight.disabled : CardHighlight.normal,
-                        onTap: () => onTapCard(id),
-                        onLongPress: () => onLongPressCard(id),
-                      ),
-                      Positioned(
-                        right: 4,
-                        top: 4,
-                        child: IgnorePointer(
-                          child: _CopiesPill(
-                            text: inCollection
-                                ? context.l10n.editorCopiesOf(entry.copies, entry.card.maxCopies)
-                                : context.l10n.editorCopiesIn(entry.copies),
-                            full: entry.copies >= entry.card.maxCopies,
-                            empty: entry.copies == 0,
-                          ),
-                        ),
-                      ),
-                      if (entry.card.isNeutral)
-                        const Positioned(
-                          right: 9,
-                          top: 27,
-                          child: DiamondMarker(size: 8, color: GwentColors.textTertiary),
-                        ),
-                    ],
+          slivers: [
+            const SliverToBoxAdapter(child: SizedBox(height: 6)),
+            for (final (index, group) in groups.indexed) ...[
+              if (labelled)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: index == 0 ? 0 : 14, bottom: 14),
+                    child: _GroupLabel(group: group.group, count: group.cards.length),
+                  ),
+                ),
+              SliverGrid.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: _columnGap,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: _cardWidth / _cardHeight,
+                ),
+                itemCount: group.cards.length,
+                itemBuilder: (context, index) => _card(context, group.cards[index], inCollection: inCollection),
+              ),
+            ],
+            const SliverToBoxAdapter(child: SizedBox(height: 18)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _card(BuildContext context, EditorCard entry, {required bool inCollection}) {
+    final detail = mapper.byId(entry.card.id);
+    if (detail == null) return const SizedBox.shrink();
+    final id = entry.card.id;
+    return _Pop(
+      key: ValueKey(id),
+      serial: state.lastMoved == id ? state.moveSerial : 0,
+      child: FittedBox(
+        child: SizedBox(
+          width: _cardWidth,
+          height: _cardHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              GwentCard(
+                face: detail.face,
+                size: CardSize.grid,
+                highlight: inCollection && entry.blocked ? CardHighlight.disabled : CardHighlight.normal,
+                onTap: () => onTapCard(id),
+                onLongPress: () => onLongPressCard(id),
+              ),
+              Positioned(
+                right: 4,
+                top: 4,
+                child: IgnorePointer(
+                  child: _CopiesPill(
+                    text: entry.locked
+                        ? context.l10n.editorCopiesLocked
+                        : inCollection
+                        ? context.l10n.editorCopiesOf(entry.copies, entry.limit)
+                        : context.l10n.editorCopiesIn(entry.copies),
+                    full: !entry.locked && entry.copies >= entry.limit,
+                    empty: entry.copies == 0,
                   ),
                 ),
               ),
-            );
-          },
+              if (entry.card.isNeutral)
+                const Positioned(right: 9, top: 27, child: DiamondMarker(size: 8, color: GwentColors.textTertiary)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Метка группы карт: ромб, название и число карт, линия до края сетки. Не нажимается.
+class _GroupLabel extends StatelessWidget {
+  const _GroupLabel({required this.group, required this.count});
+
+  final CollectionGroup group;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final name = switch (group) {
+      CollectionGroup.heroes => l10n.editorGroupHeroes,
+      CollectionGroup.units => l10n.editorGroupUnits,
+      CollectionGroup.specials => l10n.editorGroupSpecials,
+    };
+    return SizedBox(
+      height: 20,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          spacing: 8,
+          children: [
+            const DiamondMarker(size: 7, color: GwentColors.brass),
+            Text(
+              name.toUpperCase(),
+              textScaler: TextScaler.noScaling,
+              style: const TextStyle(
+                fontFamily: GwentText.cormorant,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                letterSpacing: 2.1,
+                height: 1,
+                color: GwentColors.textSecondary,
+              ),
+            ),
+            Text(
+              '$count',
+              textScaler: TextScaler.noScaling,
+              style: const TextStyle(
+                fontFamily: GwentText.alegreya,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                height: 1,
+                fontFeatures: GwentText.numbers,
+                color: GwentColors.muted,
+              ),
+            ),
+            const Expanded(
+              child: SizedBox(height: 1, child: ColoredBox(color: GwentColors.line)),
+            ),
+          ],
         ),
       ),
     );

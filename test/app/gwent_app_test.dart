@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
@@ -9,12 +10,22 @@ import 'package:gwent/src/app/gwent_app.dart';
 import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_node_sheet.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_section_screen.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_play_screen.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_topic_screen.dart';
 import 'package:gwent/src/features/match/presentation/match_screen.dart';
+import 'package:gwent/src/features/match/presentation/start/match_intro_view.dart';
+import 'package:gwent/src/features/match/presentation/start/match_toss_view.dart';
 import 'package:gwent/src/features/menu/presentation/menu_backdrop.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
 import 'package:gwent/src/features/sound/domain/sound_effect.dart';
+import 'package:gwent/src/features/tutorial/presentation/first_match_screen.dart';
 import 'package:gwent_content/gwent_content.dart';
 
 import '../features/lobby/support/fake_game_lobby.dart';
@@ -55,12 +66,15 @@ void main() {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    final collection = InMemoryCollectionRepository();
     await tester.pumpWidget(
       GwentApp(
         dependencies: AppDependencies(
           contentSource: source ?? AssetContentSource.basePack(rootBundle),
           appInfo: const FakeAppInfo('1.2.3'),
           deckRepository: decks,
+          collectionRepository: collection,
+          campaignRepository: InMemoryCampaignRepository(collection),
           settingsRepository: settings ?? InMemorySettingsRepository(),
           matchHistoryRepository: InMemoryMatchHistoryRepository(),
           clock: FakeClock(DateTime.utc(2026, 10, 11)),
@@ -225,6 +239,143 @@ void main() {
     expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
   });
 
+  testWidgets('настройки из меню: «Как играть» открывает список и тему, «назад» идёт по шагам обратно', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(l10n.menuSettings));
+    await settleReal(tester);
+
+    await tester.ensureVisible(find.text(l10n.settingsHowToPlay));
+    await tester.tap(find.text(l10n.settingsHowToPlay));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsOneWidget, reason: 'вне партии «Первую партию» можно начать');
+
+    await tester.tap(find.text(l10n.howToRowsAndPowerTitle));
+    await settleReal(tester);
+    expect(find.byType(HowToTopicScreen), findsOneWidget);
+    expect(find.text(l10n.howToRowsAndPowerText1), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.textContaining(l10n.howToNextTopic), 300);
+    await tester.tap(find.textContaining(l10n.howToNextTopic));
+    await settleReal(tester);
+    expect(find.text(l10n.howToWeatherText1), findsOneWidget, reason: 'следующая тема заменяет страницу');
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+  });
+
+  testWidgets('настройки из меню: «Пройти обучение заново» запускает «Первую партию»', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(l10n.menuSettings));
+    await settleReal(tester);
+
+    await tester.ensureVisible(find.text(l10n.settingsReplayTutorial));
+    await tester.tap(find.text(l10n.settingsReplayTutorial));
+    await settleReal(tester);
+    expect(find.byType(FirstMatchScreen), findsOneWidget);
+  });
+
+  testWidgets('справочник поверх партии: без «Первой партии», «назад» возвращает на экран партии', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+    await openVsBotSetup(tester);
+
+    unawaited(router.push(AppRoutes.howToPlay(overGame: true)));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(HowToPlayScreen), findsNothing);
+    expect(find.text(l10n.factionSelectConfirm), findsOneWidget);
+  });
+
+  testWidgets('пауза в «Первой партии»: «Как играть» открывается поверх партии без кнопки обучения, «назад» в паузу', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(l10n.menuSettings));
+    await settleReal(tester);
+    await tester.ensureVisible(find.text(l10n.settingsReplayTutorial));
+    await tester.tap(find.text(l10n.settingsReplayTutorial));
+    await settleReal(tester);
+    expect(find.byType(FirstMatchScreen), findsOneWidget);
+
+    for (var i = 0; i < 400 && find.text(l10n.tutorialStepCounter(1, 15)).evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump(const Duration(milliseconds: 200));
+      if (find.byType(MatchIntroView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchIntroView));
+      if (find.byType(MatchTossView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchTossView));
+    }
+    await tester.tap(find.text(l10n.tutorialNext));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.bySemanticsLabel(l10n.pauseButtonSemantics));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text(l10n.pauseHowToPlay));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.byType(HowToPlayScreen), findsNothing);
+    expect(find.text(l10n.pauseTitle), findsOneWidget, reason: 'пауза осталась открытой');
+  });
+
+  testWidgets('пауза в партии с ботом: «Как играть» открывается поверх партии без кнопки обучения', (tester) async {
+    await pumpApp(tester);
+    await openVsBotSetup(tester);
+    await tester.tap(find.text(l10n.factionSelectConfirm));
+    await settleReal(tester);
+    await tester.tap(find.text(l10n.deckSelectPlay));
+    for (var i = 0; i < 400 && find.bySemanticsLabel(l10n.pauseButtonSemantics).evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump(const Duration(milliseconds: 200));
+      if (find.byType(MatchIntroView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchIntroView));
+      if (find.byType(MatchTossView).evaluate().isNotEmpty) await tester.tap(find.byType(MatchTossView));
+      if (find.text(l10n.matchRedrawDone).evaluate().isNotEmpty) await tester.tap(find.text(l10n.matchRedrawDone));
+    }
+    await tester.tap(find.bySemanticsLabel(l10n.pauseButtonSemantics));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text(l10n.pauseHowToPlay));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+    expect(find.text(l10n.howToStartTutorial), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel(l10n.setupBack));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.pauseTitle), findsOneWidget);
+  });
+
+  testWidgets('настройки поверх партии: «Как играть» есть, «Пройти обучение заново» нет', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+    await openVsBotSetup(tester);
+
+    unawaited(router.push(AppRoutes.settingsOverGame));
+    await settleReal(tester);
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    await tester.ensureVisible(find.text(l10n.settingsHowToPlay));
+    expect(find.text(l10n.settingsHowToPlay), findsOneWidget);
+    expect(find.text(l10n.settingsReplayTutorial), findsNothing);
+  });
+
+  testWidgets('неизвестная тема справочника ведёт к списку тем', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.howToTopic('нет-такой'));
+    await settleReal(tester);
+    expect(find.byType(HowToPlayScreen), findsOneWidget);
+  });
+
   testWidgets('комната и сетевая партия без активной игры уводят: комната на выбор способа, партия в меню', (
     tester,
   ) async {
@@ -238,6 +389,59 @@ void main() {
     router.go(AppRoutes.playMatch);
     await tester.pumpAndSettle();
     expect(find.byType(GwentLogo), findsOneWidget);
+  });
+
+  testWidgets('кампания: адрес партии другого узла пересоздаёт держатели партии, а не оставляет прежнего узла', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.campaignPlay('c1-01'));
+    await settleReal(tester);
+    expect(tester.element(find.byType(CampaignMatchScreen)).read<CampaignMatchCubit>().nodeId, 'c1-01');
+
+    router.go(AppRoutes.campaignPlay('c1-02'));
+    await settleReal(tester);
+    expect(tester.element(find.byType(CampaignMatchScreen)).read<CampaignMatchCubit>().nodeId, 'c1-02');
+  });
+
+  testWidgets('кампания: «Дальше» с партии возвращает на живую тропу и открывает лист узла из адреса', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.campaign);
+    await settleReal(tester);
+    expect(find.byType(CampaignNodeSheet), findsNothing);
+    // Партия узла лежит над тропой, страница тропы остаётся в стеке и сохраняет состояние.
+    router.go(AppRoutes.campaignPlay('c1-01'));
+    await settleReal(tester);
+    expect(find.byType(CampaignMatchScreen), findsOneWidget);
+
+    router.go(AppRoutes.campaignOpen('c1-00'));
+    await settleReal(tester);
+
+    expect(find.byType(CampaignMatchScreen), findsNothing);
+    expect(find.byType(CampaignNodeSheet), findsOneWidget);
+  });
+
+  testWidgets('кампания: «Книга карт» открывается с адреса, строка раздела ведёт на страницу раздела и назад', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.campaignBook);
+    await settleReal(tester);
+    expect(find.byType(CardBookScreen), findsOneWidget);
+
+    await tester.tap(find.text(l10n.campaignBookCommon));
+    await settleReal(tester);
+    expect(find.byType(CardBookSectionScreen), findsOneWidget);
+
+    await tester.tap(find.byType(ChevronButton).first);
+    await settleReal(tester);
+    expect(find.byType(CardBookScreen), findsOneWidget);
   });
 
   testWidgets('игра через интернет: способ запоминается при возврате, «Создать комнату» ведёт в комнату с кодом', (

@@ -72,8 +72,77 @@ abstract final class AppRoutes {
   /// Игровое поле.
   static const String match = '/match';
 
+  /// «Первая партия»: обучение (ADR 0034).
+  static const String tutorial = '/tutorial';
+
+  /// Параметр адреса обучения: «Первая партия» открыта из кампании (миссия 0), выход ведёт на тропу.
+  static const String fromCampaignParam = 'campaign';
+
+  /// «Первая партия» как миссия 0 кампании: выход и итог ведут на тропу.
+  static const String tutorialFromCampaign = '$tutorial?$fromCampaignParam=1';
+
+  /// Тропа кампании «Тропа ведьмака» (ADR 0033).
+  static const String campaign = '/campaign';
+
+  /// Параметр адреса тропы: узел, лист которого открывается сразу («Дальше» с экрана награды).
+  static const String campaignOpenParam = 'open';
+
+  /// Тропа с открытым листом узла [nodeId]: игрок смотрит условия и сам решает, начинать ли партию.
+  static String campaignOpen(String nodeId) => '$campaign?$campaignOpenParam=${Uri.encodeComponent(nodeId)}';
+
+  /// Выбор колоды кампании («Колода для боя»).
+  static const String campaignDecks = '$campaign/decks';
+
+  /// Параметр адреса выбора колоды: узел, в бой на который идёт игрок.
+  static const String campaignNodeParam = 'node';
+
+  /// Выбор колоды перед боем на узле [nodeId].
+  static String campaignDecksFor(String nodeId) => '$campaignDecks?$campaignNodeParam=${Uri.encodeComponent(nodeId)}';
+
+  /// Конструктор новой колоды в режиме кампании.
+  static const String campaignDeckNew = '$campaignDecks/new';
+
+  /// Параметр адреса изменения колоды в режиме кампании.
+  static const String campaignDeckIdParam = 'deckId';
+
+  /// Конструктор существующей колоды [deckId] в режиме кампании.
+  static String campaignDeckEdit(String deckId) => '$campaignDecks/${Uri.encodeComponent(deckId)}';
+
+  /// «Книга карт»: открытые карты по фракциям.
+  static const String campaignBook = '$campaign/book';
+
+  /// Параметр пути раздела книги: идентификатор фракции или общих карт.
+  static const String campaignBookSectionParam = 'section';
+
+  /// Раздел [sectionId] «Книги карт».
+  static String campaignBookSection(String sectionId) => '$campaignBook/${Uri.encodeComponent(sectionId)}';
+
+  /// Параметр пути партии узла: идентификатор узла.
+  static const String campaignNodeIdParam = 'nodeId';
+
+  /// Партия узла [nodeId] кампании.
+  static String campaignPlay(String nodeId) => '$campaign/play/${Uri.encodeComponent(nodeId)}';
+
   /// Настройки.
   static const String settings = '/settings';
+
+  /// Настройки поверх идущей партии: из них нельзя запустить «Первую партию».
+  static const String settingsOverGame = '$settings?$overGameParam=1';
+
+  /// Справочник «Как играть»: список тем.
+  static const String howToPlayPath = '/how-to-play';
+
+  /// Параметр адреса темы справочника.
+  static const String howToTopicParam = 'topic';
+
+  /// Параметр адреса: справочник открыт поверх партии, поэтому кнопки «Пройти первую партию» в нём нет.
+  static const String overGameParam = 'overGame';
+
+  /// Список тем справочника; [overGame] — открыт поверх идущей партии.
+  static String howToPlay({bool overGame = false}) => overGame ? '$howToPlayPath?$overGameParam=1' : howToPlayPath;
+
+  /// Страница темы справочника [topicKey].
+  static String howToTopic(String topicKey) => '$howToPlayPath/${Uri.encodeComponent(topicKey)}';
 
   /// Параметр пути партии: режим, `hotSeat` или `bot`.
   static const String matchModeParam = 'mode';

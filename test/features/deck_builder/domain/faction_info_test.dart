@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gwent/src/features/collection/domain/owned_cards.dart';
 
 import '../../../support/base_pack.dart';
 import '../../../support/deck_rules_fixtures.dart';
@@ -25,6 +26,20 @@ void main() {
     expect(skellige.leaders.every((leader) => leader.available), isTrue, reason: 'коллекции пока нет');
   });
 
+  test('в кампании недоступны лидеры, которых игрок не открыл; свободная игра не меняется', () {
+    final skellige = smallDeckRules.factionInfos.first;
+
+    final campaign = skellige.withOwned(CardCollection(const {Small.bran: 1, Small.eredin: 1}));
+
+    expect(
+      {for (final leader in campaign.leaders) leader.id: leader.available},
+      {Small.crach: false, Small.bran: true},
+    );
+    expect(campaign.name, skellige.name);
+    expect(skellige.leaders.every((leader) => leader.available), isTrue);
+    expect(skellige.withOwned(CardCollection.empty).leaders.any((leader) => leader.available), isFalse);
+  });
+
   test('в настоящем пакете у каждой фракции есть имя и хотя бы один лидер с описанием способности', () async {
     final pack = await loadBasePack();
     final rules = deckRulesFor(pack);
@@ -39,4 +54,23 @@ void main() {
       }
     }
   });
+
+  test(
+    'у карт коллекции есть имя из строк пакета, а allCards остаются в порядке пакета (бот зависит от него)',
+    () async {
+      final pack = await loadBasePack();
+      final rules = deckRulesFor(pack);
+
+      for (final card in rules.allCards) {
+        expect(card.name, isNotEmpty, reason: card.id);
+        expect(card.name, isNot(startsWith('card.')), reason: 'имя карты взято из строк пакета');
+      }
+      final packIds = [
+        for (final card in pack.rules.squadCards) card.id,
+        for (final card in pack.rules.specialCards) card.id,
+      ];
+      final ids = [for (final card in rules.allCards) card.id];
+      expect(ids, packIds.where(ids.contains).toList());
+    },
+  );
 }

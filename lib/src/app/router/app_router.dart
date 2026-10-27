@@ -7,10 +7,24 @@ import 'package:go_router/go_router.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
 import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_deck_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_deck_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_widgets.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_section_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_screen.dart';
+import 'package:gwent/src/features/how_to_play/domain/how_to_topic.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_play_cubit.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_play_screen.dart';
+import 'package:gwent/src/features/how_to_play/presentation/how_to_topic_screen.dart';
 import 'package:gwent/src/features/lobby/domain/game_address.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_cubit.dart';
 import 'package:gwent/src/features/lobby/presentation/create_game_screen.dart';
@@ -48,6 +62,8 @@ import 'package:gwent/src/features/settings/domain/animation_speed.dart';
 import 'package:gwent/src/features/settings/domain/app_settings.dart';
 import 'package:gwent/src/features/settings/presentation/settings_cubit.dart';
 import 'package:gwent/src/features/settings/presentation/settings_screen.dart';
+import 'package:gwent/src/features/tutorial/presentation/first_match_cubit.dart';
+import 'package:gwent/src/features/tutorial/presentation/first_match_screen.dart';
 import 'package:gwent_engine/gwent_engine.dart' show Resign;
 
 /// Навигация приложения.
@@ -65,9 +81,98 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         onNetworkGame: () => context.go(AppRoutes.play),
         onDecks: () => context.go(AppRoutes.decks),
         onHistory: () => context.go(AppRoutes.history),
+        onTutorial: () => context.go(AppRoutes.tutorial),
         onSettings: () => context.go(AppRoutes.settings),
+        onCampaign: () => context.go(AppRoutes.campaign),
       ),
       routes: [
+        GoRoute(
+          path: _child(AppRoutes.campaign),
+          builder: (context, state) => BlocProvider(
+            create: (_) => CampaignCubit(
+              dependencies.watchCampaignPath,
+              dependencies.loadCampaignOverview,
+              dependencies.claimStartingSet,
+              dependencies.syncCampaignRewards,
+            ),
+            child: CampaignScreen(
+              openNodeId: state.uri.queryParameters[AppRoutes.campaignOpenParam],
+              onBack: () => context.go(AppRoutes.menu),
+              onPlay: (nodeId) => context.go(AppRoutes.campaignPlay(nodeId)),
+              onFirstMatch: () => context.go(AppRoutes.tutorialFromCampaign),
+              onPickDeck: (nodeId) =>
+                  context.push<void>(nodeId == null ? AppRoutes.campaignDecks : AppRoutes.campaignDecksFor(nodeId)),
+              onBuildDeck: () => context.push<void>(AppRoutes.campaignDeckNew),
+              onBook: () => context.push<void>(AppRoutes.campaignBook),
+            ),
+          ),
+          routes: [
+            GoRoute(
+              path: 'decks',
+              builder: (context, state) => BlocProvider(
+                // Страница одна на все узлы (ключ по шаблону пути): без ключа держатель остался бы от прежнего узла.
+                key: ValueKey(state.uri.queryParameters[AppRoutes.campaignNodeParam]),
+                create: (_) => CampaignDeckCubit(
+                  dependencies.listCampaignDecks,
+                  dependencies.getCampaignDeck,
+                  dependencies.chooseCampaignDeck,
+                  dependencies.loadCampaign,
+                  nodeId: state.uri.queryParameters[AppRoutes.campaignNodeParam],
+                ),
+                child: CampaignDeckScreen(
+                  onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+                  onBattle: (nodeId) => context.go(AppRoutes.campaignPlay(nodeId)),
+                  onChosen: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+                  onBuild: () => context.push<void>(AppRoutes.campaignDeckNew),
+                  onEdit: (deckId) => context.push<void>(AppRoutes.campaignDeckEdit(deckId)),
+                ),
+              ),
+              routes: [
+                GoRoute(
+                  path: 'new',
+                  builder: (context, state) => _campaignDeckEditor(context, dependencies),
+                ),
+                GoRoute(
+                  path: ':${AppRoutes.campaignDeckIdParam}',
+                  builder: (context, state) {
+                    final deckId = state.pathParameters[AppRoutes.campaignDeckIdParam]!;
+                    // Страница одна на все колоды (ключ по шаблону пути): ключ даёт каждой колоде свой конструктор.
+                    return _campaignDeckEditor(context, dependencies, deckId: deckId, key: ValueKey(deckId));
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'book',
+              builder: (context, state) => BlocProvider(
+                create: (_) => CardBookCubit(dependencies.loadCardBook),
+                child: CardBookScreen(
+                  onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+                  onOpenSection: (sectionId) => context.push<void>(AppRoutes.campaignBookSection(sectionId)),
+                ),
+              ),
+              routes: [
+                GoRoute(
+                  path: ':${AppRoutes.campaignBookSectionParam}',
+                  builder: (context, state) => BlocProvider(
+                    // Страница одна на все разделы (ключ по шаблону пути): ключ сбрасывает вкладку прежнего раздела.
+                    key: ValueKey(state.pathParameters[AppRoutes.campaignBookSectionParam]),
+                    create: (_) => CardBookCubit(dependencies.loadCardBook),
+                    child: CardBookSectionScreen(
+                      sectionId: state.pathParameters[AppRoutes.campaignBookSectionParam]!,
+                      onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaignBook),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'play/:${AppRoutes.campaignNodeIdParam}',
+              builder: (context, state) =>
+                  _campaignMatch(context, dependencies, state.pathParameters[AppRoutes.campaignNodeIdParam]!),
+            ),
+          ],
+        ),
         GoRoute(
           path: _child(AppRoutes.history),
           builder: (context, state) => BlocProvider(
@@ -285,21 +390,94 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
         ),
         GoRoute(
           path: _child(AppRoutes.settings),
-          builder: (context, state) => BlocProvider(
-            create: (_) => SettingsCubit(
-              watchSettings: dependencies.watchSettings,
-              saveSettings: dependencies.saveSettings,
-              loadAboutInfo: dependencies.loadAboutInfo,
-              checkContentUpdate: dependencies.checkContentUpdate,
-              sound: dependencies.playSound,
-              haptic: dependencies.playHaptic,
-            ),
-            child: SettingsScreen(
-              // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
+          builder: (context, state) {
+            final overGame = state.uri.queryParameters[AppRoutes.overGameParam] == '1';
+            return BlocProvider(
+              create: (_) => SettingsCubit(
+                watchSettings: dependencies.watchSettings,
+                saveSettings: dependencies.saveSettings,
+                loadAboutInfo: dependencies.loadAboutInfo,
+                checkContentUpdate: dependencies.checkContentUpdate,
+                sound: dependencies.playSound,
+                haptic: dependencies.playHaptic,
+              ),
+              child: SettingsScreen(
+                // Из партии настройки открывают поверх неё (push), оттуда возвращаются назад, а не в меню.
+                onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
+                onLicenses: () => showLicensePage(context: context, applicationName: context.l10n.appTitle),
+                onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: overGame)),
+                // Поверх партии «Первую партию» не запускают: она оборвала бы идущую игру.
+                onTutorial: overGame ? null : () => context.go(AppRoutes.tutorial),
+                // Поверх партии кампанию не сбрасывают: стёртый прогресс оборвал бы партию узла.
+                onResetCampaign: overGame ? null : () => dependencies.resetCampaign(),
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: _child(AppRoutes.howToPlayPath),
+          builder: (context, state) {
+            final overGame = state.uri.queryParameters[AppRoutes.overGameParam] == '1';
+            return HowToPlayScreen(
               onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.menu),
-              onLicenses: () => showLicensePage(context: context, applicationName: context.l10n.appTitle),
+              onOpen: (topic) => context.push(AppRoutes.howToTopic(topic.key)),
+              // Из партии справочник открывают поверх неё; «Первая партия» оборвала бы её.
+              onTutorial: overGame ? null : () => context.go(AppRoutes.tutorial),
+            );
+          },
+          routes: [
+            GoRoute(
+              path: ':${AppRoutes.howToTopicParam}',
+              redirect: (context, state) => HowToTopic.fromKey(state.pathParameters[AppRoutes.howToTopicParam]!) == null
+                  ? AppRoutes.howToPlay()
+                  : null,
+              builder: (context, state) {
+                final topic = HowToTopic.fromKey(state.pathParameters[AppRoutes.howToTopicParam]!)!;
+                return BlocProvider(
+                  create: (_) => HowToPlayCubit(dependencies.loadGameContent),
+                  child: HowToTopicScreen(
+                    topic: topic,
+                    onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.howToPlay()),
+                    onOpen: (next) => context.pushReplacement(AppRoutes.howToTopic(next.key)),
+                  ),
+                );
+              },
             ),
-          ),
+          ],
+        ),
+        GoRoute(
+          path: _child(AppRoutes.tutorial),
+          builder: (context, state) {
+            final fromCampaign = state.uri.queryParameters[AppRoutes.fromCampaignParam] == '1';
+            return BlocProvider(
+              create: (_) => FirstMatchCubit(
+                dependencies.startFirstMatch,
+                playerDeckName: context.l10n.tutorialPlayerDeckName,
+                opponentDeckName: context.l10n.tutorialOpponentDeckName,
+              ),
+              child: StreamBuilder<AppSettings>(
+                stream: dependencies.watchSettings(),
+                initialData: const AppSettings(),
+                builder: (context, snapshot) => FirstMatchScreen(
+                  startMatch: dependencies.startMatch,
+                  recordFinishedMatch: dependencies.recordFinishedMatch,
+                  markPassed: dependencies.markFirstMatchPassed,
+                  onExit: () => context.go(AppRoutes.menu),
+                  // Миссия 0 кампании ведёт обратно на тропу, где игрок получает стартовый набор.
+                  onPlayBot: () => context.go(fromCampaign ? AppRoutes.campaign : AppRoutes.matchBot),
+                  playLabel: fromCampaign ? context.l10n.campaignContinueCampaign : null,
+                  onSettings: () => context.push(AppRoutes.settingsOverGame),
+                  onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
+                  animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
+                    AnimationSpeed.normal => 1,
+                    AnimationSpeed.fast => StageTokens.fastFactor,
+                  },
+                  sound: dependencies.playSound,
+                  haptic: dependencies.playHaptic,
+                ),
+              ),
+            );
+          },
         ),
         GoRoute(
           path: _child(AppRoutes.match),
@@ -331,7 +509,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   onExit: () => context.go(AppRoutes.menu),
                   // Конструктор открывается поверх выбора, а не вместо него: после правки игрок возвращается к тому же шагу.
                   onEditDeck: (deckId) => context.push(AppRoutes.deckEdit(deckId)),
-                  onSettings: () => context.push(AppRoutes.settings),
+                  onSettings: () => context.push(AppRoutes.settingsOverGame),
+                  onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
                   confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
                   hints: (snapshot.data ?? const AppSettings()).hints,
                   animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {
@@ -361,6 +540,66 @@ Widget _deckEditor(BuildContext context, AppDependencies dependencies, {String? 
   ),
   child: DeckEditorScreen(onExit: () => context.pop()),
 );
+
+/// Конструктор колоды в режиме кампании (ADR 0033): только открытые карты, плашка «Режим кампании». Закрывается
+/// возвратом на экран, с которого его открыли.
+Widget _campaignDeckEditor(BuildContext context, AppDependencies dependencies, {String? deckId, Key? key}) =>
+    BlocProvider(
+      key: key,
+      create: (_) => DeckEditorCubit(
+        loadDeckRules: dependencies.loadDeckRules,
+        getDeck: dependencies.getDeck,
+        saveDeck: dependencies.saveDeck,
+        newDeckName: context.l10n.deckListNew,
+        deckId: deckId,
+        loadCollection: dependencies.loadCollection,
+        sound: dependencies.playSound,
+      ),
+      child: DeckEditorScreen(
+        onExit: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+        banner: const CampaignModeBanner(),
+      ),
+    );
+
+/// Партия узла [nodeId] кампании: обычная партия против бота с итогом и наградой.
+Widget _campaignMatch(BuildContext context, AppDependencies dependencies, String nodeId) => BlocProvider(
+  // «Дальше» ведёт на тот же маршрут с другим узлом: страница остаётся прежней, и без ключа держатели остались бы от
+  // прежнего узла.
+  key: ValueKey(nodeId),
+  create: (_) => CampaignMatchCubit(dependencies.prepareCampaignMatch, dependencies.loadCampaign, nodeId),
+  child: StreamBuilder<AppSettings>(
+    stream: dependencies.watchSettings(),
+    initialData: const AppSettings(),
+    builder: (context, snapshot) {
+      final settings = snapshot.data ?? const AppSettings();
+      return CampaignMatchScreen(
+        startMatch: dependencies.startMatch,
+        recordFinishedMatch: dependencies.recordFinishedMatch,
+        onExit: () => context.go(AppRoutes.campaign),
+        // «Дальше» ведёт на тропу с листом узла, а не сразу в партию: колоду и условия можно посмотреть.
+        onNext: (next) => context.go(AppRoutes.campaignOpen(next)),
+        onChangeDeck: (node) => context.go(AppRoutes.campaignDecksFor(node)),
+        onBuildDeck: () => unawaited(_buildDeckThenChoose(context, nodeId)),
+        onSettings: () => context.push(AppRoutes.settingsOverGame),
+        onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
+        confirmPass: settings.confirmPass,
+        hints: settings.hints,
+        animationScale: switch (settings.animationSpeed) {
+          AnimationSpeed.normal => 1,
+          AnimationSpeed.fast => StageTokens.fastFactor,
+        },
+        sound: dependencies.playSound,
+        haptic: dependencies.playHaptic,
+      );
+    },
+  ),
+);
+
+/// Собрать колоду из партии узла [nodeId] и вернуться к выбору колоды для этого же узла.
+Future<void> _buildDeckThenChoose(BuildContext context, String nodeId) async {
+  await context.push<void>(AppRoutes.campaignDeckNew);
+  if (context.mounted) context.go(AppRoutes.campaignDecksFor(nodeId));
+}
 
 /// Конструктор колоды в режиме лобби: колоду [deckId] или новую. Закрывается, вернув идентификатор сохранённой колоды
 /// (или `null`, если игрок вышел, ничего не сохранив).
@@ -405,7 +644,8 @@ Widget _networkMatch(BuildContext context, AppDependencies dependencies) {
         // Оба согласились на реванш: колоды выбирают заново в той же комнате.
         onRematchAgreed: () => context.go(AppRoutes.playRoom),
         onEditDeck: (_) {},
-        onSettings: () => context.push(AppRoutes.settings),
+        onSettings: () => context.push(AppRoutes.settingsOverGame),
+        onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: true)),
         confirmPass: (snapshot.data ?? const AppSettings()).confirmPass,
         hints: (snapshot.data ?? const AppSettings()).hints,
         animationScale: switch ((snapshot.data ?? const AppSettings()).animationSpeed) {

@@ -6,6 +6,8 @@ import 'package:gwent/src/core/data/system_clock.dart';
 import 'package:gwent/src/core/data/uuid_id_generator.dart';
 import 'package:gwent/src/core/database/app_database.dart';
 import 'package:gwent/src/core/database/app_database_connection.dart';
+import 'package:gwent/src/features/campaign/data/drift_campaign_repository.dart';
+import 'package:gwent/src/features/collection/data/drift_collection_repository.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/data/drift_deck_repository.dart';
 import 'package:gwent/src/features/haptics/data/flutter_haptic_output.dart';
@@ -34,6 +36,8 @@ AppDependencies createAppDependencies() {
     contentSource: AssetContentSource.basePack(rootBundle),
     appInfo: const PackageAppInfo(),
     deckRepository: DriftDeckRepository(database),
+    collectionRepository: DriftCollectionRepository(database),
+    campaignRepository: DriftCampaignRepository(database),
     settingsRepository: DriftSettingsRepository(database),
     matchHistoryRepository: DriftMatchHistoryRepository(database),
     clock: clock,

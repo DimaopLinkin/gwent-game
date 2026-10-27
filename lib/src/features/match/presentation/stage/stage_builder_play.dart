@@ -23,16 +23,22 @@ extension _PlayScenes on StageScriptBuilder {
     _cursor = math.max(_cursor, end);
   }
 
+  /// Моя рука на экране слева направо.
+  List<CardInstance> _handOf(PlayerView view) {
+    final hand = view.me.hand ?? const <CardInstance>[];
+    return handOrder?.sort(hand) ?? hand;
+  }
+
   /// Слот карты в моей руке до хода; колода, если карты в руке не было.
   StagePlace _handPlace(CardInstance card) {
-    final hand = prev.me.hand ?? const <CardInstance>[];
+    final hand = _handOf(prev);
     final index = hand.indexWhere((candidate) => candidate.id == card.id);
     return index < 0 ? const DeckPlace(mine: true) : HandPlace(index, hand.length);
   }
 
   /// Слот карты в моей руке после хода.
   StagePlace? _nextHandPlace(CardInstance card) {
-    final hand = next.me.hand ?? const <CardInstance>[];
+    final hand = _handOf(next);
     final index = hand.indexWhere((candidate) => candidate.id == card.id);
     return index < 0 ? null : HandPlace(index, hand.length);
   }

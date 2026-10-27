@@ -5,6 +5,8 @@ import 'package:flutter/animation.dart';
 import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
+import 'package:gwent/src/features/match/presentation/hand_order.dart';
+import 'package:gwent/src/features/match/presentation/row_order.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_beat.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
@@ -120,18 +122,22 @@ final class _RowDraft {
 final class StageScriptBuilder {
   /// Создаёт сборщик; проекции должны быть одного игрока.
   StageScriptBuilder({
-    required this.prev,
-    required this.next,
+    required PlayerView prev,
+    required PlayerView next,
     required this.catalog,
     this.style = StageStyle.normal,
-  }) : viewer = next.viewer {
+    this.handOrder,
+    this.rowOrder,
+  }) : prev = rowOrder?.apply(prev) ?? prev,
+       next = rowOrder?.apply(next) ?? next,
+       viewer = next.viewer {
     _init();
   }
 
-  /// Проекция до обновления.
+  /// Проекция до обновления; с [rowOrder] карты в рядах стоят в порядке показа.
   final PlayerView prev;
 
-  /// Проекция после обновления.
+  /// Проекция после обновления; с [rowOrder] карты в рядах стоят в порядке показа.
   final PlayerView next;
 
   /// Справочник карт: по нему сцены отличают отряд от особой карты и героя от обычной карты.
@@ -139,6 +145,13 @@ final class StageScriptBuilder {
 
   /// Скорость и режим «Уменьшить движение».
   final StageStyle style;
+
+  /// Порядок карт в руке на экране; без него места в руке считаются по порядку проекции.
+  final HandOrder? handOrder;
+
+  /// Порядок карт в рядах на экране; без него ряды остаются в порядке проекции. Сценарий видит ряды так, как их рисует
+  /// поле.
+  final RowOrder? rowOrder;
 
   /// Игрок, чьими глазами смотрим.
   final Seat viewer;

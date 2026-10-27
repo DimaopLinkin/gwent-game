@@ -20,6 +20,11 @@ final class DeckIssueText {
   /// Фраза о проблеме [issue].
   String describe(DeckIssue issue) => switch (issue) {
     LeaderOfOtherFaction() => l10n.deckIssueLeaderOfOtherFaction,
+    LeaderNotOwned() => l10n.deckIssueLeaderNotOpened,
+    CardNotOwned(:final cardId, :final copies, :final owned) =>
+      owned == 0
+          ? l10n.deckIssueCardNotOpened(_cardName(CardId(cardId)))
+          : l10n.deckIssueCardFewOpened(_cardName(CardId(cardId)), copies, owned),
     DeckRuleViolation(:final violation) => _violation(violation),
   };
 

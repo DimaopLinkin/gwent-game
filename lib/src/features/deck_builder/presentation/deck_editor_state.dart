@@ -1,4 +1,6 @@
+import 'package:gwent/src/features/collection/domain/owned_cards.dart';
 import 'package:gwent/src/features/deck_builder/domain/collection_card.dart';
+import 'package:gwent/src/features/deck_builder/domain/collection_order.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_issue.dart';
 import 'package:gwent/src/features/deck_builder/domain/deck_rules.dart';
 import 'package:gwent/src/features/deck_builder/domain/faction_info.dart';
@@ -91,7 +93,7 @@ final class FactionChange {
 @immutable
 final class EditorCard {
   /// Создаёт запись списка.
-  const EditorCard({required this.card, required this.copies, required this.blocked});
+  const EditorCard({required this.card, required this.copies, required this.blocked, required this.limit});
 
   /// Карта.
   final CollectionCard card;
@@ -101,6 +103,25 @@ final class EditorCard {
 
   /// Карту сейчас нельзя добавить (все копии в колоде, герой уже есть или особых максимум).
   final bool blocked;
+
+  /// Сколько копий можно положить в колоду: число из набора карт, в кампании не больше открытого.
+  final int limit;
+
+  /// Карта закрыта: в кампании она ещё не открыта (ADR 0033).
+  bool get locked => limit == 0;
+}
+
+/// Карты одной группы сетки («Герои», «Отряды», «Особые»).
+@immutable
+final class EditorCardGroup {
+  /// Создаёт группу.
+  const EditorCardGroup({required this.group, required this.cards});
+
+  /// Группа.
+  final CollectionGroup group;
+
+  /// Карты группы в порядке сетки.
+  final List<EditorCard> cards;
 }
 
 /// Состояние конструктора колоды.
@@ -150,6 +171,7 @@ final class DeckEditorReady extends DeckEditorState {
     required this.onlyAvailable,
     required this.factionIndex,
     required this.saving,
+    this.owned,
     this.message,
     this.saveFailed = false,
     this.lastMoved,
@@ -177,6 +199,12 @@ final class DeckEditorReady extends DeckEditorState {
   /// Колода сохраняется: кнопки не принимают нажатий.
   final bool saving;
 
+  /// Открытые карты кампании (ADR 0033): колоду собирают только из них. `null` в свободной игре, где доступны все карты.
+  final OwnedCards? owned;
+
+  /// Конструктор открыт для кампании.
+  bool get isCampaign => owned != null;
+
   /// Сообщение об отказе в строке подсказки.
   final EditorMessage? message;
 
@@ -190,7 +218,13 @@ final class DeckEditorReady extends DeckEditorState {
   final int moveSerial;
 
   /// Фракция колоды.
-  FactionInfo get faction => rules.factionInfos[factionIndex];
+  FactionInfo get faction => factionAt(factionIndex);
+
+  /// Фракция номер [index] среди `rules.factionInfos`; в кампании её закрытые лидеры недоступны.
+  FactionInfo factionAt(int index) => switch (owned) {
+    final owned? => rules.factionInfos[index].withOwned(owned),
+    null => rules.factionInfos[index],
+  };
 
   /// Лидер колоды или `null`, если не выбран.
   LeaderInfo? get leader => switch (draft.leaderId) {
@@ -202,7 +236,7 @@ final class DeckEditorReady extends DeckEditorState {
   late final DeckStats stats = rules.statsOf(draft);
 
   /// Проблемы колоды по правилам.
-  late final List<DeckIssue> issues = rules.checkDraft(draft);
+  late final List<DeckIssue> issues = rules.checkDraft(draft, owned: owned);
 
   /// Колода проходит правила и лидер выбран: её можно сохранить как готовую.
   bool get isValid => leader != null && issues.isEmpty;
@@ -213,13 +247,14 @@ final class DeckEditorReady extends DeckEditorState {
   /// Больше особых карт, чем можно.
   bool get tooManySpecials => stats.specials > rules.gameRules.maxSpecialCards;
 
-  /// Карты коллекции фракции в порядке пакета, с копиями в колоде и признаком «добавить нельзя».
+  /// Карты коллекции фракции в порядке конструктора (`CollectionOrder`), с копиями в колоде и признаком «добавить нельзя».
   late final List<EditorCard> collection = List.unmodifiable([
-    for (final card in rules.collectionFor(draft.factionId))
+    for (final card in CollectionOrder.sort(rules.collectionFor(draft.factionId)))
       EditorCard(
         card: card,
         copies: draft.copiesOf(card.id),
-        blocked: rules.refusalToAdd(draft, card) != null,
+        blocked: rules.refusalToAdd(draft, card, owned: owned) != null,
+        limit: card.limit(owned),
       ),
   ]);
 
@@ -236,9 +271,23 @@ final class DeckEditorReady extends DeckEditorState {
         if (filter.accepts(entry.card) && (!onlyAvailable || !entry.blocked)) entry,
     ],
     DeckEditorTab.deck => [
-      for (final card in rules.allCards)
+      for (final card in CollectionOrder.sort(rules.allCards))
         if (filter.accepts(card) && draft.copiesOf(card.id) > 0)
-          EditorCard(card: card, copies: draft.copiesOf(card.id), blocked: rules.refusalToAdd(draft, card) != null),
+          EditorCard(
+            card: card,
+            copies: draft.copiesOf(card.id),
+            blocked: rules.refusalToAdd(draft, card, owned: owned) != null,
+            limit: card.limit(owned),
+          ),
     ],
   });
+
+  /// Карты открытой вкладки по группам в порядке сетки; пустых групп нет.
+  ///
+  /// Метки групп в сетке показывают, только если групп больше одной.
+  List<EditorCardGroup> get visibleGroups => List.unmodifiable([
+    for (final group in CollectionGroup.values)
+      if (visible.where((entry) => entry.card.group == group).toList() case final cards when cards.isNotEmpty)
+        EditorCardGroup(group: group, cards: cards),
+  ]);
 }
