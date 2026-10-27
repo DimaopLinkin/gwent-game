@@ -414,7 +414,7 @@
       "id": "c2",
       "number": 2,
       "name": "Велен",
-      "released": false,
+      "released": true,
       "nodes": [
         {
           "id": "c2-00",
@@ -995,7 +995,7 @@
       "id": "c3",
       "number": 3,
       "name": "Новиград",
-      "released": false,
+      "released": true,
       "nodes": [
         {
           "id": "c3-00",
@@ -1568,7 +1568,7 @@
       "id": "c4",
       "number": 4,
       "name": "Скеллиге",
-      "released": false,
+      "released": true,
       "nodes": [
         {
           "id": "c4-00",

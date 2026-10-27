@@ -22,9 +22,9 @@ void main() {
     campaign = pack.campaign!;
   });
 
-  test('4 главы, 49 узлов, выпущена только первая', () {
+  test('4 главы, 49 узлов, все главы выпущены', () {
     expect(campaign.chapters.map((chapter) => chapter.nodes.length), [10, 13, 15, 11]);
-    expect(campaign.chapters.map((chapter) => chapter.released), [true, false, false, false]);
+    expect(campaign.chapters.map((chapter) => chapter.released), [true, true, true, true]);
     expect(campaign.firstNode.id, 'c1-00');
     expect(campaign.firstNode.scenario, 'first_match');
     expect(pack.text(campaign.chapters.first.nameKey), 'Белый сад');

@@ -152,6 +152,16 @@ void main() {
       }
     });
 
+    test('дымовой тест: с колодой каждого узла (все четыре главы) партия против бота доходит до итога', () async {
+      await passFirstNode();
+      final gameContent = await readyContent(content);
+      final player = (await decks.watchAll().first).single;
+      for (final node in data.catalog.nodes.where((node) => !node.isScripted)) {
+        final match = playBotMatch(gameContent, player, _preparedOpponent(data, node.id), seed: 7);
+        expect(match.finalView.outcome, isNotNull, reason: node.id);
+      }
+    });
+
     test('партия без журнала: ошибка уходит в onError, а не тихий отказ в награде', () async {
       await passFirstNode();
       final errors = <Object>[];
