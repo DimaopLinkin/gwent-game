@@ -125,6 +125,167 @@ void main() {
       expect(flight.from, isA<HandPlace>().having((place) => place.index, 'index', 0), reason: 'слабая карта слева');
     });
 
+    test('сыгранный отряд ложится на своё место в ряду по силе, а не в конец', () {
+      final strong = cards.hero();
+      final weak = cards.unit(Row.melee);
+      final before = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: [weak],
+          rows: {
+            Row.melee: rowOf([strong], cards),
+          },
+          score: cards.strength(strong),
+        ),
+      );
+      final after = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          rows: {
+            Row.melee: rowOf([strong, weak], cards),
+          },
+          score: cards.strength(strong) + cards.strength(weak),
+        ),
+      );
+      feed(before, const []);
+      feed(after, [CardPlayed(Seat.one, weak), UnitPlaced(Seat.one, Row.melee, weak, EntrySource.hand)]);
+
+      const mineMelee = (mine: true, row: Row.melee);
+      final script = cubit.state.stage!;
+      for (final time in [0.0, script.duration]) {
+        final row = script.frameAt(time).rows[mineMelee]!;
+        expect([for (final staged in row.cards) staged.view.card.id], [weak.id, strong.id], reason: 'время $time');
+      }
+      expect(script.frameAt(0).rows[mineMelee]!.cards.first.hidden, isTrue, reason: 'карта ещё в полёте');
+    });
+
+    test('Чучело встаёт на место забранной карты, дуга Чучела ведёт в это место', () {
+      final first = cards.unit(Row.melee);
+      final second = cards.unit(Row.melee);
+      final hero = cards.hero();
+      final decoy = cards.special<DecoyAbility>();
+      // Чучело на столе силы не имеет: карта особая.
+      SideView side({required List<CardInstance> hand, required List<CardInstance> row}) => sideOf(
+        cards,
+        Seat.one,
+        hand: hand,
+        rows: {
+          Row.melee: RowView(
+            cards: [
+              for (final card in row) FieldCardView(card: card, strength: card == decoy ? 0 : cards.strength(card)),
+            ],
+            slot: null,
+            weather: false,
+            strength: 0,
+          ),
+        },
+      );
+      feed(
+        viewOf(
+          cards,
+          me: side(hand: [decoy], row: [first, second, hero]),
+        ),
+        const [],
+      );
+      feed(
+        viewOf(
+          cards,
+          me: side(hand: [second], row: [first, decoy, hero]),
+        ),
+        [
+          CardPlayed(Seat.one, decoy),
+          UnitDecoyed(Seat.one, Row.melee, decoy: decoy, returned: second),
+        ],
+      );
+
+      const mineMelee = (mine: true, row: Row.melee);
+      final script = cubit.state.stage!;
+      List<CardInstanceId> rowAt(double time) => [
+        for (final staged in script.frameAt(time).rows[mineMelee]!.cards) staged.view.card.id,
+      ];
+      expect(rowAt(script.duration), [first.id, decoy.id, hero.id], reason: 'на месте второй карты, не слева');
+      expect(cubit.replacedCount, 1);
+      final flight = script
+          .frameAt(0)
+          .items
+          .whereType<CardFlightItem>()
+          .firstWhere((item) => item.ref == CardFaceRef(decoy, mine: true));
+      expect(flight.to, isA<RowCardPlace>().having((place) => place.card, 'card', second.id));
+    });
+
+    test('берсерк превращается в медведя: медведь встаёт на своё место по силе', () {
+      final weak = cards.unit(Row.melee);
+      final hero = cards.hero();
+      final berserk = cards.unit(Row.melee);
+      final bear = cards.created();
+      final mardrem = cards.special<MardremCardAbility>();
+      SideView side(List<CardInstance> row, {List<CardInstance> hand = const [], RowSlot? slot}) => sideOf(
+        cards,
+        Seat.one,
+        hand: hand,
+        rows: {
+          Row.melee: rowOf(row, cards, slot: slot),
+        },
+      );
+      feed(viewOf(cards, me: side([weak, berserk, hero], hand: [mardrem])), const []);
+      feed(viewOf(cards, me: side([weak, bear, hero], slot: CardSlot(mardrem))), [
+        CardPlayed(Seat.one, mardrem),
+        SlotFilled(Seat.one, Row.melee, CardSlot(mardrem)),
+        BerserkTransformed(Seat.one, Row.melee, berserk: berserk, into: bear),
+      ]);
+
+      const mineMelee = (mine: true, row: Row.melee);
+      final script = cubit.state.stage!;
+      final end = [for (final staged in script.frameAt(script.duration).rows[mineMelee]!.cards) staged.view.card];
+      expect(end, hasLength(3));
+      expect(end.map((card) => card.id), isNot(contains(berserk.id)));
+      final strengths = [for (final card in end) cards.strength(card)];
+      expect(strengths, [...strengths]..sort(), reason: 'карты ряда по возрастанию силы');
+    });
+
+    test('медик возвращает отряд в середину ряда: карта ложится на своё место, а не в конец', () {
+      final hero = cards.hero();
+      final medic = cards.medic();
+      final revived = cards.unit(Row.melee);
+      SideView side({
+        List<CardInstance> hand = const [],
+        required List<CardInstance> row,
+        List<CardInstance>? discard,
+      }) => sideOf(
+        cards,
+        Seat.one,
+        hand: hand,
+        discard: discard ?? const [],
+        rows: {
+          Row.melee: rowOf(row, cards),
+        },
+      );
+      feed(
+        viewOf(
+          cards,
+          me: side(hand: [medic], row: [hero], discard: [revived]),
+        ),
+        const [],
+      );
+      feed(viewOf(cards, me: side(row: [hero, medic, revived])), [
+        CardPlayed(Seat.one, medic),
+        UnitPlaced(Seat.one, Row.melee, medic, EntrySource.hand),
+        UnitPlaced(Seat.one, Row.melee, revived, EntrySource.medic),
+      ]);
+
+      const mineMelee = (mine: true, row: Row.melee);
+      final script = cubit.state.stage!;
+      final ids = [for (final staged in script.frameAt(script.duration).rows[mineMelee]!.cards) staged.view.card];
+      final strengths = [for (final card in ids) cards.strength(card)];
+      expect(ids, hasLength(3));
+      expect(strengths, [...strengths]..sort(), reason: 'ряд по возрастанию силы');
+      expect(ids.last.id, isNot(revived.id), reason: 'пришла последней, но слабая: не в конце');
+    });
+
     test('сценарий чужого номера поле не снимает', () {
       final play = playUnit();
       feed(play.before, const []);

@@ -7,6 +7,7 @@ import 'package:gwent/src/features/haptics/domain/haptic_pattern.dart';
 import 'package:gwent/src/features/match/presentation/field/field_state.dart';
 import 'package:gwent/src/features/match/presentation/hand_order.dart';
 import 'package:gwent/src/features/match/presentation/match_screen_state.dart';
+import 'package:gwent/src/features/match/presentation/row_order.dart';
 import 'package:gwent/src/features/match/presentation/stage/last_move_board.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_builder.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_script.dart';
@@ -65,6 +66,16 @@ final class FieldCubit extends Cubit<FieldState> {
   StageScript? _queuedStage;
   int _stageCount = 0;
   final Map<Seat, PlayerView> _seen = {};
+
+  /// Карты, которые заменили Чучела на столе, по номеру Чучела: движок забранную карту не помнит, а Чучело в ряду
+  /// стоит на её месте (`RowOrder`).
+  final Map<CardInstanceId, CardInstance> _replaced = {};
+
+  /// Сколько Чучел поле уже знает: меняется, когда порядок рядов может измениться при той же проекции.
+  int get replacedCount => _replaced.length;
+
+  /// Порядок карт в рядах на экране для контента [content].
+  RowOrder rowOrder(GameContent content) => RowOrder(HandOrder(content), replaced: Map.unmodifiable(_replaced));
   int _toastCount = 0;
   final Set<int> _announcedRounds = {};
   final Set<int> _summarizedRounds = {};
@@ -214,6 +225,7 @@ final class FieldCubit extends Cubit<FieldState> {
     _announcedRounds.clear();
     _summarizedRounds.clear();
     _seen.clear();
+    _replaced.clear();
     _lastTurn = null;
     _firstChoicePending = false;
     _dealtAnnounced = false;
@@ -228,6 +240,9 @@ final class FieldCubit extends Cubit<FieldState> {
     PlayerView? closing,
   ) {
     var next = state;
+    for (final event in events) {
+      if (event is UnitDecoyed) _replaced[event.decoy.id] = event.returned;
+    }
     if (events.any((event) => event is FirstPlayerChosen && event.byChoice)) _firstChoicePending = true;
     _playDealSounds(view, events);
     // Конец раунда или матча показывает по полю перед последним действием; остальное — по прошлой увиденной проекции.
@@ -310,6 +325,7 @@ final class FieldCubit extends Cubit<FieldState> {
       catalog: content.catalog,
       style: style,
       handOrder: HandOrder(content),
+      rowOrder: rowOrder(content),
     ).build(++_stageCount, events);
   }
 
@@ -324,6 +340,7 @@ final class FieldCubit extends Cubit<FieldState> {
       catalog: content.catalog,
       style: style,
       handOrder: HandOrder(content),
+      rowOrder: rowOrder(content),
     ).buildResignation(++_stageCount, events);
   }
 
@@ -359,6 +376,7 @@ final class FieldCubit extends Cubit<FieldState> {
       catalog: content.catalog,
       style: style,
       handOrder: HandOrder(content),
+      rowOrder: rowOrder(content),
     ).buildLastMove(++_stageCount, moves);
     return script == null ? null : (script: script, board: board);
   }
@@ -378,6 +396,7 @@ final class FieldCubit extends Cubit<FieldState> {
       catalog: content.catalog,
       style: style,
       handOrder: HandOrder(content),
+      rowOrder: rowOrder(content),
     ).buildRound(++_stageCount, events, summary: summary);
   }
 

@@ -1,11 +1,12 @@
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
-/// Порядок карт в руке, как в TW3: слева особые карты (Чучело, Рог, Казнь, Дождь, Туман, Мороз, Шторм, Ясное небо,
-/// Мардрём), правее отряды по возрастанию силы, при равной силе по имени.
+/// Порядок карт в руке и в рядах поля, как в TW3: слева особые карты (Чучело, Рог, Казнь, Дождь, Туман, Мороз, Шторм,
+/// Ясное небо, Мардрём), правее отряды по возрастанию силы, при равной силе по имени.
 ///
 /// Порядок зависит только от состава руки, поэтому карта, пришедшая позже (шпион, медик, добор), сразу встаёт на место.
-/// По нему рисуется рука и считаются места вылета и возврата карт в сценариях показа.
+/// По нему рисуется рука и считаются места вылета и возврата карт в сценариях показа. Ряды поля идут в том же порядке
+/// (`RowOrder`): по базовой силе, а не по текущей, поэтому погода, рог и узы карты в ряду не переставляют.
 final class HandOrder {
   /// Создаёт порядок по контенту партии.
   HandOrder(this.content);
@@ -16,9 +17,16 @@ final class HandOrder {
   static const int _firstUnitRank = 100;
 
   /// Рука слева направо.
-  List<CardInstance> sort(List<CardInstance> hand) {
-    final keys = {for (final card in hand) card.id: (rank: _rank(card), name: _name(card))};
-    return [...hand]..sort((a, b) {
+  List<CardInstance> sort(List<CardInstance> hand) => sortBy(hand, (card) => card);
+
+  /// Элементы [items] слева направо по порядку их карт [cardOf].
+  List<T> sortBy<T>(List<T> items, CardInstance Function(T item) cardOf) {
+    final keys = {
+      for (final item in items) cardOf(item).id: (rank: _rank(cardOf(item)), name: _name(cardOf(item))),
+    };
+    return [...items]..sort((first, second) {
+      final a = cardOf(first);
+      final b = cardOf(second);
       final left = keys[a.id]!;
       final right = keys[b.id]!;
       final byRank = left.rank.compareTo(right.rank);
