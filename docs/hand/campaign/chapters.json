@@ -202,7 +202,7 @@
               {
                 "card_id": "61ad290e-1f7b-4d02-bb71-c2b645b37ea6",
                 "name": "Чучело",
-                "copies": 3
+                "copies": 1
               }
             ]
           }
@@ -251,7 +251,7 @@
             {
               "card_id": "6bedf75e-3f30-495a-9d48-ab23eef0331e",
               "name": "Гюнтер о'Дим: Тьма",
-              "copies": 3
+              "copies": 1
             }
           ],
           "bonus": null
@@ -273,6 +273,11 @@
             {
               "card_id": "fa2ae226-c29b-43e6-af8c-883268fbb716",
               "name": "Зигфрид из Денесле",
+              "copies": 1
+            },
+            {
+              "card_id": "61ad290e-1f7b-4d02-bb71-c2b645b37ea6",
+              "name": "Чучело",
               "copies": 1
             }
           ],
@@ -341,6 +346,11 @@
               "card_id": "9d1974eb-9968-4e14-a2cc-4771ef9b4ac0",
               "name": "Шеала де Тансервиль",
               "copies": 1
+            },
+            {
+              "card_id": "6bedf75e-3f30-495a-9d48-ab23eef0331e",
+              "name": "Гюнтер о'Дим: Тьма",
+              "copies": 1
             }
           ],
           "bonus": null
@@ -360,14 +370,19 @@
           "theme": "дальний бой",
           "reward": [
             {
-              "card_id": "47d44246-c663-4218-b537-b81929c5caf0",
-              "name": "Командирский рог",
-              "copies": 3
-            },
-            {
               "card_id": "282914c3-63db-4f34-8361-88548f8769e3",
               "name": "Рубайлы из Кринфрида",
               "copies": 2
+            },
+            {
+              "card_id": "61ad290e-1f7b-4d02-bb71-c2b645b37ea6",
+              "name": "Чучело",
+              "copies": 1
+            },
+            {
+              "card_id": "47d44246-c663-4218-b537-b81929c5caf0",
+              "name": "Командирский рог",
+              "copies": 1
             }
           ],
           "bonus": {
@@ -401,9 +416,14 @@
               "copies": 1
             },
             {
+              "card_id": "47d44246-c663-4218-b537-b81929c5caf0",
+              "name": "Командирский рог",
+              "copies": 1
+            },
+            {
               "card_id": "9454833b-22f2-4989-b039-2d0eee81ff1a",
               "name": "Ясное небо",
-              "copies": 3
+              "copies": 1
             }
           ],
           "bonus": null
@@ -531,6 +551,11 @@
               "card_id": "a6e1f37e-eb3b-4db7-886c-dc275553acff",
               "name": "Эитнэ",
               "copies": 1
+            },
+            {
+              "card_id": "6bedf75e-3f30-495a-9d48-ab23eef0331e",
+              "name": "Гюнтер о'Дим: Тьма",
+              "copies": 1
             }
           ],
           "bonus": {
@@ -566,6 +591,11 @@
             {
               "card_id": "5e2bfb5a-e695-4b79-a1a2-43dd4ad37ef0",
               "name": "Гарпия келено",
+              "copies": 1
+            },
+            {
+              "card_id": "9454833b-22f2-4989-b039-2d0eee81ff1a",
+              "name": "Ясное небо",
               "copies": 1
             }
           ],
@@ -745,6 +775,11 @@
             {
               "card_id": "7cb91be3-40ec-4dd2-9a6b-8b20abf0b168",
               "name": "Вампиры: экимма",
+              "copies": 1
+            },
+            {
+              "card_id": "47d44246-c663-4218-b537-b81929c5caf0",
+              "name": "Командирский рог",
               "copies": 1
             }
           ],
@@ -1056,6 +1091,11 @@
               "card_id": "ce453063-2587-4a63-9dc8-f6aea2c5fd9a",
               "name": "Кавалерия \"Наузикаа\"",
               "copies": 3
+            },
+            {
+              "card_id": "9454833b-22f2-4989-b039-2d0eee81ff1a",
+              "name": "Ясное небо",
+              "copies": 1
             }
           ],
           "bonus": {
@@ -1318,6 +1358,11 @@
               "card_id": "9e798cb1-0ade-4192-ad28-5b9d3d221500",
               "name": "Раинфарн",
               "copies": 1
+            },
+            {
+              "card_id": "57b2a086-6cab-4406-a0e2-c28b0cb8b534",
+              "name": "Казнь",
+              "copies": 1
             }
           ],
           "bonus": {
@@ -1466,7 +1511,7 @@
             {
               "card_id": "57b2a086-6cab-4406-a0e2-c28b0cb8b534",
               "name": "Казнь",
-              "copies": 3
+              "copies": 1
             }
           ],
           "bonus": {
@@ -1507,6 +1552,11 @@
             {
               "card_id": "e3a3c0fb-c4ff-461f-8441-ed647972439e",
               "name": "Ассире вар Анагыд",
+              "copies": 1
+            },
+            {
+              "card_id": "57b2a086-6cab-4406-a0e2-c28b0cb8b534",
+              "name": "Казнь",
               "copies": 1
             }
           ],
@@ -1637,7 +1687,7 @@
               {
                 "card_id": "8da9ddd9-b5d9-40d0-96f9-4f6e6440740b",
                 "name": "Шторм со Скеллиге",
-                "copies": 3
+                "copies": 1
               }
             ]
           }
@@ -1657,13 +1707,13 @@
           "theme": "Мардрём и берсерки",
           "reward": [
             {
-              "card_id": "dafeabf0-b94f-4b4e-86d8-21822a8fee06",
-              "name": "Мардрём",
-              "copies": 3
-            },
-            {
               "card_id": "65cf0774-665d-4e77-bb31-941c58ba461d",
               "name": "Леший",
+              "copies": 1
+            },
+            {
+              "card_id": "dafeabf0-b94f-4b4e-86d8-21822a8fee06",
+              "name": "Мардрём",
               "copies": 1
             }
           ],
@@ -1701,6 +1751,11 @@
               "card_id": "be42c06f-c8b2-4ee8-a035-e7c3a0b887a5",
               "name": "Легкий драккар",
               "copies": 3
+            },
+            {
+              "card_id": "8da9ddd9-b5d9-40d0-96f9-4f6e6440740b",
+              "name": "Шторм со Скеллиге",
+              "copies": 1
             }
           ],
           "bonus": {
@@ -1773,6 +1828,11 @@
               "card_id": "e720d334-263b-4286-abe9-dcf984c40321",
               "name": "Донар ан Хиндар",
               "copies": 1
+            },
+            {
+              "card_id": "dafeabf0-b94f-4b4e-86d8-21822a8fee06",
+              "name": "Мардрём",
+              "copies": 1
             }
           ],
           "bonus": {
@@ -1808,6 +1868,11 @@
             {
               "card_id": "c81ad6e5-8e0f-4072-b007-d0cd995f5275",
               "name": "Кузнец клана Тордаррох",
+              "copies": 1
+            },
+            {
+              "card_id": "8da9ddd9-b5d9-40d0-96f9-4f6e6440740b",
+              "name": "Шторм со Скеллиге",
               "copies": 1
             }
           ],
@@ -1885,6 +1950,11 @@
             {
               "card_id": "0ebc93aa-2cc0-432d-92f1-74e594cfb745",
               "name": "Скальд клана Хэймэй",
+              "copies": 1
+            },
+            {
+              "card_id": "dafeabf0-b94f-4b4e-86d8-21822a8fee06",
+              "name": "Мардрём",
               "copies": 1
             }
           ],
