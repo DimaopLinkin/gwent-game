@@ -368,7 +368,10 @@ extension _PlayScenes on StageScriptBuilder {
       );
   }
 
-  /// Чучело: две встречные дуги, карта из ряда в руку и Чучело на её место.
+  /// Чучело: две встречные дуги, карта из ряда в руку и Чучело в ряд.
+  ///
+  /// В ряду на экране Чучело стоит среди особых карт, слева (`RowOrder`), а не на месте ушедшей карты, поэтому
+  /// его слот открывается сразу и дуга ведёт в него.
   double _decoyCard(CardPlayed played, List<(int, GameEvent)> related, Set<int> done, double at) {
     final swap = related.where((entry) => entry.$2 is UnitDecoyed).firstOrNull;
     if (swap == null) return at;
@@ -398,7 +401,7 @@ extension _PlayScenes on StageScriptBuilder {
         ..hideAt = start
         ..removeAt = start + flight;
       decoy
-        ..reserveAt = start + flight
+        ..reserveAt = start
         ..showAt = start + flight + land;
       final back = mineSeat ? _nextHandPlace(decoyed.returned) : const BarHandPlace(mine: false);
       _beats
@@ -406,7 +409,7 @@ extension _PlayScenes on StageScriptBuilder {
           FlightBeat(
             ref: CardFaceRef(decoyed.decoy, mine: mineSeat),
             from: mineSeat ? _handPlace(played.card) : const CenterPlace(),
-            to: returnedPlace,
+            to: decoyPlace,
             start: start,
             duration: flight,
             arc: -80,
