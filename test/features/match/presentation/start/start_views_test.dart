@@ -316,9 +316,7 @@ void main() {
       expect(intents.last, const FinishRedraw());
     });
 
-    testWidgets('замена: старая карта сворачивается, затем новая проявляется на своём месте и светится', (
-      tester,
-    ) async {
+    testWidgets('замена: новая карта влетает из колоды на своё место и светится', (tester) async {
       final first = hand();
       final arrived = cards.unit(Row.siege);
       final before = viewOf(
@@ -338,23 +336,22 @@ void main() {
       await tester.pumpWidget(
         localizedApp(MatchRedrawView(view: after, roster: rosterOf(cards), onIntent: (_) {})),
       );
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(find.byType(GwentCard), findsNWidgets(2), reason: 'посреди замены уходящая карта ещё на своём месте');
-      expect(_shown(tester), contains(first[0].id));
-      expect(_justPlayed(tester), isEmpty, reason: 'новая карта проявится после того, как старая свернётся');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(_shown(tester), isNot(contains(first[0].id)), reason: 'старая карта ушла сразу');
+      expect(_flightBackShown(tester), isTrue, reason: 'в начале полёта карта лежит рубашкой вверх');
+      final flying = tester.getCenter(find.byWidgetPredicate((w) => w is GwentCard && w.face is CardBackFace));
 
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(find.byType(GwentCard), findsNWidgets(2), reason: 'после замены остаётся новая карта');
-      expect(_shown(tester), isNot(contains(first[0].id)));
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(_flightBackShown(tester), isFalse, reason: 'после посадки рубашки нет');
+      expect(find.byType(GwentCard), findsNWidgets(2));
       expect(_justPlayed(tester), hasLength(1), reason: 'пока карту не заметили, она светится');
+      expect(_centerOf(tester, arrived.id), isNot(flying), reason: 'карта села на своё место, а не осталась в полёте');
       await tester.pump(const Duration(milliseconds: 1500));
       expect(_justPlayed(tester), isEmpty, reason: 'свечение гаснет, когда карту заметили');
     });
 
-    testWidgets('пересборка с той же рукой посреди замены не затягивает сворачивание, нажатия на ходу не идут', (
-      tester,
-    ) async {
-      final intents = <Intent>[];
+    testWidgets('пересборка с той же рукой посреди полёта карту не перезапускает', (tester) async {
       final first = hand();
       MatchRedrawView viewWith(List<CardInstance> shown, int left) => MatchRedrawView(
         view: viewOf(
@@ -363,19 +360,67 @@ void main() {
           me: sideOf(cards, Seat.one, hand: shown, redrawsLeft: left),
         ),
         roster: rosterOf(cards),
-        onIntent: intents.add,
+        onIntent: (_) {},
       );
       final replaced = [cards.unit(Row.siege), first[1]];
       await pumpView(tester, viewWith(first, 2));
       await tester.pumpWidget(localizedApp(viewWith(replaced, 1)));
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
-      await tester.tap(find.byType(GwentCard).first, warnIfMissed: false);
-      expect(intents, isEmpty, reason: 'пока старая карта сворачивается, нажатия не принимаются');
 
       await tester.pumpWidget(localizedApp(viewWith(replaced, 1)));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(_flightBackShown(tester), isFalse, reason: 'полёт кончился в срок, а не начался заново');
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('летящую карту не закрывают другие карты: она рисуется слоем поверх сетки', (tester) async {
+      final inHand = [for (var i = 0; i < 10; i++) cards.unit(Row.melee)];
+      MatchRedrawView viewWith(List<CardInstance> shown, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: shown, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: (_) {},
+      );
+      await pumpView(tester, viewWith(inHand, 2));
+      await tester.pumpWidget(localizedApp(viewWith([...inHand]..[0] = cards.unit(Row.siege), 1)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      final back = find.byWidgetPredicate((w) => w is GwentCard && w.face is CardBackFace);
+      expect(back, findsOneWidget);
+      expect(find.descendant(of: find.byType(SingleChildScrollView), matching: back), findsNothing);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(back, findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('две замены подряд: обе карты долетают и светятся, полёт не начинается заново', (tester) async {
+      final first = hand();
+      MatchRedrawView viewWith(List<CardInstance> shown, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: shown, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: (_) {},
+      );
+      final firstArrived = cards.unit(Row.siege);
+      final secondArrived = cards.unit(Row.ranged);
+      await pumpView(tester, viewWith(first, 2));
+      await tester.pumpWidget(localizedApp(viewWith([firstArrived, first[1]], 1)));
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
-      expect(_shown(tester), isNot(contains(first[0].id)), reason: 'сворачивание кончилось в срок');
-      expect(_justPlayed(tester), hasLength(1));
+      await tester.pumpWidget(localizedApp(viewWith([firstArrived, secondArrived], 0)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(GwentCard), findsNWidgets(3), reason: 'две карты в руке и одна в полёте: вторая');
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(GwentCard), findsNWidgets(2), reason: 'обе долетели, заново никто не вылетел');
+      expect(_justPlayed(tester), hasLength(2));
       await tester.pumpWidget(const SizedBox());
     });
 
@@ -398,6 +443,7 @@ void main() {
 
       final replaced = [...inHand]..[0] = arrived;
       await tester.pumpWidget(localizedApp(viewWith(replaced, 1)));
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(_shown(tester), [for (final card in order.sort(replaced)) card.id]);
       expect(_justPlayed(tester), hasLength(1));
@@ -426,6 +472,7 @@ void main() {
       );
       await tester.pump();
       expect(find.byType(GwentCard), findsNWidgets(2));
+      expect(_flightBackShown(tester), isFalse, reason: 'без движения карта не летит');
       await tester.pumpWidget(const SizedBox());
     });
 
@@ -585,5 +632,13 @@ Iterable<GwentCard> _justPlayed(WidgetTester tester) =>
 /// Номера карт на экране пересдачи слева направо, сверху вниз.
 List<Object?> _shown(WidgetTester tester) => [
   for (final card in tester.widgetList<GwentCard>(find.byType(GwentCard)))
-    (card.key! as ValueKey<CardInstanceId>).value,
+    if (card.key case final ValueKey<CardInstanceId> key) key.value,
 ];
+
+/// Центр карты [id] на экране.
+Offset _centerOf(WidgetTester tester, CardInstanceId id) =>
+    tester.getCenter(find.byWidgetPredicate((w) => w is GwentCard && w.key == ValueKey(id)));
+
+/// В руке есть летящая рубашка: карта без номера среди карт экрана.
+bool _flightBackShown(WidgetTester tester) =>
+    tester.widgetList<GwentCard>(find.byType(GwentCard)).any((card) => card.face is CardBackFace);
