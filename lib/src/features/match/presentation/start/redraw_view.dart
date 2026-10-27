@@ -24,8 +24,11 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// Удержание карты открывает полный просмотр. «Готово» завершает пересдачу. Когда замен не осталось, карты
 /// тускнеют, но «Готово» остаётся.
 ///
-/// Замена видна: старая карта сворачивается на своём месте, на её месте проявляется новая и светится, пока её
-/// не заметили. После последней замены экран (`MatchRedrawSettled`) на время остаётся с [settled]: карты и «Готово»
+/// Карты лежат в порядке руки (`HandOrder`): особые слева, отряды по возрастанию силы, при равной силе по имени.
+/// Это порядок показа, номера карт для обмена остаются прежними.
+///
+/// Замена видна в два шага: старая карта сворачивается на своём месте, затем рука встаёт в новом порядке, и новая
+/// карта проявляется на своём отсортированном месте и светится, пока её не заметили. После последней замены экран (`MatchRedrawSettled`) на время остаётся с [settled]: карты и «Готово»
 /// недоступны, пришедшая карта на виду, и только потом игрок уходит на ожидание соперника.
 class MatchRedrawView extends StatefulWidget {
   /// Создаёт экран по проекции [view].
@@ -68,18 +71,61 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
   Set<CardInstanceId> _fresh = const {};
   Timer? _freshTimer;
 
+  /// Рука, какой её видно, пока уходящая карта сворачивается; `null`, когда показывается рука проекции.
+  List<CardInstance>? _folding;
+
+  /// Карты, которые сворачиваются в [_folding].
+  Set<CardInstanceId> _leaving = const {};
+  Timer? _foldTimer;
+
+  Duration get _swap => Duration(
+    milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : widget.style.ms(StageTokens.redrawSwap),
+  );
+
+  List<CardInstance> _sorted(PlayerView view) => _content!.handOrder(view.me.hand ?? const <CardInstance>[]);
+
   @override
   void didUpdateWidget(MatchRedrawView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final before = {for (final card in oldWidget.view.me.hand ?? const <CardInstance>[]) card.id};
+    final oldHand = {for (final card in oldWidget.view.me.hand ?? const <CardInstance>[]) card.id};
+    final newHand = {for (final card in widget.view.me.hand ?? const <CardInstance>[]) card.id};
+    // Рука та же (экран пересобрали по другой причине): сворачивание и свечение не перезапускаются.
+    if (oldHand.length == newHand.length && oldHand.containsAll(newHand)) return;
+    final shownBefore = _folding ?? _sorted(oldWidget.view);
+    final before = {for (final card in shownBefore) card.id};
+    final now = newHand;
     final arrived = {
-      for (final card in widget.view.me.hand ?? const <CardInstance>[])
-        if (!before.contains(card.id)) card.id,
+      for (final id in now)
+        if (!before.contains(id) && !_leaving.contains(id)) id,
     };
+    final removed = {
+      for (final id in before)
+        if (!now.contains(id)) id,
+    };
+    final swap = _swap;
+    if (removed.isNotEmpty && swap > Duration.zero) {
+      _folding = shownBefore;
+      _leaving = removed;
+      _foldTimer?.cancel();
+      _foldTimer = Timer(swap, () {
+        if (mounted) {
+          setState(() {
+            _folding = null;
+            _leaving = const {};
+          });
+        }
+      });
+    } else {
+      _foldTimer?.cancel();
+      _folding = null;
+      _leaving = const {};
+    }
     if (arrived.isEmpty) return;
     _fresh = {..._fresh, ...arrived};
     _freshTimer?.cancel();
-    _freshTimer = Timer(Duration(milliseconds: widget.style.ms(StageTokens.redrawHold)), () {
+    // Свечение отсчитывается от появления карты, то есть после сворачивания старой.
+    final hold = Duration(milliseconds: widget.style.ms(StageTokens.redrawHold));
+    _freshTimer = Timer(_folding == null ? hold : hold + swap, () {
       if (mounted) setState(() => _fresh = const {});
     });
   }
@@ -87,6 +133,7 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
   @override
   void dispose() {
     _freshTimer?.cancel();
+    _foldTimer?.cancel();
     super.dispose();
   }
 
@@ -108,13 +155,12 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
     final content = _content!;
     final me = view.me;
     final left = me.redrawsLeft ?? 0;
-    final canReplace = left > 0 && !widget.settled;
-    final swap = Duration(
-      milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : widget.style.ms(StageTokens.redrawSwap),
-    );
+    final folding = _folding != null;
+    final canReplace = left > 0 && !widget.settled && !folding;
+    final swap = _swap;
     final limit = roster.content.rules.redrawLimit;
     final factionName = content.factionName(me.faction);
-    final hand = me.hand ?? const <CardInstance>[];
+    final hand = _folding ?? _sorted(view);
     final rows = [
       for (var i = 0; i < hand.length; i += _columns)
         hand.sublist(i, i + _columns > hand.length ? hand.length : i + _columns),
@@ -169,16 +215,11 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             for (final card in row)
-                              AnimatedSwitcher(
-                                key: ValueKey('slot-${hand.indexOf(card)}'),
+                              _Appear(
+                                key: ValueKey(card.id),
                                 duration: swap,
-                                transitionBuilder: (child, animation) => FadeTransition(
-                                  opacity: animation,
-                                  child: ScaleTransition(
-                                    scale: Tween<double>(begin: 0.8, end: 1).animate(animation),
-                                    child: child,
-                                  ),
-                                ),
+                                animated: _leaving.contains(card.id) || _fresh.contains(card.id),
+                                leaving: _leaving.contains(card.id),
                                 child: GwentCard(
                                   key: ValueKey(card.id),
                                   face: content.face(card),
@@ -189,7 +230,9 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                                       ? CardHighlight.normal
                                       : CardHighlight.disabled,
                                   onTap: canReplace ? () => widget.onIntent(RedrawCard(card.id)) : null,
-                                  onLongPress: () => unawaited(showCardDetail(context, content.detail(card))),
+                                  onLongPress: _leaving.contains(card.id)
+                                      ? null
+                                      : () => unawaited(showCardDetail(context, content.detail(card))),
                                 ),
                               ),
                             // Неполный ряд занимает свои места колонок, иначе карты в нём сползли бы друг к другу.
@@ -237,6 +280,41 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Появление и уход карты: пришедшая карта проявляется и вырастает, уходящая сворачивается и гаснет.
+///
+/// Карты, которые только сдвинулись на новое место, не анимируются: [animated] у них ложно.
+class _Appear extends StatelessWidget {
+  const _Appear({
+    super.key,
+    required this.duration,
+    required this.animated,
+    required this.leaving,
+    required this.child,
+  });
+
+  final Duration duration;
+  final bool animated;
+  final bool leaving;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: !animated
+          ? Tween(begin: 1, end: 1)
+          : leaving
+          ? Tween(begin: 1, end: 0)
+          : Tween(begin: 0, end: 1),
+      duration: duration,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.scale(scale: 0.8 + 0.2 * value, child: child),
+      ),
+      child: child,
     );
   }
 }
