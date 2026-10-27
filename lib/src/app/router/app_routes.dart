@@ -84,6 +84,12 @@ abstract final class AppRoutes {
   /// Тропа кампании «Тропа ведьмака» (ADR 0033).
   static const String campaign = '/campaign';
 
+  /// Параметр адреса тропы: узел, лист которого открывается сразу («Дальше» с экрана награды).
+  static const String campaignOpenParam = 'open';
+
+  /// Тропа с открытым листом узла [nodeId]: игрок смотрит условия и сам решает, начинать ли партию.
+  static String campaignOpen(String nodeId) => '$campaign?$campaignOpenParam=${Uri.encodeComponent(nodeId)}';
+
   /// Выбор колоды кампании («Колода для боя»).
   static const String campaignDecks = '$campaign/decks';
 

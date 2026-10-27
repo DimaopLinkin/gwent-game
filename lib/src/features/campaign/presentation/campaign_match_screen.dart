@@ -8,6 +8,7 @@ import 'package:gwent/src/features/campaign/application/record_campaign_result.d
 import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_match_state.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_reward_view.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_texts.dart';
 import 'package:gwent/src/features/haptics/application/play_haptic.dart';
 import 'package:gwent/src/features/match/application/record_finished_match.dart';
 import 'package:gwent/src/features/match/application/start_match.dart';
@@ -136,6 +137,10 @@ class CampaignMatchScreen extends StatelessWidget {
               confirmPass: confirmPass,
               hints: hints,
               animationScale: animationScale,
+              pauseNote: switch (playing.node.bonus) {
+                final bonus? => l10n.campaignPauseBonus(l10n.conditionLabel(bonus.condition)),
+                null => null,
+              },
               resultBuilder: (context, finished) => _Result(
                 finished: finished,
                 onExit: onExit,

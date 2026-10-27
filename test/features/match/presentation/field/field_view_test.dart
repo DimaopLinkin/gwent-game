@@ -87,6 +87,7 @@ void main() {
     bool readOnly = false,
     VoidCallback? onSettings,
     VoidCallback? onHowToPlay,
+    String? pauseNote,
     Size size = const Size(390, 844),
   }) async {
     tester.view.physicalSize = size;
@@ -111,6 +112,7 @@ void main() {
               readOnly: readOnly,
               onSettings: onSettings,
               onHowToPlay: onHowToPlay,
+              pauseNote: pauseNote,
             ),
           ),
         ),
@@ -1415,6 +1417,21 @@ void main() {
   });
 
   group('пауза и сдача', () {
+    testWidgets('строка под заголовком паузы показывается, только если она передана', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards), pauseNote: 'Дополнительное задание: Выиграть 2:0');
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.text('Дополнительное задание: Выиграть 2:0'), findsOneWidget);
+      expect(find.text('Продолжить'), findsOneWidget);
+    });
+
+    testWidgets('без строки пауза выглядит как прежде', (tester) async {
+      final harness = await pumpField(tester, viewOf(cards));
+      harness.cubit.openPause();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(tester.widget<PauseMenuLayer>(find.byType(PauseMenuLayer)).note, isNull);
+    });
+
     testWidgets('кнопка паузы открывает меню, «Продолжить» и нажатие мимо панели возвращают в игру', (tester) async {
       final harness = await pumpField(tester, viewOf(cards));
       await tester.tap(find.bySemanticsLabel('Пауза'));

@@ -32,6 +32,7 @@ class CampaignScreen extends StatefulWidget {
     required this.onPickDeck,
     required this.onBuildDeck,
     this.onBook,
+    this.openNodeId,
   });
 
   /// Назад в меню.
@@ -52,6 +53,10 @@ class CampaignScreen extends StatefulWidget {
   /// Открыть «Книгу карт»; `null` — пилюля «Книга» только показывает счёт.
   final VoidCallback? onBook;
 
+  /// Узел, лист которого открывается сразу, как тропа загрузилась («Дальше» с экрана награды партии); `null` — тропа
+  /// открывается как обычно. Закрытый или неизвестный узел игнорируется.
+  final String? openNodeId;
+
   @override
   State<CampaignScreen> createState() => _CampaignScreenState();
 }
@@ -59,6 +64,26 @@ class CampaignScreen extends StatefulWidget {
 class _CampaignScreenState extends State<CampaignScreen> {
   /// Главы, раскрытые игроком вручную; текущая раскрыта всегда.
   final Set<int> _toggled = {};
+
+  /// Лист [CampaignScreen.openNodeId] уже показан (или показывать нечего): второй раз он не открывается.
+  late bool _openHandled = widget.openNodeId == null;
+
+  @override
+  void initState() {
+    super.initState();
+    // Держатель мог загрузиться раньше экрана: слушатель первое состояние не видит.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _openRequested(context.read<CampaignCubit>().state);
+    });
+  }
+
+  /// Открывает лист узла из адреса, когда тропа готова и поверх неё нет экрана награды.
+  void _openRequested(CampaignState state) {
+    if (_openHandled || state is! CampaignReady || state.pendingReward != null) return;
+    _openHandled = true;
+    final view = state.overview.path.node(widget.openNodeId!);
+    if (view != null && view.isPlayable) unawaited(_openNode(state.overview, view));
+  }
 
   Future<void> _openNode(CampaignOverview overview, NodeView view) async {
     final choice = await showCampaignNodeSheet(context, overview: overview, view: view);
@@ -81,7 +106,8 @@ class _CampaignScreenState extends State<CampaignScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return ScreenBackdrop(
-      child: BlocBuilder<CampaignCubit, CampaignState>(
+      child: BlocConsumer<CampaignCubit, CampaignState>(
+        listener: (_, state) => _openRequested(state),
         builder: (context, state) => switch (state) {
           CampaignLoading() => Column(
             children: [
@@ -132,7 +158,9 @@ class _CampaignScreenState extends State<CampaignScreen> {
                   data: overview.data,
                   onNext: (nodeId) {
                     context.read<CampaignCubit>().rewardSeen();
-                    widget.onPlay(nodeId);
+                    // Не сразу в партию: лист узла, как у «Продолжить», где колоду и условия видно до начала.
+                    final view = overview.path.node(nodeId);
+                    if (view != null) unawaited(_openNode(overview, view));
                   },
                   onTrail: context.read<CampaignCubit>().rewardSeen,
                   onBuildDeck: () async {

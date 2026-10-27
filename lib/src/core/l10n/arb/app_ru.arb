@@ -3693,6 +3693,15 @@
       }
     }
   },
+  "campaignPauseBonus": "Дополнительное задание: {condition}",
+  "@campaignPauseBonus": {
+    "description": "Строка в меню паузы партии кампании: условие дополнительной награды узла.",
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
   "campaignContinueCampaign": "Продолжить кампанию",
   "@campaignContinueCampaign": {
     "description": "Главная кнопка листа «Первая партия пройдена», если партия начата из кампании."

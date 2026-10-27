@@ -19,6 +19,7 @@ class PauseMenuLayer extends StatelessWidget {
     this.onSettings,
     this.onRestart,
     this.onExit,
+    this.note,
   });
 
   /// Продолжить игру.
@@ -39,11 +40,15 @@ class PauseMenuLayer extends StatelessWidget {
   /// «В меню» в уроке.
   final VoidCallback? onExit;
 
+  /// Строка под заголовком (дополнительное задание узла кампании); `null` — строки нет.
+  final String? note;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final onRestart = this.onRestart;
     final onExit = this.onExit;
+    final note = this.note;
     return _Dimmed(
       color: const Color(0xCC0A0806),
       onDismissed: onResume,
@@ -74,6 +79,18 @@ class PauseMenuLayer extends StatelessWidget {
                 ),
               ),
             ),
+            if (note != null)
+              Text(
+                note,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: GwentText.alegreya,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 16,
+                  height: 1.25,
+                  color: GwentColors.textSecondary,
+                ),
+              ),
             SizedBox(
               width: double.infinity,
               child: GwentButton(label: l10n.pauseResume, height: 58, fontSize: 24, onPressed: onResume),

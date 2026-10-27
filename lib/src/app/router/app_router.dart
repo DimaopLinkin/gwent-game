@@ -96,6 +96,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               dependencies.syncCampaignRewards,
             ),
             child: CampaignScreen(
+              openNodeId: state.uri.queryParameters[AppRoutes.campaignOpenParam],
               onBack: () => context.go(AppRoutes.menu),
               onPlay: (nodeId) => context.go(AppRoutes.campaignPlay(nodeId)),
               onFirstMatch: () => context.go(AppRoutes.tutorialFromCampaign),
@@ -575,7 +576,8 @@ Widget _campaignMatch(BuildContext context, AppDependencies dependencies, String
         startMatch: dependencies.startMatch,
         recordFinishedMatch: dependencies.recordFinishedMatch,
         onExit: () => context.go(AppRoutes.campaign),
-        onNext: (next) => context.go(AppRoutes.campaignPlay(next)),
+        // «Дальше» ведёт на тропу с листом узла, а не сразу в партию: колоду и условия можно посмотреть.
+        onNext: (next) => context.go(AppRoutes.campaignOpen(next)),
         onChangeDeck: (node) => context.go(AppRoutes.campaignDecksFor(node)),
         onBuildDeck: () => unawaited(_buildDeckThenChoose(context, nodeId)),
         onSettings: () => context.push(AppRoutes.settingsOverGame),

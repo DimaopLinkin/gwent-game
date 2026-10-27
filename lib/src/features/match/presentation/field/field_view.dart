@@ -63,6 +63,7 @@ class FieldView extends StatefulWidget {
     this.readOnly = false,
     this.opponentStatus,
     this.lesson,
+    this.pauseNote,
   });
 
   /// Проекция партии.
@@ -98,6 +99,9 @@ class FieldView extends StatefulWidget {
 
   /// Урок поверх поля («Первая партия», ADR 0034): слой подсказок и своё меню паузы; `null` — обычная партия.
   final FieldLesson? lesson;
+
+  /// Строка в меню паузы под заголовком (дополнительное задание узла кампании); `null` — строки нет.
+  final String? pauseNote;
 
   @override
   State<FieldView> createState() => _FieldViewState();
@@ -445,6 +449,7 @@ class _FieldViewState extends State<FieldView> {
           onSurrender: cubit.askSurrender,
           onRestart: widget.lesson?.onRestart,
           onExit: widget.lesson?.onExit,
+          note: widget.pauseNote,
         ),
       ),
       PauseLayer.surrenderConfirm => Positioned.fill(
