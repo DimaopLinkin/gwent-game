@@ -3,6 +3,7 @@ import 'package:gwent/src/features/campaign/application/load_campaign.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
+import 'package:gwent/src/features/campaign/domain/campaign_totals.dart';
 import 'package:gwent/src/features/campaign/domain/faction_readiness.dart';
 import 'package:gwent/src/features/collection/domain/collection_repository.dart';
 import 'package:gwent/src/features/collection/domain/owned_cards.dart';
@@ -39,10 +40,12 @@ final class CampaignWon extends CampaignResult {
     required List<String> unlockedNodeIds,
     required this.chapterCleared,
     required Set<String> newFactionIds,
+    Set<String> newCardIds = const {},
   }) : firstWinReward = List.unmodifiable(firstWinReward),
        bonusReward = List.unmodifiable(bonusReward),
        unlockedNodeIds = List.unmodifiable(unlockedNodeIds),
-       newFactionIds = Set.unmodifiable(newFactionIds);
+       newFactionIds = Set.unmodifiable(newFactionIds),
+       newCardIds = Set.unmodifiable(newCardIds);
 
   /// Выигранный узел.
   final String nodeId;
@@ -76,6 +79,9 @@ final class CampaignWon extends CampaignResult {
 
   /// Фракции, колода которых собирается только теперь.
   final Set<String> newFactionIds;
+
+  /// Выданные сейчас карты, которых у игрока раньше не было вовсе («Новая карта», а не «+1 копия»).
+  final Set<String> newCardIds;
 
   /// Награда новой победы пуста: повтор без условия.
   bool get isEmpty => firstWinReward.isEmpty && bonusReward.isEmpty;
@@ -166,7 +172,7 @@ final class RecordCampaignResult {
       bonusReward: bonusReward,
       openedBefore: before.total,
       openedAfter: after.total,
-      totalCards: _totalCards(rules),
+      totalCards: totalCardCopies(rules),
       unlockedNodeIds: [
         for (final view in pathAfter.nodes)
           if (view.status == NodeStatus.open && pathBefore.node(view.node.id)?.status == NodeStatus.locked)
@@ -174,6 +180,10 @@ final class RecordCampaignResult {
       ],
       chapterCleared: !chapterBefore.isCleared && chapterAfter.isCleared ? chapterAfter.chapter : null,
       newFactionIds: readyFactions(rules, after).difference(readyFactions(rules, before)),
+      newCardIds: {
+        for (final cardId in grants.keys)
+          if (before.copiesOf(cardId) == 0) cardId,
+      },
     );
   }
 
@@ -197,11 +207,6 @@ final class RecordCampaignResult {
       rules.squadCardsById[cardId]?.count ??
       rules.specialCardsById[cardId]?.count ??
       (rules.leaderCardsById.containsKey(cardId) ? 1 : 0);
-
-  int _totalCards(PackRules rules) =>
-      rules.squadCards.fold<int>(0, (sum, card) => sum + card.count) +
-      rules.specialCards.fold<int>(0, (sum, card) => sum + card.count) +
-      rules.leaderCards.length;
 
   /// Стартовая колода кампании: лидер из каталога и все карты награды первого узла, кроме лидеров.
   ///

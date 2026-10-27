@@ -25,6 +25,7 @@ class MenuScreen extends StatefulWidget {
     required this.onHistory,
     required this.onTutorial,
     required this.onSettings,
+    this.onCampaign,
   });
 
   /// Партия на одном телефоне.
@@ -47,6 +48,9 @@ class MenuScreen extends StatefulWidget {
 
   /// Настройки.
   final VoidCallback onSettings;
+
+  /// Кампания «Тропа ведьмака»; `null` — кнопки нет.
+  final VoidCallback? onCampaign;
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -73,6 +77,7 @@ class _MenuScreenState extends State<MenuScreen> {
               onHistory: widget.onHistory,
               onTutorial: widget.onTutorial,
               onSettings: widget.onSettings,
+              onCampaign: widget.onCampaign,
             ),
           ),
         ),
@@ -98,6 +103,7 @@ class _Menu extends StatelessWidget {
     required this.onHistory,
     required this.onTutorial,
     required this.onSettings,
+    required this.onCampaign,
   });
 
   final MenuState state;
@@ -108,6 +114,7 @@ class _Menu extends StatelessWidget {
   final VoidCallback onHistory;
   final VoidCallback onTutorial;
   final VoidCallback onSettings;
+  final VoidCallback? onCampaign;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +171,21 @@ class _Menu extends StatelessWidget {
                   Column(
                     spacing: 10,
                     children: [
+                      if (ready?.campaign case final campaign? when onCampaign != null)
+                        _CampaignButton(
+                          title: l10n.menuCampaign,
+                          subtitle: campaign.started
+                              ? l10n.menuCampaignProgress(
+                                  campaign.chapterNumber,
+                                  campaign.chapterName,
+                                  campaign.passed,
+                                  campaign.total,
+                                )
+                              : l10n.menuCampaignNew,
+                          isNew: !campaign.started,
+                          newLabel: l10n.menuTutorialNew,
+                          onPressed: ready!.contentAvailable ? onCampaign : null,
+                        ),
                       _Button(label: l10n.menuHotSeat, fontSize: 21, onPressed: canPlay ? onHotSeat : null),
                       _Button(label: l10n.menuVsBot, onPressed: canPlay ? onBot : null),
                       _Button(label: l10n.menuNetworkGame, onPressed: canPlay ? onNetworkGame : null),
@@ -246,6 +268,95 @@ class _Button extends StatelessWidget {
       style: (gold ?? true) ? GwentButtonStyle.primary : GwentButtonStyle.secondary,
       onPressed: onPressed,
     ),
+  );
+}
+
+/// Главная кнопка «Кампания»: подпись показывает место на тропе, у нового игрока стоит метка «Новое».
+class _CampaignButton extends StatelessWidget {
+  const _CampaignButton({
+    required this.title,
+    required this.subtitle,
+    required this.isNew,
+    required this.newLabel,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isNew;
+  final String newLabel;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      SizedBox(
+        width: double.infinity,
+        child: GwentButton(
+          label: title,
+          fontSize: 24,
+          height: 66,
+          solid: true,
+          semanticsLabel: '$title. $subtitle',
+          onPressed: onPressed,
+        ),
+      ),
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 7,
+        child: IgnorePointer(
+          child: ExcludeSemantics(
+            child: Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textScaler: TextScaler.noScaling,
+              style: const TextStyle(
+                fontFamily: GwentText.alegreya,
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                height: 1,
+                color: GwentColors.onGold,
+              ),
+            ),
+          ),
+        ),
+      ),
+      if (isNew)
+        Positioned(
+          top: -7,
+          right: 12,
+          child: IgnorePointer(
+            child: ExcludeSemantics(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: GwentColors.lifeGem,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: const [BoxShadow(color: GwentColors.bg, spreadRadius: 1.5)],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  child: Text(
+                    newLabel,
+                    textScaler: TextScaler.noScaling,
+                    style: const TextStyle(
+                      fontFamily: GwentText.cormorant,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      height: 1,
+                      letterSpacing: 11 * 0.05,
+                      color: GwentColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
   );
 }
 

@@ -2,6 +2,10 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/core/domain/app_info.dart';
+import 'package:gwent/src/features/campaign/application/load_campaign.dart';
+import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
+import 'package:gwent/src/features/campaign/application/watch_campaign_summary.dart';
+import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/application/create_starter_deck.dart';
@@ -194,6 +198,37 @@ void main() {
     await cubit.close();
     await Future<void>.delayed(const Duration(milliseconds: 300));
     expect(cubit.isClosed, isTrue);
+  });
+
+  test('сводка кампании уже в первом состоянии меню, а победа обновляет её', () async {
+    final source = AssetContentSource.basePack(rootBundle);
+    final content = LoadGameContent(source);
+    final collection = InMemoryCollectionRepository();
+    final progress = InMemoryCampaignRepository(collection);
+    final cubit = MenuCubit(
+      loadMenu(source),
+      WatchDecks(decks),
+      minSplash: Duration.zero,
+      watchCampaignSummary: WatchCampaignSummary(LoadCampaign(content), progress),
+    );
+    addTearDown(cubit.close);
+
+    final first = await ready(cubit);
+    expect(first.campaign, isNotNull, reason: 'кнопка «Кампания» стоит первой: без сводки меню сдвинулось бы');
+    expect(first.campaign!.started, isFalse);
+    expect(first.campaign!.passed, 0);
+
+    final updated = cubit.stream.firstWhere((state) => state is MenuReady && state.campaign?.passed == 1);
+    await RecordCampaignResult(
+      LoadCampaign(content),
+      progress,
+      collection,
+      decks,
+      InMemorySettingsRepository(),
+      FakeClock(DateTime.utc(2026, 10, 27)),
+    )('c1-00', const CampaignMatchFacts.withoutMatch());
+
+    expect(((await updated) as MenuReady).campaign!.started, isTrue);
   });
 
   test('состояния сравниваются по значению', () {

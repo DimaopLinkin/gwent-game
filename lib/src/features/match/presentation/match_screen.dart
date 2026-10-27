@@ -51,6 +51,7 @@ class MatchScreen extends StatefulWidget {
     this.opponentStatus,
     this.onRematchAgreed,
     this.lesson,
+    this.resultBuilder,
   });
 
   /// Выход из партии.
@@ -86,6 +87,10 @@ class MatchScreen extends StatefulWidget {
   /// Урок («Первая партия», ADR 0034): слой подсказок на поле и лист завершения вместо итога матча; `null` — обычная
   /// партия.
   final FieldLesson? lesson;
+
+  /// Итог партии вместо обычного листа (партия узла кампании, ADR 0033); `null` — обычный лист. Урок, если он есть,
+  /// главнее.
+  final Widget Function(BuildContext context, MatchFinished finished)? resultBuilder;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
@@ -307,6 +312,7 @@ class _MatchScreenState extends State<MatchScreen> {
         ),
       },
       final MatchFinished finished when widget.lesson != null => widget.lesson!.finishedBuilder(context, finished),
+      final MatchFinished finished when widget.resultBuilder != null => widget.resultBuilder!(context, finished),
       MatchFinished(:final view, :final roster, :final canRematch, :final rematch) => MatchResultView(
         view: view,
         roster: roster,

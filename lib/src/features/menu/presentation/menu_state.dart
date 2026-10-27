@@ -1,3 +1,4 @@
+import 'package:gwent/src/features/campaign/domain/campaign_summary.dart';
 import 'package:meta/meta.dart';
 
 /// Состояние главного меню.
@@ -21,6 +22,7 @@ final class MenuReady extends MenuState {
     required this.contentAvailable,
     required this.hasDeck,
     this.firstMatchPassed = true,
+    this.campaign,
   });
 
   /// Версия приложения; `null`, если узнать её не удалось.
@@ -38,6 +40,9 @@ final class MenuReady extends MenuState {
   /// Игрок прошёл «Первую партию»: пока нет, «Обучение» в меню помечено «Новое».
   final bool firstMatchPassed;
 
+  /// Где игрок в кампании; `null`, если кампании в наборе карт нет (кнопки «Кампания» тогда нет).
+  final CampaignSummary? campaign;
+
   /// Можно начинать партию: есть набор карт и колода.
   bool get canPlay => contentAvailable && hasDeck;
 
@@ -48,8 +53,9 @@ final class MenuReady extends MenuState {
       other.packVersion == packVersion &&
       other.contentAvailable == contentAvailable &&
       other.hasDeck == hasDeck &&
-      other.firstMatchPassed == firstMatchPassed;
+      other.firstMatchPassed == firstMatchPassed &&
+      other.campaign == campaign;
 
   @override
-  int get hashCode => Object.hash(appVersion, packVersion, contentAvailable, hasDeck, firstMatchPassed);
+  int get hashCode => Object.hash(appVersion, packVersion, contentAvailable, hasDeck, firstMatchPassed, campaign);
 }

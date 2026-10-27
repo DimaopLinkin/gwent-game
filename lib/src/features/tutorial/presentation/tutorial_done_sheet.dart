@@ -10,7 +10,13 @@ import 'package:gwent/src/core/presentation/design_system/gwent_text.dart';
 /// дальше. Кнопки: сыграть с ботом, пройти ещё раз и выйти в меню.
 class TutorialDoneSheet extends StatelessWidget {
   /// Создаёт лист.
-  const TutorialDoneSheet({super.key, required this.onPlay, required this.onAgain, required this.onMenu});
+  const TutorialDoneSheet({
+    super.key,
+    required this.onPlay,
+    required this.onAgain,
+    required this.onMenu,
+    this.playLabel,
+  });
 
   /// «Играть против бота».
   final VoidCallback onPlay;
@@ -20,6 +26,9 @@ class TutorialDoneSheet extends StatelessWidget {
 
   /// «В меню».
   final VoidCallback onMenu;
+
+  /// Подпись главной кнопки вместо «Играть с ИИ» (первая партия из кампании ведёт обратно на тропу).
+  final String? playLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +123,7 @@ class TutorialDoneSheet extends StatelessWidget {
                       children: [
                         SizedBox(
                           width: double.infinity,
-                          child: GwentButton(label: l10n.tutorialDonePlay, solid: true, onPressed: onPlay),
+                          child: GwentButton(label: playLabel ?? l10n.tutorialDonePlay, solid: true, onPressed: onPlay),
                         ),
                         SizedBox(
                           width: double.infinity,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gwent/src/app/app_dependencies.dart';
@@ -9,6 +10,8 @@ import 'package:gwent/src/app/gwent_app.dart';
 import 'package:gwent/src/app/router/app_routes.dart';
 import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_match_screen.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/how_to_play/presentation/how_to_play_screen.dart';
 import 'package:gwent/src/features/how_to_play/presentation/how_to_topic_screen.dart';
@@ -383,6 +386,19 @@ void main() {
     router.go(AppRoutes.playMatch);
     await tester.pumpAndSettle();
     expect(find.byType(GwentLogo), findsOneWidget);
+  });
+
+  testWidgets('кампания: «Дальше» ведёт в партию следующего узла, а не оставляет держатели прежнего', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.campaignPlay('c1-01'));
+    await settleReal(tester);
+    expect(tester.element(find.byType(CampaignMatchScreen)).read<CampaignMatchCubit>().nodeId, 'c1-01');
+
+    router.go(AppRoutes.campaignPlay('c1-02'));
+    await settleReal(tester);
+    expect(tester.element(find.byType(CampaignMatchScreen)).read<CampaignMatchCubit>().nodeId, 'c1-02');
   });
 
   testWidgets('игра через интернет: способ запоминается при возврате, «Создать комнату» ведёт в комнату с кодом', (

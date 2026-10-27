@@ -3511,5 +3511,558 @@
   "howToFactionPerkMissing": "Перк в этом наборе карт не задан.",
   "@howToFactionPerkMissing": {
     "description": "Строка фракции, если в пакете контента нет описания её перка."
+  },
+  "menuCampaign": "Кампания",
+  "@menuCampaign": {
+    "description": "Главная кнопка меню: кампания «Тропа ведьмака»."
+  },
+  "menuCampaignNew": "Первая партия и стартовый набор",
+  "@menuCampaignNew": {
+    "description": "Подпись кнопки «Кампания» у игрока, который ещё не начал кампанию."
+  },
+  "menuCampaignProgress": "Глава {chapter} · {name} · {passed} из {total}",
+  "@menuCampaignProgress": {
+    "description": "Подпись кнопки «Кампания»: глава и сколько узлов пройдено.",
+    "placeholders": {
+      "chapter": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      },
+      "passed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignTitle": "Тропа ведьмака",
+  "@campaignTitle": {
+    "description": "Заголовок экрана кампании."
+  },
+  "campaignUnavailable": "В этом наборе карт кампании нет.",
+  "@campaignUnavailable": {
+    "description": "Сообщение на тропе, если в пакете контента нет каталога кампании."
+  },
+  "campaignDeckPill": "Колода: {name}",
+  "@campaignDeckPill": {
+    "description": "Пилюля на тропе: колода кампании.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignDeckNotChosen": "не выбрана",
+  "@campaignDeckNotChosen": {
+    "description": "Название колоды в пилюле, если колода кампании не выбрана."
+  },
+  "campaignBookPill": "Книга {opened}/{total}",
+  "@campaignBookPill": {
+    "description": "Пилюля на тропе: сколько карт открыто.",
+    "placeholders": {
+      "opened": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChapterStrip": "Глава {number} · {name}",
+  "@campaignChapterStrip": {
+    "description": "Залипающая строка главы на тропе.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignChapterNumber": "Глава {number}",
+  "@campaignChapterNumber": {
+    "description": "Надпись над названием главы.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChapterProgress": "{passed} из {total}",
+  "@campaignChapterProgress": {
+    "description": "Сколько узлов главы пройдено.",
+    "placeholders": {
+      "passed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChapterProgressStars": "{passed} из {total} · ★ {done} из {stars}",
+  "@campaignChapterProgressStars": {
+    "description": "Сколько узлов главы пройдено и сколько условий выполнено.",
+    "placeholders": {
+      "passed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      },
+      "stars": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignOutOf": "из {total}",
+  "@campaignOutOf": {
+    "description": "Подпись под числом пройденных узлов главы.",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChapterSoon": "Скоро",
+  "@campaignChapterSoon": {
+    "description": "Глава ещё не выпущена."
+  },
+  "campaignChapterSoonNote": "Эта глава откроется в одном из следующих обновлений.",
+  "@campaignChapterSoonNote": {
+    "description": "Пояснение в листе узла невыпущенной главы."
+  },
+  "campaignChapterLocked": "Откроется после босса главы {number}",
+  "@campaignChapterLocked": {
+    "description": "Причина, по которой глава закрыта.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChapterCleared": "Пройдена · ★ {done} из {total}",
+  "@campaignChapterCleared": {
+    "description": "Свёрнутая пройденная глава: итог по звёздам.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignContinue": "Продолжить: {name}",
+  "@campaignContinue": {
+    "description": "Закреплённая кнопка тропы: следующий узел.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignContinueCampaign": "Продолжить кампанию",
+  "@campaignContinueCampaign": {
+    "description": "Главная кнопка листа «Первая партия пройдена», если партия начата из кампании."
+  },
+  "campaignTournamentRibbon": "Высокие ставки · {count} соперника подряд",
+  "@campaignTournamentRibbon": {
+    "description": "Лента турнира на тропе.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignBossLabel": "Босс главы",
+  "@campaignBossLabel": {
+    "description": "Метка у узла-босса на тропе."
+  },
+  "campaignOrderLabel": "Заказ",
+  "@campaignOrderLabel": {
+    "description": "Метка у плитки заказа на тропе."
+  },
+  "campaignPlayHere": "Играть",
+  "@campaignPlayHere": {
+    "description": "Метка у открытого узла на тропе."
+  },
+  "campaignKickerNode": "Глава {chapter} · Партия {number}",
+  "@campaignKickerNode": {
+    "description": "Подпись над названием противника в листе узла.",
+    "placeholders": {
+      "chapter": {
+        "type": "int"
+      },
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignKickerOrder": "Глава {chapter} · Заказ",
+  "@campaignKickerOrder": {
+    "description": "Подпись листа узла-заказа.",
+    "placeholders": {
+      "chapter": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignKickerBoss": "Босс главы {chapter}",
+  "@campaignKickerBoss": {
+    "description": "Красная лента листа узла-босса.",
+    "placeholders": {
+      "chapter": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignChipOpen": "Открыт",
+  "@campaignChipOpen": {
+    "description": "Состояние узла."
+  },
+  "campaignChipPassed": "Пройден",
+  "@campaignChipPassed": {
+    "description": "Состояние узла."
+  },
+  "campaignChipLocked": "Закрыт",
+  "@campaignChipLocked": {
+    "description": "Состояние узла."
+  },
+  "campaignChipSoon": "Скоро",
+  "@campaignChipSoon": {
+    "description": "Состояние узла невыпущенной главы."
+  },
+  "campaignLeaderLabel": "Лидер противника",
+  "@campaignLeaderLabel": {
+    "description": "Подпись в листе узла."
+  },
+  "campaignDeckThemeLabel": "Колода соперника",
+  "@campaignDeckThemeLabel": {
+    "description": "Подпись в листе узла."
+  },
+  "campaignOrderNote": "Заказ можно пройти позже.",
+  "@campaignOrderNote": {
+    "description": "Пояснение в листе узла-заказа."
+  },
+  "campaignFirstMatchNote": "Научит играть и выдаст стартовый набор карт.",
+  "@campaignFirstMatchNote": {
+    "description": "Описание первого узла кампании."
+  },
+  "campaignRewardLabel": "Награда за победу",
+  "@campaignRewardLabel": {
+    "description": "Подпись блока награды."
+  },
+  "campaignRewardClaimed": "Награда первой победы уже получена.",
+  "@campaignRewardClaimed": {
+    "description": "Лист пройденного узла."
+  },
+  "campaignBonusLabel": "Дополнительно",
+  "@campaignBonusLabel": {
+    "description": "Подпись условия дополнительной награды."
+  },
+  "campaignBonusClaimed": "Дополнительная награда получена.",
+  "@campaignBonusClaimed": {
+    "description": "Условие выполнено и награда уже получена."
+  },
+  "campaignConditionTwoZero": "Выиграть 2:0",
+  "@campaignConditionTwoZero": {
+    "description": "Условие дополнительной награды."
+  },
+  "campaignConditionNoSpecials": "Не сыграть ни одной особой карты",
+  "@campaignConditionNoSpecials": {
+    "description": "Условие дополнительной награды."
+  },
+  "campaignConditionMargin": "Выиграть раунд с перевесом от 20",
+  "@campaignConditionMargin": {
+    "description": "Условие дополнительной награды."
+  },
+  "campaignKindSquad": "Отряд",
+  "@campaignKindSquad": {
+    "description": "Вид карты-награды на силуэте."
+  },
+  "campaignKindHero": "Герой",
+  "@campaignKindHero": {
+    "description": "Вид карты-награды на силуэте."
+  },
+  "campaignKindSpecial": "Особая",
+  "@campaignKindSpecial": {
+    "description": "Вид карты-награды на силуэте."
+  },
+  "campaignKindLeader": "Лидер",
+  "@campaignKindLeader": {
+    "description": "Вид карты-награды на силуэте."
+  },
+  "campaignRewardCopies": "{kind}, копий: {count}",
+  "@campaignRewardCopies": {
+    "description": "Голос диктора для силуэта награды.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignDifficultyEasy": "Лёгкий",
+  "@campaignDifficultyEasy": {
+    "description": "Уровень сложности узла."
+  },
+  "campaignDifficultyNormal": "Нормальный",
+  "@campaignDifficultyNormal": {
+    "description": "Уровень сложности узла."
+  },
+  "campaignDifficultyHard": "Тяжёлый",
+  "@campaignDifficultyHard": {
+    "description": "Уровень сложности узла."
+  },
+  "campaignDifficultyDeathMatch": "НА СМЕРТЬ!",
+  "@campaignDifficultyDeathMatch": {
+    "description": "Уровень сложности узла."
+  },
+  "campaignYourDeck": "Ваша колода",
+  "@campaignYourDeck": {
+    "description": "Строка колоды в листе узла."
+  },
+  "campaignDeckNone": "не выбрана",
+  "@campaignDeckNone": {
+    "description": "Колоды кампании нет."
+  },
+  "campaignDeckReady": "годна",
+  "@campaignDeckReady": {
+    "description": "Колода годна для кампании."
+  },
+  "campaignToBattle": "В бой",
+  "@campaignToBattle": {
+    "description": "Кнопка начала партии узла."
+  },
+  "campaignPlayAgain": "Сыграть ещё раз",
+  "@campaignPlayAgain": {
+    "description": "Кнопка листа пройденного узла."
+  },
+  "campaignStartFirstMatch": "Начать",
+  "@campaignStartFirstMatch": {
+    "description": "Кнопка первого узла кампании."
+  },
+  "campaignWinFirst": "Сначала победите: {name}",
+  "@campaignWinFirst": {
+    "description": "Пояснение у закрытого узла.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignDeckScreenTitle": "Колода для боя",
+  "@campaignDeckScreenTitle": {
+    "description": "Заголовок экрана выбора колоды кампании."
+  },
+  "campaignBattleLabel": "Бой",
+  "@campaignBattleLabel": {
+    "description": "Подпись над противником на экране выбора колоды."
+  },
+  "campaignChooseDeck": "Выбрать",
+  "@campaignChooseDeck": {
+    "description": "Кнопка выбора колоды кампании без боя."
+  },
+  "campaignBuildDeck": "Собрать колоду",
+  "@campaignBuildDeck": {
+    "description": "Кнопка перехода в конструктор кампании."
+  },
+  "campaignNoDeckTitle": "Нет подходящей колоды",
+  "@campaignNoDeckTitle": {
+    "description": "Пустое состояние выбора колоды."
+  },
+  "campaignNoDeckBody": "Для боя нужны лидер и {count} отрядов из открытых карт. Соберите колоду из того, что уже открыто.",
+  "@campaignNoDeckBody": {
+    "description": "Пояснение пустого состояния выбора колоды.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignDeckUnits": "{count, plural, one{{count} отряд} few{{count} отряда} many{{count} отрядов} other{{count} отряда}}",
+  "@campaignDeckUnits": {
+    "description": "Число отрядов в колоде.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignModeBanner": "Режим кампании: закрытые карты откроются за победы на тропе.",
+  "@campaignModeBanner": {
+    "description": "Плашка над конструктором колоды в режиме кампании."
+  },
+  "campaignMatchUnavailable": "Партию начать не удалось",
+  "@campaignMatchUnavailable": {
+    "description": "Сообщение, если партию узла начать нельзя."
+  },
+  "campaignToTrail": "К тропе",
+  "@campaignToTrail": {
+    "description": "Кнопка возврата на тропу."
+  },
+  "campaignChangeDeck": "Сменить колоду",
+  "@campaignChangeDeck": {
+    "description": "Кнопка на листе поражения."
+  },
+  "campaignDefeatNote": "Узел остаётся открытым, ничего не потеряно. Попробуйте другую колоду или сыграйте ещё раз.",
+  "@campaignDefeatNote": {
+    "description": "Строка на листе поражения."
+  },
+  "campaignRewardAlready": "Награда уже получена",
+  "@campaignRewardAlready": {
+    "description": "Строка на листе повторной победы."
+  },
+  "campaignRepeatNote": "Повторная победа новых карт не даёт.",
+  "@campaignRepeatNote": {
+    "description": "Строка на листе повторной победы."
+  },
+  "campaignRepeatBonusNote": "Условие выполнено и забрано.",
+  "@campaignRepeatBonusNote": {
+    "description": "Строка на листе повторной победы."
+  },
+  "campaignResultFailed": "Не удалось записать результат партии. Награда не выдана: сыграйте ещё раз.",
+  "@campaignResultFailed": {
+    "description": "Строка на листе итога, если итог записать не удалось."
+  },
+  "campaignVictory": "Победа",
+  "@campaignVictory": {
+    "description": "Заголовок экрана награды."
+  },
+  "campaignNodePassed": "Узел пройден",
+  "@campaignNodePassed": {
+    "description": "Подпись экрана награды."
+  },
+  "campaignChapterClearedRibbon": "Глава {number} пройдена",
+  "@campaignChapterClearedRibbon": {
+    "description": "Подпись экрана награды после босса.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignStartingSetLabel": "Стартовый набор",
+  "@campaignStartingSetLabel": {
+    "description": "Подпись блока награды первого узла."
+  },
+  "campaignTapToOpen": "Коснитесь, чтобы открыть",
+  "@campaignTapToOpen": {
+    "description": "Подпись под закрытой картой награды."
+  },
+  "campaignSkip": "Пропустить",
+  "@campaignSkip": {
+    "description": "Кнопка: открыть все награды сразу."
+  },
+  "campaignNewCard": "Новая карта",
+  "@campaignNewCard": {
+    "description": "Ярлык карты, которой ещё не было."
+  },
+  "campaignExtraCopies": "{count, plural, one{+{count} копия} few{+{count} копии} many{+{count} копий} other{+{count} копии}}",
+  "@campaignExtraCopies": {
+    "description": "Ярлык карты, которая уже была.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignConditionMet": "Условие выполнено",
+  "@campaignConditionMet": {
+    "description": "Плашка условия на экране награды."
+  },
+  "campaignNewLeader": "Новый лидер: {name}",
+  "@campaignNewLeader": {
+    "description": "Плашка на экране награды.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignNewLeaderBody": "Выберите его в конструкторе колод кампании.",
+  "@campaignNewLeaderBody": {
+    "description": "Плашка на экране награды."
+  },
+  "campaignChapterOpened": "Открыта глава {number} «{name}»",
+  "@campaignChapterOpened": {
+    "description": "Плашка на экране награды после босса.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignChapterOpenedBody": "Враги станут сильнее.",
+  "@campaignChapterOpenedBody": {
+    "description": "Плашка на экране награды после босса."
+  },
+  "campaignFactionReady": "Колода фракции «{name}» готова",
+  "@campaignFactionReady": {
+    "description": "Плашка на экране награды.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignFactionReadyBody": "Есть лидер и {count} отрядов: колоду можно собрать.",
+  "@campaignFactionReadyBody": {
+    "description": "Плашка на экране награды.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignBuildFactionDeck": "Собрать колоду: {name}",
+  "@campaignBuildFactionDeck": {
+    "description": "Кнопка на экране награды.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignNext": "Дальше: {name}",
+  "@campaignNext": {
+    "description": "Кнопка на экране награды: следующий узел.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignOpenedLabel": "Открыто карт",
+  "@campaignOpenedLabel": {
+    "description": "Подпись счётчика на экране награды."
+  },
+  "campaignOpenedCounter": "{before} → {after} из {total}",
+  "@campaignOpenedCounter": {
+    "description": "Счётчик открытых карт.",
+    "placeholders": {
+      "before": {
+        "type": "int"
+      },
+      "after": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   }
 }
