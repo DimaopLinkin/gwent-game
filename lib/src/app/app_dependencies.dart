@@ -13,6 +13,8 @@ import 'package:gwent/src/features/campaign/application/load_campaign_overview.d
 import 'package:gwent/src/features/campaign/application/load_card_book.dart';
 import 'package:gwent/src/features/campaign/application/prepare_campaign_match.dart';
 import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
+import 'package:gwent/src/features/campaign/application/reset_campaign.dart';
+import 'package:gwent/src/features/campaign/application/sync_campaign_rewards.dart';
 import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
 import 'package:gwent/src/features/campaign/application/watch_campaign_summary.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
@@ -195,6 +197,8 @@ final class AppDependencies {
     );
     loadCardBook = LoadCardBook(loadCampaign, collectionRepository);
     claimStartingSet = ClaimStartingSet(loadCampaign, campaignRepository, settingsRepository, recordCampaignResult);
+    syncCampaignRewards = SyncCampaignRewards(loadCampaign, campaignRepository, collectionRepository);
+    resetCampaign = ResetCampaign(campaignRepository, settingsRepository);
     prepareCampaignMatch = PrepareCampaignMatch(
       loadCampaign,
       campaignRepository,
@@ -332,6 +336,12 @@ final class AppDependencies {
 
   /// Стартовый набор для того, кто прошёл «Первую партию» раньше.
   late final ClaimStartingSet claimStartingSet;
+
+  /// Сверка открытых карт с наградами пройденных узлов (после смены раздачи наград).
+  late final SyncCampaignRewards syncCampaignRewards;
+
+  /// Начать кампанию заново.
+  late final ResetCampaign resetCampaign;
 
   /// Подготовка партии узла кампании.
   late final PrepareCampaignMatch prepareCampaignMatch;

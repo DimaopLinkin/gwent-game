@@ -33,6 +33,10 @@ final class DriftCollectionRepository implements CollectionRepository {
     });
   }
 
+  /// Закрывает все карты. Не часть [CollectionRepository]: коллекцию обнуляет только сброс кампании
+  /// (`CampaignRepository.reset`), и делает это внутри своей транзакции.
+  Future<void> clear() => _db.delete(_db.ownedCardEntries).go();
+
   CardCollection _toCollection(List<OwnedCardRow> rows) =>
       CardCollection({for (final row in rows) row.cardId: row.copies});
 }

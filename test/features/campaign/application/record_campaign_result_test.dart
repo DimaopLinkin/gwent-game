@@ -286,4 +286,7 @@ final class _FailingRepository implements CampaignRepository {
 
   @override
   Future<void> recordWin(NodeWin win) => Future.error(StateError('сбой записи'));
+
+  @override
+  Future<void> reset() => _inner.reset();
 }

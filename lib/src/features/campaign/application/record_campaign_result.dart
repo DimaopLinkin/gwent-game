@@ -4,6 +4,7 @@ import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_totals.dart';
+import 'package:gwent/src/features/campaign/domain/card_copy_limit.dart';
 import 'package:gwent/src/features/campaign/domain/faction_readiness.dart';
 import 'package:gwent/src/features/collection/domain/collection_repository.dart';
 import 'package:gwent/src/features/collection/domain/owned_cards.dart';
@@ -192,7 +193,7 @@ final class RecordCampaignResult {
   List<CardGrant> _capped(PackRules rules, OwnedCards owned, List<CardGrant> reward, List<CardGrant> alreadyGranted) {
     final result = <CardGrant>[];
     for (final grant in reward) {
-      final limit = _limit(rules, grant.cardId);
+      final limit = cardCopyLimit(rules, grant.cardId);
       final taken = alreadyGranted
           .where((other) => other.cardId == grant.cardId)
           .fold(0, (sum, other) => sum + other.copies);
@@ -202,11 +203,6 @@ final class RecordCampaignResult {
     }
     return result;
   }
-
-  int _limit(PackRules rules, String cardId) =>
-      rules.squadCardsById[cardId]?.count ??
-      rules.specialCardsById[cardId]?.count ??
-      (rules.leaderCardsById.containsKey(cardId) ? 1 : 0);
 
   /// Стартовая колода кампании: лидер из каталога и все карты награды первого узла, кроме лидеров.
   ///

@@ -13,6 +13,7 @@ import 'package:gwent/src/features/campaign/application/list_campaign_decks.dart
 import 'package:gwent/src/features/campaign/application/load_campaign.dart';
 import 'package:gwent/src/features/campaign/application/load_campaign_overview.dart';
 import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
+import 'package:gwent/src/features/campaign/application/sync_campaign_rewards.dart';
 import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
@@ -24,6 +25,7 @@ import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
 
+import '../../../support/campaign_fixtures.dart';
 import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
@@ -88,6 +90,7 @@ void main() {
         GetCampaignDeck(ListCampaignDecks(decks, GameContentDeckRulesSource(content), collection), settings),
       ),
       ClaimStartingSet(campaign, path, settings, record),
+      SyncCampaignRewards(campaign, path, collection),
     );
     // Подписка создана в зоне теста: её отмена завершается там же, ждать её снаружи нельзя.
     addTearDown(() => unawaited(cubit.close()));
@@ -158,6 +161,13 @@ void main() {
     expect(find.text(l10n.campaignStartingSetLabel.toUpperCase()), findsNothing, reason: 'награда не выдана');
   });
 
+  testWidgets('сверка наград не удалась: тропа всё равно открывается', (tester) async {
+    await pumpTrail(tester, repository: _FailsFirstLoad(progress, failingRead: 2));
+
+    expect(find.text(l10n.campaignTitle), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('после босса Белого сада тропа ведёт в Велен; Новиград и Скеллиге закрыты, «скоро» нет', (tester) async {
     await tester.runAsync(() async {
       for (final id in ['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08', 'c1-09']) {
@@ -173,6 +183,21 @@ void main() {
     expect(find.text(l10n.campaignChapterLocked(3)), findsOneWidget, reason: 'Скеллиге ждёт конца Новиграда');
     expect(find.text(l10n.campaignChapterSoon), findsNothing);
     expectNoFallbackTextStyle(tester);
+  });
+
+  testWidgets('при входе в тропу добираются копии, не выданные за узлы, пройденные до смены раздачи', (tester) async {
+    await tester.runAsync(() async {
+      for (final id in ['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08']) {
+        await progress.recordWin(NodeWin(nodeId: id, at: DateTime.utc(2026, 10, 27)));
+      }
+    });
+
+    await pumpTrail(tester);
+
+    final owned = (await tester.runAsync(collection.load))!;
+    expect(owned.copiesOf(idOf(data, 'Чучело')), 2, reason: 'c1-05 и c1-08');
+    expect(owned.copiesOf(idOf(data, 'Корова')), 1);
+    expect(find.text(l10n.campaignTitle), findsOneWidget);
   });
 
   testWidgets('лист узла один раз рисует рамку и ручку: тема листов не добавляет вторую', (tester) async {
@@ -227,17 +252,18 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
-/// Хранилище прогресса, первое чтение которого падает: так «ломается» выдача стартового набора.
+/// Хранилище прогресса, у которого падает одно чтение (по умолчанию первое): так «ломается» выдача стартового набора
+/// (первое чтение) или сверка наград ([failingRead] = 2: первое читает выдача набора).
 final class _FailsFirstLoad implements CampaignRepository {
-  _FailsFirstLoad(this._inner);
+  _FailsFirstLoad(this._inner, {this.failingRead = 1});
 
   final CampaignRepository _inner;
-  var _failed = false;
+  final int failingRead;
+  var _reads = 0;
 
   @override
   Future<Map<String, NodeProgress>> load() {
-    if (_failed) return _inner.load();
-    _failed = true;
+    if (++_reads != failingRead) return _inner.load();
     return Future.error(StateError('база недоступна'));
   }
 
@@ -246,4 +272,7 @@ final class _FailsFirstLoad implements CampaignRepository {
 
   @override
   Future<void> recordWin(NodeWin win) => _inner.recordWin(win);
+
+  @override
+  Future<void> reset() => _inner.reset();
 }

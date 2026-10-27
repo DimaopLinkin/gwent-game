@@ -193,6 +193,12 @@ final class InMemoryCollectionRepository implements CollectionRepository {
     }
     _changes.add(CardCollection(_copies));
   }
+
+  /// Закрывает все карты (сброс кампании).
+  void clear() {
+    _copies.clear();
+    _changes.add(CardCollection(_copies));
+  }
 }
 
 /// Прогресс кампании в памяти для тестов; победа пишет и награду в [collection], как транзакция Drift.
@@ -223,6 +229,13 @@ final class InMemoryCampaignRepository implements CampaignRepository {
       firstWinAt: existing?.firstWinAt ?? win.at,
       bonusClaimedAt: existing?.bonusClaimedAt ?? (win.claimsBonus ? win.at : null),
     );
+    _changes.add(Map.of(_progress));
+  }
+
+  @override
+  Future<void> reset() async {
+    _progress.clear();
+    collection.clear();
     _changes.add(Map.of(_progress));
   }
 }
