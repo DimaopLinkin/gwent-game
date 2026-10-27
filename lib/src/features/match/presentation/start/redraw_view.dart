@@ -73,26 +73,22 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
   Set<CardInstanceId> _fresh = const {};
   Timer? _freshTimer;
 
-  /// Карты, которые ещё летят из колоды.
+  /// Карты, которые ещё летят из колоды: их место в сетке пусто, а карту рисует слой полёта.
   Set<CardInstanceId> _arriving = const {};
-  Timer? _arriveTimer;
 
-  /// Область с картами: от её нижнего края карта вылетает.
+  /// Область с картами: полёт рисуется в ней поверх сетки, от её нижнего края.
   final GlobalKey _areaKey = GlobalKey();
+
+  /// Места карт в сетке: по ним слой полёта находит, куда садиться, даже если карта сменила ряд.
+  final Map<CardInstanceId, GlobalKey> _slots = {};
+
+  GlobalKey _slot(CardInstanceId id) => _slots.putIfAbsent(id, GlobalKey.new);
 
   Duration get _flight => Duration(
     milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : widget.style.ms(StageTokens.flight),
   );
 
   List<CardInstance> _sorted(PlayerView view) => _content!.handOrder(view.me.hand ?? const <CardInstance>[]);
-
-  /// Центр места, откуда вылетает карта (колода справа внизу), в координатах экрана.
-  Offset? _deckCenter() {
-    final area = _areaKey.currentContext?.findRenderObject();
-    if (area is! RenderBox || !area.hasSize) return null;
-    final card = CardSize.grid.metrics;
-    return area.localToGlobal(Offset(area.size.width - 16 - card.width / 2, area.size.height - card.height / 2));
-  }
 
   @override
   void didUpdateWidget(MatchRedrawView oldWidget) {
@@ -113,18 +109,35 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
     _freshTimer = Timer(hold + flight, () {
       if (mounted) setState(() => _fresh = const {});
     });
+    _slots.removeWhere((id, _) => !newHand.contains(id));
+    _arriving = {
+      for (final id in _arriving)
+        if (newHand.contains(id)) id,
+    };
     if (flight == Duration.zero) return;
     _arriving = {..._arriving, ...arrived};
-    _arriveTimer?.cancel();
-    _arriveTimer = Timer(flight, () {
-      if (mounted) setState(() => _arriving = const {});
+    // Новая карта может сесть в ряд за краем экрана: прокручиваем к ней, пока она летит.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = arrived.map((id) => _slots[id]?.currentContext).nonNulls.firstOrNull;
+      if (!mounted || target == null || !target.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          target,
+          duration: flight,
+          curve: StageTokens.out,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        ),
+      );
     });
+  }
+
+  void _landed(CardInstanceId id) {
+    if (mounted && _arriving.contains(id)) setState(() => _arriving = {..._arriving}..remove(id));
   }
 
   @override
   void dispose() {
     _freshTimer?.cancel();
-    _arriveTimer?.cancel();
     super.dispose();
   }
 
@@ -205,15 +218,9 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             for (final card in row)
-                              _Arrival(
-                                key: ValueKey(card.id),
-                                flying: _arriving.contains(card.id),
-                                duration: _flight,
-                                deckCenter: _deckCenter,
-                                back: GwentCard(
-                                  face: CardBackFace(faction: content.faction(me.faction)),
-                                  size: CardSize.grid,
-                                ),
+                              Opacity(
+                                key: _slot(card.id),
+                                opacity: _arriving.contains(card.id) ? 0 : 1,
                                 child: GwentCard(
                                   key: ValueKey(card.id),
                                   face: content.face(card),
@@ -223,7 +230,9 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                                       : canReplace
                                       ? CardHighlight.normal
                                       : CardHighlight.disabled,
-                                  onTap: canReplace ? () => widget.onIntent(RedrawCard(card.id)) : null,
+                                  onTap: canReplace && !_arriving.contains(card.id)
+                                      ? () => widget.onIntent(RedrawCard(card.id))
+                                      : null,
                                   onLongPress: () => unawaited(showCardDetail(context, content.detail(card))),
                                 ),
                               ),
@@ -234,6 +243,20 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                     ],
                   ),
                 ),
+                for (final card in hand)
+                  if (_arriving.contains(card.id))
+                    _Flight(
+                      key: ValueKey(card.id),
+                      slot: _slot(card.id),
+                      area: _areaKey,
+                      duration: _flight,
+                      back: GwentCard(
+                        face: CardBackFace(faction: content.faction(me.faction)),
+                        size: CardSize.grid,
+                      ),
+                      front: GwentCard(face: content.face(card), size: CardSize.grid),
+                      onLanded: () => _landed(card.id),
+                    ),
                 const Positioned(
                   left: 0,
                   right: 0,
@@ -279,45 +302,56 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
 /// Влёт пришедшей карты: как добор в партии (`StageBuilder`), карта вылетает из колоды по дуге, переворачивается
 /// рубашкой в лицо и растёт от половины размера до полного.
 ///
-/// Место в сетке карта занимает сразу, летит только её изображение. Пока [flying] ложно, карта лежит как есть.
-class _Arrival extends StatefulWidget {
-  const _Arrival({
+/// Карту рисует слой поверх сетки (в сетке на это время пустое место [slot]), поэтому другие карты её не закрывают.
+/// Колода стоит у нижнего края области [area] справа.
+class _Flight extends StatefulWidget {
+  const _Flight({
     super.key,
-    required this.flying,
+    required this.slot,
+    required this.area,
     required this.duration,
-    required this.deckCenter,
     required this.back,
-    required this.child,
+    required this.front,
+    required this.onLanded,
   });
 
-  final bool flying;
-  final Duration duration;
+  /// Место карты в сетке: куда она садится.
+  final GlobalKey slot;
 
-  /// Центр колоды в координатах экрана, `null`, пока область не разложена.
-  final Offset? Function() deckCenter;
+  /// Область, в которой рисуется полёт.
+  final GlobalKey area;
+
+  final Duration duration;
 
   /// Рубашка, видимая в первой половине переворота.
   final Widget back;
-  final Widget child;
+
+  /// Лицо карты.
+  final Widget front;
+
+  /// Полёт кончился.
+  final VoidCallback onLanded;
 
   @override
-  State<_Arrival> createState() => _ArrivalState();
+  State<_Flight> createState() => _FlightState();
 }
 
-class _ArrivalState extends State<_Arrival> with SingleTickerProviderStateMixin {
+class _FlightState extends State<_Flight> with SingleTickerProviderStateMixin {
   static const double _arc = -24;
   static const double _startScale = 0.5;
 
   late final AnimationController _controller;
 
-  /// Карта разложена, можно считать путь: до этого она невидима, чтобы не мелькнуть на своём месте.
+  /// Сетка разложена, можно считать путь: до этого карта невидима, чтобы не мелькнуть не там.
   bool _placed = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: widget.duration);
-    if (!widget.flying) return;
+    _controller = AnimationController(vsync: this, duration: widget.duration)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) widget.onLanded();
+      });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() => _placed = true);
@@ -331,34 +365,44 @@ class _ArrivalState extends State<_Arrival> with SingleTickerProviderStateMixin 
     super.dispose();
   }
 
+  /// Центры колоды и места карты в координатах области; `null`, пока что-то не разложено.
+  ({Offset deck, Offset target})? _path() {
+    final area = widget.area.currentContext?.findRenderObject();
+    final slot = widget.slot.currentContext?.findRenderObject();
+    if (area is! RenderBox || slot is! RenderBox || !area.hasSize || !slot.hasSize || !slot.attached) return null;
+    final card = CardSize.grid.metrics;
+    return (
+      deck: Offset(area.size.width - 16 - card.width / 2, area.size.height - card.height / 2),
+      target: area.globalToLocal(slot.localToGlobal(slot.size.center(Offset.zero))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!widget.flying) return widget.child;
     return AnimatedBuilder(
       animation: _controller,
-      child: widget.child,
-      builder: (context, child) {
-        final box = context.findRenderObject();
-        final deck = widget.deckCenter();
-        if (!_placed || deck == null || box is! RenderBox || !box.hasSize) {
-          return Opacity(opacity: 0, child: child);
-        }
+      builder: (context, _) {
+        final path = _placed ? _path() : null;
+        if (path == null) return const SizedBox.shrink();
+        final card = CardSize.grid.metrics;
         final t = _controller.value;
         final travel = StageTokens.out.transform(t);
         final flip = 180 * (1 - StageTokens.inOut.transform(t));
-        final from = deck - box.localToGlobal(box.size.center(Offset.zero));
-        final offset = from * (1 - travel) + Offset(0, _arc * math.sin(math.pi * t));
         final turned = flip > 90;
-        return Transform.translate(
-          offset: offset,
-          child: Transform.scale(
-            scale: _startScale + (1 - _startScale) * travel,
-            child: Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001)
-                ..rotateY((turned ? flip - 180 : flip) * math.pi / 180),
-              child: turned ? widget.back : child,
+        final center = Offset.lerp(path.deck, path.target, travel)! + Offset(0, _arc * math.sin(math.pi * t));
+        return Positioned(
+          left: center.dx - card.width / 2,
+          top: center.dy - card.height / 2,
+          child: IgnorePointer(
+            child: Transform.scale(
+              scale: _startScale + (1 - _startScale) * travel,
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY((turned ? flip - 180 : flip) * math.pi / 180),
+                child: turned ? widget.back : widget.front,
+              ),
             ),
           ),
         );

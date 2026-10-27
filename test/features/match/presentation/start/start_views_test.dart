@@ -374,6 +374,56 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('летящую карту не закрывают другие карты: она рисуется слоем поверх сетки', (tester) async {
+      final inHand = [for (var i = 0; i < 10; i++) cards.unit(Row.melee)];
+      MatchRedrawView viewWith(List<CardInstance> shown, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: shown, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: (_) {},
+      );
+      await pumpView(tester, viewWith(inHand, 2));
+      await tester.pumpWidget(localizedApp(viewWith([...inHand]..[0] = cards.unit(Row.siege), 1)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      final back = find.byWidgetPredicate((w) => w is GwentCard && w.face is CardBackFace);
+      expect(back, findsOneWidget);
+      expect(find.descendant(of: find.byType(SingleChildScrollView), matching: back), findsNothing);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(back, findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('две замены подряд: обе карты долетают и светятся, полёт не начинается заново', (tester) async {
+      final first = hand();
+      MatchRedrawView viewWith(List<CardInstance> shown, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: shown, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: (_) {},
+      );
+      final firstArrived = cards.unit(Row.siege);
+      final secondArrived = cards.unit(Row.ranged);
+      await pumpView(tester, viewWith(first, 2));
+      await tester.pumpWidget(localizedApp(viewWith([firstArrived, first[1]], 1)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpWidget(localizedApp(viewWith([firstArrived, secondArrived], 0)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(GwentCard), findsNWidgets(3), reason: 'две карты в руке и одна в полёте: вторая');
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(GwentCard), findsNWidgets(2), reason: 'обе долетели, заново никто не вылетел');
+      expect(_justPlayed(tester), hasLength(2));
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('рука идёт в порядке руки, а пришедшая карта встаёт на отсортированное место', (tester) async {
       final order = HandOrder(content);
       final inHand = [cards.hero(), cards.unit(Row.melee), cards.unit(Row.ranged), cards.unit(Row.siege)];
@@ -422,6 +472,7 @@ void main() {
       );
       await tester.pump();
       expect(find.byType(GwentCard), findsNWidgets(2));
+      expect(_flightBackShown(tester), isFalse, reason: 'без движения карта не летит');
       await tester.pumpWidget(const SizedBox());
     });
 
