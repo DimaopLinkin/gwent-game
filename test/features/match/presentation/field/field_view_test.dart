@@ -183,11 +183,14 @@ void main() {
         final compact = find.byType(CompactPower);
         expect(compact, findsNWidgets(18), reason: 'последняя карта открыта целиком');
         final step = field.cardStep(19);
+        // Ряд идёт слева направо в порядке руки: слабые слева, герои справа.
+        final shown = HandOrder(content).sortBy(row.cards, (view) => view.card);
         final pills = tester.widgetList<CompactPower>(compact).toList();
         final rects = [for (final element in compact.evaluate()) tester.getRect(find.byWidget(element.widget))];
         for (var i = 0; i < pills.length; i++) {
-          final view = row.cards[i];
+          final view = shown[i];
           final base = cards.strength(view.card);
+          final unit = cards.definition(view.card) as UnitCardDefinition;
           // Таблетка внутри видимой полоски карты: следующая карта её не закрывает.
           expect(rects[i].width, closeTo(step - 1, 0.5));
           if (i > 0) expect(rects[i].left, greaterThanOrEqualTo(rects[i - 1].right));
@@ -199,10 +202,12 @@ void main() {
           expect(face, isA<UnitCardFace>());
           final ability = (face as UnitCardFace).ability;
           expect(pills[i].abilities, [?ability], reason: 'карта $i');
-          if (i % 5 == 1) expect(pills[i].abilities, [GwentIcon.abilitySpy], reason: 'шпион имеет способность');
+          if (unit.ability is SpyAbility) {
+            expect(pills[i].abilities, [GwentIcon.abilitySpy], reason: 'шпион имеет способность');
+          }
           expect(
             pills[i].look,
-            i % 5 == 4
+            unit.isHero
                 ? PowerLook.hero
                 : view.strength > base
                 ? PowerLook.buffed
@@ -219,6 +224,40 @@ void main() {
         expect(pills.where((p) => p.look == PowerLook.debuffed), isNotEmpty);
       });
     }
+
+    testWidgets('карты ряда стоят слева направо по возрастанию силы, у соперника так же', (tester) async {
+      final strong = cards.hero();
+      final weak = cards.unit(Row.melee);
+      final theirStrong = cards.hero();
+      final theirWeak = cards.unit(Row.melee);
+      final theirMiddle = cards.unit(Row.ranged);
+      await pumpField(
+        tester,
+        viewOf(
+          cards,
+          me: sideOf(
+            cards,
+            Seat.one,
+            rows: {
+              Row.melee: rowOf([strong, weak], cards),
+            },
+          ),
+          opponent: sideOf(
+            cards,
+            Seat.two,
+            rows: {
+              Row.ranged: rowOf([theirStrong, theirMiddle, theirWeak], cards),
+            },
+          ),
+        ),
+      );
+
+      double left(CardInstance card) => tester.getTopLeft(find.byKey(ValueKey(card.id))).dx;
+
+      expect(left(weak), lessThan(left(strong)), reason: 'мой ряд');
+      expect(left(theirStrong), greaterThan(left(theirMiddle)), reason: 'ряд соперника');
+      expect(left(theirStrong), greaterThan(left(theirWeak)), reason: 'ряд соперника');
+    });
 
     testWidgets('в ряду из шести карт медальоны остаются полными', (tester) async {
       await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, rows: {Row.melee: crowded(6)})));
@@ -654,8 +693,9 @@ void main() {
     });
 
     testWidgets('над героем ничего не горит и не поднимается, соседний отряд его не перехватывает', (tester) async {
-      final (harness, _, _) = await pumpDecoy(tester, [cards.unit(Row.melee), cards.hero(), cards.unit(Row.melee)]);
-      final gesture = await aimAt(tester, cardRect(1, 3).center);
+      // Герой сильнее обоих отрядов и стоит в ряду последним.
+      final (harness, _, _) = await pumpDecoy(tester, [cards.hero(), cards.unit(Row.melee), cards.unit(Row.melee)]);
+      final gesture = await aimAt(tester, cardRect(2, 3).center);
       expect(find.byType(LiftedCard), findsNothing);
       expect(harness.haptics.played, isEmpty, reason: 'в цель не входили');
       await release(tester, gesture);

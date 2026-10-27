@@ -135,7 +135,17 @@ class _FieldViewState extends State<FieldView> {
   double? _stageGeometryWidth;
 
   /// Поле экрана; пока идёт последний ход раунда, поле до подсчёта (экран уже получил поле после уборки).
-  PlayerView get _view => _cubit.state.stage?.board ?? widget.view;
+  PlayerView get _view {
+    final source = _cubit.state.stage?.board ?? widget.view;
+    if (!identical(source, _orderedFrom)) {
+      _orderedFrom = source;
+      _ordered = _fieldContent.rowOrder(source);
+    }
+    return _ordered!;
+  }
+
+  PlayerView? _orderedFrom;
+  PlayerView? _ordered;
   FieldCubit get _cubit => context.read<FieldCubit>();
 
   @override

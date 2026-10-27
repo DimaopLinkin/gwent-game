@@ -6,6 +6,7 @@ import 'package:gwent/src/core/presentation/card/card_size.dart';
 import 'package:gwent/src/core/presentation/components/rolling_number.dart';
 import 'package:gwent/src/features/match/presentation/field/round_summary.dart';
 import 'package:gwent/src/features/match/presentation/hand_order.dart';
+import 'package:gwent/src/features/match/presentation/row_order.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_beat.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_frame.dart';
 import 'package:gwent/src/features/match/presentation/stage/stage_place.dart';
@@ -121,19 +122,21 @@ final class _RowDraft {
 final class StageScriptBuilder {
   /// Создаёт сборщик; проекции должны быть одного игрока.
   StageScriptBuilder({
-    required this.prev,
-    required this.next,
+    required PlayerView prev,
+    required PlayerView next,
     required this.catalog,
     this.style = StageStyle.normal,
     this.handOrder,
-  }) : viewer = next.viewer {
+  }) : prev = _ordered(prev, handOrder),
+       next = _ordered(next, handOrder),
+       viewer = next.viewer {
     _init();
   }
 
-  /// Проекция до обновления.
+  /// Проекция до обновления; с [handOrder] карты в рядах стоят в порядке показа (`RowOrder`).
   final PlayerView prev;
 
-  /// Проекция после обновления.
+  /// Проекция после обновления; с [handOrder] карты в рядах стоят в порядке показа (`RowOrder`).
   final PlayerView next;
 
   /// Справочник карт: по нему сцены отличают отряд от особой карты и героя от обычной карты.
@@ -142,8 +145,11 @@ final class StageScriptBuilder {
   /// Скорость и режим «Уменьшить движение».
   final StageStyle style;
 
-  /// Порядок карт в руке на экране; без него места в руке считаются по порядку проекции.
+  /// Порядок карт на экране; без него места в руке и в рядах считаются по порядку проекции. По нему же встают места
+  /// карт в рядах: сценарий видит ряды так, как их рисует поле.
   final HandOrder? handOrder;
+
+  static PlayerView _ordered(PlayerView view, HandOrder? order) => order == null ? view : RowOrder(order).apply(view);
 
   /// Игрок, чьими глазами смотрим.
   final Seat viewer;

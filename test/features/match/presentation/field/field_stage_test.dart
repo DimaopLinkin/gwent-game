@@ -125,6 +125,44 @@ void main() {
       expect(flight.from, isA<HandPlace>().having((place) => place.index, 'index', 0), reason: 'слабая карта слева');
     });
 
+    test('сыгранный отряд ложится на своё место в ряду по силе, а не в конец', () {
+      final strong = cards.hero();
+      final weak = cards.unit(Row.melee);
+      final before = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          hand: [weak],
+          rows: {
+            Row.melee: rowOf([strong], cards),
+          },
+          score: cards.strength(strong),
+        ),
+      );
+      final after = viewOf(
+        cards,
+        me: sideOf(
+          cards,
+          Seat.one,
+          rows: {
+            Row.melee: rowOf([strong, weak], cards),
+          },
+          score: cards.strength(strong) + cards.strength(weak),
+        ),
+      );
+      feed(before, const []);
+      feed(after, [CardPlayed(Seat.one, weak), UnitPlaced(Seat.one, Row.melee, weak, EntrySource.hand)]);
+
+      const mineMelee = (mine: true, row: Row.melee);
+      final script = cubit.state.stage!;
+      for (final time in [0.0, script.duration]) {
+        final row = script.frameAt(time).rows[mineMelee]!;
+        expect([for (final staged in row.cards) staged.view.card.id], [weak.id, strong.id], reason: 'время $time');
+      }
+      expect(script.frameAt(0).rows[mineMelee]!.cards.first.hidden, isTrue, reason: 'карта ещё в полёте');
+    });
+
     test('сценарий чужого номера поле не снимает', () {
       final play = playUnit();
       feed(play.before, const []);
