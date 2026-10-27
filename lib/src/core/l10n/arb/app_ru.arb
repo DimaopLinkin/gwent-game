@@ -3119,6 +3119,30 @@
   "@settingsReplayTutorial": {
     "description": "Строка настроек: запускает обучающую «Первую партию»."
   },
+  "settingsResetCampaign": "Начать кампанию заново",
+  "@settingsResetCampaign": {
+    "description": "Строка настроек: стирает прогресс кампании «Тропа ведьмака» и открытые в ней карты."
+  },
+  "settingsResetCampaignTitle": "Начать кампанию заново?",
+  "@settingsResetCampaignTitle": {
+    "description": "Заголовок подтверждения сброса кампании."
+  },
+  "settingsResetCampaignBody": "Пройденные узлы и открытые в кампании карты будут стёрты, тропа начнётся с первой партии. Ваши колоды останутся. Отменить это нельзя.",
+  "@settingsResetCampaignBody": {
+    "description": "Пояснение в подтверждении сброса кампании: что стирается, что остаётся."
+  },
+  "settingsResetCampaignConfirm": "Начать заново",
+  "@settingsResetCampaignConfirm": {
+    "description": "Подтверждающая кнопка сброса кампании."
+  },
+  "settingsResetCampaignDone": "Кампания начата заново",
+  "@settingsResetCampaignDone": {
+    "description": "Сообщение после сброса кампании."
+  },
+  "settingsResetCampaignFailed": "Не удалось сбросить кампанию",
+  "@settingsResetCampaignFailed": {
+    "description": "Сообщение, если сброс кампании не удался."
+  },
   "settingsHintsNote": "Подсказки работают в обычных партиях. Обучение всегда идёт с подсказками.",
   "@settingsHintsNote": {
     "description": "Пояснение под переключателем подсказок."

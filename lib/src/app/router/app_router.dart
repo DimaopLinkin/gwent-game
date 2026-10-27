@@ -93,6 +93,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               dependencies.watchCampaignPath,
               dependencies.loadCampaignOverview,
               dependencies.claimStartingSet,
+              dependencies.syncCampaignRewards,
             ),
             child: CampaignScreen(
               onBack: () => context.go(AppRoutes.menu),
@@ -397,6 +398,8 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                 onHowToPlay: () => context.push(AppRoutes.howToPlay(overGame: overGame)),
                 // Поверх партии «Первую партию» не запускают: она оборвала бы идущую игру.
                 onTutorial: overGame ? null : () => context.go(AppRoutes.tutorial),
+                // Поверх партии кампанию не сбрасывают: стёртый прогресс оборвал бы партию узла.
+                onResetCampaign: overGame ? null : () => dependencies.resetCampaign(),
               ),
             );
           },

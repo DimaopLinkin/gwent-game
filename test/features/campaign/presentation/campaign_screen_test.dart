@@ -12,6 +12,7 @@ import 'package:gwent/src/features/campaign/application/list_campaign_decks.dart
 import 'package:gwent/src/features/campaign/application/load_campaign.dart';
 import 'package:gwent/src/features/campaign/application/load_campaign_overview.dart';
 import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
+import 'package:gwent/src/features/campaign/application/sync_campaign_rewards.dart';
 import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
@@ -23,6 +24,7 @@ import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/deck_builder/application/game_content_deck_rules_source.dart';
 
+import '../../../support/campaign_fixtures.dart';
 import '../../../support/fakes.dart';
 import '../../../support/fonts.dart';
 import '../../../support/localized_app.dart';
@@ -87,6 +89,7 @@ void main() {
         GetCampaignDeck(ListCampaignDecks(decks, GameContentDeckRulesSource(content), collection), settings),
       ),
       ClaimStartingSet(campaign, path, settings, record),
+      SyncCampaignRewards(campaign, path, collection),
     );
     // Подписка создана в зоне теста: её отмена завершается там же, ждать её снаружи нельзя.
     addTearDown(() => unawaited(cubit.close()));
@@ -174,6 +177,21 @@ void main() {
     expectNoFallbackTextStyle(tester);
   });
 
+  testWidgets('при входе в тропу добираются копии, не выданные за узлы, пройденные до смены раздачи', (tester) async {
+    await tester.runAsync(() async {
+      for (final id in ['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08']) {
+        await progress.recordWin(NodeWin(nodeId: id, at: DateTime.utc(2026, 10, 27)));
+      }
+    });
+
+    await pumpTrail(tester);
+
+    final owned = (await tester.runAsync(collection.load))!;
+    expect(owned.copiesOf(idOf(data, 'Чучело')), 2, reason: 'c1-05 и c1-08');
+    expect(owned.copiesOf(idOf(data, 'Корова')), 1);
+    expect(find.text(l10n.campaignTitle), findsOneWidget);
+  });
+
   testWidgets('закрытый узел: «В бой» недоступна, награда силуэтом без имён карт', (tester) async {
     await tester.runAsync(() => record('c1-00', CampaignMatchFacts(won: true)));
     await pumpTrail(tester);
@@ -232,4 +250,7 @@ final class _FailsFirstLoad implements CampaignRepository {
 
   @override
   Future<void> recordWin(NodeWin win) => _inner.recordWin(win);
+
+  @override
+  Future<void> reset() => _inner.reset();
 }

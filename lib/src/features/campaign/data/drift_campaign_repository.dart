@@ -45,6 +45,12 @@ final class DriftCampaignRepository implements CampaignRepository {
     if (win.grants.isNotEmpty) await _collection.grant(win.grants);
   });
 
+  @override
+  Future<void> reset() => _db.transaction(() async {
+    await _db.delete(_db.campaignProgress).go();
+    await _collection.clear();
+  });
+
   Map<String, NodeProgress> _toProgress(List<CampaignProgressRow> rows) => {
     for (final row in rows)
       row.nodeId: NodeProgress(

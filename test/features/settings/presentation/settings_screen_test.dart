@@ -43,6 +43,7 @@ void main() {
     WidgetTester tester, {
     Duration minCheck = Duration.zero,
     bool lessons = false,
+    Future<void> Function()? onResetCampaign,
   }) async {
     tester.view.physicalSize = const Size(390, 1800);
     tester.view.devicePixelRatio = 1;
@@ -70,6 +71,7 @@ void main() {
             onLicenses: () => taps.add('licenses'),
             onHowToPlay: lessons ? () => taps.add('how-to-play') : null,
             onTutorial: lessons ? () => taps.add('tutorial') : null,
+            onResetCampaign: onResetCampaign,
           ),
         ),
       ),
@@ -223,5 +225,49 @@ void main() {
 
     expect(find.text(l10n.settingsHowToPlay), findsNothing);
     expect(find.text(l10n.settingsReplayTutorial), findsNothing);
+    expect(find.text(l10n.settingsResetCampaign), findsNothing, reason: 'поверх партии кампанию не сбрасывают');
+  });
+
+  group('«Начать кампанию заново»', () {
+    Future<void> openDialog(WidgetTester tester) async {
+      await tester.ensureVisible(find.text(l10n.settingsResetCampaign));
+      await tester.tap(find.text(l10n.settingsResetCampaign));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('спрашивает подтверждение, «Отмена» ничего не сбрасывает', (tester) async {
+      await pumpSettings(tester, onResetCampaign: () async => taps.add('reset'));
+
+      await openDialog(tester);
+      expect(find.text(l10n.settingsResetCampaignTitle), findsOneWidget);
+      expect(find.text(l10n.settingsResetCampaignBody), findsOneWidget);
+      await tester.tap(find.text(l10n.dialogCancel));
+      await tester.pumpAndSettle();
+
+      expect(taps, isEmpty);
+      expect(find.text(l10n.settingsResetCampaignDone), findsNothing);
+    });
+
+    testWidgets('подтверждение сбрасывает кампанию и сообщает об этом', (tester) async {
+      await pumpSettings(tester, onResetCampaign: () async => taps.add('reset'));
+
+      await openDialog(tester);
+      await tester.tap(find.text(l10n.settingsResetCampaignConfirm));
+      await tester.pumpAndSettle();
+
+      expect(taps, ['reset']);
+      expect(find.text(l10n.settingsResetCampaignDone), findsOneWidget);
+    });
+
+    testWidgets('сбой сброса не роняет экран: игрок видит сообщение об ошибке', (tester) async {
+      await pumpSettings(tester, onResetCampaign: () async => throw StateError('база недоступна'));
+
+      await openDialog(tester);
+      await tester.tap(find.text(l10n.settingsResetCampaignConfirm));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.settingsResetCampaignFailed), findsOneWidget);
+      expect(find.text(l10n.settingsResetCampaignDone), findsNothing);
+    });
   });
 }
