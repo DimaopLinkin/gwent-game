@@ -152,6 +152,15 @@ void main() {
       expect(owned.copiesOf(id('Осадная башня')), 0, reason: 'условие c1-06 не получено');
     });
 
+    test('одновременные сверки (старая и новая тропа) выдают недостающее один раз', () async {
+      await passWithoutGrants(['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08']);
+
+      final added = await Future.wait([sync(), sync(), sync()]);
+
+      expect((await collection.load()).copiesOf(id('Чучело')), 2);
+      expect(added.where((copies) => copies > 0), hasLength(1));
+    });
+
     test('повторная сверка ничего не выдаёт', () async {
       await passWithoutGrants(['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05']);
       await sync();

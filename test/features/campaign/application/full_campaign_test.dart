@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gwent/src/features/campaign/application/load_campaign.dart';
 import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
+import 'package:gwent/src/features/campaign/application/sync_campaign_rewards.dart';
 import 'package:gwent/src/features/campaign/data/drift_campaign_repository.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_match_facts.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
@@ -93,6 +94,12 @@ void main() {
     for (final leader in rules.leaderCards) {
       expect(owned.copiesOf(leader.id), 1, reason: data.text(leader.nameKey));
     }
+
+    expect(
+      await SyncCampaignRewards(LoadCampaign(content), progress, collection)(),
+      0,
+      reason: 'кто прошёл кампанию победами, сверка ничего не добавляет',
+    );
 
     final end = CampaignPath.build(data.catalog, await progress.load());
     expect(end.passedCount, end.totalCount);

@@ -161,6 +161,13 @@ void main() {
     expect(find.text(l10n.campaignStartingSetLabel.toUpperCase()), findsNothing, reason: 'награда не выдана');
   });
 
+  testWidgets('сверка наград не удалась: тропа всё равно открывается', (tester) async {
+    await pumpTrail(tester, repository: _FailsFirstLoad(progress, failingRead: 2));
+
+    expect(find.text(l10n.campaignTitle), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('после босса Белого сада тропа ведёт в Велен; Новиград и Скеллиге закрыты, «скоро» нет', (tester) async {
     await tester.runAsync(() async {
       for (final id in ['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08', 'c1-09']) {
@@ -245,17 +252,18 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
-/// Хранилище прогресса, первое чтение которого падает: так «ломается» выдача стартового набора.
+/// Хранилище прогресса, у которого падает одно чтение (по умолчанию первое): так «ломается» выдача стартового набора
+/// (первое чтение) или сверка наград ([failingRead] = 2: первое читает выдача набора).
 final class _FailsFirstLoad implements CampaignRepository {
-  _FailsFirstLoad(this._inner);
+  _FailsFirstLoad(this._inner, {this.failingRead = 1});
 
   final CampaignRepository _inner;
-  var _failed = false;
+  final int failingRead;
+  var _reads = 0;
 
   @override
   Future<Map<String, NodeProgress>> load() {
-    if (_failed) return _inner.load();
-    _failed = true;
+    if (++_reads != failingRead) return _inner.load();
     return Future.error(StateError('база недоступна'));
   }
 

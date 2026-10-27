@@ -13,14 +13,25 @@ import 'package:gwent/src/features/collection/domain/collection_repository.dart'
 /// доводится до этого числа, но не выше `count` карты. Лишнее не отнимается. Повторная сверка ничего не выдаёт.
 final class SyncCampaignRewards {
   /// Создаёт сценарий.
-  const SyncCampaignRewards(this._campaign, this._progress, this._collection);
+  SyncCampaignRewards(this._campaign, this._progress, this._collection);
 
   final LoadCampaign _campaign;
   final CampaignRepository _progress;
   final CollectionRepository _collection;
 
   /// Выдаёт недостающие копии. Возвращает, сколько копий добавлено (ноль, если всё на месте или каталога нет).
-  Future<int> call() async {
+  ///
+  /// Вызовы идут по очереди: «прочитать, посчитать, выдать» у двух вызовов (старая и новая тропа при быстром
+  /// повторном входе) не должно пересекаться, иначе недостающая копия выдалась бы дважды.
+  Future<int> call() {
+    final result = _queue.then((_) => _sync());
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _queue = Future.value();
+
+  Future<int> _sync() async {
     final data = await _campaign();
     if (data == null) return 0;
     final progress = await _progress.load();
