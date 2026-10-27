@@ -35,6 +35,7 @@ class CampaignDeckScreen extends StatelessWidget {
     required this.onBattle,
     required this.onChosen,
     required this.onBuild,
+    required this.onEdit,
   });
 
   /// Назад, ничего не выбрав.
@@ -48,6 +49,9 @@ class CampaignDeckScreen extends StatelessWidget {
 
   /// Собрать колоду в конструкторе кампании; завершается, когда игрок вернулся (список колод читается заново).
   final Future<void> Function() onBuild;
+
+  /// Изменить колоду с этим идентификатором в конструкторе кампании; завершается, когда игрок вернулся.
+  final Future<void> Function(String deckId) onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +70,7 @@ class CampaignDeckScreen extends StatelessWidget {
                   onBattle: onBattle,
                   onChosen: onChosen,
                   onBuild: onBuild,
+                  onEdit: onEdit,
                 ),
               },
             ),
@@ -77,12 +82,19 @@ class CampaignDeckScreen extends StatelessWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.state, required this.onBattle, required this.onChosen, required this.onBuild});
+  const _Body({
+    required this.state,
+    required this.onBattle,
+    required this.onChosen,
+    required this.onBuild,
+    required this.onEdit,
+  });
 
   final CampaignDeckLoaded state;
   final ValueChanged<String> onBattle;
   final VoidCallback onChosen;
   final Future<void> Function() onBuild;
+  final Future<void> Function(String deckId) onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -127,10 +139,13 @@ class _Body extends StatelessWidget {
               ],
             ),
           Expanded(
-            child: state.hasReady
-                ? ListView(
+            child: state.decks.isEmpty
+                ? _Empty(minUnits: minUnits)
+                : ListView(
                     padding: EdgeInsets.zero,
                     children: [
+                      // Негодные колоды видны и без годных: их можно довести до годных кнопкой «Изменить».
+                      if (!state.hasReady) _NoReadyNote(minUnits: minUnits),
                       for (final entry in state.decks)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
@@ -139,11 +154,14 @@ class _Body extends StatelessWidget {
                             data: data,
                             selected: entry.deck.id == state.selectedId,
                             onTap: entry.isReady ? () => cubit.select(entry.deck.id) : null,
+                            onEdit: () async {
+                              await onEdit(entry.deck.id);
+                              if (context.mounted) unawaited(cubit.reload());
+                            },
                           ),
                         ),
                     ],
-                  )
-                : _Empty(minUnits: minUnits),
+                  ),
           ),
           if (state.hasReady)
             GwentButton(
@@ -158,6 +176,39 @@ class _Body extends StatelessWidget {
               await onBuild();
               if (context.mounted) unawaited(cubit.reload());
             },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoReadyNote extends StatelessWidget {
+  const _NoReadyNote({required this.minUnits});
+
+  final int minUnits;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 4,
+        children: [
+          Text(
+            l10n.campaignNoDeckTitle,
+            style: const TextStyle(
+              fontFamily: GwentText.cormorant,
+              fontWeight: FontWeight.w700,
+              fontSize: 22,
+              color: GwentColors.textPrimary,
+            ),
+          ),
+          Text(
+            l10n.campaignNoDeckBody(minUnits),
+            style: const TextStyle(fontFamily: GwentText.alegreya, fontSize: 16, color: GwentColors.textSecondary),
           ),
         ],
       ),
@@ -201,12 +252,19 @@ class _Empty extends StatelessWidget {
 }
 
 class _DeckRow extends StatelessWidget {
-  const _DeckRow({required this.entry, required this.data, required this.selected, required this.onTap});
+  const _DeckRow({
+    required this.entry,
+    required this.data,
+    required this.selected,
+    required this.onTap,
+    required this.onEdit,
+  });
 
   final CampaignDeck entry;
   final CampaignData data;
   final bool selected;
   final VoidCallback? onTap;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -299,6 +357,27 @@ class _DeckRow extends StatelessWidget {
                       decoration: BoxDecoration(shape: BoxShape.circle, color: GwentColors.gold),
                       child: SizedBox.square(dimension: 12),
                     ),
+                  Semantics(
+                    button: true,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onEdit,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                        child: Center(
+                          child: Text(
+                            l10n.campaignEditDeck,
+                            style: const TextStyle(
+                              fontFamily: GwentText.alegreya,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: GwentColors.gold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

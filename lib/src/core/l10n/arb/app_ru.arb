@@ -3877,6 +3877,10 @@
   "@campaignBuildDeck": {
     "description": "Кнопка перехода в конструктор кампании."
   },
+  "campaignEditDeck": "Изменить",
+  "@campaignEditDeck": {
+    "description": "Кнопка в строке колоды на экране «Колода для боя»: открывает эту колоду в конструкторе кампании."
+  },
   "campaignNoDeckTitle": "Нет подходящей колоды",
   "@campaignNoDeckTitle": {
     "description": "Пустое состояние выбора колоды."
