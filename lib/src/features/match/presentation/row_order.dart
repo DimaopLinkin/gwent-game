@@ -7,12 +7,19 @@ import 'package:gwent_engine/gwent_engine.dart';
 /// Это порядок показа: движок и проекция `PlayerView` его не знают, в сеть и в реплей он не попадает. Сортируют по
 /// базовой силе, а не по текущей: погода, рог и узы меняют цифры на картах, но не переставляют их. Карта, пришедшая
 /// на ряд, встаёт на своё место, а остальные сдвигаются.
+///
+/// Чучело в ряду стоит на месте забранной карты: для сортировки оно выдаёт себя за неё ([replaced]). Движок забранную
+/// карту не помнит, её запоминает экран по событию `UnitDecoyed`. Если Чучело не знакомо (экран открыт посреди
+/// партии), оно стоит слева, как особая карта в руке.
 final class RowOrder {
-  /// Создаёт порядок рядов по порядку карт [order].
-  const RowOrder(this.order);
+  /// Создаёт порядок рядов по порядку карт [order]; [replaced] — карта, которую заменило Чучело (по номеру Чучела).
+  const RowOrder(this.order, {this.replaced = const {}});
 
   /// Порядок карт: общий с рукой.
   final HandOrder order;
+
+  /// Карты, которые заменили Чучела на столе: по номеру Чучела.
+  final Map<CardInstanceId, CardInstance> replaced;
 
   /// Проекция [view] с картами рядов обеих сторон в порядке показа; сама [view], если порядок уже верный.
   PlayerView apply(PlayerView view) {
@@ -39,7 +46,7 @@ final class RowOrder {
     var changed = false;
     final rows = <Row, RowView>{};
     for (final MapEntry(key: row, value: view) in side.rows.entries) {
-      final cards = order.sortBy(view.cards, (field) => field.card);
+      final cards = order.sortBy(view.cards, (field) => replaced[field.card.id] ?? field.card);
       final sorted = _sameOrder(cards, view.cards);
       changed = changed || !sorted;
       rows[row] = sorted

@@ -163,7 +163,7 @@ void main() {
       expect(script.frameAt(0).rows[mineMelee]!.cards.first.hidden, isTrue, reason: 'карта ещё в полёте');
     });
 
-    test('Чучело стоит в ряду слева среди особых карт, дуга ведёт в его слот, а возвращённый отряд летит в руку', () {
+    test('Чучело встаёт на место забранной карты, дуга Чучела ведёт в это место', () {
       final first = cards.unit(Row.melee);
       final second = cards.unit(Row.melee);
       final hero = cards.hero();
@@ -207,13 +207,14 @@ void main() {
       List<CardInstanceId> rowAt(double time) => [
         for (final staged in script.frameAt(time).rows[mineMelee]!.cards) staged.view.card.id,
       ];
-      expect(rowAt(script.duration), [decoy.id, first.id, hero.id]);
+      expect(rowAt(script.duration), [first.id, decoy.id, hero.id], reason: 'на месте второй карты, не слева');
+      expect(cubit.replacedCount, 1);
       final flight = script
           .frameAt(0)
           .items
           .whereType<CardFlightItem>()
           .firstWhere((item) => item.ref == CardFaceRef(decoy, mine: true));
-      expect(flight.to, isA<RowCardPlace>().having((place) => place.card, 'card', decoy.id));
+      expect(flight.to, isA<RowCardPlace>().having((place) => place.card, 'card', second.id));
     });
 
     test('берсерк превращается в медведя: медведь встаёт на своё место по силе', () {

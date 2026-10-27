@@ -119,6 +119,30 @@ void main() {
     }
   });
 
+  test('Чучело стоит на месте забранной карты, а незнакомое Чучело слева как особая карта', () {
+    final first = cards.unit(Row.melee);
+    final taken = cards.unit(Row.melee);
+    final last = cards.hero();
+    final decoy = cards.special<DecoyAbility>();
+    RowView row() => RowView(
+      cards: [
+        FieldCardView(card: first, strength: cards.strength(first)),
+        FieldCardView(card: decoy, strength: 0),
+        FieldCardView(card: last, strength: cards.strength(last)),
+      ],
+      slot: null,
+      weather: false,
+      strength: 0,
+    );
+    final view = viewOf(cards, me: sideOf(cards, Seat.one, rows: {Row.melee: row()}));
+
+    final known = RowOrder(HandOrder(content), replaced: {decoy.id: taken}).apply(view);
+    final unknown = order.apply(view);
+
+    expect(ids(known, Row.melee), [first.id, decoy.id, last.id]);
+    expect(ids(unknown, Row.melee), [decoy.id, first.id, last.id]);
+  });
+
   test('пустые ряды и пустое поле не ломаются', () {
     final view = viewOf(cards);
 

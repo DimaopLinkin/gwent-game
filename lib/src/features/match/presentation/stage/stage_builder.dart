@@ -127,16 +127,17 @@ final class StageScriptBuilder {
     required this.catalog,
     this.style = StageStyle.normal,
     this.handOrder,
-  }) : prev = _ordered(prev, handOrder),
-       next = _ordered(next, handOrder),
+    this.rowOrder,
+  }) : prev = rowOrder?.apply(prev) ?? prev,
+       next = rowOrder?.apply(next) ?? next,
        viewer = next.viewer {
     _init();
   }
 
-  /// Проекция до обновления; с [handOrder] карты в рядах стоят в порядке показа (`RowOrder`).
+  /// Проекция до обновления; с [rowOrder] карты в рядах стоят в порядке показа.
   final PlayerView prev;
 
-  /// Проекция после обновления; с [handOrder] карты в рядах стоят в порядке показа (`RowOrder`).
+  /// Проекция после обновления; с [rowOrder] карты в рядах стоят в порядке показа.
   final PlayerView next;
 
   /// Справочник карт: по нему сцены отличают отряд от особой карты и героя от обычной карты.
@@ -145,11 +146,12 @@ final class StageScriptBuilder {
   /// Скорость и режим «Уменьшить движение».
   final StageStyle style;
 
-  /// Порядок карт на экране; без него места в руке и в рядах считаются по порядку проекции. По нему же встают места
-  /// карт в рядах: сценарий видит ряды так, как их рисует поле.
+  /// Порядок карт в руке на экране; без него места в руке считаются по порядку проекции.
   final HandOrder? handOrder;
 
-  static PlayerView _ordered(PlayerView view, HandOrder? order) => order == null ? view : RowOrder(order).apply(view);
+  /// Порядок карт в рядах на экране; без него ряды остаются в порядке проекции. Сценарий видит ряды так, как их рисует
+  /// поле.
+  final RowOrder? rowOrder;
 
   /// Игрок, чьими глазами смотрим.
   final Seat viewer;

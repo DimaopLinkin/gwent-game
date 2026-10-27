@@ -259,6 +259,40 @@ void main() {
       expect(left(theirStrong), greaterThan(left(theirWeak)), reason: 'ряд соперника');
     });
 
+    testWidgets('Чучело на поле стоит на месте забранной карты', (tester) async {
+      final first = cards.unit(Row.melee);
+      final taken = cards.unit(Row.melee);
+      final strong = cards.hero();
+      final decoy = cards.special<DecoyAbility>();
+      SideView side(List<CardInstance> hand, List<FieldCardView> row) => sideOf(
+        cards,
+        Seat.one,
+        hand: hand,
+        rows: {Row.melee: RowView(cards: row, slot: null, weather: false, strength: 0)},
+      );
+      FieldCardView on(CardInstance card) => FieldCardView(card: card, strength: cards.strength(card));
+      final before = viewOf(cards, me: side([decoy], [on(first), on(taken), on(strong)]));
+      final after = viewOf(
+        cards,
+        me: side([taken], [on(first), FieldCardView(card: decoy, strength: 0), on(strong)]),
+      );
+      final harness = await pumpField(tester, before);
+      feed(harness, before, const []);
+      harness.view.value = after;
+      feed(harness, after, [
+        CardPlayed(Seat.one, decoy),
+        UnitDecoyed(Seat.one, Row.melee, decoy: decoy, returned: taken),
+      ]);
+      harness.cubit.endStage(harness.cubit.state.stage!.id);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      double left(CardInstance card) => tester.getTopLeft(find.byKey(ValueKey(card.id))).dx;
+
+      expect(left(first), lessThan(left(decoy)));
+      expect(left(decoy), lessThan(left(strong)));
+    });
+
     testWidgets('в ряду из шести карт медальоны остаются полными', (tester) async {
       await pumpField(tester, viewOf(cards, me: sideOf(cards, Seat.one, rows: {Row.melee: crowded(6)})));
       expect(find.byType(CompactPower), findsNothing);

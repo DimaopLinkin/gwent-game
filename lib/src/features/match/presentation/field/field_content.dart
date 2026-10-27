@@ -7,7 +7,6 @@ import 'package:gwent/src/core/presentation/design_system/gwent_icon.dart';
 import 'package:gwent/src/core/presentation/design_system/gwent_weather.dart';
 import 'package:gwent/src/features/content/domain/game_content.dart';
 import 'package:gwent/src/features/match/presentation/hand_order.dart';
-import 'package:gwent/src/features/match/presentation/row_order.dart';
 import 'package:gwent_engine/gwent_engine.dart';
 
 /// Мост между партией и интерфейсом поля: по экземпляру карты из проекции даёт определение для правил и
@@ -25,7 +24,6 @@ final class FieldContent {
   final CardContentMapper _mapper;
 
   late final HandOrder _handOrder = HandOrder(content);
-  late final RowOrder _rowOrder = RowOrder(_handOrder);
 
   /// Погода над рядом: мороз над ближним, мгла над дальним, ливень над осадным (шторм Скеллиге ложится на два
   /// ряда и рисуется теми же слоями).
@@ -66,9 +64,6 @@ final class FieldContent {
 
   /// Рука слева направо, как в TW3 (`HandOrder`).
   List<CardInstance> handOrder(List<CardInstance> hand) => _handOrder.sort(hand);
-
-  /// Проекция [view] с картами в рядах в порядке показа (`RowOrder`).
-  PlayerView rowOrder(PlayerView view) => _rowOrder.apply(view);
 
   /// Лицо и описание карты. [power] — сила на столе, [frosted] — иней на арте (ряд под погодой).
   CardDetail detail(CardInstance card, {int? power, bool frosted = false}) {
