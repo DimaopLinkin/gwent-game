@@ -4064,5 +4064,109 @@
         "type": "int"
       }
     }
+  },
+  "campaignBookTitle": "Книга карт",
+  "@campaignBookTitle": {
+    "description": "Заголовок экрана «Книга карт»."
+  },
+  "campaignBookNote": "Карты открываются за победы на тропе ведьмака. В обычной игре и по сети доступны все карты.",
+  "@campaignBookNote": {
+    "description": "Пояснение на обзоре «Книги карт»."
+  },
+  "campaignBookOutOf": "из {total}",
+  "@campaignBookOutOf": {
+    "description": "Подпись под числом открытых карт в кольце обзора.",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignBookRowCount": "{opened} из {total}",
+  "@campaignBookRowCount": {
+    "description": "Открыто и всего в строке раздела «Книги карт».",
+    "placeholders": {
+      "opened": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignBookCommon": "Общие карты",
+  "@campaignBookCommon": {
+    "description": "Раздел «Книги карт» с нейтральными картами и погодой."
+  },
+  "campaignBookTabSquads": "Отряды",
+  "@campaignBookTabSquads": {
+    "description": "Вкладка отрядов в разделе «Книги карт»."
+  },
+  "campaignBookTabSpecials": "Особые",
+  "@campaignBookTabSpecials": {
+    "description": "Вкладка особых карт в разделе «Книги карт»."
+  },
+  "campaignBookTabLeaders": "Лидеры",
+  "@campaignBookTabLeaders": {
+    "description": "Вкладка лидеров в разделе «Книги карт»."
+  },
+  "campaignBookSummary": "Лидеры {leaders} · отряды {squads} · особые {specials}",
+  "@campaignBookSummary": {
+    "description": "Сводка раздела «Книги карт» по видам карт: открыто из всего.",
+    "placeholders": {
+      "leaders": {
+        "type": "String"
+      },
+      "squads": {
+        "type": "String"
+      },
+      "specials": {
+        "type": "String"
+      }
+    }
+  },
+  "campaignBookFraction": "{opened} из {total}",
+  "@campaignBookFraction": {
+    "description": "Чип с числом открытых карт раздела «Книги карт».",
+    "placeholders": {
+      "opened": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignBookEmptyTab": "В этом разделе нет карт этого вида.",
+  "@campaignBookEmptyTab": {
+    "description": "Пустая вкладка раздела «Книги карт»."
+  },
+  "campaignBookUnavailable": "«Книга карт» недоступна",
+  "@campaignBookUnavailable": {
+    "description": "Книга карт не загрузилась."
+  },
+  "campaignBookCopies": "{owned} из {total} копий",
+  "@campaignBookCopies": {
+    "description": "Подпись для диктора у числа открытых копий карты в «Книге карт».",
+    "placeholders": {
+      "owned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "campaignBookRowLabel": "{name}. {count}",
+  "@campaignBookRowLabel": {
+    "description": "Подпись для диктора у строки раздела «Книги карт»: название и сколько открыто.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
   }
 }

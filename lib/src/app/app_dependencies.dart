@@ -10,6 +10,7 @@ import 'package:gwent/src/features/campaign/application/get_campaign_deck.dart';
 import 'package:gwent/src/features/campaign/application/list_campaign_decks.dart';
 import 'package:gwent/src/features/campaign/application/load_campaign.dart';
 import 'package:gwent/src/features/campaign/application/load_campaign_overview.dart';
+import 'package:gwent/src/features/campaign/application/load_card_book.dart';
 import 'package:gwent/src/features/campaign/application/prepare_campaign_match.dart';
 import 'package:gwent/src/features/campaign/application/record_campaign_result.dart';
 import 'package:gwent/src/features/campaign/application/watch_campaign_path.dart';
@@ -192,6 +193,7 @@ final class AppDependencies {
       collectionRepository,
       getCampaignDeck,
     );
+    loadCardBook = LoadCardBook(loadCampaign, collectionRepository);
     claimStartingSet = ClaimStartingSet(loadCampaign, campaignRepository, settingsRepository, recordCampaignResult);
     prepareCampaignMatch = PrepareCampaignMatch(
       loadCampaign,
@@ -321,6 +323,9 @@ final class AppDependencies {
 
   /// Обзор кампании для тропы: узлы, колода, открытые карты.
   late final LoadCampaignOverview loadCampaignOverview;
+
+  /// «Книга карт»: открытые карты по фракциям.
+  late final LoadCardBook loadCardBook;
 
   /// Запись итога партии узла и выдача наград.
   late final RecordCampaignResult recordCampaignResult;

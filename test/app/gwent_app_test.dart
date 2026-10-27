@@ -12,6 +12,8 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_match_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_section_screen.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
 import 'package:gwent/src/features/how_to_play/presentation/how_to_play_screen.dart';
 import 'package:gwent/src/features/how_to_play/presentation/how_to_topic_screen.dart';
@@ -399,6 +401,25 @@ void main() {
     router.go(AppRoutes.campaignPlay('c1-02'));
     await settleReal(tester);
     expect(tester.element(find.byType(CampaignMatchScreen)).read<CampaignMatchCubit>().nodeId, 'c1-02');
+  });
+
+  testWidgets('кампания: «Книга карт» открывается с адреса, строка раздела ведёт на страницу раздела и назад', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.campaignBook);
+    await settleReal(tester);
+    expect(find.byType(CardBookScreen), findsOneWidget);
+
+    await tester.tap(find.text(l10n.campaignBookCommon));
+    await settleReal(tester);
+    expect(find.byType(CardBookSectionScreen), findsOneWidget);
+
+    await tester.tap(find.byType(ChevronButton).first);
+    await settleReal(tester);
+    expect(find.byType(CardBookScreen), findsOneWidget);
   });
 
   testWidgets('игра через интернет: способ запоминается при возврате, «Создать комнату» ведёт в комнату с кодом', (

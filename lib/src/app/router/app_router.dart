@@ -14,6 +14,9 @@ import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.da
 import 'package:gwent/src/features/campaign/presentation/campaign_match_screen.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_screen.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_widgets.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_cubit.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/card_book_section_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_cubit.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_editor_screen.dart';
 import 'package:gwent/src/features/deck_builder/presentation/deck_list_cubit.dart';
@@ -98,6 +101,7 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
               onPickDeck: (nodeId) =>
                   context.push<void>(nodeId == null ? AppRoutes.campaignDecks : AppRoutes.campaignDecksFor(nodeId)),
               onBuildDeck: () => context.push<void>(AppRoutes.campaignDeckNew),
+              onBook: () => context.push<void>(AppRoutes.campaignBook),
             ),
           ),
           routes: [
@@ -124,6 +128,30 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                 GoRoute(
                   path: 'new',
                   builder: (context, state) => _campaignDeckEditor(context, dependencies),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'book',
+              builder: (context, state) => BlocProvider(
+                create: (_) => CardBookCubit(dependencies.loadCardBook),
+                child: CardBookScreen(
+                  onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+                  onOpenSection: (sectionId) => context.push<void>(AppRoutes.campaignBookSection(sectionId)),
+                ),
+              ),
+              routes: [
+                GoRoute(
+                  path: ':${AppRoutes.campaignBookSectionParam}',
+                  builder: (context, state) => BlocProvider(
+                    // Страница одна на все разделы (ключ по шаблону пути): ключ сбрасывает вкладку прежнего раздела.
+                    key: ValueKey(state.pathParameters[AppRoutes.campaignBookSectionParam]),
+                    create: (_) => CardBookCubit(dependencies.loadCardBook),
+                    child: CardBookSectionScreen(
+                      sectionId: state.pathParameters[AppRoutes.campaignBookSectionParam]!,
+                      onBack: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaignBook),
+                    ),
+                  ),
                 ),
               ],
             ),
