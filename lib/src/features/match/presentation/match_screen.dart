@@ -202,7 +202,7 @@ class _MatchScreenState extends State<MatchScreen> {
     _redrawHold?.cancel();
     _redrawHold = null;
     if (state is MatchRedrawSettled) {
-      _redrawHold = Timer(Duration(milliseconds: _stageStyle.ms(StageTokens.redrawSwap + StageTokens.redrawHold)), () {
+      _redrawHold = Timer(Duration(milliseconds: _stageStyle.ms(StageTokens.flight + StageTokens.redrawHold)), () {
         _redrawHold = null;
         _release();
       });

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart' hide Intent;
 import 'package:gwent/src/core/l10n/l10n.dart';
@@ -27,9 +28,10 @@ import 'package:gwent_engine/gwent_engine.dart' hide Row;
 /// Карты лежат в порядке руки (`HandOrder`): особые слева, отряды по возрастанию силы, при равной силе по имени.
 /// Это порядок показа, номера карт для обмена остаются прежними.
 ///
-/// Замена видна в два шага: старая карта сворачивается на своём месте, затем рука встаёт в новом порядке, и новая
-/// карта проявляется на своём отсортированном месте и светится, пока её не заметили. После последней замены экран (`MatchRedrawSettled`) на время остаётся с [settled]: карты и «Готово»
-/// недоступны, пришедшая карта на виду, и только потом игрок уходит на ожидание соперника.
+/// Замена видна: старая карта уходит, рука встаёт в новом порядке, а новая карта влетает из колоды (снизу справа), как
+/// при доборе в партии: по дуге, переворачиваясь рубашкой вверх и лицом вниз, и ложится на своё отсортированное место
+/// и светится, пока её не заметили. После последней замены экран (`MatchRedrawSettled`) на время остаётся с [settled]:
+/// карты и «Готово» недоступны, пришедшая карта на виду, и только потом игрок уходит на ожидание соперника.
 class MatchRedrawView extends StatefulWidget {
   /// Создаёт экран по проекции [view].
   const MatchRedrawView({
@@ -71,69 +73,58 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
   Set<CardInstanceId> _fresh = const {};
   Timer? _freshTimer;
 
-  /// Рука, какой её видно, пока уходящая карта сворачивается; `null`, когда показывается рука проекции.
-  List<CardInstance>? _folding;
+  /// Карты, которые ещё летят из колоды.
+  Set<CardInstanceId> _arriving = const {};
+  Timer? _arriveTimer;
 
-  /// Карты, которые сворачиваются в [_folding].
-  Set<CardInstanceId> _leaving = const {};
-  Timer? _foldTimer;
+  /// Область с картами: от её нижнего края карта вылетает.
+  final GlobalKey _areaKey = GlobalKey();
 
-  Duration get _swap => Duration(
-    milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : widget.style.ms(StageTokens.redrawSwap),
+  Duration get _flight => Duration(
+    milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : widget.style.ms(StageTokens.flight),
   );
 
   List<CardInstance> _sorted(PlayerView view) => _content!.handOrder(view.me.hand ?? const <CardInstance>[]);
+
+  /// Центр места, откуда вылетает карта (колода справа внизу), в координатах экрана.
+  Offset? _deckCenter() {
+    final area = _areaKey.currentContext?.findRenderObject();
+    if (area is! RenderBox || !area.hasSize) return null;
+    final card = CardSize.grid.metrics;
+    return area.localToGlobal(Offset(area.size.width - 16 - card.width / 2, area.size.height - card.height / 2));
+  }
 
   @override
   void didUpdateWidget(MatchRedrawView oldWidget) {
     super.didUpdateWidget(oldWidget);
     final oldHand = {for (final card in oldWidget.view.me.hand ?? const <CardInstance>[]) card.id};
     final newHand = {for (final card in widget.view.me.hand ?? const <CardInstance>[]) card.id};
-    // Рука та же (экран пересобрали по другой причине): сворачивание и свечение не перезапускаются.
-    if (oldHand.length == newHand.length && oldHand.containsAll(newHand)) return;
-    final shownBefore = _folding ?? _sorted(oldWidget.view);
-    final before = {for (final card in shownBefore) card.id};
-    final now = newHand;
     final arrived = {
-      for (final id in now)
-        if (!before.contains(id) && !_leaving.contains(id)) id,
+      for (final id in newHand)
+        if (!oldHand.contains(id)) id,
     };
-    final removed = {
-      for (final id in before)
-        if (!now.contains(id)) id,
-    };
-    final swap = _swap;
-    if (removed.isNotEmpty && swap > Duration.zero) {
-      _folding = shownBefore;
-      _leaving = removed;
-      _foldTimer?.cancel();
-      _foldTimer = Timer(swap, () {
-        if (mounted) {
-          setState(() {
-            _folding = null;
-            _leaving = const {};
-          });
-        }
-      });
-    } else {
-      _foldTimer?.cancel();
-      _folding = null;
-      _leaving = const {};
-    }
+    // Рука та же (экран пересобрали по другой причине): ничего не перезапускается.
     if (arrived.isEmpty) return;
     _fresh = {..._fresh, ...arrived};
     _freshTimer?.cancel();
-    // Свечение отсчитывается от появления карты, то есть после сворачивания старой.
     final hold = Duration(milliseconds: widget.style.ms(StageTokens.redrawHold));
-    _freshTimer = Timer(_folding == null ? hold : hold + swap, () {
+    final flight = _flight;
+    // Свечение отсчитывается от посадки карты.
+    _freshTimer = Timer(hold + flight, () {
       if (mounted) setState(() => _fresh = const {});
+    });
+    if (flight == Duration.zero) return;
+    _arriving = {..._arriving, ...arrived};
+    _arriveTimer?.cancel();
+    _arriveTimer = Timer(flight, () {
+      if (mounted) setState(() => _arriving = const {});
     });
   }
 
   @override
   void dispose() {
     _freshTimer?.cancel();
-    _foldTimer?.cancel();
+    _arriveTimer?.cancel();
     super.dispose();
   }
 
@@ -155,12 +146,10 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
     final content = _content!;
     final me = view.me;
     final left = me.redrawsLeft ?? 0;
-    final folding = _folding != null;
-    final canReplace = left > 0 && !widget.settled && !folding;
-    final swap = _swap;
+    final canReplace = left > 0 && !widget.settled;
     final limit = roster.content.rules.redrawLimit;
     final factionName = content.factionName(me.faction);
-    final hand = _folding ?? _sorted(view);
+    final hand = _sorted(view);
     final rows = [
       for (var i = 0; i < hand.length; i += _columns)
         hand.sublist(i, i + _columns > hand.length ? hand.length : i + _columns),
@@ -204,6 +193,7 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
           ),
           Expanded(
             child: Stack(
+              key: _areaKey,
               children: [
                 SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 56),
@@ -215,11 +205,15 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             for (final card in row)
-                              _Appear(
+                              _Arrival(
                                 key: ValueKey(card.id),
-                                duration: swap,
-                                animated: _leaving.contains(card.id) || _fresh.contains(card.id),
-                                leaving: _leaving.contains(card.id),
+                                flying: _arriving.contains(card.id),
+                                duration: _flight,
+                                deckCenter: _deckCenter,
+                                back: GwentCard(
+                                  face: CardBackFace(faction: content.faction(me.faction)),
+                                  size: CardSize.grid,
+                                ),
                                 child: GwentCard(
                                   key: ValueKey(card.id),
                                   face: content.face(card),
@@ -230,9 +224,7 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                                       ? CardHighlight.normal
                                       : CardHighlight.disabled,
                                   onTap: canReplace ? () => widget.onIntent(RedrawCard(card.id)) : null,
-                                  onLongPress: _leaving.contains(card.id)
-                                      ? null
-                                      : () => unawaited(showCardDetail(context, content.detail(card))),
+                                  onLongPress: () => unawaited(showCardDetail(context, content.detail(card))),
                                 ),
                               ),
                             // Неполный ряд занимает свои места колонок, иначе карты в нём сползли бы друг к другу.
@@ -284,37 +276,93 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
   }
 }
 
-/// Появление и уход карты: пришедшая карта проявляется и вырастает, уходящая сворачивается и гаснет.
+/// Влёт пришедшей карты: как добор в партии (`StageBuilder`), карта вылетает из колоды по дуге, переворачивается
+/// рубашкой в лицо и растёт от половины размера до полного.
 ///
-/// Карты, которые только сдвинулись на новое место, не анимируются: [animated] у них ложно.
-class _Appear extends StatelessWidget {
-  const _Appear({
+/// Место в сетке карта занимает сразу, летит только её изображение. Пока [flying] ложно, карта лежит как есть.
+class _Arrival extends StatefulWidget {
+  const _Arrival({
     super.key,
+    required this.flying,
     required this.duration,
-    required this.animated,
-    required this.leaving,
+    required this.deckCenter,
+    required this.back,
     required this.child,
   });
 
+  final bool flying;
   final Duration duration;
-  final bool animated;
-  final bool leaving;
+
+  /// Центр колоды в координатах экрана, `null`, пока область не разложена.
+  final Offset? Function() deckCenter;
+
+  /// Рубашка, видимая в первой половине переворота.
+  final Widget back;
   final Widget child;
 
   @override
+  State<_Arrival> createState() => _ArrivalState();
+}
+
+class _ArrivalState extends State<_Arrival> with SingleTickerProviderStateMixin {
+  static const double _arc = -24;
+  static const double _startScale = 0.5;
+
+  late final AnimationController _controller;
+
+  /// Карта разложена, можно считать путь: до этого она невидима, чтобы не мелькнуть на своём месте.
+  bool _placed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    if (!widget.flying) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _placed = true);
+      unawaited(_controller.forward());
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: !animated
-          ? Tween(begin: 1, end: 1)
-          : leaving
-          ? Tween(begin: 1, end: 0)
-          : Tween(begin: 0, end: 1),
-      duration: duration,
-      builder: (context, value, child) => Opacity(
-        opacity: value,
-        child: Transform.scale(scale: 0.8 + 0.2 * value, child: child),
-      ),
-      child: child,
+    if (!widget.flying) return widget.child;
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        final box = context.findRenderObject();
+        final deck = widget.deckCenter();
+        if (!_placed || deck == null || box is! RenderBox || !box.hasSize) {
+          return Opacity(opacity: 0, child: child);
+        }
+        final t = _controller.value;
+        final travel = StageTokens.out.transform(t);
+        final flip = 180 * (1 - StageTokens.inOut.transform(t));
+        final from = deck - box.localToGlobal(box.size.center(Offset.zero));
+        final offset = from * (1 - travel) + Offset(0, _arc * math.sin(math.pi * t));
+        final turned = flip > 90;
+        return Transform.translate(
+          offset: offset,
+          child: Transform.scale(
+            scale: _startScale + (1 - _startScale) * travel,
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateY((turned ? flip - 180 : flip) * math.pi / 180),
+              child: turned ? widget.back : child,
+            ),
+          ),
+        );
+      },
     );
   }
 }
