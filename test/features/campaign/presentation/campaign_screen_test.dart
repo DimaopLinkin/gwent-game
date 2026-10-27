@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart' show BottomSheet;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -190,6 +191,19 @@ void main() {
     expect(owned.copiesOf(idOf(data, 'Чучело')), 2, reason: 'c1-05 и c1-08');
     expect(owned.copiesOf(idOf(data, 'Корова')), 1);
     expect(find.text(l10n.campaignTitle), findsOneWidget);
+  });
+
+  testWidgets('лист узла один раз рисует рамку и ручку: тема листов не добавляет вторую', (tester) async {
+    await pumpTrail(tester);
+
+    await tester.tap(find.text(l10n.campaignContinue(data.text(data.catalog.firstNode.opponent.nameKey))));
+    await settle(tester);
+
+    expect(find.byType(CampaignNodeSheet), findsOneWidget);
+    final sheet = tester.widget<BottomSheet>(find.byType(BottomSheet));
+    expect(sheet.showDragHandle, isFalse, reason: 'ручка листа своя, а не из темы');
+    expect(sheet.shape, isNotNull, reason: 'рамка темы заменена, чтобы не накладываться на рамку листа');
+    expect((sheet.shape! as RoundedRectangleBorder).side, BorderSide.none);
   });
 
   testWidgets('закрытый узел: «В бой» недоступна, награда силуэтом без имён карт', (tester) async {
