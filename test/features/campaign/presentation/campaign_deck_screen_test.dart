@@ -34,6 +34,7 @@ void main() {
   late InMemorySettingsRepository settings;
   late List<String> battles;
   late int chosen;
+  late List<String> edited;
 
   setUpAll(() async {
     await loadDesignFonts();
@@ -50,6 +51,7 @@ void main() {
     settings = InMemorySettingsRepository();
     battles = [];
     chosen = 0;
+    edited = [];
   });
 
   Future<void> pumpDecks(WidgetTester tester, {String? nodeId}) async {
@@ -73,6 +75,7 @@ void main() {
             onBattle: battles.add,
             onChosen: () => chosen++,
             onBuild: () async {},
+            onEdit: (deckId) async => edited.add(deckId),
           ),
         ),
       ),
@@ -138,5 +141,35 @@ void main() {
 
     expect(chosen, 1);
     expect(battles, isEmpty);
+  });
+
+  testWidgets('«Изменить» открывает конструктор кампании для этой колоды, не выбирая её', (tester) async {
+    await issueStartingSet(tester);
+    await pumpDecks(tester);
+    final deckId = (await tester.runAsync(() => decks.watchAll().first))!.single.id;
+
+    await tester.tap(find.text(l10n.campaignEditDeck));
+    for (var i = 0; i < 3; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(edited, [deckId]);
+    expect(chosen, 0);
+    expectNoFallbackTextStyle(tester);
+  });
+
+  testWidgets('негодную колоду тоже можно изменить: так её доводят до годной', (tester) async {
+    await issueStartingSet(tester);
+    final starter = (await tester.runAsync(() => decks.watchAll().first))!.single;
+    await tester.runAsync(() => decks.save(starter.copyWith(cards: const {}, name: 'Пустая')));
+    await pumpDecks(tester);
+
+    expect(find.text(l10n.campaignDeckReady.toUpperCase()), findsNothing, reason: 'колода негодна');
+    expect(find.text(l10n.campaignNoDeckTitle), findsOneWidget, reason: 'пояснение стоит над списком негодных');
+    await tester.tap(find.text(l10n.campaignEditDeck));
+    await tester.pump();
+
+    expect(edited, [starter.id]);
   });
 }
