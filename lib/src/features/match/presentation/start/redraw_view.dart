@@ -87,9 +87,13 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
   @override
   void didUpdateWidget(MatchRedrawView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final oldHand = {for (final card in oldWidget.view.me.hand ?? const <CardInstance>[]) card.id};
+    final newHand = {for (final card in widget.view.me.hand ?? const <CardInstance>[]) card.id};
+    // Рука та же (экран пересобрали по другой причине): сворачивание и свечение не перезапускаются.
+    if (oldHand.length == newHand.length && oldHand.containsAll(newHand)) return;
     final shownBefore = _folding ?? _sorted(oldWidget.view);
     final before = {for (final card in shownBefore) card.id};
-    final now = {for (final card in widget.view.me.hand ?? const <CardInstance>[]) card.id};
+    final now = newHand;
     final arrived = {
       for (final id in now)
         if (!before.contains(id) && !_leaving.contains(id)) id,
@@ -119,7 +123,9 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
     if (arrived.isEmpty) return;
     _fresh = {..._fresh, ...arrived};
     _freshTimer?.cancel();
-    _freshTimer = Timer(Duration(milliseconds: widget.style.ms(StageTokens.redrawHold)), () {
+    // Свечение отсчитывается от появления карты, то есть после сворачивания старой.
+    final hold = Duration(milliseconds: widget.style.ms(StageTokens.redrawHold));
+    _freshTimer = Timer(_folding == null ? hold : hold + swap, () {
       if (mounted) setState(() => _fresh = const {});
     });
   }
@@ -224,7 +230,9 @@ class _MatchRedrawViewState extends State<MatchRedrawView> {
                                       ? CardHighlight.normal
                                       : CardHighlight.disabled,
                                   onTap: canReplace ? () => widget.onIntent(RedrawCard(card.id)) : null,
-                                  onLongPress: () => unawaited(showCardDetail(context, content.detail(card))),
+                                  onLongPress: _leaving.contains(card.id)
+                                      ? null
+                                      : () => unawaited(showCardDetail(context, content.detail(card))),
                                 ),
                               ),
                             // Неполный ряд занимает свои места колонок, иначе карты в нём сползли бы друг к другу.

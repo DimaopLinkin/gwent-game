@@ -351,6 +351,34 @@ void main() {
       expect(_justPlayed(tester), isEmpty, reason: 'свечение гаснет, когда карту заметили');
     });
 
+    testWidgets('пересборка с той же рукой посреди замены не затягивает сворачивание, нажатия на ходу не идут', (
+      tester,
+    ) async {
+      final intents = <Intent>[];
+      final first = hand();
+      MatchRedrawView viewWith(List<CardInstance> shown, int left) => MatchRedrawView(
+        view: viewOf(
+          cards,
+          phase: MatchPhase.redraw,
+          me: sideOf(cards, Seat.one, hand: shown, redrawsLeft: left),
+        ),
+        roster: rosterOf(cards),
+        onIntent: intents.add,
+      );
+      final replaced = [cards.unit(Row.siege), first[1]];
+      await pumpView(tester, viewWith(first, 2));
+      await tester.pumpWidget(localizedApp(viewWith(replaced, 1)));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.tap(find.byType(GwentCard).first, warnIfMissed: false);
+      expect(intents, isEmpty, reason: 'пока старая карта сворачивается, нажатия не принимаются');
+
+      await tester.pumpWidget(localizedApp(viewWith(replaced, 1)));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(_shown(tester), isNot(contains(first[0].id)), reason: 'сворачивание кончилось в срок');
+      expect(_justPlayed(tester), hasLength(1));
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('рука идёт в порядке руки, а пришедшая карта встаёт на отсортированное место', (tester) async {
       final order = HandOrder(content);
       final inHand = [cards.hero(), cards.unit(Row.melee), cards.unit(Row.ranged), cards.unit(Row.siege)];
