@@ -132,8 +132,8 @@ void main() {
     await pumpReward(tester, won, onNext: (id) => next = id);
     await revealAll(tester);
 
-    expect(find.text(l10n.campaignChapterOpened(3, 'Новиград')), findsNothing);
-    await tester.tap(find.text(l10n.campaignNext('Замковый воевода')));
+    expect(find.text(l10n.campaignChapterOpened(3, data.text(data.catalog.chapters[2].nameKey))), findsNothing);
+    await tester.tap(find.text(l10n.campaignNext(data.text(data.catalog.nodesById['c2-12']!.opponent.nameKey))));
     expect(next, 'c2-12');
     expectNoFallbackTextStyle(tester);
   });
@@ -145,7 +145,7 @@ void main() {
     await pumpReward(tester, won);
     await revealAll(tester);
 
-    expect(find.text(l10n.campaignChapterOpened(3, 'Новиград')), findsOneWidget);
+    expect(find.text(l10n.campaignChapterOpened(3, data.text(data.catalog.chapters[2].nameKey))), findsOneWidget);
     expect(find.text(l10n.campaignChapterClearedRibbon(2).toUpperCase()), findsOneWidget);
     expectNoFallbackTextStyle(tester);
   });

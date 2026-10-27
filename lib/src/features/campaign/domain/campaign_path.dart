@@ -73,9 +73,6 @@ final class ChapterView {
     nodes.where((node) => node.hasBonus).length,
   );
 
-  /// Босс главы, если он есть.
-  NodeView? get boss => nodes.where((node) => node.node.kind == NodeKind.boss).firstOrNull;
-
   /// Глава пройдена: пройдены все основные узлы (не заказы), в том числе босс. В главе 2 после босса есть ещё партия,
   /// она и открывает следующую главу, поэтому босс один главу не заканчивает.
   bool get isCleared =>
@@ -152,12 +149,14 @@ final class CampaignPath {
     return open.where((node) => node.node.kind != NodeKind.order).firstOrNull ?? open.firstOrNull;
   }
 
-  /// Глава, в которой сейчас идёт игрок: глава текущего узла, а без него последняя выпущенная.
+  /// Глава, в которой сейчас идёт игрок: глава текущего основного узла. Когда основной путь пройден (остались только
+  /// заказы), это последняя доступная глава, а не глава заказа: конец кампании не возвращает шапку в Белый сад.
   ChapterView? get currentChapter {
     final node = current;
-    if (node != null) {
+    if (node != null && node.node.kind != NodeKind.order) {
       return chapters.firstWhere((chapter) => chapter.nodes.any((view) => view.node.id == node.node.id));
     }
-    return chapters.where((chapter) => !chapter.isComingSoon).lastOrNull;
+    return chapters.where((chapter) => chapter.isUnlocked).lastOrNull ??
+        chapters.where((chapter) => !chapter.isComingSoon).lastOrNull;
   }
 }

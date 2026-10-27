@@ -152,7 +152,7 @@ void main() {
       }
     });
 
-    test('с колодой каждого узла (все четыре главы) партия против бота идёт до конца', () async {
+    test('дымовой тест: с колодой каждого узла (все четыре главы) партия против бота доходит до итога', () async {
       await passFirstNode();
       final gameContent = await readyContent(content);
       final player = (await decks.watchAll().first).single;

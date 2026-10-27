@@ -5,6 +5,7 @@ import 'package:gwent/src/features/campaign/domain/campaign_path.dart';
 import 'package:gwent/src/features/campaign/domain/campaign_repository.dart';
 import 'package:gwent/src/features/content/application/load_game_content.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
+import 'package:gwent_content/gwent_content.dart' show NodeKind;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,41 @@ void main() {
       'c2-00',
     ]);
     expect(afterBoss.current!.node.id, 'c2-00', reason: 'основной путь идёт раньше заказов');
+  });
+
+  test('основной путь пройден, остались заказы: «Продолжить» ведёт на заказ, а шапка остаётся в последней главе', () {
+    final ids = [for (final node in data.catalog.nodes) node.id];
+    final mains = [
+      for (final node in data.catalog.nodes)
+        if (node.kind != NodeKind.order) node.id,
+    ];
+    final onlyOrders = path(mains);
+
+    expect(
+      onlyOrders.nodes.every((node) => node.node.kind == NodeKind.order || node.status == NodeStatus.passed),
+      isTrue,
+    );
+    expect(onlyOrders.current!.node.kind, NodeKind.order);
+    expect(onlyOrders.current!.node.id, 'c1-04', reason: 'первый открытый заказ каталога');
+    expect(onlyOrders.currentChapter!.chapter.number, 4, reason: 'главы 1–4 пройдены, шапка в Скеллиге');
+    expect(onlyOrders.chapters.every((chapter) => chapter.isCleared), isTrue);
+
+    final everything = path(ids);
+    expect(everything.current, isNull);
+    expect(everything.currentChapter!.chapter.number, 4);
+  });
+
+  test('заказы не мешают закончить главу 3: Скеллиге открывает босс Новиграда без заказов', () {
+    final mainsUpToBoss = [
+      for (final node in data.catalog.nodes)
+        if (node.kind != NodeKind.order) node.id,
+    ].takeWhile((id) => id != 'c4-00').toList();
+
+    final done = path(mainsUpToBoss);
+
+    expect(done.chapters[2].isCleared, isTrue);
+    expect(done.chapters[2].passedCount, 11, reason: 'четыре заказа главы 3 остались непройденными');
+    expect(done.node('c4-00')!.status, NodeStatus.open);
   });
 
   test('глава 1 пройдена победой над боссом: глава 2 открывается, главы 3 и 4 закрыты до своих боссов', () {
