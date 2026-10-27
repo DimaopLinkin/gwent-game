@@ -32,6 +32,9 @@ Future<NodeSheetChoice?> showCampaignNodeSheet(
   isScrollControlled: true,
   backgroundColor: Colors.transparent,
   barrierColor: GwentColors.scrim,
+  // Рамку и ручку рисует сам лист; тема листов (рамка, ручка) наложилась бы на них второй.
+  showDragHandle: false,
+  shape: const RoundedRectangleBorder(),
   builder: (context) => CampaignNodeSheet(overview: overview, view: view),
 );
 

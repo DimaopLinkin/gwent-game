@@ -122,12 +122,21 @@ GoRouter createAppRouter(AppDependencies dependencies) => GoRouter(
                   onBattle: (nodeId) => context.go(AppRoutes.campaignPlay(nodeId)),
                   onChosen: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
                   onBuild: () => context.push<void>(AppRoutes.campaignDeckNew),
+                  onEdit: (deckId) => context.push<void>(AppRoutes.campaignDeckEdit(deckId)),
                 ),
               ),
               routes: [
                 GoRoute(
                   path: 'new',
                   builder: (context, state) => _campaignDeckEditor(context, dependencies),
+                ),
+                GoRoute(
+                  path: ':${AppRoutes.campaignDeckIdParam}',
+                  builder: (context, state) {
+                    final deckId = state.pathParameters[AppRoutes.campaignDeckIdParam]!;
+                    // Страница одна на все колоды (ключ по шаблону пути): ключ даёт каждой колоде свой конструктор.
+                    return _campaignDeckEditor(context, dependencies, deckId: deckId, key: ValueKey(deckId));
+                  },
                 ),
               ],
             ),
@@ -530,20 +539,23 @@ Widget _deckEditor(BuildContext context, AppDependencies dependencies, {String? 
 
 /// Конструктор колоды в режиме кампании (ADR 0033): только открытые карты, плашка «Режим кампании». Закрывается
 /// возвратом на экран, с которого его открыли.
-Widget _campaignDeckEditor(BuildContext context, AppDependencies dependencies) => BlocProvider(
-  create: (_) => DeckEditorCubit(
-    loadDeckRules: dependencies.loadDeckRules,
-    getDeck: dependencies.getDeck,
-    saveDeck: dependencies.saveDeck,
-    newDeckName: context.l10n.deckListNew,
-    loadCollection: dependencies.loadCollection,
-    sound: dependencies.playSound,
-  ),
-  child: DeckEditorScreen(
-    onExit: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
-    banner: const CampaignModeBanner(),
-  ),
-);
+Widget _campaignDeckEditor(BuildContext context, AppDependencies dependencies, {String? deckId, Key? key}) =>
+    BlocProvider(
+      key: key,
+      create: (_) => DeckEditorCubit(
+        loadDeckRules: dependencies.loadDeckRules,
+        getDeck: dependencies.getDeck,
+        saveDeck: dependencies.saveDeck,
+        newDeckName: context.l10n.deckListNew,
+        deckId: deckId,
+        loadCollection: dependencies.loadCollection,
+        sound: dependencies.playSound,
+      ),
+      child: DeckEditorScreen(
+        onExit: () => context.canPop() ? context.pop() : context.go(AppRoutes.campaign),
+        banner: const CampaignModeBanner(),
+      ),
+    );
 
 /// Партия узла [nodeId] кампании: обычная партия против бота с итогом и наградой.
 Widget _campaignMatch(BuildContext context, AppDependencies dependencies, String nodeId) => BlocProvider(

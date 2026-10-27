@@ -96,6 +96,12 @@ abstract final class AppRoutes {
   /// Конструктор новой колоды в режиме кампании.
   static const String campaignDeckNew = '$campaignDecks/new';
 
+  /// Параметр адреса изменения колоды в режиме кампании.
+  static const String campaignDeckIdParam = 'deckId';
+
+  /// Конструктор существующей колоды [deckId] в режиме кампании.
+  static String campaignDeckEdit(String deckId) => '$campaignDecks/${Uri.encodeComponent(deckId)}';
+
   /// «Книга карт»: открытые карты по фракциям.
   static const String campaignBook = '$campaign/book';
 
