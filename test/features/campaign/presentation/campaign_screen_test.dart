@@ -157,6 +157,23 @@ void main() {
     expect(find.text(l10n.campaignStartingSetLabel.toUpperCase()), findsNothing, reason: 'награда не выдана');
   });
 
+  testWidgets('после босса Белого сада тропа ведёт в Велен; Новиград и Скеллиге закрыты, «скоро» нет', (tester) async {
+    await tester.runAsync(() async {
+      for (final id in ['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08', 'c1-09']) {
+        await progress.recordWin(NodeWin(nodeId: id, at: DateTime.utc(2026, 10, 27)));
+      }
+    });
+    await pumpTrail(tester);
+
+    expect(find.text(l10n.campaignContinue('Охотник из Велена')), findsOneWidget);
+    expect(find.text('Велен'), findsWidgets);
+    await tester.scrollUntilVisible(find.text(l10n.campaignChapterLocked(3)), 300, scrollable: find.byType(Scrollable));
+    expect(find.text(l10n.campaignChapterLocked(2)), findsOneWidget, reason: 'Новиград ждёт конца Велена');
+    expect(find.text(l10n.campaignChapterLocked(3)), findsOneWidget, reason: 'Скеллиге ждёт конца Новиграда');
+    expect(find.text(l10n.campaignChapterSoon), findsNothing);
+    expectNoFallbackTextStyle(tester);
+  });
+
   testWidgets('закрытый узел: «В бой» недоступна, награда силуэтом без имён карт', (tester) async {
     await tester.runAsync(() => record('c1-00', CampaignMatchFacts(won: true)));
     await pumpTrail(tester);

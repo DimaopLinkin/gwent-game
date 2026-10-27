@@ -108,4 +108,45 @@ void main() {
     expect(find.text(l10n.campaignToTrail), findsOneWidget);
     expectNoFallbackTextStyle(tester);
   });
+
+  List<String> through(String nodeId) {
+    final ids = [for (final node in data.catalog.nodes) node.id];
+    return ids.sublist(0, ids.indexOf(nodeId) + 1);
+  }
+
+  Future<void> revealAll(WidgetTester tester) async {
+    if (find.text(l10n.campaignSkip).evaluate().isNotEmpty) {
+      await tester.tap(find.text(l10n.campaignSkip));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+  }
+
+  testWidgets('босс Велена главу не заканчивает: Новиград не объявляется, «Дальше» ведёт к Замковому воеводе', (
+    tester,
+  ) async {
+    final won = await win(tester, through('c2-11'));
+    expect(won.chapterCleared, isNull);
+    String? next;
+
+    await pumpReward(tester, won, onNext: (id) => next = id);
+    await revealAll(tester);
+
+    expect(find.text(l10n.campaignChapterOpened(3, 'Новиград')), findsNothing);
+    await tester.tap(find.text(l10n.campaignNext('Замковый воевода')));
+    expect(next, 'c2-12');
+    expectNoFallbackTextStyle(tester);
+  });
+
+  testWidgets('последняя партия Велена заканчивает главу и объявляет Новиград', (tester) async {
+    final won = await win(tester, through('c2-12'));
+    expect(won.chapterCleared!.id, 'c2');
+
+    await pumpReward(tester, won);
+    await revealAll(tester);
+
+    expect(find.text(l10n.campaignChapterOpened(3, 'Новиград')), findsOneWidget);
+    expect(find.text(l10n.campaignChapterClearedRibbon(2).toUpperCase()), findsOneWidget);
+    expectNoFallbackTextStyle(tester);
+  });
 }

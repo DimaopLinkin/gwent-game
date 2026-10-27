@@ -76,12 +76,10 @@ final class ChapterView {
   /// Босс главы, если он есть.
   NodeView? get boss => nodes.where((node) => node.node.kind == NodeKind.boss).firstOrNull;
 
-  /// Глава пройдена: побеждён её босс, а если босса нет, пройдены все основные узлы.
-  bool get isCleared {
-    final boss = this.boss;
-    if (boss != null) return boss.status == NodeStatus.passed;
-    return nodes.where((node) => node.node.kind != NodeKind.order).every((node) => node.status == NodeStatus.passed);
-  }
+  /// Глава пройдена: пройдены все основные узлы (не заказы), в том числе босс. В главе 2 после босса есть ещё партия,
+  /// она и открывает следующую главу, поэтому босс один главу не заканчивает.
+  bool get isCleared =>
+      nodes.where((node) => node.node.kind != NodeKind.order).every((node) => node.status == NodeStatus.passed);
 
   /// Глава ждёт выпуска: играть в её узлах нельзя.
   bool get isComingSoon => !chapter.released;

@@ -3639,7 +3639,7 @@
   "@campaignChapterSoonNote": {
     "description": "Пояснение в листе узла невыпущенной главы."
   },
-  "campaignChapterLocked": "Откроется после босса главы {number}",
+  "campaignChapterLocked": "Откроется после главы {number}",
   "@campaignChapterLocked": {
     "description": "Причина, по которой глава закрыта.",
     "placeholders": {

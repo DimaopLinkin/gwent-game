@@ -244,7 +244,22 @@ void main() {
       final result = await won('c1-09', win());
 
       expect(result.chapterCleared!.id, 'c1');
-      expect(result.unlockedNodeIds, isEmpty, reason: 'глава 2 ещё не выпущена');
+      expect(result.unlockedNodeIds, ['c2-00'], reason: 'босс главы 1 открывает первый узел Велена');
+    });
+
+    test('в главе 2 босс главу не заканчивает: её заканчивает следующая партия и открывает Новиград', () async {
+      await passAll([
+        'c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08', 'c1-09', //
+        'c2-00', 'c2-01', 'c2-03', 'c2-04', 'c2-06', 'c2-07', 'c2-08', 'c2-10',
+      ]);
+
+      final boss = await won('c2-11', win());
+      expect(boss.chapterCleared, isNull);
+      expect(boss.unlockedNodeIds, ['c2-12']);
+
+      final last = await won('c2-12', win());
+      expect(last.chapterCleared!.id, 'c2');
+      expect(last.unlockedNodeIds, ['c3-00']);
     });
 
     test('победа в c1-03 открывает основной узел и заказ', () async {

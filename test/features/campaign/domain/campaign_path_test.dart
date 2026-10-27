@@ -40,34 +40,44 @@ void main() {
     expect(status(afterStart, 'c1-07'), 'locked', reason: 'заказ c1-07 ждёт c1-06');
   });
 
-  test('когда остались только заказы, «Продолжить» ведёт на заказ', () {
-    final onlyOrders = path([
-      'c1-00',
-      'c1-01',
-      'c1-02',
-      'c1-03',
-      'c1-05',
-      'c1-06',
-      'c1-08',
-      'c1-09',
-    ]);
-    expect(onlyOrders.nodes.where((node) => node.status == NodeStatus.open).map((node) => node.node.id), [
+  test('после основного пути главы 1 заказы ждут, а «Продолжить» ведёт в главу 2', () {
+    final afterBoss = path(['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08', 'c1-09']);
+    expect(afterBoss.nodes.where((node) => node.status == NodeStatus.open).map((node) => node.node.id), [
       'c1-04',
       'c1-07',
+      'c2-00',
     ]);
-    expect(onlyOrders.current!.node.id, 'c1-04');
+    expect(afterBoss.current!.node.id, 'c2-00', reason: 'основной путь идёт раньше заказов');
   });
 
-  test('глава 1 пройдена победой над боссом, главы 2–4 закрыты как «скоро», узлы в них не играются', () {
+  test('глава 1 пройдена победой над боссом: глава 2 открывается, главы 3 и 4 закрыты до своих боссов', () {
     final cleared = path(['c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08', 'c1-09']);
     final chapter1 = cleared.chapters.first;
     expect(chapter1.isCleared, isTrue);
     expect(chapter1.passedCount, 8);
     expect(chapter1.totalCount, 10);
-    expect(cleared.chapters.skip(1).every((chapter) => chapter.isComingSoon && !chapter.isUnlocked), isTrue);
-    expect(cleared.node('c2-00')!.status, NodeStatus.locked, reason: 'глава 2 не выпущена, хотя босс 1 побеждён');
-    expect(cleared.node('c2-00')!.isComingSoon, isTrue);
-    expect(cleared.node('c2-00')!.isPlayable, isFalse);
+    expect(cleared.chapters.every((chapter) => !chapter.isComingSoon), isTrue, reason: 'все главы выпущены');
+    expect(cleared.chapters[1].isUnlocked, isTrue);
+    expect(cleared.node('c2-00')!.status, NodeStatus.open);
+    expect(cleared.node('c2-00')!.isPlayable, isTrue);
+    expect(cleared.chapters.skip(2).every((chapter) => !chapter.isUnlocked), isTrue);
+    expect(cleared.node('c3-00')!.isPlayable, isFalse, reason: 'глава 3 ждёт босса главы 2');
+  });
+
+  test('глава 2 заканчивается партией после босса: она же открывает Новиград', () {
+    final afterBoss = [
+      'c1-00', 'c1-01', 'c1-02', 'c1-03', 'c1-05', 'c1-06', 'c1-08', 'c1-09', //
+      'c2-00', 'c2-01', 'c2-03', 'c2-04', 'c2-06', 'c2-07', 'c2-08', 'c2-10', 'c2-11',
+    ];
+    final bossOnly = path(afterBoss);
+    expect(bossOnly.chapters[1].isCleared, isFalse, reason: 'после Лешего остаётся «Замковый воевода»');
+    expect(bossOnly.node('c2-12')!.status, NodeStatus.open);
+    expect(bossOnly.node('c3-00')!.status, NodeStatus.locked);
+
+    final done = path([...afterBoss, 'c2-12']);
+    expect(done.chapters[1].isCleared, isTrue);
+    expect(done.node('c3-00')!.status, NodeStatus.open);
+    expect(done.node('c4-00')!.status, NodeStatus.locked, reason: 'Скеллиге ждёт босса Новиграда');
   });
 
   test('пройденный узел можно играть снова, закрытый нельзя', () {
