@@ -51,6 +51,7 @@ class MatchScreen extends StatefulWidget {
     this.opponentStatus,
     this.onRematchAgreed,
     this.lesson,
+    this.pauseNote,
     this.resultBuilder,
   });
 
@@ -87,6 +88,9 @@ class MatchScreen extends StatefulWidget {
   /// Урок («Первая партия», ADR 0034): слой подсказок на поле и лист завершения вместо итога матча; `null` — обычная
   /// партия.
   final FieldLesson? lesson;
+
+  /// Строка в меню паузы под заголовком (дополнительное задание узла кампании); `null` — строки нет.
+  final String? pauseNote;
 
   /// Итог партии вместо обычного листа (партия узла кампании, ADR 0033); `null` — обычный лист. Урок, если он есть,
   /// главнее.
@@ -309,6 +313,7 @@ class _MatchScreenState extends State<MatchScreen> {
           onHowToPlay: widget.onHowToPlay,
           opponentStatus: widget.opponentStatus,
           lesson: widget.lesson,
+          pauseNote: widget.pauseNote,
         ),
       },
       final MatchFinished finished when widget.lesson != null => widget.lesson!.finishedBuilder(context, finished),

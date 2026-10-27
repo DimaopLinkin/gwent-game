@@ -43,7 +43,7 @@ class CampaignRewardView extends StatefulWidget {
   /// Каталог и тексты.
   final CampaignData data;
 
-  /// «Дальше»: идти в узел с этим идентификатором.
+  /// «Дальше»: открыть лист узла с этим идентификатором (партия начинается на листе, а не сразу).
   final ValueChanged<String> onNext;
 
   /// «К тропе».

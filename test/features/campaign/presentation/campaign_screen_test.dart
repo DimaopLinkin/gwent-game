@@ -74,6 +74,7 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(390, 844),
     CampaignRepository? repository,
+    String? openNodeId,
   }) async {
     final path = repository ?? progress;
     tester.view
@@ -99,6 +100,7 @@ void main() {
         value: cubit,
         child: localizedScreen(
           CampaignScreen(
+            openNodeId: openNodeId,
             onBack: () {},
             onPlay: played.add,
             onFirstMatch: () => firstMatches++,
@@ -150,6 +152,40 @@ void main() {
       findsNothing,
       reason: 'колода кампании выбрана',
     );
+  });
+
+  testWidgets('«Дальше» на награде стартового набора открывает лист узла, а не начинает партию', (tester) async {
+    await settings.save(settings.saved.copyWith(firstMatchPassed: true));
+    await pumpTrail(tester);
+    final next = data.text(data.catalog.nodesById['c1-01']!.opponent.nameKey);
+
+    await tester.tap(find.text(l10n.campaignNext(next)));
+    await settle(tester);
+
+    expect(find.byType(CampaignNodeSheet), findsOneWidget);
+    expect(played, isEmpty, reason: 'партия начинается только кнопкой на листе');
+  });
+
+  testWidgets('тропа с адресом узла сразу открывает его лист; закрытый и неизвестный узлы игнорируются', (
+    tester,
+  ) async {
+    await tester.runAsync(() => record('c1-00', CampaignMatchFacts(won: true)));
+
+    await pumpTrail(tester, openNodeId: 'c1-01');
+    expect(find.byType(CampaignNodeSheet), findsOneWidget);
+    expect(played, isEmpty);
+    await tester.tap(find.text(l10n.campaignToBattle));
+    await settle(tester);
+    expect(played, ['c1-01'], reason: 'колода выбрана, «В бой» на листе идёт в партию');
+  });
+
+  testWidgets('закрытый узел в адресе лист не открывает', (tester) async {
+    await tester.runAsync(() => record('c1-00', CampaignMatchFacts(won: true)));
+
+    await pumpTrail(tester, openNodeId: 'c1-05');
+
+    expect(find.byType(CampaignNodeSheet), findsNothing);
+    expect(find.text(l10n.campaignTitle), findsOneWidget);
   });
 
   testWidgets('выдача стартового набора не удалась: тропа всё равно открывается', (tester) async {

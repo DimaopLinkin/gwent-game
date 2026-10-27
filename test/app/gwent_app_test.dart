@@ -12,6 +12,7 @@ import 'package:gwent/src/core/l10n/l10n.dart';
 import 'package:gwent/src/core/presentation/components/chevron_button.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_match_cubit.dart';
 import 'package:gwent/src/features/campaign/presentation/campaign_match_screen.dart';
+import 'package:gwent/src/features/campaign/presentation/campaign_node_sheet.dart';
 import 'package:gwent/src/features/campaign/presentation/card_book_screen.dart';
 import 'package:gwent/src/features/campaign/presentation/card_book_section_screen.dart';
 import 'package:gwent/src/features/content/data/asset_content_source.dart';
@@ -390,7 +391,9 @@ void main() {
     expect(find.byType(GwentLogo), findsOneWidget);
   });
 
-  testWidgets('кампания: «Дальше» ведёт в партию следующего узла, а не оставляет держатели прежнего', (tester) async {
+  testWidgets('кампания: адрес партии другого узла пересоздаёт держатели партии, а не оставляет прежнего узла', (
+    tester,
+  ) async {
     await pumpApp(tester);
     final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
 
@@ -401,6 +404,25 @@ void main() {
     router.go(AppRoutes.campaignPlay('c1-02'));
     await settleReal(tester);
     expect(tester.element(find.byType(CampaignMatchScreen)).read<CampaignMatchCubit>().nodeId, 'c1-02');
+  });
+
+  testWidgets('кампания: «Дальше» с партии возвращает на живую тропу и открывает лист узла из адреса', (tester) async {
+    await pumpApp(tester);
+    final router = GoRouter.of(tester.element(find.byType(GwentLogo)));
+
+    router.go(AppRoutes.campaign);
+    await settleReal(tester);
+    expect(find.byType(CampaignNodeSheet), findsNothing);
+    // Партия узла лежит над тропой, страница тропы остаётся в стеке и сохраняет состояние.
+    router.go(AppRoutes.campaignPlay('c1-01'));
+    await settleReal(tester);
+    expect(find.byType(CampaignMatchScreen), findsOneWidget);
+
+    router.go(AppRoutes.campaignOpen('c1-00'));
+    await settleReal(tester);
+
+    expect(find.byType(CampaignMatchScreen), findsNothing);
+    expect(find.byType(CampaignNodeSheet), findsOneWidget);
   });
 
   testWidgets('кампания: «Книга карт» открывается с адреса, строка раздела ведёт на страницу раздела и назад', (
