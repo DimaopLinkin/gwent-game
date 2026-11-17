@@ -256,18 +256,46 @@ void main() {
       expect(rowCards(result.state, Seat.one, Row.melee), ['vesemir']);
     });
 
-    test('Чудовища могут оставить героя и шпиона соперника, но не Чучело', () {
+    test('Чудовища не оставляют героя: выбор идёт среди обычных отрядов, Чучело не подходит', () {
       final result = endRound(
         one: const Side(
           leader: 'eredin_return',
           faction: Faction.monsters,
           hand: ['footman'],
-          melee: ['decoy', 'geralt'],
+          melee: ['decoy', 'geralt', 'footman'],
         ),
+        two: const Side(hand: ['footman'], passed: true),
+        // Единственный кандидат — пехотинец; героя Геральта и Чучело генератор не видит.
+        rng: const ScriptedRng([0]),
+      );
+      expect(rowCards(result.state, Seat.one, Row.melee), ['footman']);
+      expect(names(result.state.player(Seat.one).discard), ['decoy', 'geralt']);
+    });
+
+    test('Чудовища с одними героями на поле ничего не оставляют и не тратят число генератора', () {
+      final result = endRound(
+        one: const Side(
+          leader: 'eredin_return',
+          faction: Faction.monsters,
+          hand: ['footman'],
+          melee: ['geralt'],
+          ranged: ['yennefer'],
+        ),
+        two: const Side(hand: ['footman'], passed: true),
+        rng: const ScriptedRng([]),
+      );
+      expect(rowCards(result.state, Seat.one, Row.melee), isEmpty);
+      expect(rowCards(result.state, Seat.one, Row.ranged), isEmpty);
+      expect(result.events, isNot(contains(isA<UnitKept>())));
+    });
+
+    test('Чудовища могут оставить шпиона соперника, лежащего на их стороне', () {
+      final result = endRound(
+        one: const Side(leader: 'eredin_return', faction: Faction.monsters, hand: ['footman'], melee: ['skellen']),
         two: const Side(hand: ['footman'], passed: true),
         rng: const ScriptedRng([0]),
       );
-      expect(rowCards(result.state, Seat.one, Row.melee), ['geralt']);
+      expect(rowCards(result.state, Seat.one, Row.melee), ['skellen']);
     });
 
     test('оставленная Чудовищами Приманка ничего не призывает', () {
