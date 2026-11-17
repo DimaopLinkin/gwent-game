@@ -16,7 +16,7 @@ final class FactionPerks {
 
   final MatchContext _ctx;
 
-  /// Чудовища: случайная карта отряда своей стороны остаётся на поле. Игроки по порядку [order].
+  /// Чудовища: случайная карта обычного отряда (не героя) своей стороны остаётся на поле. Игроки по порядку [order].
   void keepRandomUnits(List<Seat> order) {
     for (final seat in order) {
       if (_ctx.player(seat).faction.perk == FactionPerk.keepRandomUnit) _keepRandomUnit(seat);
@@ -27,7 +27,7 @@ final class FactionPerks {
     final candidates = [
       for (final MapEntry(key: row, value: draftRow) in _ctx.player(seat).rows.entries)
         for (var i = 0; i < draftRow.cards.length; i++)
-          if (_ctx.unit(draftRow.cards[i].card) != null) (row, i),
+          if (_ctx.isNormalUnit(draftRow.cards[i].card)) (row, i),
     ];
     if (candidates.isEmpty) return;
     final (row, index) = candidates[_ctx.random(candidates.length)];
